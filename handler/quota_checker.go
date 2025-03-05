@@ -3,7 +3,7 @@
 import (
     "time"
 
-    "github.com/MmadF14/wireguard-ui/model"
+    // "github.com/MmadF14/wireguard-ui/model"
     "github.com/MmadF14/wireguard-ui/store"
     // پکیج util حذف شد چون در این کد استفاده‌ای از آن نداریم
     // "github.com/MmadF14/wireguard-ui/util"
