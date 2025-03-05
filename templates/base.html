@@ -211,10 +211,23 @@
                                 <label for="client_email" class="control-label">Email</label>
                                 <input type="text" class="form-control" id="client_email" name="client_email">
                             </div>
+                            <!-- فیلد جدید Quota -->
+                            <div class="form-group">
+                                <label for="client_quota" class="control-label">Quota (bytes)</label>
+                                <input type="number" class="form-control" id="client_quota" name="client_quota"
+                                       placeholder="Enter Quota in bytes" />
+                            </div>
+
+                            <!-- فیلد جدید Expiration -->
+                            <div class="form-group">
+                                <label for="client_expiration" class="control-label">Expiration Date</label>
+                                <input type="datetime-local" class="form-control" id="client_expiration" name="client_expiration"
+                                       placeholder="e.g. 2025-12-31T23:59" />
+                            </div>
                             <div class="form-group">
                                 <label for="subnet_ranges" class="control-label">Subnet range</label>
                                 <select id="subnet_ranges" class="select2"
-                                    data-placeholder="Select a subnet range" style="width: 100%;">
+                                        data-placeholder="Select a subnet range" style="width: 100%;">
                                 </select>
                             </div>
                             <div class="form-group">
@@ -222,17 +235,19 @@
                                 <input type="text" data-role="tagsinput" class="form-control" id="client_allocated_ips">
                             </div>
                             <div class="form-group">
-                                <label for="client_allowed_ips" class="control-label">Allowed IPs
+                                <label for="client_allowed_ips" class="control-label">
+                                    Allowed IPs
                                     <i class="fas fa-info-circle" data-toggle="tooltip"
                                        data-original-title="Specify a list of addresses that will get routed to the
                                        server. These addresses will be included in 'AllowedIPs' of client config">
                                     </i>
                                 </label>
                                 <input type="text" data-role="tagsinput" class="form-control" id="client_allowed_ips"
-                                    value="{{ StringsJoin .client_defaults.AllowedIps "," }}">
+                                       value="{{ StringsJoin .client_defaults.AllowedIps "," }}">
                             </div>
                             <div class="form-group">
-                                <label for="client_extra_allowed_ips" class="control-label">Extra Allowed IPs
+                                <label for="client_extra_allowed_ips" class="control-label">
+                                    Extra Allowed IPs
                                     <i class="fas fa-info-circle" data-toggle="tooltip"
                                        data-original-title="Specify a list of addresses that will get routed to the
                                        client. These addresses will be included in 'AllowedIPs' of WG server config">
@@ -246,7 +261,7 @@
                             </div>
                             <div class="form-group">
                                 <div class="icheck-primary d-inline">
-                                    <input type="checkbox" id="use_server_dns" {{ if .client_defaults.UseServerDNS }}checked{{ end }}>
+                                    <input type="checkbox" id="use_server_dns" {{ if .client_defaults.UseServerDNS }} checked{{ end }}>
                                     <label for="use_server_dns">
                                         Use server DNS
                                     </label>
@@ -254,14 +269,15 @@
                             </div>
                             <div class="form-group">
                                 <div class="icheck-primary d-inline">
-                                    <input type="checkbox" id="enabled" {{ if .client_defaults.EnableAfterCreation }}checked{{ end }}>
+                                    <input type="checkbox" id="enabled" {{ if .client_defaults.EnableAfterCreation }} checked{{ end }}>
                                     <label for="enabled">
                                         Enable after creation
                                     </label>
                                 </div>
                             </div>
                             <details>
-                                <summary><strong>Public and Preshared Keys</strong>
+                                <summary>
+                                    <strong>Public and Preshared Keys</strong>
                                     <i class="fas fa-info-circle" data-toggle="tooltip"
                                        data-original-title="If you don't want to let the server generate and store the
                                        client's private key, you can manually specify its public and preshared key here
@@ -282,7 +298,8 @@
                                 </div>
                             </details>
                             <details style="margin-top: 0.5rem;">
-                                <summary><strong>Additional configuration</strong>
+                                <summary>
+                                    <strong>Additional configuration</strong>
                                 </summary>
                                 <div class="form-group" style="margin-top: 0.5rem;">
                                     <label for="client_telegram_userid" class="control-label">Telegram userid</label>
@@ -472,24 +489,49 @@
                 extra_allowed_ips = $("#client_extra_allowed_ips").val().split(",");
             }
 
-
-            if ($("#use_server_dns").is(':checked')){
+            if ($("#use_server_dns").is(':checked')) {
                 use_server_dns = true;
             }
 
             let enabled = false;
-
-            if ($("#enabled").is(':checked')){
+            if ($("#enabled").is(':checked')) {
                 enabled = true;
             }
+
             const public_key = $("#client_public_key").val();
             const preshared_key = $("#client_preshared_key").val();
-            
             const additional_notes = $("#additional_notes").val();
 
-            const data = {"name": name, "email": email, "telegram_userid": telegram_userid, "allocated_ips": allocated_ips, "allowed_ips": allowed_ips,
-                "extra_allowed_ips": extra_allowed_ips, "endpoint": endpoint, "use_server_dns": use_server_dns, "enabled": enabled,
-                "public_key": public_key, "preshared_key": preshared_key, "additional_notes": additional_notes};
+            // دریافت Quota از فیلد مربوطه
+            const quota = parseInt($("#client_quota").val(), 10) || 0;
+
+            // دریافت تاریخ انقضا و تبدیل به فرمت ISO8601 (UTC)
+            let expirationValue = $("#client_expiration").val(); // مثلاً "2025-12-31T23:59"
+            let expirationIso = "";
+            if (expirationValue) {
+                // تبدیل تاریخ لوکال به فرمت UTC
+                expirationIso = new Date(expirationValue).toISOString();
+            }
+
+            // ساخت آبجکت data برای ارسال به سرور
+            const data = {
+                name: name,
+                email: email,
+                telegram_userid: telegram_userid,
+                allocated_ips: allocated_ips,
+                allowed_ips: allowed_ips,
+                extra_allowed_ips: extra_allowed_ips,
+                endpoint: endpoint,
+                use_server_dns: use_server_dns,
+                enabled: enabled,
+                public_key: public_key,
+                preshared_key: preshared_key,
+                additional_notes: additional_notes,
+
+                // فیلدهای جدید
+                quota: quota,
+                expiration: expirationIso
+            };
 
             $.ajax({
                 cache: false,
@@ -498,21 +540,22 @@
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function(resp) {
+                success: function (resp) {
                     $("#modal_new_client").modal('hide');
                     toastr.success('Created new client successfully');
-                    // Update the home page (clients page) after adding successfully
+                    // اگر در صفحه اصلی هستید، لیست کلاینت‌ها را به‌روزرسانی کنید
                     if (window.location.pathname === "{{.basePath}}/") {
                         populateClient(resp.id);
                     }
-                    updateApplyConfigVisibility()
+                    updateApplyConfigVisibility();
                 },
-                error: function(jqXHR, exception) {
+                error: function (jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
         }
+
 
         // updateIPAllocationSuggestion function for automatically fill
         // the IP Allocation input with suggested ip addresses

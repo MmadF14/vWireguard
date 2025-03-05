@@ -1,4 +1,4 @@
-package handler
+﻿package handler
 
 import (
 	"crypto/subtle"
@@ -414,6 +414,16 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		var client model.Client
 		c.Bind(&client)
 
+		// اعتبارسنجی مقدار Quota
+		if client.Quota < 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
+		}
+
+		// اعتبارسنجی تاریخ انقضا (اگر مقداردهی شده باشد و گذشته باشد)
+		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		}
+
 		// Validate Telegram userid if provided
 		if client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(client.TgUserid, 10, 64)
@@ -500,6 +510,7 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard preshared key"})
 			}
 		}
+
 		client.CreatedAt = time.Now().UTC()
 		client.UpdatedAt = client.CreatedAt
 
@@ -514,6 +525,7 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, client)
 	}
 }
+
 
 // EmailClient handler to send the configuration via email
 func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailContent string) echo.HandlerFunc {
@@ -650,7 +662,9 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 				false, fmt.Sprintf("Cannot fetch server config: %s", err),
 			})
 		}
+
 		client := *clientData.Client
+
 		// validate the input Allocation IPs
 		allocatedIPs, err := util.GetAllocatedIPs(client.ID)
 		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, _client.AllocatedIPs)
@@ -665,7 +679,7 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		if util.ValidateExtraAllowedIPs(_client.ExtraAllowedIPs) == false {
-			log.Warnf("Invalid Allowed IPs input from user: %v", _client.ExtraAllowedIPs)
+			log.Warnf("Invalid Extra AllowedIPs input from user: %v", _client.ExtraAllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra Allowed IPs must be in CIDR format"})
 		}
 
@@ -691,8 +705,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 
 			// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
 			// Client PubKey no longer corresponds to locally stored PrivKey.
-			// QR code (needs PrivateKey) for this client is no longer possible now.
-
 			if client.PrivateKey != "" {
 				client.PrivateKey = ""
 			}
@@ -707,7 +719,19 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// map new data
+		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
+		client.Quota = _client.Quota
+		client.Expiration = _client.Expiration
+
+		// اعتبارسنجی Quota و Expiration
+		if client.Quota < 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
+		}
+		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		}
+
+		// map other data
 		client.Name = _client.Name
 		client.Email = _client.Email
 		client.TgUserid = _client.TgUserid
@@ -731,6 +755,7 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated client successfully"})
 	}
 }
+
 
 // SetClientStatus handler to enable / disable a client
 func SetClientStatus(db store.IStore) echo.HandlerFunc {

@@ -1,4 +1,4 @@
-{{define "title"}}
+﻿{{define "title"}}
 Wireguard Clients
 {{end}}
 
@@ -130,9 +130,20 @@ Wireguard Clients
                         <input type="text" class="form-control" id="_client_email" name="client_email">
                     </div>
                     <div class="form-group">
+                        <label for="_client_quota" class="control-label">Quota (bytes)</label>
+                        <input type="number" class="form-control" id="_client_quota" name="_client_quota" placeholder="Enter Quota in bytes" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="_client_expiration" class="control-label">Expiration Date</label>
+                        <!-- از نوع datetime-local استفاده می‌کنیم تا کاربر بتواند تاریخ و ساعت انتخاب کند -->
+                        <input type="datetime-local" class="form-control" id="_client_expiration" name="_client_expiration" placeholder="e.g. 2025-12-31T23:59" />
+                    </div>
+
+                    <div class="form-group">
                         <label for="_subnet_ranges" class="control-label">Subnet range</label>
                         <select id="_subnet_ranges" class="select2"
-                            data-placeholder="Select a subnet range" style="width: 100%;">
+                                data-placeholder="Select a subnet range" style="width: 100%;">
                         </select>
                     </div>
                     <div class="form-group">
@@ -169,7 +180,8 @@ Wireguard Clients
                         </div>
                     </div>
                     <details>
-                        <summary><strong>Public and Preshared Keys</strong>
+                        <summary>
+                            <strong>Public and Preshared Keys</strong>
                             <i class="fas fa-info-circle" data-toggle="tooltip"
                                data-original-title="Update the server stored
                                client Public and Preshared keys.">
@@ -189,7 +201,8 @@ Wireguard Clients
                         </div>
                     </details>
                     <details style="margin-top: 0.5rem;">
-                        <summary><strong>Additional configuration</strong>
+                        <summary>
+                            <strong>Additional configuration</strong>
                         </summary>
                         <div class="form-group" style="margin-top: 0.5rem;">
                             <label for="_client_telegram_userid" class="control-label">Telegram userid</label>
@@ -608,13 +621,13 @@ Wireguard Clients
                     'height': '75%',
                     'interactive': true,
                     'defaultText': 'Add More',
-                    'removeWithBackspace' : true,
+                    'removeWithBackspace': true,
                     'minChars': 0,
                     'minInputWidth': '100%',
                     'placeholderColor': '#666666'
                 })
 
-                // update client modal data
+                // دریافت اطلاعات کلاینت از سرور
                 $.ajax({
                     cache: false,
                     method: 'GET',
@@ -624,45 +637,68 @@ Wireguard Clients
                     success: function (resp) {
                         const client = resp.Client;
 
+                        // مقداردهی عنوان مدال
                         modal.find(".modal-title").text("Edit Client " + client.name);
+
+                        // مقداردهی فیلدهای پنهان
                         modal.find("#_client_id").val(client.id);
                         modal.find("#_client_telegram_userid").val(client.telegram_userid);
+
+                        // مقداردهی فیلدهای ساده
                         modal.find("#_client_name").val(client.name);
                         modal.find("#_client_email").val(client.email);
+                        modal.find("#_client_endpoint").val(client.endpoint);
+                        modal.find("#_client_public_key").val(client.public_key);
+                        modal.find("#_client_preshared_key").val(client.preshared_key);
+                        modal.find("#_additional_notes").val(client.additional_notes);
 
-                        let preselectedEl
-                        if (client.subnet_ranges && client.subnet_ranges.length > 0) {
-                            preselectedEl = client.subnet_ranges[0]
+                        // مقداردهی Quota
+                        modal.find("#_client_quota").val(client.quota);
+
+                        // مقداردهی Expiration (تبدیل تاریخ UTC به فرمت datetime-local)
+                        if (client.expiration) {
+                            let dt = new Date(client.expiration); // مثلاً "2025-12-31T23:59:59Z"
+                            let year = dt.getFullYear();
+                            let month = String(dt.getMonth() + 1).padStart(2, '0');
+                            let day = String(dt.getDate()).padStart(2, '0');
+                            let hour = String(dt.getHours()).padStart(2, '0');
+                            let min = String(dt.getMinutes()).padStart(2, '0');
+                            let localDatetime = `${year}-${month}-${day}T${hour}:${min}`;
+                            modal.find("#_client_expiration").val(localDatetime);
+                        } else {
+                            modal.find("#_client_expiration").val("");
                         }
 
+                        // مقداردهی Subnet range
+                        let preselectedEl;
+                        if (client.subnet_ranges && client.subnet_ranges.length > 0) {
+                            preselectedEl = client.subnet_ranges[0];
+                        }
                         updateSubnetRangesList("#_subnet_ranges", preselectedEl);
 
+                        // مقداردهی Allocated IPs
                         modal.find("#_client_allocated_ips").importTags('');
                         client.allocated_ips.forEach(function (obj) {
                             modal.find("#_client_allocated_ips").addTag(obj);
                         });
 
+                        // مقداردهی Allowed IPs
                         modal.find("#_client_allowed_ips").importTags('');
                         client.allowed_ips.forEach(function (obj) {
                             modal.find("#_client_allowed_ips").addTag(obj);
                         });
 
+                        // مقداردهی Extra Allowed IPs
                         modal.find("#_client_extra_allowed_ips").importTags('');
                         client.extra_allowed_ips.forEach(function (obj) {
                             modal.find("#_client_extra_allowed_ips").addTag(obj);
                         });
 
-                        modal.find("#_client_endpoint").val(client.endpoint);
-
+                        // مقداردهی Use server DNS و Enable
                         modal.find("#_use_server_dns").prop("checked", client.use_server_dns);
                         modal.find("#_enabled").prop("checked", client.enabled);
 
-                        modal.find("#_client_public_key").val(client.public_key);
-                        modal.find("#_client_preshared_key").val(client.preshared_key);
-                        
-                        modal.find("#_additional_notes").val(client.additional_notes);
-
-                        // handle subnet range select
+                        // اگر subnet range تغییر کرد، IP Allocation جدید پیشنهاد بده
                         $('#_subnet_ranges').on('select2:select', function (e) {
                             updateIPAllocationSuggestionExisting();
                         });
@@ -751,7 +787,7 @@ Wireguard Clients
             });
         }
 
-        // submitEditClient function for updating an existing client
+        //  function for updating an existing client
         // This sends dialogue data to the back-end when user presses "Save"
         // See e.g. routes.go:UpdateClient for where data is processed/verified.
         function submitEditClient() {
@@ -766,27 +802,53 @@ Wireguard Clients
             const public_key = $("#_client_public_key").val();
             const preshared_key = $("#_client_preshared_key").val();
 
-            if( $("#_client_extra_allowed_ips").val() !== "" ) {
-                extra_allowed_ips = $("#_client_extra_allowed_ips").val().split(",");
+            // اضافه کردن Quota
+            const quota = parseInt($("#_client_quota").val(), 10) || 0;
+
+            // اضافه کردن Expiration
+            let expirationValue = $("#_client_expiration").val(); // چیزی مثل "2025-12-31T23:59"
+            let expirationIso = "";
+            if (expirationValue) {
+                // تبدیل تاریخ لوکال به فرمت ISO8601 (UTC)
+                // توجه کنید که این کار ممکن است تایم‌زون را تغییر دهد.
+                expirationIso = new Date(expirationValue).toISOString();
             }
 
+            if ($("#_client_extra_allowed_ips").val() !== "") {
+                extra_allowed_ips = $("#_client_extra_allowed_ips").val().split(",");
+            }
             const endpoint = $("#_client_endpoint").val();
 
-            if ($("#_use_server_dns").is(':checked')){
+            if ($("#_use_server_dns").is(':checked')) {
                 use_server_dns = true;
             }
 
             let enabled = false;
-
-            if ($("#_enabled").is(':checked')){
+            if ($("#_enabled").is(':checked')) {
                 enabled = true;
             }
 
             const additional_notes = $("#_additional_notes").val();
 
-            const data = {"id": client_id, "name": name, "email": email, "telegram_userid": telegram_userid, "allocated_ips": allocated_ips,
-                "allowed_ips": allowed_ips, "extra_allowed_ips": extra_allowed_ips, "endpoint": endpoint,
-                "use_server_dns": use_server_dns, "enabled": enabled, "public_key": public_key, "preshared_key": preshared_key, "additional_notes": additional_notes};
+            const data = {
+                "id": client_id,
+                "name": name,
+                "email": email,
+                "telegram_userid": telegram_userid,
+                "allocated_ips": allocated_ips,
+                "allowed_ips": allowed_ips,
+                "extra_allowed_ips": extra_allowed_ips,
+                "endpoint": endpoint,
+                "use_server_dns": use_server_dns,
+                "enabled": enabled,
+                "public_key": public_key,
+                "preshared_key": preshared_key,
+                "additional_notes": additional_notes,
+
+                // فیلدهای جدید
+                "quota": quota,
+                "expiration": expirationIso
+            };
 
             $.ajax({
                 cache: false,
@@ -795,18 +857,19 @@ Wireguard Clients
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function(resp) {
+                success: function (resp) {
                     $("#modal_edit_client").modal('hide');
                     toastr.success('Updated client successfully');
-                     // Refresh the home page (clients page) after updating successfully
+                    // بعد از ویرایش، لیست کلاینت‌ها را رفرش یا صفحه را رفرش کنید
                     location.reload();
                 },
-                error: function(jqXHR, exception) {
+                error: function (jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
         }
+
 
         // submitHandler
         function submitHandler(form) {
