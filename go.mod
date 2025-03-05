@@ -1,4 +1,4 @@
-module github.com/ngoduykhanh/wireguard-ui
+module github.com/MmadF14/wireguard-ui
 
 go 1.21
 
