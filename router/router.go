@@ -61,52 +61,52 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	e.Use(session.Middleware(cookieStore))
 
 	// read html template file to string
-	tmplBaseString, err := util.StringFromEmbedFile(tmplDir, "templates/base.html")
+	tmplBaseString, err := util.StringFromEmbedFile(tmplDir, "/templates/base.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplLoginString, err := util.StringFromEmbedFile(tmplDir, "templates/login.html")
+	tmplLoginString, err := util.StringFromEmbedFile(tmplDir, "/templates/login.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplProfileString, err := util.StringFromEmbedFile(tmplDir, "templates/profile.html")
+	tmplProfileString, err := util.StringFromEmbedFile(tmplDir, "/templates/profile.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplClientsString, err := util.StringFromEmbedFile(tmplDir, "templates/clients.html")
+	tmplClientsString, err := util.StringFromEmbedFile(tmplDir, "/templates/clients.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplServerString, err := util.StringFromEmbedFile(tmplDir, "templates/server.html")
+	tmplServerString, err := util.StringFromEmbedFile(tmplDir, "/templates/server.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplGlobalSettingsString, err := util.StringFromEmbedFile(tmplDir, "templates/global_settings.html")
+	tmplGlobalSettingsString, err := util.StringFromEmbedFile(tmplDir, "/templates/global_settings.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplUsersSettingsString, err := util.StringFromEmbedFile(tmplDir, "templates/users_settings.html")
+	tmplUsersSettingsString, err := util.StringFromEmbedFile(tmplDir, "/templates/users_settings.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplStatusString, err := util.StringFromEmbedFile(tmplDir, "templates/status.html")
+	tmplStatusString, err := util.StringFromEmbedFile(tmplDir, "/templates/status.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	tmplWakeOnLanHostsString, err := util.StringFromEmbedFile(tmplDir, "templates/wake_on_lan_hosts.html")
+	tmplWakeOnLanHostsString, err := util.StringFromEmbedFile(tmplDir, "/templates/wake_on_lan_hosts.html")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	aboutPageString, err := util.StringFromEmbedFile(tmplDir, "templates/about.html")
+	aboutPageString, err := util.StringFromEmbedFile(tmplDir, "/templates/about.html")
 	if err != nil {
 		log.Fatal(err)
 	}
