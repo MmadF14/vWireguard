@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
-	"github.com/ngoduykhanh/wireguard-ui/util"
+	"github.com/MmadF14/wireguard-ui/util"
 )
 
 func ValidSession(next echo.HandlerFunc) echo.HandlerFunc {
