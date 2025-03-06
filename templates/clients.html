@@ -391,18 +391,50 @@ Wireguard Clients
             });
         }
 
-        function resumeClient(clientID) {
-            setClientStatus(clientID, true);
-            const divElement = document.getElementById("paused_" + clientID);
-            divElement.style.visibility = "hidden";
-            updateApplyConfigVisibility()
-        }
-
         function pauseClient(clientID) {
             setClientStatus(clientID, false);
             const divElement = document.getElementById("paused_" + clientID);
             divElement.style.visibility = "visible";
-            updateApplyConfigVisibility()
+            
+            // اعمال تغییرات در پیکربندی WireGuard
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/api/apply-wg-config',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
+                    toastr.success('Client disabled and configuration applied successfully');
+                    updateApplyConfigVisibility();
+                },
+                error: function(jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
+        }
+
+        function resumeClient(clientID) {
+            setClientStatus(clientID, true);
+            const divElement = document.getElementById("paused_" + clientID);
+            divElement.style.visibility = "hidden";
+            
+            // اعمال تغییرات در پیکربندی WireGuard
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/api/apply-wg-config',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
+                    toastr.success('Client enabled and configuration applied successfully');
+                    updateApplyConfigVisibility();
+                },
+                error: function(jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
         }
 
         // updateIPAllocationSuggestion function for automatically fill
@@ -1190,6 +1222,32 @@ Wireguard Clients
 
                 if (client.updated_at) {
                     html += `<span class="info-box-text"><i class="fas fa-history"></i> ${prettyDateTime(client.updated_at)}</span>`;
+                }
+
+                // نمایش حجم مصرفی و باقی‌مانده
+                if (client.quota) {
+                    const quotaGB = (client.quota / (1024 * 1024 * 1024)).toFixed(1);
+                    const usedGB = client.used_quota ? (client.used_quota / (1024 * 1024 * 1024)).toFixed(1) : 0;
+                    const remainingGB = (quotaGB - usedGB).toFixed(1);
+                    html += `<span class="info-box-text"><i class="fas fa-database"></i> Usage: ${usedGB}GB / ${quotaGB}GB (${remainingGB}GB remaining)</span>`;
+                } else {
+                    html += `<span class="info-box-text"><i class="fas fa-database"></i> Unlimited</span>`;
+                }
+
+                // نمایش تاریخ انقضا
+                if (client.expiration) {
+                    const expDate = new Date(client.expiration);
+                    const now = new Date();
+                    const daysRemaining = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                    
+                    let expirationClass = '';
+                    if (daysRemaining <= 0) {
+                        expirationClass = 'text-danger';
+                    } else if (daysRemaining <= 7) {
+                        expirationClass = 'text-warning';
+                    }
+                    
+                    html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
                 }
 
                 // نمایش DNS سرور
