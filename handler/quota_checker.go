@@ -68,6 +68,16 @@ func checkQuotasAndExpiration(db store.IStore) {
         log.Printf("Checking client: %s", client.Name)
         wasEnabled := client.Enabled
 
+        // بروزرسانی مصرف کلاینت
+        if usage, ok := usageMap[client.PublicKey]; ok {
+            total := usage[0] + usage[1] // جمع ارسال و دریافت
+            client.UsedQuota = int64(total)
+            if err := db.SaveClient(*client); err != nil {
+                log.Printf("Error saving client %s usage data: %v", client.Name, err)
+            }
+            log.Printf("Client %s usage updated: %d bytes", client.Name, total)
+        }
+
         // بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
         if !client.Expiration.IsZero() {  // فقط اگر تاریخ انقضا تنظیم شده باشد، چک می‌کنیم
             if time.Now().After(client.Expiration) {
@@ -111,6 +121,8 @@ func checkQuotasAndExpiration(db store.IStore) {
     if configChanged {
         if err := applyWireGuardConfig(db); err != nil {
             log.Printf("Error applying WireGuard config: %v", err)
+        } else {
+            log.Printf("Successfully applied WireGuard config after disabling clients")
         }
     }
 }
@@ -166,19 +178,19 @@ func applyWireGuardConfig(db store.IStore) error {
         }
     }
 
-    // Reload WireGuard service using systemctl
-    serviceName := fmt.Sprintf("wg-quick@%s.service", interfaceName)
-    
-    // Reload the service configuration
-    cmd := exec.Command("systemctl", "reload", serviceName)
+    // Reload WireGuard configuration
+    cmd := exec.Command("wg-quick", "strip", interfaceName)
     if err := cmd.Run(); err != nil {
-        // If reload fails, try restart as fallback
-        cmd = exec.Command("systemctl", "restart", serviceName)
-        if err := cmd.Run(); err != nil {
-            return fmt.Errorf("error restarting WireGuard service: %v", err)
-        }
+        log.Printf("Error stripping WireGuard config: %v", err)
     }
 
+    cmd = exec.Command("wg-quick", "up", interfaceName)
+    if err := cmd.Run(); err != nil {
+        log.Printf("Error applying WireGuard config: %v", err)
+        return fmt.Errorf("error applying WireGuard config: %v", err)
+    }
+
+    log.Printf("Successfully applied WireGuard configuration")
     return nil
 }
 
