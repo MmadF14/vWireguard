@@ -1232,8 +1232,8 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
 		}
 
-		// 1. Get client info
-		client, err := db.GetClientByID(req.ID)
+		// 1. Get client info with empty QR settings since we don't need QR
+		clientData, err := db.GetClientByID(req.ID, model.QRCodeSettings{})
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
@@ -1246,7 +1246,7 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 		defer wg.Close()
 
 		// 3. Remove peer from interface
-		key, err := wgtypes.ParseKey(client.PublicKey)
+		key, err := wgtypes.ParseKey(clientData.Client.PublicKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
 		}
@@ -1263,7 +1263,7 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 			Remove:    true,
 		}
 
-		err = wg.ConfigureDevice(settings.Interface, wgtypes.Config{
+		err = wg.ConfigureDevice(settings.ConfigFilePath, wgtypes.Config{
 			Peers: []wgtypes.PeerConfig{config},
 		})
 		if err != nil {
@@ -1271,7 +1271,7 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// 4. Log the action
-		log.Infof("Client %s (%s) terminated: %s", client.Name, client.ID, req.Reason)
+		log.Infof("Client %s (%s) terminated: %s", clientData.Client.Name, clientData.Client.ID, req.Reason)
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client terminated successfully"})
 	}
