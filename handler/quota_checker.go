@@ -3,8 +3,8 @@
 import (
     "log"
     "time"
-    "github.com/ngoduykhanh/wireguard-ui/model"
-    "github.com/ngoduykhanh/wireguard-ui/store"
+    "github.com/MmadF14/wireguard-ui/model"
+    "github.com/MmadF14/wireguard-ui/store"
     "golang.zx2c4.com/wireguard/wgctrl"
 )
 
