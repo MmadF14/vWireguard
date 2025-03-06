@@ -372,6 +372,24 @@ Wireguard Clients
             });
         }
 
+        function autoApplyConfig() {
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/api/apply-wg-config-confirm',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
+                    toastr.success('Configuration applied successfully');
+                    updateApplyConfigVisibility();
+                },
+                error: function(jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
+        }
+
         function setClientStatus(clientID, status) {
             const data = {"id": clientID, "status": status};
             $.ajax({
@@ -383,6 +401,7 @@ Wireguard Clients
                 data: JSON.stringify(data),
                 success: function (data) {
                     console.log("Set client " + clientID + " status to " + status);
+                    autoApplyConfig(); // اعمال خودکار تغییرات
                 },
                 error: function (jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
@@ -395,46 +414,12 @@ Wireguard Clients
             setClientStatus(clientID, false);
             const divElement = document.getElementById("paused_" + clientID);
             divElement.style.visibility = "visible";
-            
-            // اعمال تغییرات در پیکربندی WireGuard
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/api/apply-wg-config',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    toastr.success('Client disabled and configuration applied successfully');
-                    updateApplyConfigVisibility();
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
         }
 
         function resumeClient(clientID) {
             setClientStatus(clientID, true);
             const divElement = document.getElementById("paused_" + clientID);
             divElement.style.visibility = "hidden";
-            
-            // اعمال تغییرات در پیکربندی WireGuard
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/api/apply-wg-config',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    toastr.success('Client enabled and configuration applied successfully');
-                    updateApplyConfigVisibility();
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
         }
 
         // updateIPAllocationSuggestion function for automatically fill
@@ -686,7 +671,7 @@ Wireguard Clients
                         toastr.success('Removed client successfully');
                         const divElement = document.getElementById('client_' + client_id);
                         divElement.style.display = "none";
-                        updateApplyConfigVisibility()
+                        autoApplyConfig(); // اعمال خودکار تغییرات
                     },
                     error: function(jqXHR, exception) {
                         const responseJson = jQuery.parseJSON(jqXHR.responseText);
@@ -1230,6 +1215,30 @@ Wireguard Clients
                     const usedGB = client.used_quota ? (client.used_quota / (1024 * 1024 * 1024)).toFixed(1) : 0;
                     const remainingGB = (quotaGB - usedGB).toFixed(1);
                     html += `<span class="info-box-text"><i class="fas fa-database"></i> Usage: ${usedGB}GB / ${quotaGB}GB (${remainingGB}GB remaining)</span>`;
+                    
+                    // اگر حجم مصرفی تمام شده باشد، کلاینت را غیرفعال کن
+                    if (parseFloat(remainingGB) <= 0 && client.enabled) {
+                        setClientStatus(client.id, false);
+                        const divElement = document.getElementById("paused_" + client.id);
+                        divElement.style.visibility = "visible";
+                        
+                        // اعمال تغییرات در پیکربندی WireGuard
+                        $.ajax({
+                            cache: false,
+                            method: 'POST',
+                            url: '{{.basePath}}/api/apply-wg-config',
+                            dataType: 'json',
+                            contentType: "application/json",
+                            success: function(data) {
+                                toastr.success('Client disabled and configuration applied successfully');
+                                updateApplyConfigVisibility();
+                            },
+                            error: function(jqXHR, exception) {
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                toastr.error(responseJson['message']);
+                            }
+                        });
+                    }
                 } else {
                     html += `<span class="info-box-text"><i class="fas fa-database"></i> Unlimited</span>`;
                 }
@@ -1243,11 +1252,36 @@ Wireguard Clients
                     let expirationClass = '';
                     if (daysRemaining <= 0) {
                         expirationClass = 'text-danger';
+                        // اگر تاریخ انقضا گذشته باشد و کلاینت هنوز فعال باشد، آن را غیرفعال کن
+                        if (client.enabled) {
+                            setClientStatus(client.id, false);
+                            const divElement = document.getElementById("paused_" + client.id);
+                            divElement.style.visibility = "visible";
+                            
+                            // اعمال تغییرات در پیکربندی WireGuard
+                            $.ajax({
+                                cache: false,
+                                method: 'POST',
+                                url: '{{.basePath}}/api/apply-wg-config',
+                                dataType: 'json',
+                                contentType: "application/json",
+                                success: function(data) {
+                                    toastr.success('Client disabled and configuration applied successfully');
+                                    updateApplyConfigVisibility();
+                                },
+                                error: function(jqXHR, exception) {
+                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                    toastr.error(responseJson['message']);
+                                }
+                            });
+                        }
                     } else if (daysRemaining <= 7) {
                         expirationClass = 'text-warning';
                     }
                     
                     html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
+                } else {
+                    html += `<span class="info-box-text"><i class="fas fa-calendar"></i> Expiration: Unlimited</span>`;
                 }
 
                 // نمایش DNS سرور
