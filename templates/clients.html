@@ -1045,6 +1045,11 @@ Wireguard Clients
             const clientList = $("#client-list");
             clientList.empty();
 
+            if (!Array.isArray(clients)) {
+                console.error('clients is not an array:', clients);
+                return;
+            }
+
             clients.forEach(function (client) {
                 const clientDiv = $('<div class="col-lg-4">');
                 const infoBox = $('<div class="info-box">');

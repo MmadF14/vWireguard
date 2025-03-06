@@ -587,9 +587,11 @@
                             dataType: 'json',
                             contentType: "application/json",
                             success: function (data) {
+                                console.log('Received clients data:', data);
                                 renderClientList(data);
                             },
                             error: function (jqXHR, exception) {
+                                console.error('Error fetching clients:', jqXHR.responseText);
                                 const responseJson = jQuery.parseJSON(jqXHR.responseText);
                                 toastr.error(responseJson['message']);
                             }
@@ -598,6 +600,7 @@
                     updateApplyConfigVisibility();
                 },
                 error: function (jqXHR, exception) {
+                    console.error('Error creating client:', jqXHR.responseText);
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
