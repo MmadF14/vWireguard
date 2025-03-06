@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1269,10 +1270,13 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
 		}
 
-		// Use interface name from settings
-		interfaceName := settings.Interface
-		if interfaceName == "" {
-			interfaceName = "wg0" // fallback to default if not set
+		// Use ConfigFilePath from settings to determine interface name
+		interfaceName := "wg0" // default interface name
+		if settings.ConfigFilePath != "" {
+			// Extract interface name from config file path
+			// Usually config files are named like "wg0.conf" or similar
+			base := filepath.Base(settings.ConfigFilePath)
+			interfaceName = strings.TrimSuffix(base, filepath.Ext(base))
 		}
 
 		err = wg.ConfigureDevice(interfaceName, wgtypes.Config{
