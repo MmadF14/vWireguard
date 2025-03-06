@@ -373,21 +373,7 @@ Wireguard Clients
         }
 
         function autoApplyConfig() {
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/api/apply-wg-config-confirm',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    toastr.success('Configuration applied successfully');
-                    updateApplyConfigVisibility();
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
+            $("#apply_config_confirm").click();
         }
 
         function setClientStatus(clientID, status) {
