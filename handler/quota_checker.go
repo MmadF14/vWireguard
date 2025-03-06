@@ -2,6 +2,7 @@
 
 import (
     "log"
+    "sync"
     "time"
     "github.com/MmadF14/wireguard-ui/store"
     "golang.zx2c4.com/wireguard/wgctrl"
@@ -11,24 +12,46 @@ import (
     "os/exec"
 )
 
+var (
+    configMutex sync.Mutex
+)
+
 // StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
 func StartQuotaChecker(db store.IStore) {
     go func() {
+        defer func() {
+            if r := recover(); r != nil {
+                log.Printf("Recovered from panic in quota checker: %v", r)
+                // Restart the goroutine after a short delay
+                time.Sleep(10 * time.Second)
+                StartQuotaChecker(db)
+            }
+        }()
+
         for {
-            checkQuotasAndExpiration(db)
-            time.Sleep(5 * time.Minute) // هر 5 دقیقه چک می‌کنیم
+            func() {
+                defer func() {
+                    if r := recover(); r != nil {
+                        log.Printf("Recovered from panic in check cycle: %v", r)
+                    }
+                }()
+                checkQuotasAndExpiration(db)
+            }()
+            time.Sleep(5 * time.Minute)
         }
     }()
 }
 
 // checkQuotasAndExpiration checks all clients for quota limits and expiration dates
 func checkQuotasAndExpiration(db store.IStore) {
+    log.Printf("Starting quota and expiration check")
     // دریافت لیست تمام کلاینت‌ها
     clients, err := db.GetClients(false)
     if err != nil {
         log.Printf("Error getting clients for quota check: %v", err)
         return
     }
+    log.Printf("Successfully retrieved %d clients", len(clients))
 
     // دریافت آمار ترافیک از WireGuard
     usageMap, err := getWireGuardUsage()
@@ -36,11 +59,13 @@ func checkQuotasAndExpiration(db store.IStore) {
         log.Printf("Error getting WireGuard usage: %v", err)
         return
     }
+    log.Printf("Successfully retrieved WireGuard usage stats")
 
     configChanged := false
 
     for _, cData := range clients {
         client := cData.Client
+        log.Printf("Checking client: %s", client.Name)
         wasEnabled := client.Enabled
 
         // بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
@@ -92,30 +117,44 @@ func checkQuotasAndExpiration(db store.IStore) {
 
 // applyWireGuardConfig applies the current configuration to WireGuard
 func applyWireGuardConfig(db store.IStore) error {
+    configMutex.Lock()
+    defer configMutex.Unlock()
+    
+    log.Printf("Starting to apply WireGuard config")
     server, err := db.GetServer()
     if err != nil {
+        log.Printf("Error getting server config: %v", err)
         return fmt.Errorf("cannot get server config: %v", err)
     }
+    log.Printf("Successfully got server config")
 
     clients, err := db.GetClients(false)
     if err != nil {
+        log.Printf("Error getting client config: %v", err)
         return fmt.Errorf("cannot get client config: %v", err)
     }
+    log.Printf("Successfully got %d clients", len(clients))
 
     users, err := db.GetUsers()
     if err != nil {
+        log.Printf("Error getting users: %v", err)
         return fmt.Errorf("cannot get users config: %v", err)
     }
+    log.Printf("Successfully got users")
 
     settings, err := db.GetGlobalSettings()
     if err != nil {
+        log.Printf("Error getting global settings: %v", err)
         return fmt.Errorf("cannot get global settings: %v", err)
     }
+    log.Printf("Successfully got global settings")
 
     // Write config file
     if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+        log.Printf("Error writing WireGuard config: %v", err)
         return fmt.Errorf("cannot write config: %v", err)
     }
+    log.Printf("Successfully wrote WireGuard config")
 
     // Get interface name from config file path
     interfaceName := "wg0"
@@ -145,20 +184,26 @@ func applyWireGuardConfig(db store.IStore) error {
 
 // getWireGuardUsage returns a map of public keys to their traffic usage [received, sent]
 func getWireGuardUsage() (map[string][2]uint64, error) {
+    log.Printf("Starting to get WireGuard usage")
     usageMap := make(map[string][2]uint64)
     
     wgClient, err := wgctrl.New()
     if err != nil {
+        log.Printf("Error creating WireGuard client: %v", err)
         return nil, err
     }
     defer wgClient.Close()
+    log.Printf("Successfully created WireGuard client")
 
     devices, err := wgClient.Devices()
     if err != nil {
+        log.Printf("Error getting WireGuard devices: %v", err)
         return nil, err
     }
+    log.Printf("Found %d WireGuard devices", len(devices))
 
     for _, dev := range devices {
+        log.Printf("Processing device: %s", dev.Name)
         for _, peer := range dev.Peers {
             usageMap[peer.PublicKey.String()] = [2]uint64{
                 uint64(peer.ReceiveBytes),
