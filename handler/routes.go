@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1280,6 +1281,37 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			log.Error("Cannot apply server config: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
 				false, fmt.Sprintf("Cannot apply server config: %v", err),
+			})
+		}
+
+		// Get interface name from config file path
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		// Restart WireGuard service
+		serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+		cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Error("Cannot restart WireGuard service: ", err, ", Output: ", string(output))
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot restart WireGuard service: %v", err),
+			})
+		}
+
+		// Verify service is active
+		checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
+		status, err := checkCmd.CombinedOutput()
+		if err != nil || strings.TrimSpace(string(status)) != "active" {
+			log.Error("WireGuard service is not active after restart. Status: ", string(status))
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, "WireGuard service is not active after restart",
 			})
 		}
 
