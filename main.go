@@ -1,4 +1,4 @@
-﻿﻿package main
+﻿package main
 
 import (
 	"crypto/sha512"
@@ -261,10 +261,7 @@ func main() {
 	app.POST(util.BasePath+"/wake_on_lan_host", handler.SaveWakeOnLanHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.DELETE(util.BasePath+"/wake_on_lan_host/:mac_address", handler.DeleteWakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.PUT(util.BasePath+"/wake_on_lan_host/:mac_address", handler.WakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
-<<<<<<< HEAD
-=======
 	app.POST(util.BasePath+"/api/terminate-client", handler.TerminateClient(db), handler.ValidSession, handler.ContentTypeJson)
->>>>>>> parent of d027282 (006.01)
 
 	// strip the "assets/" prefix from the embedded directory so files can be called directly without the "assets/"
 	// prefix

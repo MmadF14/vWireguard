@@ -1,4 +1,4 @@
-﻿﻿{{define "title"}}
+﻿{{define "title"}}
 Wireguard Clients
 {{end}}
 
@@ -359,15 +359,11 @@ Wireguard Clients
                     });
                     
                     let errorMessage = 'Failed to fetch clients';
-                    if (jqXHR.status === 503) {
-                        errorMessage = 'Server is temporarily unavailable. Please try again later.';
-                    } else {
-                        try {
-                            const responseJson = JSON.parse(jqXHR.responseText);
-                            errorMessage = responseJson.message || errorMessage;
-                        } catch (e) {
-                            console.error('Error parsing error response:', e);
-                        }
+                    try {
+                        const responseJson = JSON.parse(jqXHR.responseText);
+                        errorMessage = responseJson.message || errorMessage;
+                    } catch (e) {
+                        console.error('Error parsing error response:', e);
                     }
                     
                     toastr.error(errorMessage);
@@ -924,9 +920,11 @@ Wireguard Clients
             const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
             // اضافه کردن Expiration
-            let expirationValue = $("#_client_expiration").val();
+            let expirationValue = $("#_client_expiration").val(); // چیزی مثل "2025-12-31T23:59"
             let expirationIso = "";
             if (expirationValue) {
+                // تبدیل تاریخ لوکال به فرمت ISO8601 (UTC)
+                // توجه کنید که این کار ممکن است تایم‌زون را تغییر دهد.
                 expirationIso = new Date(expirationValue).toISOString();
             }
 
@@ -960,6 +958,8 @@ Wireguard Clients
                 "public_key": public_key,
                 "preshared_key": preshared_key,
                 "additional_notes": additional_notes,
+
+                // فیلدهای جدید
                 "quota": quotaBytes,
                 "expiration": expirationIso
             };
@@ -971,24 +971,15 @@ Wireguard Clients
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function(resp) {
+                success: function (resp) {
                     $("#modal_edit_client").modal('hide');
                     toastr.success('Updated client successfully');
+                    // بعد از ویرایش، لیست کلاینت‌ها را رفرش یا صفحه را رفرش کنید
                     location.reload();
                 },
-                error: function(jqXHR, exception) {
-                    let errorMessage = 'Failed to update client';
-                    if (jqXHR.status === 503) {
-                        errorMessage = 'Server is temporarily unavailable. Please try again later.';
-                    } else {
-                        try {
-                            const responseJson = JSON.parse(jqXHR.responseText);
-                            errorMessage = responseJson.message || errorMessage;
-                        } catch (e) {
-                            console.error('Error parsing error response:', e);
-                        }
-                    }
-                    toastr.error(errorMessage);
+                error: function (jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
                 }
             });
         }
@@ -1234,7 +1225,7 @@ Wireguard Clients
                 }
 
                 // نمایش حجم مصرفی و باقی‌مانده
-                if (client.quota && client.quota > 0) {
+                if (client.quota) {
                     const quotaGB = (client.quota / (1024 * 1024 * 1024)).toFixed(1);
                     const usedGB = client.used_quota ? (client.used_quota / (1024 * 1024 * 1024)).toFixed(1) : 0;
                     const remainingGB = (quotaGB - usedGB).toFixed(1);
@@ -1257,8 +1248,6 @@ Wireguard Clients
                     }
                     
                     html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
-                } else {
-                    html += `<span class="info-box-text"><i class="fas fa-calendar"></i> Unlimited</span>`;
                 }
 
                 // نمایش DNS سرور
@@ -1315,4 +1304,6 @@ Wireguard Clients
             updateQuotaInput();
         });
     </script>
+{{end}}
+
 {{end}}
