@@ -874,3 +874,35 @@ func GetCookiePath() string {
 	}
 	return cookiePath
 }
+
+// GetWireGuardConfigTemplate returns the embedded WireGuard config template file
+func GetWireGuardConfigTemplate() ([]byte, error) {
+	return []byte(`[Interface]
+Address = {{ .Server.Address }}
+ListenPort = {{ .Server.ListenPort }}
+PrivateKey = {{ .Server.PrivateKey }}
+{{ if .Server.PreUp }}
+PreUp = {{ .Server.PreUp }}
+{{ end }}
+{{ if .Server.PostUp }}
+PostUp = {{ .Server.PostUp }}
+{{ end }}
+{{ if .Server.PreDown }}
+PreDown = {{ .Server.PreDown }}
+{{ end }}
+{{ if .Server.PostDown }}
+PostDown = {{ .Server.PostDown }}
+{{ end }}
+
+{{ range .Clients }}
+{{ if .Client.Enabled }}
+# {{ .Client.Name }}
+[Peer]
+PublicKey = {{ .Client.PublicKey }}
+AllowedIPs = {{ .Client.Address }}
+{{ if gt .Client.PresharedKey.String 0 }}
+PresharedKey = {{ .Client.PresharedKey }}
+{{ end }}
+{{ end }}
+{{ end }}`), nil
+}

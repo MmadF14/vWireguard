@@ -112,8 +112,14 @@ func applyWireGuardConfig(db store.IStore) error {
         return fmt.Errorf("cannot get global settings: %v", err)
     }
 
+    // Get embedded template file
+    embeddedFile, err := util.GetWireGuardConfigTemplate()
+    if err != nil {
+        return fmt.Errorf("cannot get config template: %v", err)
+    }
+
     // Write config file
-    if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+    if err := util.WriteWireGuardServerConfig(embeddedFile, server, clients, users, settings); err != nil {
         return fmt.Errorf("cannot write config: %v", err)
     }
 
