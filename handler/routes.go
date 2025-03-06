@@ -1221,7 +1221,7 @@ func AboutPage() echo.HandlerFunc {
 }
 
 // TerminateClient handles forceful client termination
-func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
+func TerminateClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req struct {
 			ID     string `json:"id"`
@@ -1263,23 +1263,10 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			Remove:    true,
 		}
 
-		// Get settings for interface name
-		settings, err := db.GetGlobalSettings()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
-		}
-
-		// Use default interface name if not set
-		interfaceName := "wg0"
-		if settings.ConfigFilePath != "" {
-			// Try to get interface name from config file path
-			parts := strings.Split(settings.ConfigFilePath, "/")
-			if len(parts) > 0 {
-				lastPart := parts[len(parts)-1]
-				if strings.HasSuffix(lastPart, ".conf") {
-					interfaceName = strings.TrimSuffix(lastPart, ".conf")
-				}
-			}
+		// Get interface name from server config
+		interfaceName := server.Interface.Name
+		if interfaceName == "" {
+			interfaceName = "wg0" // fallback to default if not set
 		}
 
 		err = wg.ConfigureDevice(interfaceName, wgtypes.Config{
@@ -1290,6 +1277,11 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		}
 
 		// 5. Get all required data for config update
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
+		}
+
 		clients, err := db.GetClients(false)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get clients"})
@@ -1301,6 +1293,11 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		}
 
 		// 6. Write updated WireGuard config
+		tmplDir, err := fs.Sub(embeddedTemplates, "templates")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to access templates"})
+		}
+
 		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to write config: %v", err)})
