@@ -187,8 +187,8 @@ func main() {
 	extraData["basePath"] = util.BasePath
 	extraData["loginDisabled"] = flagDisableLogin
 
-    handler.StartQuotaAndExpirationChecker(db)
-
+	// Initialize the quota checker
+	handler.StartQuotaChecker(db)
 
 	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name (e.g.
 	// "base.html" instead of "templates/base.html")
@@ -279,23 +279,8 @@ func main() {
 
 	initTelegram(initDeps)
 
-	if strings.HasPrefix(util.BindAddress, "unix://") {
-		// Listen on unix domain socket.
-		// https://github.com/labstack/echo/issues/830
-		err := syscall.Unlink(util.BindAddress[6:])
-		if err != nil {
-			app.Logger.Fatalf("Cannot unlink unix socket: Error: %v", err)
-		}
-		l, err := net.Listen("unix", util.BindAddress[6:])
-		if err != nil {
-			app.Logger.Fatalf("Cannot create unix socket. Error: %v", err)
-		}
-		app.Listener = l
-		app.Logger.Fatal(app.Start(""))
-	} else {
-		// Listen on TCP socket
-		app.Logger.Fatal(app.Start(util.BindAddress))
-	}
+	// Start the server
+	app.Start(util.BindAddress)
 }
 
 func initServerConfig(db store.IStore, tmplDir fs.FS) {

@@ -213,9 +213,24 @@
                             </div>
                             <!-- فیلد جدید Quota -->
                             <div class="form-group">
-                                <label for="client_quota" class="control-label">Quota (bytes)</label>
-                                <input type="number" class="form-control" id="client_quota" name="client_quota"
-                                       placeholder="Enter Quota in bytes" />
+                                <label for="client_quota" class="control-label">Quota</label>
+                                <select class="form-control" id="quota_preset" onchange="updateQuotaInput()">
+                                    <option value="">Select Quota</option>
+                                    <option value="1">1 GB</option>
+                                    <option value="2">2 GB</option>
+                                    <option value="5">5 GB</option>
+                                    <option value="10">10 GB</option>
+                                    <option value="20">20 GB</option>
+                                    <option value="50">50 GB</option>
+                                    <option value="100">100 GB</option>
+                                    <option value="200">200 GB</option>
+                                    <option value="500">500 GB</option>
+                                    <option value="1000">1 TB</option>
+                                    <option value="custom">Custom</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <input type="number" class="form-control" id="client_quota" name="client_quota" placeholder="Enter custom quota in GB" step="0.1" min="0" />
                             </div>
 
                             <!-- فیلد جدید Expiration -->
@@ -454,6 +469,27 @@
                     }
                 });
         }
+
+        function updateQuotaInput() {
+            const preset = $("#quota_preset").val();
+            const quotaInput = $("#client_quota");
+            
+            if (preset === "custom") {
+                quotaInput.prop("disabled", false);
+                quotaInput.val("");
+            } else if (preset) {
+                quotaInput.prop("disabled", true);
+                quotaInput.val(preset);
+            } else {
+                quotaInput.prop("disabled", false);
+                quotaInput.val("");
+            }
+        }
+
+        // Initialize quota input on page load
+        $(document).ready(function() {
+            updateQuotaInput();
+        });
         
         // populateClient function for render new client info
         // on the client page.
@@ -503,7 +539,7 @@
             const additional_notes = $("#additional_notes").val();
 
             // دریافت Quota از فیلد مربوطه
-            const quota = parseInt($("#client_quota").val(), 10) || 0;
+            const quota = parseFloat($("#client_quota").val()) || 0;
 
             // دریافت تاریخ انقضا و تبدیل به فرمت ISO8601 (UTC)
             let expirationValue = $("#client_expiration").val(); // مثلاً "2025-12-31T23:59"

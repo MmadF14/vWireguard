@@ -1,57 +1,37 @@
 ﻿package handler
 
 import (
+    "log"
     "time"
-
-    // "github.com/MmadF14/wireguard-ui/model"
-    "github.com/MmadF14/wireguard-ui/store"
-    // پکیج util حذف شد چون در این کد استفاده‌ای از آن نداریم
-    // "github.com/MmadF14/wireguard-ui/util"
-
+    "github.com/ngoduykhanh/wireguard-ui/model"
+    "github.com/ngoduykhanh/wireguard-ui/store"
     "golang.zx2c4.com/wireguard/wgctrl"
 )
 
-func StartQuotaAndExpirationChecker(db store.IStore) {
+// StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
+func StartQuotaChecker(db store.IStore) {
     go func() {
-        ticker := time.NewTicker(5 * time.Minute)
-        defer ticker.Stop()
-
-        for range ticker.C {
-            checkQuotaAndExpiration(db)
+        for {
+            checkQuotasAndExpiration(db)
+            time.Sleep(5 * time.Minute) // هر 5 دقیقه چک می‌کنیم
         }
     }()
 }
 
-func checkQuotaAndExpiration(db store.IStore) {
+// checkQuotasAndExpiration checks all clients for quota limits and expiration dates
+func checkQuotasAndExpiration(db store.IStore) {
+    // دریافت لیست تمام کلاینت‌ها
     clients, err := db.GetClients(false)
     if err != nil {
+        log.Printf("Error getting clients for quota check: %v", err)
         return
     }
 
-    wgClient, err := wgctrl.New()
+    // دریافت آمار ترافیک از WireGuard
+    usageMap, err := getWireGuardUsage()
     if err != nil {
-        // لاگ خطا
+        log.Printf("Error getting WireGuard usage: %v", err)
         return
-    }
-    defer wgClient.Close()
-
-    devices, err := wgClient.Devices()
-    if err != nil {
-        // لاگ خطا
-        return
-    }
-
-    // map: publicKey => (receivedBytes, transmitBytes)
-    // چون ReceiveBytes و TransmitBytes از نوع int64 هستند، آن‌ها را به uint64 تبدیل می‌کنیم
-    usageMap := make(map[string][2]uint64)
-
-    for _, dev := range devices {
-        for _, peer := range dev.Peers {
-            usageMap[peer.PublicKey.String()] = [2]uint64{
-                uint64(peer.ReceiveBytes),
-                uint64(peer.TransmitBytes),
-            }
-        }
     }
 
     for _, cData := range clients {
@@ -61,6 +41,7 @@ func checkQuotaAndExpiration(db store.IStore) {
         if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
             client.Enabled = false
             db.SaveClient(*client)
+            log.Printf("Client %s disabled due to expiration", client.Name)
             continue
         }
 
@@ -72,8 +53,36 @@ func checkQuotaAndExpiration(db store.IStore) {
                 if int64(total) > client.Quota {
                     client.Enabled = false
                     db.SaveClient(*client)
+                    log.Printf("Client %s disabled due to quota limit", client.Name)
                 }
             }
         }
     }
+}
+
+// getWireGuardUsage returns a map of public keys to their traffic usage [received, sent]
+func getWireGuardUsage() (map[string][2]uint64, error) {
+    usageMap := make(map[string][2]uint64)
+    
+    wgClient, err := wgctrl.New()
+    if err != nil {
+        return nil, err
+    }
+    defer wgClient.Close()
+
+    devices, err := wgClient.Devices()
+    if err != nil {
+        return nil, err
+    }
+
+    for _, dev := range devices {
+        for _, peer := range dev.Peers {
+            usageMap[peer.PublicKey.String()] = [2]uint64{
+                uint64(peer.ReceiveBytes),
+                uint64(peer.TransmitBytes),
+            }
+        }
+    }
+    
+    return usageMap, nil
 }

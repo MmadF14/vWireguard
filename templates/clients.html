@@ -130,8 +130,24 @@ Wireguard Clients
                         <input type="text" class="form-control" id="_client_email" name="client_email">
                     </div>
                     <div class="form-group">
-                        <label for="_client_quota" class="control-label">Quota (bytes)</label>
-                        <input type="number" class="form-control" id="_client_quota" name="_client_quota" placeholder="Enter Quota in bytes" />
+                        <label for="_client_quota" class="control-label">Quota</label>
+                        <select class="form-control" id="_quota_preset" onchange="updateQuotaInput()">
+                            <option value="">Select Quota</option>
+                            <option value="1">1 GB</option>
+                            <option value="2">2 GB</option>
+                            <option value="5">5 GB</option>
+                            <option value="10">10 GB</option>
+                            <option value="20">20 GB</option>
+                            <option value="50">50 GB</option>
+                            <option value="100">100 GB</option>
+                            <option value="200">200 GB</option>
+                            <option value="500">500 GB</option>
+                            <option value="1000">1 TB</option>
+                            <option value="custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" class="form-control" id="_client_quota" name="_client_quota" placeholder="Enter custom quota in GB" step="0.1" min="0" />
                     </div>
 
                     <div class="form-group">
@@ -653,8 +669,7 @@ Wireguard Clients
                         modal.find("#_additional_notes").val(client.additional_notes);
 
                         // مقداردهی Quota
-                        modal.find("#_client_quota").val(client.quota);
-
+                        modal.find("#_client_quota").val(client.quota ? (client.quota / (1024 * 1024 * 1024)).toFixed(1) : "");     
                         // مقداردهی Expiration (تبدیل تاریخ UTC به فرمت datetime-local)
                         if (client.expiration) {
                             let dt = new Date(client.expiration); // مثلاً "2025-12-31T23:59:59Z"
@@ -803,7 +818,8 @@ Wireguard Clients
             const preshared_key = $("#_client_preshared_key").val();
 
             // اضافه کردن Quota
-            const quota = parseInt($("#_client_quota").val(), 10) || 0;
+            const quotaGB = parseFloat($("#_client_quota").val()) || 0;
+            const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
             // اضافه کردن Expiration
             let expirationValue = $("#_client_expiration").val(); // چیزی مثل "2025-12-31T23:59"
@@ -846,7 +862,7 @@ Wireguard Clients
                 "additional_notes": additional_notes,
 
                 // فیلدهای جدید
-                "quota": quota,
+                "quota": quotaBytes,
                 "expiration": expirationIso
             };
 
@@ -1022,6 +1038,182 @@ Wireguard Clients
                 }
             });
             // 
+        });
+    </script>
+    <script>
+        function renderClientList(clients) {
+            const clientList = $("#client-list");
+            clientList.empty();
+
+            clients.forEach(function (client) {
+                const clientDiv = $('<div class="col-lg-4">');
+                const infoBox = $('<div class="info-box">');
+                const infoBoxContent = $('<div class="info-box-content">');
+
+                // نام کلاینت
+                infoBoxContent.append(
+                    $('<span class="info-box-text">')
+                        .append($('<i class="fas fa-user"></i> '))
+                        .append(client.name)
+                );
+
+                // ایمیل کلاینت
+                if (client.email) {
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-envelope"></i> '))
+                            .append(client.email)
+                    );
+                }
+
+                // Quota و تاریخ انقضا
+                if (client.quota) {
+                    const quotaGB = (client.quota / (1024 * 1024 * 1024)).toFixed(1);
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-database"></i> '))
+                            .append(`Quota: ${quotaGB} GB`)
+                    );
+                }
+
+                if (client.expiration) {
+                    const expirationDate = new Date(client.expiration);
+                    const formattedDate = expirationDate.toLocaleString();
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-calendar"></i> '))
+                            .append(`Expires: ${formattedDate}`)
+                    );
+                }
+
+                // IP Allocation
+                infoBoxContent.append(
+                    $('<span class="info-box-text">')
+                        .append($('<i class="fas fa-network-wired"></i> '))
+                        .append(client.allocated_ips.join(', '))
+                );
+
+                // Allowed IPs
+                infoBoxContent.append(
+                    $('<span class="info-box-text">')
+                        .append($('<i class="fas fa-key"></i> '))
+                        .append(client.allowed_ips.join(', '))
+                );
+
+                // Telegram User ID
+                if (client.telegram_userid) {
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-paper-plane"></i> '))
+                            .append(`Telegram: ${client.telegram_userid}`)
+                    );
+                }
+
+                // Additional Notes
+                if (client.additional_notes) {
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-sticky-note"></i> '))
+                            .append(client.additional_notes)
+                    );
+                }
+
+                // دکمه‌های عملیات
+                const buttonGroup = $('<div class="btn-group">');
+                
+                // دکمه QR Code
+                buttonGroup.append(
+                    $('<button type="button" class="btn btn-default btn-sm">')
+                        .append($('<i class="fas fa-qrcode"></i>'))
+                        .attr('data-toggle', 'modal')
+                        .attr('data-target', '#modal_qr_client')
+                        .attr('data-clientid', client.id)
+                );
+
+                // دکمه ایمیل
+                buttonGroup.append(
+                    $('<button type="button" class="btn btn-default btn-sm">')
+                        .append($('<i class="fas fa-envelope"></i>'))
+                        .attr('data-toggle', 'modal')
+                        .attr('data-target', '#modal_email_client')
+                        .attr('data-clientid', client.id)
+                        .attr('data-clientname', client.name)
+                );
+
+                // دکمه تلگرام
+                buttonGroup.append(
+                    $('<button type="button" class="btn btn-default btn-sm">')
+                        .append($('<i class="fas fa-paper-plane"></i>'))
+                        .attr('data-toggle', 'modal')
+                        .attr('data-target', '#modal_telegram_client')
+                        .attr('data-clientid', client.id)
+                        .attr('data-clientname', client.name)
+                );
+
+                // دکمه ویرایش
+                buttonGroup.append(
+                    $('<button type="button" class="btn btn-default btn-sm">')
+                        .append($('<i class="fas fa-edit"></i>'))
+                        .attr('data-toggle', 'modal')
+                        .attr('data-target', '#modal_edit_client')
+                        .attr('data-clientid', client.id)
+                        .attr('data-clientname', client.name)
+                );
+
+                // دکمه غیرفعال کردن/فعال کردن
+                if (client.enabled) {
+                    buttonGroup.append(
+                        $('<button type="button" class="btn btn-default btn-sm">')
+                            .append($('<i class="fas fa-pause"></i>'))
+                            .attr('data-toggle', 'modal')
+                            .attr('data-target', '#modal_pause_client')
+                            .attr('data-clientid', client.id)
+                            .attr('data-clientname', client.name)
+                    );
+                } else {
+                    buttonGroup.append(
+                        $('<button type="button" class="btn btn-default btn-sm">')
+                            .append($('<i class="fas fa-play"></i>'))
+                            .attr('onclick', `resumeClient('${client.id}')`)
+                    );
+                }
+
+                // دکمه حذف
+                buttonGroup.append(
+                    $('<button type="button" class="btn btn-default btn-sm">')
+                        .append($('<i class="fas fa-trash"></i>'))
+                        .attr('data-toggle', 'modal')
+                        .attr('data-target', '#modal_remove_client')
+                        .attr('data-clientid', client.id)
+                        .attr('data-clientname', client.name)
+                );
+
+                infoBoxContent.append(buttonGroup);
+                infoBox.append(infoBoxContent);
+                clientDiv.append(infoBox);
+                clientList.append(clientDiv);
+            });
+        }
+    </script>
+    <script>
+        function updateQuotaInput() {
+            const preset = $("#_quota_preset").val();
+            const quotaInput = $("#_client_quota");
+            
+            if (preset === "custom") {
+                quotaInput.prop("disabled", false);
+                quotaInput.val("");
+            } else if (preset) {
+                quotaInput.prop("disabled", true);
+                quotaInput.val(preset);
+            } else {
+                quotaInput.prop("disabled", false);
+                quotaInput.val("");
+            }
+        }
+
+        $(document).ready(function() {
+            updateQuotaInput();
         });
     </script>
 {{end}}
