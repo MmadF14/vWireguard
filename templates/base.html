@@ -516,13 +516,33 @@
             const telegram_userid = $("#client_telegram_userid").val();
             const allocated_ips = $("#client_allocated_ips").val().split(",");
             const allowed_ips = $("#client_allowed_ips").val().split(",");
-            const endpoint = $("#client_endpoint").val();
             let use_server_dns = false;
             let extra_allowed_ips = [];
+            const public_key = $("#client_public_key").val();
+            const preshared_key = $("#client_preshared_key").val();
+
+            // اضافه کردن Quota
+            const quotaGB = parseFloat($("#client_quota").val()) || 0;
+            const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
+
+            // اضافه کردن Expiration
+            let expirationValue = $("#client_expiration").val(); // چیزی مثل "2025-12-31T23:59"
+            let expirationIso = "";
+            if (expirationValue) {
+                // تبدیل تاریخ لوکال به فرمت ISO8601 (UTC)
+                const expDate = new Date(expirationValue);
+                // اطمینان از اینکه تاریخ در آینده است
+                if (expDate <= new Date()) {
+                    toastr.error('Expiration date must be in the future');
+                    return;
+                }
+                expirationIso = expDate.toISOString();
+            }
 
             if ($("#client_extra_allowed_ips").val() !== "") {
                 extra_allowed_ips = $("#client_extra_allowed_ips").val().split(",");
             }
+            const endpoint = $("#client_endpoint").val();
 
             if ($("#use_server_dns").is(':checked')) {
                 use_server_dns = true;
@@ -533,39 +553,26 @@
                 enabled = true;
             }
 
-            const public_key = $("#client_public_key").val();
-            const preshared_key = $("#client_preshared_key").val();
             const additional_notes = $("#additional_notes").val();
 
-            // دریافت Quota از فیلد مربوطه
-            const quotaGB = parseFloat($("#client_quota").val()) || 0;
-            const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
-
-            // دریافت تاریخ انقضا و تبدیل به فرمت ISO8601 (UTC)
-            let expirationValue = $("#client_expiration").val(); // مثلاً "2025-12-31T23:59"
-            let expirationIso = "";
-            if (expirationValue) {
-                // تبدیل تاریخ لوکال به فرمت UTC
-                expirationIso = new Date(expirationValue).toISOString();
-            }
-
-            // ساخت آبجکت data برای ارسال به سرور
             const data = {
-                name: name,
-                email: email,
-                telegram_userid: telegram_userid,
-                allocated_ips: allocated_ips,
-                allowed_ips: allowed_ips,
-                extra_allowed_ips: extra_allowed_ips,
-                endpoint: endpoint,
-                use_server_dns: use_server_dns,
-                enabled: enabled,
-                public_key: public_key,
-                preshared_key: preshared_key,
-                additional_notes: additional_notes,
-                quota: quotaBytes,
-                expiration: expirationIso
+                "name": name,
+                "email": email,
+                "telegram_userid": telegram_userid,
+                "allocated_ips": allocated_ips,
+                "allowed_ips": allowed_ips,
+                "extra_allowed_ips": extra_allowed_ips,
+                "endpoint": endpoint,
+                "use_server_dns": use_server_dns,
+                "enabled": enabled,
+                "public_key": public_key,
+                "preshared_key": preshared_key,
+                "additional_notes": additional_notes,
+                "quota": quotaBytes,
+                "expiration": expirationIso
             };
+
+            console.log('Sending new client data:', data);
 
             $.ajax({
                 cache: false,
@@ -574,20 +581,20 @@
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function (resp) {
+                success: function(resp) {
                     $("#modal_new_client").modal('hide');
                     toastr.success('Created new client successfully');
-                    
-                    // اگر در صفحه اصلی هستید، لیست کلاینت‌ها را به‌روزرسانی کنید
-                    if (window.location.pathname === "{{.basePath}}/") {
-                        populateClientList(); // استفاده از تابع موجود برای به‌روزرسانی لیست
-                    }
-                    updateApplyConfigVisibility();
+                    // بعد از ایجاد کلاینت جدید، لیست را به‌روز کن
+                    populateClientList();
                 },
-                error: function (jqXHR, exception) {
-                    console.error('Error creating client:', jqXHR.responseText);
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
+                error: function(jqXHR, exception) {
+                    try {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        toastr.error(responseJson.message || 'Failed to create client');
+                    } catch (e) {
+                        console.error('Error parsing error response:', e);
+                        toastr.error('Failed to create client');
+                    }
                 }
             });
         }
