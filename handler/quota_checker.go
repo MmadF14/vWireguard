@@ -43,18 +43,20 @@ func checkQuotasAndExpiration(db store.IStore) {
         client := cData.Client
         wasEnabled := client.Enabled
 
-        // بررسی Expiration
-        if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
-            if client.Enabled {
-                client.Enabled = false
-                if err := db.SaveClient(*client); err != nil {
-                    log.Printf("Error saving client %s after expiration: %v", client.Name, err)
-                    continue
+        // بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
+        if !client.Expiration.IsZero() {  // فقط اگر تاریخ انقضا تنظیم شده باشد، چک می‌کنیم
+            if time.Now().After(client.Expiration) {
+                if client.Enabled {
+                    client.Enabled = false
+                    if err := db.SaveClient(*client); err != nil {
+                        log.Printf("Error saving client %s after expiration: %v", client.Name, err)
+                        continue
+                    }
+                    log.Printf("Client %s disabled due to expiration", client.Name)
+                    configChanged = true
                 }
-                log.Printf("Client %s disabled due to expiration", client.Name)
-                configChanged = true
+                continue
             }
-            continue
         }
 
         // بررسی Quota
@@ -115,7 +117,7 @@ func applyWireGuardConfig(db store.IStore) error {
         return fmt.Errorf("cannot write config: %v", err)
     }
 
-    // Get interface name from config file path or use default
+    // Get interface name from config file path
     interfaceName := "wg0"
     if settings.ConfigFilePath != "" {
         parts := strings.Split(settings.ConfigFilePath, "/")
@@ -125,15 +127,17 @@ func applyWireGuardConfig(db store.IStore) error {
         }
     }
 
-    // Reload WireGuard configuration using wg-quick
-    cmd := exec.Command("wg-quick", "strip", interfaceName)
+    // Reload WireGuard service using systemctl
+    serviceName := fmt.Sprintf("wg-quick@%s.service", interfaceName)
+    
+    // Reload the service configuration
+    cmd := exec.Command("systemctl", "reload", serviceName)
     if err := cmd.Run(); err != nil {
-        return fmt.Errorf("error stripping WireGuard config: %v", err)
-    }
-
-    cmd = exec.Command("wg-quick", "up", interfaceName)
-    if err := cmd.Run(); err != nil {
-        return fmt.Errorf("error applying WireGuard config: %v", err)
+        // If reload fails, try restart as fallback
+        cmd = exec.Command("systemctl", "restart", serviceName)
+        if err := cmd.Run(); err != nil {
+            return fmt.Errorf("error restarting WireGuard service: %v", err)
+        }
     }
 
     return nil
