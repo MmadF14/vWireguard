@@ -789,11 +789,75 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
+		// Get settings for interface name
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+
+		// Get interface name
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		if status {
+			// فعال کردن کلاینت
+			server, err := db.GetServer()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
+			}
+
+			// ساخت دستور برای اضافه کردن پیر
+			cmd := exec.Command("sudo", "wg", "set", interfaceName, 
+				"peer", client.PublicKey,
+				"persistent-keepalive", "25",
+				"allowed-ips", strings.Join(client.AllocatedIPs, ","))
+			
+			if err := cmd.Run(); err != nil {
+				log.Printf("Error adding peer %s: %v", client.Name, err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error enabling client: %v", err)})
+			}
+			log.Printf("Successfully added peer %s", client.Name)
+		} else {
+			// غیرفعال کردن کلاینت
+			cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
+			if err := cmd.Run(); err != nil {
+				log.Printf("Error removing peer %s: %v", client.Name, err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error disabling client: %v", err)})
+			}
+			log.Printf("Successfully removed peer %s", client.Name)
+		}
+
 		client.Enabled = status
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		log.Infof("Changed client %s enabled status to %v", client.ID, status)
+		log.Printf("Changed client %s enabled status to %v", client.ID, status)
+
+		// به‌روزرسانی فایل کانفیگ
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
+		}
+
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients"})
+		}
+
+		users, err := db.GetUsers()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get users"})
+		}
+
+		if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Cannot write config: %v", err)})
+		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Changed client status successfully"})
 	}

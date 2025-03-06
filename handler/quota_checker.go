@@ -61,6 +61,23 @@ func checkQuotasAndExpiration(db store.IStore) {
     }
     log.Printf("Successfully retrieved WireGuard usage stats")
 
+    // Get settings for interface name
+    settings, err := db.GetGlobalSettings()
+    if err != nil {
+        log.Printf("Error getting global settings: %v", err)
+        return
+    }
+
+    // Get interface name
+    interfaceName := "wg0"
+    if settings.ConfigFilePath != "" {
+        parts := strings.Split(settings.ConfigFilePath, "/")
+        if len(parts) > 0 {
+            baseName := parts[len(parts)-1]
+            interfaceName = strings.TrimSuffix(baseName, ".conf")
+        }
+    }
+
     configChanged := false
 
     for _, cData := range clients {
@@ -87,6 +104,15 @@ func checkQuotasAndExpiration(db store.IStore) {
                         log.Printf("Error saving client %s after expiration: %v", client.Name, err)
                         continue
                     }
+
+                    // حذف کلاینت از اینترفیس با استفاده از دستور wg
+                    cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
+                    if err := cmd.Run(); err != nil {
+                        log.Printf("Error removing peer %s: %v", client.Name, err)
+                    } else {
+                        log.Printf("Successfully removed peer %s", client.Name)
+                    }
+
                     log.Printf("Client %s disabled due to expiration", client.Name)
                     configChanged = true
                 }
@@ -105,6 +131,15 @@ func checkQuotasAndExpiration(db store.IStore) {
                         log.Printf("Error saving client %s after quota exceeded: %v", client.Name, err)
                         continue
                     }
+
+                    // حذف کلاینت از اینترفیس با استفاده از دستور wg
+                    cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
+                    if err := cmd.Run(); err != nil {
+                        log.Printf("Error removing peer %s: %v", client.Name, err)
+                    } else {
+                        log.Printf("Successfully removed peer %s", client.Name)
+                    }
+
                     log.Printf("Client %s disabled due to quota limit", client.Name)
                     configChanged = true
                 }
@@ -117,13 +152,26 @@ func checkQuotasAndExpiration(db store.IStore) {
         }
     }
 
-    // اگر تغییری در وضعیت کلاینت‌ها داشتیم، پیکربندی WireGuard را به‌روز می‌کنیم
+    // اگر تغییری در وضعیت کلاینت‌ها داشتیم، فقط فایل کانفیگ را به‌روز می‌کنیم
     if configChanged {
-        if err := applyWireGuardConfig(db); err != nil {
-            log.Printf("Error applying WireGuard config: %v", err)
-        } else {
-            log.Printf("Successfully applied WireGuard config after disabling clients")
+        server, err := db.GetServer()
+        if err != nil {
+            log.Printf("Error getting server config: %v", err)
+            return
         }
+
+        users, err := db.GetUsers()
+        if err != nil {
+            log.Printf("Error getting users config: %v", err)
+            return
+        }
+
+        // Write config file
+        if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+            log.Printf("Error writing WireGuard config: %v", err)
+            return
+        }
+        log.Printf("Successfully updated WireGuard config file")
     }
 }
 
