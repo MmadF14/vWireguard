@@ -298,19 +298,47 @@ Wireguard Clients
                 contentType: "application/json",
                 success: function (data) {
                     console.log('Received clients data:', data);
-                    if (Array.isArray(data)) {
-                        renderClientList(data);
-                    } else if (data.clients && Array.isArray(data.clients)) {
-                        renderClientList(data.clients);
-                    } else {
-                        console.error('Invalid data format received:', data);
-                        toastr.error('Error: Invalid data format received from server');
+                    
+                    // اگر داده null باشد
+                    if (!data) {
+                        console.error('No data received from server');
+                        toastr.error('Error: No data received from server');
+                        return;
                     }
+
+                    // اگر داده آرایه باشد
+                    if (Array.isArray(data)) {
+                        console.log('Data is an array with length:', data.length);
+                        renderClientList(data);
+                        return;
+                    }
+
+                    // اگر داده یک آبجکت باشد و خاصیت clients داشته باشد
+                    if (data.clients && Array.isArray(data.clients)) {
+                        console.log('Data has clients array with length:', data.clients.length);
+                        renderClientList(data.clients);
+                        return;
+                    }
+
+                    // اگر داده یک آبجکت باشد و خاصیت Client داشته باشد
+                    if (data.Client) {
+                        console.log('Data has a single Client object');
+                        renderClientList([data.Client]);
+                        return;
+                    }
+
+                    // اگر هیچ کدام از حالات بالا نباشد
+                    console.error('Invalid data format received:', data);
+                    toastr.error('Error: Invalid data format received from server');
                 },
                 error: function (jqXHR, exception) {
                     console.error('Error fetching clients:', jqXHR.responseText);
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
+                    try {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        toastr.error(responseJson['message'] || 'Unknown error occurred');
+                    } catch (e) {
+                        toastr.error('Failed to fetch clients');
+                    }
                 }
             });
         }
@@ -1195,15 +1223,15 @@ Wireguard Clients
                                 .attr('data-target', '#modal_pause_client')
                                 .attr('data-clientid', client.id)
                                 .attr('data-clientname', client.name)
-                        );
-                    } else {
-                        buttonGroup.append(
-                            $('<button type="button" class="btn btn-default btn-sm">')
-                                .append($('<i class="fas fa-play"></i>'))
-                                .attr('onclick', `resumeClient('${client.id}')`)
-                        );
+                            );
+                        } else {
+                            buttonGroup.append(
+                                $('<button type="button" class="btn btn-default btn-sm">')
+                                    .append($('<i class="fas fa-play"></i>'))
+                                    .attr('onclick', `resumeClient('${client.id}')`)
+                            );
+                        }
                     }
-                }
 
                 // دکمه حذف
                 buttonGroup.append(
