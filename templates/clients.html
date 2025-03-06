@@ -290,54 +290,78 @@ Wireguard Clients
 {{define "bottom_js"}}
     <script>
         function populateClientList() {
+            console.log('Fetching clients list...');
             $.ajax({
                 cache: false,
                 method: 'GET',
                 url: '{{.basePath}}/api/clients',
                 dataType: 'json',
                 contentType: "application/json",
-                success: function (data) {
-                    console.log('Received clients data:', data);
+                success: function (response) {
+                    console.log('Raw server response:', response);
                     
-                    // اگر داده null باشد
-                    if (!data) {
-                        console.error('No data received from server');
-                        toastr.error('Error: No data received from server');
+                    // اگر پاسخ خالی باشد
+                    if (!response) {
+                        console.error('Empty response from server');
+                        toastr.error('Error: Empty response from server');
                         return;
                     }
 
-                    // اگر داده آرایه باشد
-                    if (Array.isArray(data)) {
-                        console.log('Data is an array with length:', data.length);
-                        renderClientList(data);
+                    let clientsData;
+
+                    // اگر پاسخ یک آرایه باشد
+                    if (Array.isArray(response)) {
+                        console.log('Response is an array with length:', response.length);
+                        clientsData = response;
+                    }
+                    // اگر پاسخ یک آبجکت باشد و خاصیت clients داشته باشد
+                    else if (response.clients && Array.isArray(response.clients)) {
+                        console.log('Response has clients array with length:', response.clients.length);
+                        clientsData = response.clients;
+                    }
+                    // اگر پاسخ یک آبجکت باشد و خاصیت data داشته باشد
+                    else if (response.data && Array.isArray(response.data)) {
+                        console.log('Response has data array with length:', response.data.length);
+                        clientsData = response.data;
+                    }
+                    // اگر پاسخ یک آبجکت باشد و خاصیت Client داشته باشد
+                    else if (response.Client) {
+                        console.log('Response has a single Client object');
+                        clientsData = [response.Client];
+                    }
+                    // اگر پاسخ یک آبجکت باشد و خاصیت client داشته باشد
+                    else if (response.client) {
+                        console.log('Response has a single client object');
+                        clientsData = [response.client];
+                    }
+                    else {
+                        console.error('Invalid response format:', response);
+                        toastr.error('Error: Invalid response format from server');
                         return;
                     }
 
-                    // اگر داده یک آبجکت باشد و خاصیت clients داشته باشد
-                    if (data.clients && Array.isArray(data.clients)) {
-                        console.log('Data has clients array with length:', data.clients.length);
-                        renderClientList(data.clients);
-                        return;
+                    // اگر داده‌ها خالی نباشند، آنها را رندر کن
+                    if (clientsData && clientsData.length > 0) {
+                        console.log('Rendering clients:', clientsData);
+                        renderClientList(clientsData);
+                    } else {
+                        console.log('No clients to display');
+                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                     }
-
-                    // اگر داده یک آبجکت باشد و خاصیت Client داشته باشد
-                    if (data.Client) {
-                        console.log('Data has a single Client object');
-                        renderClientList([data.Client]);
-                        return;
-                    }
-
-                    // اگر هیچ کدام از حالات بالا نباشد
-                    console.error('Invalid data format received:', data);
-                    toastr.error('Error: Invalid data format received from server');
                 },
                 error: function (jqXHR, exception) {
-                    console.error('Error fetching clients:', jqXHR.responseText);
+                    console.error('Error details:', {
+                        status: jqXHR.status,
+                        statusText: jqXHR.statusText,
+                        responseText: jqXHR.responseText
+                    });
+                    
                     try {
                         const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson['message'] || 'Unknown error occurred');
+                        toastr.error(responseJson.message || 'Failed to fetch clients');
                     } catch (e) {
-                        toastr.error('Failed to fetch clients');
+                        console.error('Error parsing response:', e);
+                        toastr.error('Failed to fetch clients: ' + jqXHR.statusText);
                     }
                 }
             });
