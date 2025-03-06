@@ -291,83 +291,74 @@ Wireguard Clients
     <script>
         function populateClientList() {
             console.log('Fetching clients list...');
+            $("#client-list").empty();
+            
             $.ajax({
                 cache: false,
                 method: 'GET',
                 url: '{{.basePath}}/api/clients',
                 dataType: 'json',
                 contentType: "application/json",
-                success: function (response) {
+                success: function(response) {
                     console.log('Raw server response:', response);
-                    console.log('Response type:', typeof response);
                     
-                    // اگر پاسخ خالی یا undefined باشد
                     if (!response) {
-                        console.log('Response is empty or undefined');
+                        console.log('No response from server');
                         $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                         return;
                     }
 
-                    try {
-                        // تبدیل رشته JSON به آبجکت اگر به صورت رشته باشد
-                        let clientsData = typeof response === 'string' ? JSON.parse(response) : response;
-                        
-                        // اگر آرایه باشد
-                        if (Array.isArray(clientsData)) {
-                            console.log('Processing array response:', clientsData);
-                            if (clientsData.length > 0) {
-                                renderClientList(clientsData);
-                                return;
-                            }
+                    // اگر پاسخ به صورت رشته JSON باشد، آن را پارس کنیم
+                    let data = response;
+                    if (typeof response === 'string') {
+                        try {
+                            data = JSON.parse(response);
+                        } catch (e) {
+                            console.error('Error parsing JSON response:', e);
+                            toastr.error('Error processing server response');
+                            return;
                         }
-                        // اگر آبجکت باشد
-                        else if (typeof clientsData === 'object') {
-                            console.log('Processing object response:', clientsData);
-                            
-                            // بررسی همه حالت‌های ممکن
-                            if (clientsData.clients && Array.isArray(clientsData.clients)) {
-                                renderClientList(clientsData.clients);
-                                return;
-                            }
-                            if (clientsData.data && Array.isArray(clientsData.data)) {
-                                renderClientList(clientsData.data);
-                                return;
-                            }
-                            if (clientsData.Client) {
-                                renderClientList([clientsData.Client]);
-                                return;
-                            }
-                            if (clientsData.client) {
-                                renderClientList([clientsData.client]);
-                                return;
-                            }
-                            // اگر خود آبجکت یک کلاینت باشد
-                            if (clientsData.name || clientsData.id) {
-                                renderClientList([clientsData]);
-                                return;
-                            }
-                        }
-
-                        // اگر هیچ کدام از حالت‌های بالا نبود
-                        console.log('No valid client data found in response');
-                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
-
-                    } catch (e) {
-                        console.error('Error processing response:', e);
-                        toastr.error('Error processing server response');
-                        $("#client-list").html('<div class="col-12 text-center"><p>Error loading clients</p></div>');
                     }
+
+                    // اگر داده‌ها آرایه باشند، مستقیماً آنها را رندر کنیم
+                    if (Array.isArray(data)) {
+                        console.log('Rendering array of clients:', data);
+                        renderClientList(data);
+                        return;
+                    }
+
+                    // اگر داده‌ها یک آبجکت باشند که شامل آرایه clients است
+                    if (data.clients && Array.isArray(data.clients)) {
+                        console.log('Rendering clients from data.clients:', data.clients);
+                        renderClientList(data.clients);
+                        return;
+                    }
+
+                    // اگر داده‌ها یک آبجکت باشند که شامل آرایه data است
+                    if (data.data && Array.isArray(data.data)) {
+                        console.log('Rendering clients from data.data:', data.data);
+                        renderClientList(data.data);
+                        return;
+                    }
+
+                    // اگر داده‌ها یک کلاینت منفرد باشند
+                    if (data.Client || (data.name && data.id)) {
+                        console.log('Rendering single client:', data);
+                        renderClientList([data]);
+                        return;
+                    }
+
+                    console.log('No valid client data found in response');
+                    $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                 },
-                error: function (jqXHR, exception) {
-                    console.error('Ajax error:', {
+                error: function(jqXHR, exception) {
+                    console.error('Error fetching clients:', {
                         status: jqXHR.status,
                         statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText,
-                        exception: exception
+                        responseText: jqXHR.responseText
                     });
                     
                     let errorMessage = 'Failed to fetch clients';
-                    
                     try {
                         const responseJson = JSON.parse(jqXHR.responseText);
                         errorMessage = responseJson.message || errorMessage;
@@ -1117,174 +1108,120 @@ Wireguard Clients
     </script>
     <script>
         function renderClientList(clients) {
+            console.log('Rendering clients:', clients);
             const clientList = $("#client-list");
             clientList.empty();
 
-            if (!Array.isArray(clients)) {
-                console.error('clients is not an array:', clients);
+            if (!clients || clients.length === 0) {
+                clientList.html('<div class="col-12 text-center"><p>No clients found</p></div>');
                 return;
             }
 
-            clients.forEach(function (client) {
-                if (!client) {
-                    console.error('Invalid client data:', client);
+            clients.forEach(function(data) {
+                // اطمینان از اینکه داده‌های کلاینت معتبر هستند
+                let client = data.Client || data;
+                if (!client || !client.name) {
+                    console.error('Invalid client data:', data);
                     return;
                 }
 
-                const clientDiv = $('<div class="col-lg-4">');
-                const infoBox = $('<div class="info-box">');
-                const infoBoxContent = $('<div class="info-box-content">');
+                console.log('Processing client:', client);
 
-                // نام کلاینت
-                if (client.name) {
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-user"></i> '))
-                            .append(client.name)
-                    );
-                }
+                // ساخت HTML برای کلاینت
+                let html = `
+                    <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
+                        <div class="info-box">
+                            <div class="overlay" id="paused_${client.id}" ${client.enabled ? 'style="visibility: hidden;"' : ''}>
+                                <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
+                            </div>
+                            <div class="info-box-content" style="overflow: hidden">
+                                <div class="btn-group">
+                                    <a href="download?clientid=${client.id}" class="btn btn-outline-primary btn-sm">Download</a>
+                                </div>
+                                <div class="btn-group">      
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                        data-target="#modal_qr_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}" ${data.QRCode ? '' : 'disabled'}>QR code</button>
+                                </div>
+                                <div class="btn-group">      
+                                    <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                        data-target="#modal_email_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Email</button>
+                                </div>`;
 
-                // ایمیل کلاینت
-                if (client.email) {
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-envelope"></i> '))
-                            .append(client.email)
-                    );
-                }
-
-                // Quota و تاریخ انقضا
-                if (client.quota) {
-                    const quotaGB = (client.quota / (1024 * 1024 * 1024)).toFixed(1);
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-database"></i> '))
-                            .append(`Quota: ${quotaGB} GB`)
-                    );
-                }
-
-                if (client.expiration) {
-                    const expirationDate = new Date(client.expiration);
-                    const formattedDate = expirationDate.toLocaleString();
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-calendar"></i> '))
-                            .append(`Expires: ${formattedDate}`)
-                    );
-                }
-
-                // IP Allocation
-                if (client.allocated_ips && Array.isArray(client.allocated_ips)) {
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-network-wired"></i> '))
-                            .append(client.allocated_ips.join(', '))
-                    );
-                }
-
-                // Allowed IPs
-                if (client.allowed_ips && Array.isArray(client.allowed_ips)) {
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-key"></i> '))
-                            .append(client.allowed_ips.join(', '))
-                    );
-                }
-
-                // Telegram User ID
+                // اضافه کردن دکمه تلگرام اگر telegram_userid وجود داشته باشد
                 if (client.telegram_userid) {
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-paper-plane"></i> '))
-                            .append(`Telegram: ${client.telegram_userid}`)
-                    );
+                    html += `
+                        <div class="btn-group">      
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                data-target="#modal_telegram_client" data-clientid="${client.id}"
+                                data-clientname="${client.name}">Telegram</button>
+                        </div>`;
                 }
 
-                // Additional Notes
+                html += `
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-outline-danger btn-sm">More</button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm dropdown-toggle dropdown-icon" 
+                                        data-toggle="dropdown">
+                                    </button>
+                                    <div class="dropdown-menu" role="menu">
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                            data-target="#modal_edit_client" data-clientid="${client.id}"
+                                            data-clientname="${client.name}">Edit</a>
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                            data-target="#modal_pause_client" data-clientid="${client.id}"
+                                            data-clientname="${client.name}">Disable</a>
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                            data-target="#modal_remove_client" data-clientid="${client.id}"
+                                            data-clientname="${client.name}">Delete</a>
+                                    </div>
+                                </div>
+                                <hr>
+                                <span class="info-box-text"><i class="fas fa-user"></i> ${client.name}</span>`;
+
+                if (client.email) {
+                    html += `<span class="info-box-text"><i class="fas fa-envelope"></i> ${client.email}</span>`;
+                }
+
+                if (client.created_at) {
+                    html += `<span class="info-box-text"><i class="fas fa-clock"></i> ${prettyDateTime(client.created_at)}</span>`;
+                }
+
+                if (client.updated_at) {
+                    html += `<span class="info-box-text"><i class="fas fa-history"></i> ${prettyDateTime(client.updated_at)}</span>`;
+                }
+
+                // نمایش DNS سرور
+                html += `<span class="info-box-text"><i class="fas fa-server" style="${client.use_server_dns ? "opacity: 1.0" : "opacity: 0.5"}"></i> DNS</span>`;
+
+                // نمایش یادداشت‌های اضافی
                 if (client.additional_notes) {
-                    infoBoxContent.append(
-                        $('<span class="info-box-text">')
-                            .append($('<i class="fas fa-sticky-note"></i> '))
-                            .append(client.additional_notes)
-                    );
+                    html += `<span class="info-box-text"><i class="fas fa-file"></i> ${client.additional_notes}</span>`;
                 }
 
-                // دکمه‌های عملیات
-                const buttonGroup = $('<div class="btn-group">');
-                
-                // دکمه QR Code
-                buttonGroup.append(
-                    $('<button type="button" class="btn btn-default btn-sm">')
-                        .append($('<i class="fas fa-qrcode"></i>'))
-                        .attr('data-toggle', 'modal')
-                        .attr('data-target', '#modal_qr_client')
-                        .attr('data-clientid', client.id)
-                );
+                // نمایش IP های تخصیص داده شده
+                if (client.allocated_ips && client.allocated_ips.length > 0) {
+                    html += `<span class="info-box-text"><strong>IP Allocation</strong></span>`;
+                    client.allocated_ips.forEach(function(ip) {
+                        html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                    });
+                }
 
-                // دکمه ایمیل
-                buttonGroup.append(
-                    $('<button type="button" class="btn btn-default btn-sm">')
-                        .append($('<i class="fas fa-envelope"></i>'))
-                        .attr('data-toggle', 'modal')
-                        .attr('data-target', '#modal_email_client')
-                        .attr('data-clientid', client.id)
-                        .attr('data-clientname', client.name)
-                );
+                // نمایش IP های مجاز
+                if (client.allowed_ips && client.allowed_ips.length > 0) {
+                    html += `<span class="info-box-text"><strong>Allowed IPs</strong></span>`;
+                    client.allowed_ips.forEach(function(ip) {
+                        html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                    });
+                }
 
-                // دکمه تلگرام
-                buttonGroup.append(
-                    $('<button type="button" class="btn btn-default btn-sm">')
-                        .append($('<i class="fas fa-paper-plane"></i>'))
-                        .attr('data-toggle', 'modal')
-                        .attr('data-target', '#modal_telegram_client')
-                        .attr('data-clientid', client.id)
-                        .attr('data-clientname', client.name)
-                );
+                html += `
+                            </div>
+                        </div>
+                    </div>`;
 
-                // دکمه ویرایش
-                buttonGroup.append(
-                    $('<button type="button" class="btn btn-default btn-sm">')
-                        .append($('<i class="fas fa-edit"></i>'))
-                        .attr('data-toggle', 'modal')
-                        .attr('data-target', '#modal_edit_client')
-                        .attr('data-clientid', client.id)
-                        .attr('data-clientname', client.name)
-                );
-
-                // دکمه غیرفعال کردن/فعال کردن
-                if (client.enabled !== undefined) {
-                    if (client.enabled) {
-                        buttonGroup.append(
-                            $('<button type="button" class="btn btn-default btn-sm">')
-                                .append($('<i class="fas fa-pause"></i>'))
-                                .attr('data-toggle', 'modal')
-                                .attr('data-target', '#modal_pause_client')
-                                .attr('data-clientid', client.id)
-                                .attr('data-clientname', client.name)
-                            );
-                        } else {
-                            buttonGroup.append(
-                                $('<button type="button" class="btn btn-default btn-sm">')
-                                    .append($('<i class="fas fa-play"></i>'))
-                                    .attr('onclick', `resumeClient('${client.id}')`)
-                            );
-                        }
-                    }
-
-                // دکمه حذف
-                buttonGroup.append(
-                    $('<button type="button" class="btn btn-default btn-sm">')
-                        .append($('<i class="fas fa-trash"></i>'))
-                        .attr('data-toggle', 'modal')
-                        .attr('data-target', '#modal_remove_client')
-                        .attr('data-clientid', client.id)
-                        .attr('data-clientname', client.name)
-                );
-
-                infoBoxContent.append(buttonGroup);
-                infoBox.append(infoBoxContent);
-                clientDiv.append(infoBox);
-                clientList.append(clientDiv);
+                clientList.append(html);
             });
         }
     </script>
