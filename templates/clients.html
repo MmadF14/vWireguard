@@ -1,4 +1,4 @@
-﻿{{define "title"}}
+﻿﻿{{define "title"}}
 Wireguard Clients
 {{end}}
 
@@ -403,7 +403,7 @@ Wireguard Clients
         function disableAndTerminateClient(clientID, reason) {
             const data = {
                 "id": clientID,
-                "reason": reason
+                "status": false
             };
             
             // 1. غیرفعال کردن کلاینت
@@ -413,58 +413,55 @@ Wireguard Clients
                 url: '{{.basePath}}/client/set-status',
                 dataType: 'json',
                 contentType: "application/json",
-                data: JSON.stringify({"id": clientID, "status": false}),
+                data: JSON.stringify(data),
                 success: function(data) {
                     console.log("Disabled client " + clientID);
                     
-                    // 2. قطع اجباری اتصال کلاینت
+                    // 2. اعمال تغییرات در پیکربندی WireGuard
                     $.ajax({
                         cache: false,
                         method: 'POST',
-                        url: '{{.basePath}}/api/terminate-client',
+                        url: '{{.basePath}}/api/apply-wg-config',
                         dataType: 'json',
                         contentType: "application/json",
-                        data: JSON.stringify({
-                            "id": clientID,
-                            "reason": reason
-                        }),
                         success: function(data) {
-                            toastr.warning(`Client has been disabled: ${reason}`);
-                            updateApplyConfigVisibility();
-                            // رفرش لیست کلاینت‌ها
-                            populateClientList();
+                            console.log("Applied WireGuard config changes");
+                            
+                            // 3. قطع اجباری اتصال کلاینت
+                            $.ajax({
+                                cache: false,
+                                method: 'POST',
+                                url: '{{.basePath}}/api/terminate-client',
+                                dataType: 'json',
+                                contentType: "application/json",
+                                data: JSON.stringify({
+                                    "id": clientID,
+                                    "reason": reason
+                                }),
+                                success: function(data) {
+                                    toastr.warning(`Client has been disabled: ${reason}`);
+                                    updateApplyConfigVisibility();
+                                    // رفرش لیست کلاینت‌ها
+                                    populateClientList();
+                                },
+                                error: function(jqXHR, exception) {
+                                    console.error("Failed to terminate client connection");
+                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                    toastr.error(responseJson['message']);
+                                }
+                            });
                         },
                         error: function(jqXHR, exception) {
-                            console.error("Failed to terminate client connection");
-                            let errorMessage = 'Failed to terminate client';
-                            if (jqXHR.status === 503) {
-                                errorMessage = 'Server is temporarily unavailable. Please try again later.';
-                            } else {
-                                try {
-                                    const responseJson = JSON.parse(jqXHR.responseText);
-                                    errorMessage = responseJson.message || errorMessage;
-                                } catch (e) {
-                                    console.error('Error parsing error response:', e);
-                                }
-                            }
-                            toastr.error(errorMessage);
+                            console.error("Failed to apply WireGuard config");
+                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            toastr.error(responseJson['message']);
                         }
                     });
                 },
                 error: function(jqXHR, exception) {
                     console.error("Failed to disable client");
-                    let errorMessage = 'Failed to disable client';
-                    if (jqXHR.status === 503) {
-                        errorMessage = 'Server is temporarily unavailable. Please try again later.';
-                    } else {
-                        try {
-                            const responseJson = JSON.parse(jqXHR.responseText);
-                            errorMessage = responseJson.message || errorMessage;
-                        } catch (e) {
-                            console.error('Error parsing error response:', e);
-                        }
-                    }
-                    toastr.error(errorMessage);
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
                 }
             });
         }

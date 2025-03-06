@@ -1,4 +1,4 @@
-﻿package handler
+﻿﻿package handler
 
 import (
 	"crypto/subtle"
@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1218,94 +1217,5 @@ func AboutPage() echo.HandlerFunc {
 		return c.Render(http.StatusOK, "about.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "about", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 		})
-	}
-}
-
-// TerminateClient handles forceful client termination
-func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		var req struct {
-			ID     string `json:"id"`
-			Reason string `json:"reason"`
-		}
-		
-		if err := c.Bind(&req); err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
-		}
-
-		// 1. Get client info with empty QR settings since we don't need QR
-		clientData, err := db.GetClientByID(req.ID, model.QRCodeSettings{})
-		if err != nil {
-			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
-		}
-
-		// 2. Get server config for interface name
-		server, err := db.GetServer()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get server config"})
-		}
-
-		// 3. Create WireGuard client
-		wg, err := wgctrl.New()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to access WireGuard"})
-		}
-		defer wg.Close()
-
-		// 4. Remove peer from interface
-		key, err := wgtypes.ParseKey(clientData.Client.PublicKey)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
-		}
-
-		// Remove peer using the actual interface name from server config
-		config := wgtypes.PeerConfig{
-			PublicKey: key,
-			Remove:    true,
-		}
-
-		// Get settings for interface name
-		settings, err := db.GetGlobalSettings()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
-		}
-
-		// Use ConfigFilePath from settings to determine interface name
-		interfaceName := "wg0" // default interface name
-		if settings.ConfigFilePath != "" {
-			// Extract interface name from config file path
-			// Usually config files are named like "wg0.conf" or similar
-			base := filepath.Base(settings.ConfigFilePath)
-			interfaceName = strings.TrimSuffix(base, filepath.Ext(base))
-		}
-
-		err = wg.ConfigureDevice(interfaceName, wgtypes.Config{
-			Peers: []wgtypes.PeerConfig{config},
-		})
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to remove peer from interface %s: %v", interfaceName, err)})
-		}
-
-		// 5. Get all required data for config update
-		clients, err := db.GetClients(false)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get clients"})
-		}
-
-		users, err := db.GetUsers()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get users"})
-		}
-
-		// 6. Write updated WireGuard config
-		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to write config: %v", err)})
-		}
-
-		// 7. Log the action
-		log.Infof("Client %s (%s) terminated: %s", clientData.Client.Name, clientData.Client.ID, req.Reason)
-
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client terminated successfully"})
 	}
 }
