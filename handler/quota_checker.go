@@ -181,12 +181,10 @@ func applyWireGuardConfig(db store.IStore) error {
     // Restart WireGuard service using systemctl
     serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
     
-
-
-    // Then start it again
+    var cmd *exec.Cmd
     cmd = exec.Command("sudo", "systemctl", "restart", serviceName)
     if err := cmd.Run(); err != nil {
-        log.Printf("Error starting WireGuard service: %v", err)
+        log.Printf("Error restarting WireGuard service: %v", err)
         return fmt.Errorf("error restarting WireGuard service: %v", err)
     }
 
