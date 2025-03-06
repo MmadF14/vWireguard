@@ -1219,3 +1219,60 @@ func AboutPage() echo.HandlerFunc {
 		})
 	}
 }
+
+// TerminateClient handles forceful client termination
+func TerminateClient(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req struct {
+			ID     string `json:"id"`
+			Reason string `json:"reason"`
+		}
+		
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
+		}
+
+		// 1. Get client info
+		client, err := db.GetClientByID(req.ID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
+		}
+
+		// 2. Create WireGuard client
+		wg, err := wgctrl.New()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to access WireGuard"})
+		}
+		defer wg.Close()
+
+		// 3. Remove peer from interface
+		key, err := wgtypes.ParseKey(client.PublicKey)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
+		}
+
+		// Get interface name from settings
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get interface name"})
+		}
+
+		// Remove peer
+		config := wgtypes.PeerConfig{
+			PublicKey: key,
+			Remove:    true,
+		}
+
+		err = wg.ConfigureDevice(settings.Interface, wgtypes.Config{
+			Peers: []wgtypes.PeerConfig{config},
+		})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to remove peer"})
+		}
+
+		// 4. Log the action
+		log.Infof("Client %s (%s) terminated: %s", client.Name, client.ID, req.Reason)
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client terminated successfully"})
+	}
+}
