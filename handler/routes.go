@@ -1238,39 +1238,72 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
-		// 2. Create WireGuard client
+		// 2. Get server config for interface name
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get server config"})
+		}
+
+		// 3. Create WireGuard client
 		wg, err := wgctrl.New()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to access WireGuard"})
 		}
 		defer wg.Close()
 
-		// 3. Remove peer from interface
+		// 4. Remove peer from interface
 		key, err := wgtypes.ParseKey(clientData.Client.PublicKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
 		}
 
-		// Get interface name from settings
-		settings, err := db.GetGlobalSettings()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get interface name"})
-		}
-
-		// Remove peer
+		// Remove peer using the actual interface name from server config
 		config := wgtypes.PeerConfig{
 			PublicKey: key,
 			Remove:    true,
 		}
 
-		err = wg.ConfigureDevice(settings.ConfigFilePath, wgtypes.Config{
+		// Get interface name from server config
+		interfaceName := server.Interface.Name
+		if interfaceName == "" {
+			interfaceName = "wg0" // fallback to default if not set
+		}
+
+		err = wg.ConfigureDevice(interfaceName, wgtypes.Config{
 			Peers: []wgtypes.PeerConfig{config},
 		})
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to remove peer"})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to remove peer from interface %s: %v", interfaceName, err)})
 		}
 
-		// 4. Log the action
+		// 5. Get all required data for config update
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
+		}
+
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get clients"})
+		}
+
+		users, err := db.GetUsers()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get users"})
+		}
+
+		// 6. Write updated WireGuard config
+		tmplDir, err := fs.Sub(embeddedTemplates, "templates")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to access templates"})
+		}
+
+		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to write config: %v", err)})
+		}
+
+		// 7. Log the action
 		log.Infof("Client %s (%s) terminated: %s", clientData.Client.Name, clientData.Client.ID, req.Reason)
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client terminated successfully"})
