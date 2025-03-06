@@ -8,7 +8,7 @@ import (
     "fmt"
     "github.com/MmadF14/wireguard-ui/util"
     "strings"
-    "golang.zx2c4.com/wireguard/wgtypes"
+    "os/exec"
 )
 
 // StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
@@ -125,45 +125,15 @@ func applyWireGuardConfig(db store.IStore) error {
         }
     }
 
-    // Create WireGuard client
-    wgClient, err := wgctrl.New()
-    if err != nil {
-        return fmt.Errorf("cannot create WireGuard client: %v", err)
-    }
-    defer wgClient.Close()
-
-    // Get current device
-    device, err := wgClient.Device(interfaceName)
-    if err != nil {
-        return fmt.Errorf("cannot get WireGuard device: %v", err)
+    // Reload WireGuard configuration using wg-quick
+    cmd := exec.Command("wg-quick", "strip", interfaceName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("error stripping WireGuard config: %v", err)
     }
 
-    // Create peer configs for enabled clients
-    peerConfigs := make([]wgtypes.PeerConfig, 0)
-    for _, clientData := range clients {
-        client := clientData.Client
-        if !client.Enabled {
-            // If client is disabled, remove it from WireGuard
-            pubKey, err := wgtypes.ParseKey(client.PublicKey)
-            if err != nil {
-                log.Printf("Error parsing public key for client %s: %v", client.Name, err)
-                continue
-            }
-            peerConfigs = append(peerConfigs, wgtypes.PeerConfig{
-                PublicKey: pubKey,
-                Remove:    true,
-            })
-        }
-    }
-
-    // Apply configuration
-    if len(peerConfigs) > 0 {
-        err = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{
-            Peers: peerConfigs,
-        })
-        if err != nil {
-            return fmt.Errorf("cannot configure WireGuard device: %v", err)
-        }
+    cmd = exec.Command("wg-quick", "up", interfaceName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("error applying WireGuard config: %v", err)
     }
 
     return nil
