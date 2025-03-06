@@ -1,4 +1,4 @@
-﻿﻿package handler
+﻿package handler
 
 import (
 	"crypto/subtle"
@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
