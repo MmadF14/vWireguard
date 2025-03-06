@@ -214,23 +214,25 @@
                             <!-- فیلد جدید Quota -->
                             <div class="form-group">
                                 <label for="client_quota" class="control-label">Quota</label>
-                                <select class="form-control" id="quota_preset" onchange="updateQuotaInput()">
-                                    <option value="">Select Quota</option>
-                                    <option value="1">1 GB</option>
-                                    <option value="2">2 GB</option>
-                                    <option value="5">5 GB</option>
-                                    <option value="10">10 GB</option>
-                                    <option value="20">20 GB</option>
-                                    <option value="50">50 GB</option>
-                                    <option value="100">100 GB</option>
-                                    <option value="200">200 GB</option>
-                                    <option value="500">500 GB</option>
-                                    <option value="1000">1 TB</option>
-                                    <option value="custom">Custom</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <input type="number" class="form-control" id="client_quota" name="client_quota" placeholder="Enter custom quota in GB" step="0.1" min="0" />
+                                <div class="input-group">
+                                    <select class="form-control" id="quota_preset" onchange="updateQuotaInput()">
+                                        <option value="custom">Custom</option>
+                                        <option value="1073741824">1 GB</option>
+                                        <option value="2147483648">2 GB</option>
+                                        <option value="5368709120">5 GB</option>
+                                        <option value="10737418240">10 GB</option>
+                                        <option value="21474836480">20 GB</option>
+                                        <option value="53687091200">50 GB</option>
+                                        <option value="107374182400">100 GB</option>
+                                        <option value="214748364800">200 GB</option>
+                                        <option value="536870912000">500 GB</option>
+                                        <option value="1073741824000">1 TB</option>
+                                    </select>
+                                    <div class="input-group-append">
+                                        <input type="number" class="form-control" id="client_quota" name="client_quota" 
+                                               placeholder="Enter custom quota in bytes" />
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- فیلد جدید Expiration -->
@@ -471,18 +473,15 @@
         }
 
         function updateQuotaInput() {
-            const preset = $("#quota_preset").val();
-            const quotaInput = $("#client_quota");
+            const quotaPreset = document.getElementById('quota_preset');
+            const quotaInput = document.getElementById('client_quota');
             
-            if (preset === "custom") {
-                quotaInput.prop("disabled", false);
-                quotaInput.val("");
-            } else if (preset) {
-                quotaInput.prop("disabled", true);
-                quotaInput.val(preset);
+            if (quotaPreset.value === 'custom') {
+                quotaInput.value = '';
+                quotaInput.disabled = false;
             } else {
-                quotaInput.prop("disabled", false);
-                quotaInput.val("");
+                quotaInput.value = quotaPreset.value;
+                quotaInput.disabled = true;
             }
         }
 
@@ -579,9 +578,22 @@
                 success: function (resp) {
                     $("#modal_new_client").modal('hide');
                     toastr.success('Created new client successfully');
-                    // اگر در صفحه اصلی هستید، لیست کلاینت‌ها را به‌روزرسانی کنید
+                    // اگر در صفحه اصلی هستید، کل لیست کلاینت‌ها را به‌روزرسانی کنید
                     if (window.location.pathname === "{{.basePath}}/") {
-                        populateClient(resp.id);
+                        $.ajax({
+                            cache: false,
+                            method: 'GET',
+                            url: '{{.basePath}}/api/clients',
+                            dataType: 'json',
+                            contentType: "application/json",
+                            success: function (data) {
+                                renderClientList(data);
+                            },
+                            error: function (jqXHR, exception) {
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                toastr.error(responseJson['message']);
+                            }
+                        });
                     }
                     updateApplyConfigVisibility();
                 },
