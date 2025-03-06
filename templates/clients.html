@@ -376,7 +376,103 @@ Wireguard Clients
             });
         }
 
+        function checkClientStatus(client) {
+            // بررسی تاریخ انقضا
+            if (client.expiration) {
+                const expDate = new Date(client.expiration);
+                const now = new Date();
+                if (expDate <= now && client.enabled) {
+                    console.log(`Client ${client.name} has expired. Disabling...`);
+                    disableAndTerminateClient(client.id, "Client expired");
+                    return false;
+                }
+            }
+
+            // بررسی حجم مصرفی
+            if (client.quota && client.quota > 0 && client.used_quota) {
+                if (client.used_quota >= client.quota && client.enabled) {
+                    console.log(`Client ${client.name} has exceeded quota. Disabling...`);
+                    disableAndTerminateClient(client.id, "Quota exceeded");
+                    return false;
+                }
+            }
+
+            return client.enabled;
+        }
+
+        function disableAndTerminateClient(clientID, reason) {
+            const data = {
+                "id": clientID,
+                "status": false
+            };
+            
+            // 1. غیرفعال کردن کلاینت
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/client/set-status',
+                dataType: 'json',
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function(data) {
+                    console.log("Disabled client " + clientID);
+                    
+                    // 2. اعمال تغییرات در پیکربندی WireGuard
+                    $.ajax({
+                        cache: false,
+                        method: 'POST',
+                        url: '{{.basePath}}/api/apply-wg-config',
+                        dataType: 'json',
+                        contentType: "application/json",
+                        success: function(data) {
+                            console.log("Applied WireGuard config changes");
+                            
+                            // 3. قطع اجباری اتصال کلاینت
+                            $.ajax({
+                                cache: false,
+                                method: 'POST',
+                                url: '{{.basePath}}/api/terminate-client',
+                                dataType: 'json',
+                                contentType: "application/json",
+                                data: JSON.stringify({
+                                    "id": clientID,
+                                    "reason": reason
+                                }),
+                                success: function(data) {
+                                    toastr.warning(`Client has been disabled: ${reason}`);
+                                    updateApplyConfigVisibility();
+                                    // رفرش لیست کلاینت‌ها
+                                    populateClientList();
+                                },
+                                error: function(jqXHR, exception) {
+                                    console.error("Failed to terminate client connection");
+                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                    toastr.error(responseJson['message']);
+                                }
+                            });
+                        },
+                        error: function(jqXHR, exception) {
+                            console.error("Failed to apply WireGuard config");
+                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            toastr.error(responseJson['message']);
+                        }
+                    });
+                },
+                error: function(jqXHR, exception) {
+                    console.error("Failed to disable client");
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
+        }
+
         function setClientStatus(clientID, status) {
+            if (!status) {
+                // اگر قصد غیرفعال کردن کلاینت را داریم
+                disableAndTerminateClient(clientID, "Manually disabled");
+                return;
+            }
+
             const data = {"id": clientID, "status": status};
             $.ajax({
                 cache: false,
@@ -385,54 +481,27 @@ Wireguard Clients
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function (data) {
+                success: function(data) {
                     console.log("Set client " + clientID + " status to " + status);
-                },
-                error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        }
-
-        function pauseClient(clientID) {
-            setClientStatus(clientID, false);
-            const divElement = document.getElementById("paused_" + clientID);
-            divElement.style.visibility = "visible";
-            
-            // اعمال تغییرات در پیکربندی WireGuard
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/api/apply-wg-config',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    toastr.success('Client disabled and configuration applied successfully');
-                    updateApplyConfigVisibility();
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        }
-
-        function resumeClient(clientID) {
-            setClientStatus(clientID, true);
-            const divElement = document.getElementById("paused_" + clientID);
-            divElement.style.visibility = "hidden";
-            
-            // اعمال تغییرات در پیکربندی WireGuard
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/api/apply-wg-config',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    toastr.success('Client enabled and configuration applied successfully');
-                    updateApplyConfigVisibility();
+                    
+                    // اعمال تغییرات در پیکربندی WireGuard
+                    $.ajax({
+                        cache: false,
+                        method: 'POST',
+                        url: '{{.basePath}}/api/apply-wg-config',
+                        dataType: 'json',
+                        contentType: "application/json",
+                        success: function(data) {
+                            toastr.success('Client enabled and configuration applied successfully');
+                            updateApplyConfigVisibility();
+                            // رفرش لیست کلاینت‌ها
+                            populateClientList();
+                        },
+                        error: function(jqXHR, exception) {
+                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            toastr.error(responseJson['message']);
+                        }
+                    });
                 },
                 error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
@@ -1236,9 +1305,29 @@ Wireguard Clients
                 // نمایش حجم مصرفی و باقی‌مانده
                 if (client.quota && client.quota > 0) {
                     const quotaGB = (client.quota / (1024 * 1024 * 1024)).toFixed(1);
-                    const usedGB = client.used_quota ? (client.used_quota / (1024 * 1024 * 1024)).toFixed(1) : 0;
-                    const remainingGB = (quotaGB - usedGB).toFixed(1);
-                    html += `<span class="info-box-text"><i class="fas fa-database"></i> Usage: ${usedGB}GB / ${quotaGB}GB (${remainingGB}GB remaining)</span>`;
+                    const usedGB = (client.used_quota || 0) / (1024 * 1024 * 1024);
+                    const remainingGB = Math.max(0, quotaGB - usedGB).toFixed(1);
+                    const usedPercent = ((usedGB / quotaGB) * 100).toFixed(1);
+                    
+                    let usageClass = '';
+                    if (usedPercent >= 90) {
+                        usageClass = 'text-danger';
+                    } else if (usedPercent >= 75) {
+                        usageClass = 'text-warning';
+                    }
+                    
+                    html += `
+                        <span class="info-box-text ${usageClass}">
+                            <i class="fas fa-database"></i> Usage: ${usedGB.toFixed(1)}GB / ${quotaGB}GB (${remainingGB}GB remaining)
+                            <div class="progress progress-sm">
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                    style="width: ${Math.min(100, usedPercent)}%" 
+                                    aria-valuenow="${usedPercent}" 
+                                    aria-valuemin="0" 
+                                    aria-valuemax="100">
+                                </div>
+                            </div>
+                        </span>`;
                 } else {
                     html += `<span class="info-box-text"><i class="fas fa-database"></i> Unlimited</span>`;
                 }
