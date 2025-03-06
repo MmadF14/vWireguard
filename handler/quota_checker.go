@@ -178,19 +178,23 @@ func applyWireGuardConfig(db store.IStore) error {
         }
     }
 
-    // Reload WireGuard configuration
-    cmd := exec.Command("wg-quick", "strip", interfaceName)
+    // Restart WireGuard service using systemctl
+    serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+    
+    // First try to stop the service
+    cmd := exec.Command("sudo", "systemctl", "stop", serviceName)
     if err := cmd.Run(); err != nil {
-        log.Printf("Error stripping WireGuard config: %v", err)
+        log.Printf("Error stopping WireGuard service: %v", err)
     }
 
-    cmd = exec.Command("wg-quick", "up", interfaceName)
+    // Then start it again
+    cmd = exec.Command("sudo", "systemctl", "start", serviceName)
     if err := cmd.Run(); err != nil {
-        log.Printf("Error applying WireGuard config: %v", err)
-        return fmt.Errorf("error applying WireGuard config: %v", err)
+        log.Printf("Error starting WireGuard service: %v", err)
+        return fmt.Errorf("error restarting WireGuard service: %v", err)
     }
 
-    log.Printf("Successfully applied WireGuard configuration")
+    log.Printf("Successfully restarted WireGuard service")
     return nil
 }
 
