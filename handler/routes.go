@@ -1221,7 +1221,7 @@ func AboutPage() echo.HandlerFunc {
 }
 
 // TerminateClient handles forceful client termination
-func TerminateClient(db store.IStore) echo.HandlerFunc {
+func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req struct {
 			ID     string `json:"id"`
@@ -1263,8 +1263,14 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 			Remove:    true,
 		}
 
-		// Get interface name from server config
-		interfaceName := server.Interface.Name
+		// Get settings for interface name
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
+		}
+
+		// Use interface name from settings
+		interfaceName := settings.Interface
 		if interfaceName == "" {
 			interfaceName = "wg0" // fallback to default if not set
 		}
@@ -1277,11 +1283,6 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// 5. Get all required data for config update
-		settings, err := db.GetGlobalSettings()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get settings"})
-		}
-
 		clients, err := db.GetClients(false)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get clients"})
@@ -1293,11 +1294,6 @@ func TerminateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// 6. Write updated WireGuard config
-		tmplDir, err := fs.Sub(embeddedTemplates, "templates")
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to access templates"})
-		}
-
 		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to write config: %v", err)})
