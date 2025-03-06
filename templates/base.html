@@ -538,7 +538,8 @@
             const additional_notes = $("#additional_notes").val();
 
             // دریافت Quota از فیلد مربوطه
-            const quota = parseFloat($("#client_quota").val()) || 0;
+            const quotaGB = parseFloat($("#client_quota").val()) || 0;
+            const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
             // دریافت تاریخ انقضا و تبدیل به فرمت ISO8601 (UTC)
             let expirationValue = $("#client_expiration").val(); // مثلاً "2025-12-31T23:59"
@@ -562,9 +563,7 @@
                 public_key: public_key,
                 preshared_key: preshared_key,
                 additional_notes: additional_notes,
-
-                // فیلدهای جدید
-                quota: quota,
+                quota: quotaBytes,
                 expiration: expirationIso
             };
 
@@ -578,24 +577,10 @@
                 success: function (resp) {
                     $("#modal_new_client").modal('hide');
                     toastr.success('Created new client successfully');
-                    // اگر در صفحه اصلی هستید، کل لیست کلاینت‌ها را به‌روزرسانی کنید
+                    
+                    // اگر در صفحه اصلی هستید، لیست کلاینت‌ها را به‌روزرسانی کنید
                     if (window.location.pathname === "{{.basePath}}/") {
-                        $.ajax({
-                            cache: false,
-                            method: 'GET',
-                            url: '{{.basePath}}/api/clients',
-                            dataType: 'json',
-                            contentType: "application/json",
-                            success: function (data) {
-                                console.log('Received clients data:', data);
-                                renderClientList(data);
-                            },
-                            error: function (jqXHR, exception) {
-                                console.error('Error fetching clients:', jqXHR.responseText);
-                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                toastr.error(responseJson['message']);
-                            }
-                        });
+                        populateClientList(); // استفاده از تابع موجود برای به‌روزرسانی لیست
                     }
                     updateApplyConfigVisibility();
                 },

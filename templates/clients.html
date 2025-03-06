@@ -297,9 +297,18 @@ Wireguard Clients
                 dataType: 'json',
                 contentType: "application/json",
                 success: function (data) {
-                    renderClientList(data);
+                    console.log('Received clients data:', data);
+                    if (Array.isArray(data)) {
+                        renderClientList(data);
+                    } else if (data.clients && Array.isArray(data.clients)) {
+                        renderClientList(data.clients);
+                    } else {
+                        console.error('Invalid data format received:', data);
+                        toastr.error('Error: Invalid data format received from server');
+                    }
                 },
                 error: function (jqXHR, exception) {
+                    console.error('Error fetching clients:', jqXHR.responseText);
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
@@ -1051,16 +1060,23 @@ Wireguard Clients
             }
 
             clients.forEach(function (client) {
+                if (!client) {
+                    console.error('Invalid client data:', client);
+                    return;
+                }
+
                 const clientDiv = $('<div class="col-lg-4">');
                 const infoBox = $('<div class="info-box">');
                 const infoBoxContent = $('<div class="info-box-content">');
 
                 // نام کلاینت
-                infoBoxContent.append(
-                    $('<span class="info-box-text">')
-                        .append($('<i class="fas fa-user"></i> '))
-                        .append(client.name)
-                );
+                if (client.name) {
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-user"></i> '))
+                            .append(client.name)
+                    );
+                }
 
                 // ایمیل کلاینت
                 if (client.email) {
@@ -1092,18 +1108,22 @@ Wireguard Clients
                 }
 
                 // IP Allocation
-                infoBoxContent.append(
-                    $('<span class="info-box-text">')
-                        .append($('<i class="fas fa-network-wired"></i> '))
-                        .append(client.allocated_ips.join(', '))
-                );
+                if (client.allocated_ips && Array.isArray(client.allocated_ips)) {
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-network-wired"></i> '))
+                            .append(client.allocated_ips.join(', '))
+                    );
+                }
 
                 // Allowed IPs
-                infoBoxContent.append(
-                    $('<span class="info-box-text">')
-                        .append($('<i class="fas fa-key"></i> '))
-                        .append(client.allowed_ips.join(', '))
-                );
+                if (client.allowed_ips && Array.isArray(client.allowed_ips)) {
+                    infoBoxContent.append(
+                        $('<span class="info-box-text">')
+                            .append($('<i class="fas fa-key"></i> '))
+                            .append(client.allowed_ips.join(', '))
+                    );
+                }
 
                 // Telegram User ID
                 if (client.telegram_userid) {
@@ -1166,21 +1186,23 @@ Wireguard Clients
                 );
 
                 // دکمه غیرفعال کردن/فعال کردن
-                if (client.enabled) {
-                    buttonGroup.append(
-                        $('<button type="button" class="btn btn-default btn-sm">')
-                            .append($('<i class="fas fa-pause"></i>'))
-                            .attr('data-toggle', 'modal')
-                            .attr('data-target', '#modal_pause_client')
-                            .attr('data-clientid', client.id)
-                            .attr('data-clientname', client.name)
-                    );
-                } else {
-                    buttonGroup.append(
-                        $('<button type="button" class="btn btn-default btn-sm">')
-                            .append($('<i class="fas fa-play"></i>'))
-                            .attr('onclick', `resumeClient('${client.id}')`)
-                    );
+                if (client.enabled !== undefined) {
+                    if (client.enabled) {
+                        buttonGroup.append(
+                            $('<button type="button" class="btn btn-default btn-sm">')
+                                .append($('<i class="fas fa-pause"></i>'))
+                                .attr('data-toggle', 'modal')
+                                .attr('data-target', '#modal_pause_client')
+                                .attr('data-clientid', client.id)
+                                .attr('data-clientname', client.name)
+                        );
+                    } else {
+                        buttonGroup.append(
+                            $('<button type="button" class="btn btn-default btn-sm">')
+                                .append($('<i class="fas fa-play"></i>'))
+                                .attr('onclick', `resumeClient('${client.id}')`)
+                        );
+                    }
                 }
 
                 // دکمه حذف
