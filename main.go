@@ -6,11 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io/fs"
-	"net"
 	"net/http"
 	"os"
-	"strings"
-	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
