@@ -807,12 +807,6 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		if status {
 			// فعال کردن کلاینت
-			server, err := db.GetServer()
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
-			}
-
-			// ساخت دستور برای اضافه کردن پیر
 			cmd := exec.Command("sudo", "wg", "set", interfaceName, 
 				"peer", client.PublicKey,
 				"persistent-keepalive", "25",
