@@ -23,9 +23,9 @@ type Client struct {
 	Enabled         bool      `json:"enabled"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
-	Quota      int64     `json:"quota,omitempty"`     
-	Expiration time.Time `json:"expiration,omitempty"` 
-
+	Quota           int64     `json:"quota,omitempty"`     
+	UsedQuota       int64     `json:"used_quota,omitempty"`
+	Expiration      time.Time `json:"expiration,omitempty"` 
 }
 
 // ClientData includes the Client and extra data
