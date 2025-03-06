@@ -300,54 +300,48 @@ Wireguard Clients
                 success: function (response) {
                     console.log('Raw server response:', response);
                     
-                    // اگر پاسخ خالی باشد
                     if (!response) {
                         console.error('Empty response from server');
-                        toastr.error('Error: Empty response from server');
+                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                         return;
                     }
 
-                    let clientsData;
-
-                    // اگر پاسخ یک آرایه باشد
+                    // اگر پاسخ یک آرایه باشد (حالت معمول)
                     if (Array.isArray(response)) {
                         console.log('Response is an array with length:', response.length);
-                        clientsData = response;
-                    }
-                    // اگر پاسخ یک آبجکت باشد و خاصیت clients داشته باشد
-                    else if (response.clients && Array.isArray(response.clients)) {
-                        console.log('Response has clients array with length:', response.clients.length);
-                        clientsData = response.clients;
-                    }
-                    // اگر پاسخ یک آبجکت باشد و خاصیت data داشته باشد
-                    else if (response.data && Array.isArray(response.data)) {
-                        console.log('Response has data array with length:', response.data.length);
-                        clientsData = response.data;
-                    }
-                    // اگر پاسخ یک آبجکت باشد و خاصیت Client داشته باشد
-                    else if (response.Client) {
-                        console.log('Response has a single Client object');
-                        clientsData = [response.Client];
-                    }
-                    // اگر پاسخ یک آبجکت باشد و خاصیت client داشته باشد
-                    else if (response.client) {
-                        console.log('Response has a single client object');
-                        clientsData = [response.client];
-                    }
-                    else {
-                        console.error('Invalid response format:', response);
-                        toastr.error('Error: Invalid response format from server');
+                        if (response.length > 0) {
+                            renderClientList(response);
+                        } else {
+                            $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
+                        }
                         return;
                     }
 
-                    // اگر داده‌ها خالی نباشند، آنها را رندر کن
-                    if (clientsData && clientsData.length > 0) {
-                        console.log('Rendering clients:', clientsData);
-                        renderClientList(clientsData);
-                    } else {
-                        console.log('No clients to display');
-                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
+                    // اگر پاسخ یک آبجکت باشد
+                    if (typeof response === 'object') {
+                        let clientsData = null;
+
+                        // بررسی حالت‌های مختلف پاسخ
+                        if (response.clients && Array.isArray(response.clients)) {
+                            clientsData = response.clients;
+                        } else if (response.data && Array.isArray(response.data)) {
+                            clientsData = response.data;
+                        } else if (response.Client) {
+                            clientsData = [response.Client];
+                        } else if (response.client) {
+                            clientsData = [response.client];
+                        }
+
+                        if (clientsData && clientsData.length > 0) {
+                            renderClientList(clientsData);
+                        } else {
+                            $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
+                        }
+                        return;
                     }
+
+                    console.error('Invalid response format:', response);
+                    toastr.error('Error: Invalid response format from server');
                 },
                 error: function (jqXHR, exception) {
                     console.error('Error details:', {
@@ -363,6 +357,7 @@ Wireguard Clients
                         console.error('Error parsing response:', e);
                         toastr.error('Failed to fetch clients: ' + jqXHR.statusText);
                     }
+                    $("#client-list").html('<div class="col-12 text-center"><p>Error loading clients</p></div>');
                 }
             });
         }
