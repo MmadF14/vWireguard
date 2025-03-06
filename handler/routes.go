@@ -851,6 +851,94 @@ func RemoveClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
+// TerminateClient handler to terminate a client connection
+func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Parse request body
+		data := make(map[string]interface{})
+		if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
+		}
+
+		clientID := data["id"].(string)
+		if _, err := xid.FromString(clientID); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
+		}
+
+		// Get client data
+		clientData, err := db.GetClientByID(clientID, model.QRCodeSettings{Enabled: false})
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
+		}
+
+		// Get settings for interface name
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+
+		// Get interface name from config file path or use default
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		// Create WireGuard client
+		wgClient, err := wgctrl.New()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
+		}
+		defer wgClient.Close()
+
+		// Parse public key
+		pubKey, err := wgtypes.ParseKey(clientData.Client.PublicKey)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot parse client public key"})
+		}
+
+		// Remove peer from interface
+		peerConfig := wgtypes.PeerConfig{
+			PublicKey: pubKey,
+			Remove:    true,
+		}
+
+		err = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{
+			Peers: []wgtypes.PeerConfig{peerConfig},
+		})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Cannot remove peer: %v", err)})
+		}
+
+		// Write new configuration
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
+		}
+
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients"})
+		}
+
+		users, err := db.GetUsers()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get users"})
+		}
+
+		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Cannot write config: %v", err)})
+		}
+
+		log.Infof("Terminated client %s (%s)", clientData.Client.Name, clientData.Client.ID)
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client terminated successfully"})
+	}
+}
+
 // WireGuardServer handler
 func WireGuardServer(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
