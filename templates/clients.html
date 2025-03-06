@@ -299,64 +299,83 @@ Wireguard Clients
                 contentType: "application/json",
                 success: function (response) {
                     console.log('Raw server response:', response);
+                    console.log('Response type:', typeof response);
                     
+                    // اگر پاسخ خالی یا undefined باشد
                     if (!response) {
-                        console.error('Empty response from server');
+                        console.log('Response is empty or undefined');
                         $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                         return;
                     }
 
-                    // اگر پاسخ یک آرایه باشد (حالت معمول)
-                    if (Array.isArray(response)) {
-                        console.log('Response is an array with length:', response.length);
-                        if (response.length > 0) {
-                            renderClientList(response);
-                        } else {
-                            $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
+                    try {
+                        // تبدیل رشته JSON به آبجکت اگر به صورت رشته باشد
+                        let clientsData = typeof response === 'string' ? JSON.parse(response) : response;
+                        
+                        // اگر آرایه باشد
+                        if (Array.isArray(clientsData)) {
+                            console.log('Processing array response:', clientsData);
+                            if (clientsData.length > 0) {
+                                renderClientList(clientsData);
+                                return;
+                            }
                         }
-                        return;
+                        // اگر آبجکت باشد
+                        else if (typeof clientsData === 'object') {
+                            console.log('Processing object response:', clientsData);
+                            
+                            // بررسی همه حالت‌های ممکن
+                            if (clientsData.clients && Array.isArray(clientsData.clients)) {
+                                renderClientList(clientsData.clients);
+                                return;
+                            }
+                            if (clientsData.data && Array.isArray(clientsData.data)) {
+                                renderClientList(clientsData.data);
+                                return;
+                            }
+                            if (clientsData.Client) {
+                                renderClientList([clientsData.Client]);
+                                return;
+                            }
+                            if (clientsData.client) {
+                                renderClientList([clientsData.client]);
+                                return;
+                            }
+                            // اگر خود آبجکت یک کلاینت باشد
+                            if (clientsData.name || clientsData.id) {
+                                renderClientList([clientsData]);
+                                return;
+                            }
+                        }
+
+                        // اگر هیچ کدام از حالت‌های بالا نبود
+                        console.log('No valid client data found in response');
+                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
+
+                    } catch (e) {
+                        console.error('Error processing response:', e);
+                        toastr.error('Error processing server response');
+                        $("#client-list").html('<div class="col-12 text-center"><p>Error loading clients</p></div>');
                     }
-
-                    // اگر پاسخ یک آبجکت باشد
-                    if (typeof response === 'object') {
-                        let clientsData = null;
-
-                        // بررسی حالت‌های مختلف پاسخ
-                        if (response.clients && Array.isArray(response.clients)) {
-                            clientsData = response.clients;
-                        } else if (response.data && Array.isArray(response.data)) {
-                            clientsData = response.data;
-                        } else if (response.Client) {
-                            clientsData = [response.Client];
-                        } else if (response.client) {
-                            clientsData = [response.client];
-                        }
-
-                        if (clientsData && clientsData.length > 0) {
-                            renderClientList(clientsData);
-                        } else {
-                            $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
-                        }
-                        return;
-                    }
-
-                    console.error('Invalid response format:', response);
-                    toastr.error('Error: Invalid response format from server');
                 },
                 error: function (jqXHR, exception) {
-                    console.error('Error details:', {
+                    console.error('Ajax error:', {
                         status: jqXHR.status,
                         statusText: jqXHR.statusText,
-                        responseText: jqXHR.responseText
+                        responseText: jqXHR.responseText,
+                        exception: exception
                     });
                     
+                    let errorMessage = 'Failed to fetch clients';
+                    
                     try {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson.message || 'Failed to fetch clients');
+                        const responseJson = JSON.parse(jqXHR.responseText);
+                        errorMessage = responseJson.message || errorMessage;
                     } catch (e) {
-                        console.error('Error parsing response:', e);
-                        toastr.error('Failed to fetch clients: ' + jqXHR.statusText);
+                        console.error('Error parsing error response:', e);
                     }
+                    
+                    toastr.error(errorMessage);
                     $("#client-list").html('<div class="col-12 text-center"><p>Error loading clients</p></div>');
                 }
             });
