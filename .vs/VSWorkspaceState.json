@@ -1,7 +1,8 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\router"
   ],
-  "SelectedNode": "\\B:\\source\\repos\\wireguard-ui",
+  "SelectedNode": "\\init.sh",
   "PreviewInSolutionExplorer": false
 }
