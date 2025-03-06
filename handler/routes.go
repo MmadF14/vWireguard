@@ -371,16 +371,23 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clientDataList, err := db.GetClients(true)
 		if err != nil {
+			log.Error("Error getting clients: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
 				false, fmt.Sprintf("Cannot get client list: %v", err),
 			})
 		}
 
-		for i, clientData := range clientDataList {
-			clientDataList[i] = util.FillClientSubnetRange(clientData)
+		// Process each client and fill subnet range
+		processedList := make([]model.ClientData, 0, len(clientDataList))
+		for _, clientData := range clientDataList {
+			processedList = append(processedList, util.FillClientSubnetRange(clientData))
 		}
 
-		return c.JSON(http.StatusOK, clientDataList)
+		// Return as a structured response
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true,
+			"data":    processedList,
+		})
 	}
 }
 
