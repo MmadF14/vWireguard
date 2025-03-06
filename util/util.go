@@ -551,13 +551,20 @@ func WriteWireGuardServerConfig(tmplDir fs.FS, serverConfig model.Server, client
 			return err
 		}
 		tmplWireguardConf = string(fileContentBytes)
-	} else {
+	} else if tmplDir != nil {
 		// read default wg.conf template file to string
 		fileContent, err := StringFromEmbedFile(tmplDir, "wg.conf")
 		if err != nil {
 			return err
 		}
 		tmplWireguardConf = fileContent
+	} else {
+		// use embedded template
+		template, err := GetWireGuardConfigTemplate()
+		if err != nil {
+			return err
+		}
+		tmplWireguardConf = string(template)
 	}
 
 	// escape multiline notes
