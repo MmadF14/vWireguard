@@ -97,18 +97,6 @@ func checkQuotasAndExpiration(db store.IStore) {
         return
     }
 
-    // Get interface name
-    interfaceName := "wg0"
-    if settings.ConfigFilePath != "" {
-        parts := strings.Split(settings.ConfigFilePath, "/")
-        if len(parts) > 0 {
-            baseName := parts[len(parts)-1]
-            interfaceName = strings.TrimSuffix(baseName, ".conf")
-        }
-    }
-
-    configChanged := false
-
     for _, cData := range clients {
         client := cData.Client
         if client == nil {
