@@ -323,7 +323,7 @@ Wireguard Clients
                     // اگر داده‌ها آرایه باشند، مستقیماً آنها را رندر کنیم
                     if (Array.isArray(data)) {
                         console.log('Rendering array of clients:', data);
-                        renderClientList(data);
+                    renderClientList(data);
                         return;
                     }
 
@@ -415,8 +415,16 @@ Wireguard Clients
                             
                             // به‌روزرسانی UI بدون اعمال تغییرات
                             populateClientList();
-                        } else if (isAutomatic) {
-                            // اگر تغییر اتوماتیک است، کانفیگ را اعمال کن
+
+                            // بعد از یک دقیقه، lastManualActivation را پاک کن
+                            setTimeout(() => {
+                                if (window.lastManualActivation && window.lastManualActivation.clientId === clientID) {
+                                    window.lastManualActivation = null;
+                                    populateClientList(); // بررسی مجدد شرایط
+                                }
+                            }, 60000);
+                        } else if (!status && isAutomatic) {
+                            // فقط در صورت غیرفعال‌سازی خودکار، کانفیگ را اعمال کن
                             applyWireGuardConfig();
                         } else {
                             // برای سایر موارد فقط UI را به‌روز کن
@@ -493,14 +501,14 @@ Wireguard Clients
             
             // اضافه کردن مدیریت خطا و retry
             const tryFetchSuggestions = (retryCount = 0) => {
-                $.ajax({
-                    cache: false,
-                    method: 'GET',
+            $.ajax({
+                cache: false,
+                method: 'GET',
                     url: `{{.basePath}}/api/suggest-client-ips`,
                     data: { sr: subnetRange },
-                    dataType: 'json',
-                    contentType: "application/json",
-                    success: function(data) {
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
                         if (!data || !Array.isArray(data)) {
                             console.error('Invalid response format:', data);
                             return;
@@ -510,14 +518,14 @@ Wireguard Clients
                         if (allocated_ips) {
                             allocated_ips.split(",").forEach(function (item) {
                                 if (item) {
-                                    $('#_client_allocated_ips').removeTag(escape(item));
+                        $('#_client_allocated_ips').removeTag(escape(item));
                                 }
                             });
                         }
                         
                         data.forEach(function (item) {
                             if (item) {
-                                $('#_client_allocated_ips').addTag(item);
+                        $('#_client_allocated_ips').addTag(item);
                             }
                         });
                     },
@@ -528,7 +536,7 @@ Wireguard Clients
                         } else {
                             let errorMessage = 'Failed to get IP suggestions';
                             try {
-                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
                                 errorMessage = responseJson.message || errorMessage;
                             } catch (e) {
                                 console.error('Error parsing error response:', e);
@@ -1043,8 +1051,7 @@ Wireguard Clients
                 success: function (resp) {
                     $("#modal_edit_client").modal('hide');
                     toastr.success('Updated client successfully');
-                    // بعد از ویرایش، لیست کلاینت‌ها را رفرش یا صفحه را رفرش کنید
-                    location.reload();
+                    populateClientList();
                 },
                 error: function (jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
@@ -1232,10 +1239,8 @@ Wireguard Clients
 
             clients.forEach(function(data) {
                 try {
-                    // اگر داده به صورت {Client: {...}, QRCode: '...'} باشد
                     let client = data.Client || data;
                     
-                    // اگر داده معتبر نیست، رد کن
                     if (!client || !client.id) {
                         console.error('Invalid client data:', data);
                         return;
@@ -1247,7 +1252,7 @@ Wireguard Clients
                                           (new Date().getTime() - window.lastManualActivation.timestamp) < 60000;
 
                     // فقط اگر اخیراً فعال نشده باشد، شرایط را بررسی کن
-                    if (!isRecentlyActivated && client.enabled) {
+                    if (client.enabled && !isRecentlyActivated) {
                         let shouldDeactivate = false;
                         let deactivationReason = '';
 
@@ -1270,9 +1275,7 @@ Wireguard Clients
                         // اگر نیاز به غیرفعال‌سازی باشد
                         if (shouldDeactivate) {
                             console.log(`Auto-deactivating client ${client.name} (${deactivationReason})`);
-                            setTimeout(() => {
-                                setClientStatus(client.id, false, true);
-                            }, 100);
+                            setClientStatus(client.id, false, true); // isAutomatic = true
                         }
                     }
 
@@ -1562,39 +1565,7 @@ Wireguard Clients
                         success: function(response) {
                             newClientModal.modal('hide');
                             toastr.success('Created client successfully');
-                            
-                            // اعمال تغییرات به WireGuard با retry
-                            const applyConfig = (configRetryCount = 0) => {
-                                $.ajax({
-                                    cache: false,
-                                    method: 'POST',
-                                    url: '{{.basePath}}/api/apply-wg-config',
-                                    dataType: 'json',
-                                    contentType: "application/json",
-                                    success: function(data) {
-                                        toastr.success('Applied WireGuard configuration successfully');
-                                        populateClientList();
-                                    },
-                                    error: function(jqXHR) {
-                                        console.error('Error applying config:', jqXHR.status);
-                                        if (configRetryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
-                                            setTimeout(() => applyConfig(configRetryCount + 1), 1000 * (configRetryCount + 1));
-                                        } else {
-                                            let errorMessage = 'Error applying configuration';
-                                            try {
-                                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                                errorMessage = responseJson.message || errorMessage;
-                                            } catch (e) {
-                                                console.error('Error parsing error response:', e);
-                                            }
-                                            toastr.error(errorMessage);
-                                            populateClientList();
-                                        }
-                                    }
-                                });
-                            };
-
-                            applyConfig();
+                            populateClientList(); // فقط UI را به‌روز کن
                         },
                         error: function(jqXHR) {
                             console.error('Error creating client:', jqXHR.status);
