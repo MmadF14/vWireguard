@@ -853,13 +853,14 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
-		// اگر درخواست غیرفعال‌سازی خودکار است
-		if !status && isAutomatic {
-			client.Enabled = false
-			if err := db.SaveClient(client); err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-			}
+		// اگر درخواست غیرفعال‌سازی است (دستی یا خودکار)
+		client.Enabled = false
+		if err := db.SaveClient(client); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+		}
 
+		// فقط در حالت غیرفعال‌سازی خودکار، کانفیگ را اعمال می‌کنیم
+		if isAutomatic {
 			// Get settings for interface name
 			settings, err := db.GetGlobalSettings()
 			if err != nil {
@@ -899,7 +900,6 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			})
 			if err != nil {
 				log.Printf("Error removing peer %s: %v", client.Name, err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error disabling client: %v", err)})
 			}
 
 			// به‌روزرسانی فایل کانفیگ
@@ -918,12 +918,21 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get users"})
 			}
 
+			// فقط در حالت غیرفعال‌سازی خودکار، کانفیگ را اعمال می‌کنیم
+			cmd := exec.Command("sudo", "wg-quick", "down", interfaceName)
+			_ = cmd.Run() // Ignore errors
+
 			if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
 				log.Printf("Warning: Could not write config file: %v", err)
 			}
+
+			cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
+			_ = cmd.Run() // Ignore errors
+
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client disabled and configuration updated successfully"})
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Changed client status successfully"})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client disabled successfully"})
 	}
 }
 

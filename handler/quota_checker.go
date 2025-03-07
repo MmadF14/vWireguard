@@ -10,6 +10,7 @@ import (
     "github.com/MmadF14/wireguard-ui/util"
     "strings"
     "os/exec"
+    "net/http"
 )
 
 var (
@@ -126,7 +127,6 @@ func checkQuotasAndExpiration(db store.IStore) {
         }
 
         log.Printf("Checking client: %s", client.Name)
-        wasEnabled := client.Enabled
 
         // بروزرسانی مصرف کلاینت
         if usage, ok := usageMap[client.PublicKey]; ok {
@@ -161,53 +161,25 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // اگر نیاز به غیرفعال کردن کلاینت باشد
         if shouldDisable {
-            client.Enabled = false
-            if err := db.SaveClient(*client); err != nil {
-                log.Printf("Error saving client %s after %s check: %v", client.Name, disableReason, err)
+            // غیرفعال‌سازی از طریق API
+            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false?automatic=true", client.ID)
+            req, err := http.NewRequest("GET", url, nil)
+            if err != nil {
+                log.Printf("Error creating request to disable client %s: %v", client.Name, err)
                 continue
             }
+            
+            resp, err := http.DefaultClient.Do(req)
+            if err != nil {
+                log.Printf("Error disabling client %s: %v", client.Name, err)
+                continue
+            }
+            resp.Body.Close()
 
             // ثبت زمان غیرفعال‌سازی
             setLastDisableTime(client.ID)
-
-            // غیرفعال‌سازی خودکار کلاینت
-            cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
-            if err := cmd.Run(); err != nil {
-                log.Printf("Error removing peer %s: %v", client.Name, err)
-            } else {
-                log.Printf("Successfully removed peer %s", client.Name)
-            }
-
             log.Printf("Client %s disabled due to %s", client.Name, disableReason)
-            configChanged = true
         }
-
-        // اگر وضعیت کلاینت تغییر کرده، نیاز به اعمال تغییرات داریم
-        if wasEnabled != client.Enabled {
-            configChanged = true
-        }
-    }
-
-    // اگر تغییری در وضعیت کلاینت‌ها داشتیم، فقط فایل کانفیگ را به‌روز می‌کنیم
-    if configChanged {
-        server, err := db.GetServer()
-        if err != nil {
-            log.Printf("Error getting server config: %v", err)
-            return
-        }
-
-        users, err := db.GetUsers()
-        if err != nil {
-            log.Printf("Error getting users config: %v", err)
-            return
-        }
-
-        // Write config file
-        if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
-            log.Printf("Error writing WireGuard config: %v", err)
-            return
-        }
-        log.Printf("Successfully updated WireGuard config file")
     }
 }
 
