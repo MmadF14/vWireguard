@@ -780,18 +780,14 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		// پشتیبانی از هر دو متد GET و POST
 		switch c.Request().Method {
 		case "GET":
-			// برای GET، پارامترها رو از URL می‌خونیم
 			clientID = c.Param("id")
 			statusStr := c.Param("status")
 			status = statusStr == "true"
-			// پارامتر isAutomatic رو از query string می‌خونیم
 			automaticStr := c.QueryParam("automatic")
 			isAutomatic = automaticStr == "true"
 		case "POST":
-			// برای POST، اول سعی می‌کنیم از URL بخونیم
 			clientID = c.Param("id")
 			if clientID == "" {
-				// اگر در URL نبود، از body می‌خونیم
 				data := make(map[string]interface{})
 				if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
 					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
@@ -806,10 +802,8 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 					isAutomatic = a
 				}
 			} else {
-				// اگر در URL بود، از اونجا می‌خونیم
 				statusStr := c.Param("status")
 				status = statusStr == "true"
-				// پارامتر isAutomatic رو از query string می‌خونیم
 				automaticStr := c.QueryParam("automatic")
 				isAutomatic = automaticStr == "true"
 			}
@@ -839,53 +833,57 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
-		// اگر می‌خواهیم کلاینت را فعال کنیم، چک می‌کنیم که تاریخ انقضا و حجم مصرفی درست باشد
-		if status {
-			// بررسی تاریخ انقضا
+		// اگر درخواست فعال‌سازی دستی است
+		if status && !isAutomatic {
+			// بررسی شرایط فعال‌سازی
 			if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
 			}
 
-			// بررسی حجم مصرفی
 			if client.Quota > 0 && client.UsedQuota >= client.Quota {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
 			}
-		}
 
-		// Get settings for interface name
-		settings, err := db.GetGlobalSettings()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
-		}
-
-		// Get interface name
-		interfaceName := "wg0"
-		if settings.ConfigFilePath != "" {
-			parts := strings.Split(settings.ConfigFilePath, "/")
-			if len(parts) > 0 {
-				baseName := parts[len(parts)-1]
-				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			// فعال‌سازی کلاینت
+			client.Enabled = true
+			if err := db.SaveClient(client); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
+
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
-		// به‌روزرسانی وضعیت در دیتابیس
-		client.Enabled = status
-		if err := db.SaveClient(client); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-		}
-		log.Printf("Changed client %s enabled status to %v", client.ID, status)
-
-		// فقط در صورت غیرفعال‌سازی خودکار، کانفیگ را اعمال کن
+		// اگر درخواست غیرفعال‌سازی خودکار است
 		if !status && isAutomatic {
-			// Create WireGuard client for direct interface manipulation
+			client.Enabled = false
+			if err := db.SaveClient(client); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			}
+
+			// Get settings for interface name
+			settings, err := db.GetGlobalSettings()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+			}
+
+			// Get interface name
+			interfaceName := "wg0"
+			if settings.ConfigFilePath != "" {
+				parts := strings.Split(settings.ConfigFilePath, "/")
+				if len(parts) > 0 {
+					baseName := parts[len(parts)-1]
+					interfaceName = strings.TrimSuffix(baseName, ".conf")
+				}
+			}
+
+			// Create WireGuard client
 			wgClient, err := wgctrl.New()
 			if err != nil {
-				log.Printf("Error creating WireGuard client: %v", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
 			}
 			defer wgClient.Close()
 
-			// غیرفعال کردن کلاینت با استفاده از wgctrl
+			// Remove peer from interface
 			key, err := wgtypes.ParseKey(client.PublicKey)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
@@ -903,7 +901,6 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				log.Printf("Error removing peer %s: %v", client.Name, err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error disabling client: %v", err)})
 			}
-			log.Printf("Successfully removed peer %s", client.Name)
 
 			// به‌روزرسانی فایل کانفیگ
 			server, err := db.GetServer()

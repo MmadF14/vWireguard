@@ -383,24 +383,25 @@ func GetAvailableIP(cidr string, allocatedList, interfaceAddresses []string) (st
 // ValidateIPAllocation to validate the list of client's ip allocation
 // They must have a correct format and available in serverAddresses space
 func ValidateIPAllocation(serverAddresses []string, ipAllocatedList []string, ipAllocationList []string) (bool, error) {
-	for _, clientCIDR := range ipAllocationList {
-		ip, _, _ := net.ParseCIDR(clientCIDR)
+	// اگر لیست خالی باشد، مشکلی نیست
+	if len(ipAllocationList) == 0 {
+		return true, nil
+	}
 
-		// clientCIDR must be in CIDR format
-		if ip == nil {
+	// تبدیل IP های تخصیص داده شده به map برای جستجوی سریع‌تر
+	allocatedMap := make(map[string]bool)
+	for _, ip := range ipAllocatedList {
+		allocatedMap[ip] = true
+	}
+
+	for _, clientCIDR := range ipAllocationList {
+		ip, _, err := net.ParseCIDR(clientCIDR)
+		if err != nil {
 			return false, fmt.Errorf("invalid ip allocation input %s. Must be in CIDR format", clientCIDR)
 		}
 
-		// return false immediately if the ip is already in use (in ipAllocatedList)
-		for _, item := range ipAllocatedList {
-			if item == ip.String() {
-				return false, fmt.Errorf("IP %s already allocated", ip)
-			}
-		}
-
-		// even if it is not in use, we still need to check if it
-		// belongs to a network of the server.
-		var isValid = false
+		// بررسی اینکه IP در محدوده شبکه سرور باشد
+		var isValid bool
 		for _, serverCIDR := range serverAddresses {
 			_, serverNet, _ := net.ParseCIDR(serverCIDR)
 			if serverNet.Contains(ip) {
@@ -409,11 +410,13 @@ func ValidateIPAllocation(serverAddresses []string, ipAllocatedList []string, ip
 			}
 		}
 
-		// current ip allocation is valid, check the next one
-		if isValid {
-			continue
-		} else {
+		if !isValid {
 			return false, fmt.Errorf("IP %s does not belong to any network addresses of WireGuard server", ip)
+		}
+
+		// بررسی تکراری نبودن IP
+		if allocatedMap[ip.String()] {
+			return false, fmt.Errorf("IP %s already allocated", ip)
 		}
 	}
 
