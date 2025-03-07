@@ -776,32 +776,38 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 // SetClientStatus handler to enable / disable a client
 func SetClientStatus(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var clientID, statusStr string
+		var clientID string
 		var status bool
 
 		// پشتیبانی از هر دو متد GET و POST
-		if c.Request().Method == "GET" {
+		switch c.Request().Method {
+		case "GET":
+			// برای GET، پارامترها رو از URL می‌خونیم
 			clientID = c.Param("id")
-			statusStr = c.Param("status")
-		} else {
-			// برای درخواست‌های POST
-			data := make(map[string]interface{})
-			if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
-			}
-			if id, ok := data["id"].(string); ok {
-				clientID = id
-			}
-			if s, ok := data["status"].(bool); ok {
-				status = s
-			} else if s, ok := data["status"].(string); ok {
-				status = s == "true"
-			}
-		}
-
-		// اگر از GET استفاده شده
-		if statusStr != "" {
+			statusStr := c.Param("status")
 			status = statusStr == "true"
+		case "POST":
+			// برای POST، اول سعی می‌کنیم از URL بخونیم
+			clientID = c.Param("id")
+			if clientID == "" {
+				// اگر در URL نبود، از body می‌خونیم
+				data := make(map[string]interface{})
+				if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
+					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
+				}
+				if id, ok := data["id"].(string); ok {
+					clientID = id
+				}
+				if s, ok := data["status"].(bool); ok {
+					status = s
+				}
+			} else {
+				// اگر در URL بود، از اونجا می‌خونیم
+				statusStr := c.Param("status")
+				status = statusStr == "true"
+			}
+		default:
+			return c.JSON(http.StatusMethodNotAllowed, jsonHTTPResponse{false, "Method not allowed"})
 		}
 
 		if clientID == "" {
@@ -812,9 +818,11 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
+		// Get client data
 		clientData, err := db.GetClientByID(clientID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
-			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, err.Error()})
+			log.Printf("Error getting client: %v", err)
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
 		client := *clientData.Client

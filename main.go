@@ -243,6 +243,8 @@ func main() {
 	app.POST(util.BasePath+"/email-client", handler.EmailClient(db, sendmail, defaultEmailSubject, defaultEmailContent), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/send-telegram-client", handler.SendTelegramClient(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/client/set-status", handler.SetClientStatus(db), handler.ValidSession, handler.ContentTypeJson)
+	app.GET(util.BasePath+"/api/client/:id/status/:status", handler.SetClientStatus(db), handler.ValidSession)
+	app.POST(util.BasePath+"/api/client/:id/status/:status", handler.SetClientStatus(db), handler.ValidSession)
 	app.POST(util.BasePath+"/remove-client", handler.RemoveClient(db), handler.ValidSession, handler.ContentTypeJson)
 	app.GET(util.BasePath+"/download", handler.DownloadClient(db), handler.ValidSession)
 	app.GET(util.BasePath+"/wg-server", handler.WireGuardServer(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
