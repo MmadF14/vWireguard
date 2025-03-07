@@ -1159,7 +1159,7 @@ Wireguard Clients
             const clientList = $("#client-list");
             clientList.empty();
 
-            if (!clients || clients.length === 0) {
+            if (!clients || !Array.isArray(clients) || clients.length === 0) {
                 clientList.html('<div class="col-12 text-center"><p>No clients found</p></div>');
                 return;
             }
@@ -1175,13 +1175,11 @@ Wireguard Clients
                         return;
                     }
 
-                    console.log('Processing client:', client);
-
                     // ساخت HTML برای کلاینت
                     let html = `
                         <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
                             <div class="info-box">
-                                <div class="overlay" id="paused_${client.id}" ${client.enabled ? 'style="visibility: hidden;"' : ''}>
+                                <div class="overlay" id="paused_${client.id}" style="visibility: ${client.enabled ? 'hidden' : 'visible'}">
                                     <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
                                 </div>
                                 <div class="info-box-content" style="overflow: hidden">`;
@@ -1234,7 +1232,7 @@ Wireguard Clients
                         <hr>`;
 
                     // اطلاعات اصلی کلاینت
-                    html += `<span class="info-box-text"><i class="fas fa-user"></i> ${client.name}</span>`;
+                    html += `<span class="info-box-text"><i class="fas fa-user"></i> ${client.name || 'Unnamed Client'}</span>`;
 
                     if (client.email) {
                         html += `<span class="info-box-text"><i class="fas fa-envelope"></i> ${client.email}</span>`;
@@ -1252,10 +1250,10 @@ Wireguard Clients
                     if (client.quota > 0) {
                         const quotaFormatted = formatBytes(client.quota);
                         const usedFormatted = formatBytes(client.used_quota || 0);
-                        const remainingBytes = client.quota - (client.used_quota || 0);
+                        const remainingBytes = Math.max(0, client.quota - (client.used_quota || 0));
                         const remainingFormatted = formatBytes(remainingBytes);
                         
-                        const usagePercent = ((client.used_quota || 0) / client.quota * 100).toFixed(1);
+                        const usagePercent = Math.min(100, ((client.used_quota || 0) / client.quota * 100)).toFixed(1);
                         
                         let progressClass = 'bg-success';
                         if (usagePercent > 90) {
@@ -1306,23 +1304,27 @@ Wireguard Clients
                     }
 
                     // نمایش سایر اطلاعات
-                    html += `<span class="info-box-text"><i class="fas fa-server" style="${client.use_server_dns ? "opacity: 1.0" : "opacity: 0.5"}"></i> DNS</span>`;
+                    html += `<span class="info-box-text"><i class="fas fa-server" style="opacity: ${client.use_server_dns ? '1.0' : '0.5'}"></i> DNS</span>`;
 
                     if (client.additional_notes) {
                         html += `<span class="info-box-text"><i class="fas fa-file"></i> ${client.additional_notes}</span>`;
                     }
 
-                    if (client.allocated_ips && client.allocated_ips.length > 0) {
+                    if (client.allocated_ips && Array.isArray(client.allocated_ips) && client.allocated_ips.length > 0) {
                         html += `<span class="info-box-text"><strong>IP Allocation</strong></span>`;
                         client.allocated_ips.forEach(function(ip) {
-                            html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                            if (ip) {
+                                html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                            }
                         });
                     }
 
-                    if (client.allowed_ips && client.allowed_ips.length > 0) {
+                    if (client.allowed_ips && Array.isArray(client.allowed_ips) && client.allowed_ips.length > 0) {
                         html += `<span class="info-box-text"><strong>Allowed IPs</strong></span>`;
                         client.allowed_ips.forEach(function(ip) {
-                            html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                            if (ip) {
+                                html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                            }
                         });
                     }
 
@@ -1384,17 +1386,18 @@ Wireguard Clients
                     email: $("#client_email").val(),
                     public_key: $("#client_public_key").val(),
                     preshared_key: $("#client_preshared_key").val(),
-                    allocated_ips: $("#client_allocated_ips").val().split(","),
-                    extra_allowed_ips: $("#client_extra_allowed_ips").val().split(","),
+                    allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",") : [],
+                    extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",") : [],
                     endpoint: $("#client_endpoint").val(),
                     telegram_userid: $("#client_telegram_userid").val(),
-                    additional_notes: $("#additional_notes").val()
+                    additional_notes: $("#additional_notes").val(),
+                    enabled: true
                 };
 
                 $.ajax({
                     cache: false,
                     method: 'POST',
-                    url: '{{.basePath}}/api/client',
+                    url: '{{.basePath}}/new-client',  // تغییر مسیر API
                     dataType: 'json',
                     contentType: "application/json",
                     data: JSON.stringify(formData),
@@ -1411,17 +1414,29 @@ Wireguard Clients
                             contentType: "application/json",
                             success: function(data) {
                                 toastr.success('Applied WireGuard configuration successfully');
-                                location.reload(); // رفرش صفحه برای نمایش کلاینت جدید
+                                populateClientList(); // به جای رفرش کامل صفحه، فقط لیست را به‌روز می‌کنیم
                             },
-                            error: function(jqXHR, exception) {
-                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                toastr.error('Error applying WireGuard configuration: ' + responseJson['message']);
+                            error: function(jqXHR) {
+                                let errorMessage = 'Error applying WireGuard configuration';
+                                try {
+                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                    errorMessage = responseJson.message || errorMessage;
+                                } catch (e) {
+                                    console.error('Error parsing error response:', e);
+                                }
+                                toastr.error(errorMessage);
                             }
                         });
                     },
-                    error: function(jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson['message']);
+                    error: function(jqXHR) {
+                        let errorMessage = 'Error creating client';
+                        try {
+                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            errorMessage = responseJson.message || errorMessage;
+                        } catch (e) {
+                            console.error('Error parsing error response:', e);
+                        }
+                        toastr.error(errorMessage);
                     }
                 });
             });
