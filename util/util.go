@@ -390,8 +390,14 @@ func ValidateIPAllocation(serverAddresses []string, ipAllocatedList []string, ip
 
 	// تبدیل IP های تخصیص داده شده به map برای جستجوی سریع‌تر
 	allocatedMap := make(map[string]bool)
-	for _, ip := range ipAllocatedList {
-		allocatedMap[ip] = true
+	for _, allocatedCIDR := range ipAllocatedList {
+		ip, _, err := net.ParseCIDR(allocatedCIDR)
+		if err != nil {
+			// اگر در فرمت CIDR نیست، مستقیم از خودش استفاده کن
+			allocatedMap[allocatedCIDR] = true
+		} else {
+			allocatedMap[ip.String()] = true
+		}
 	}
 
 	for _, clientCIDR := range ipAllocationList {
@@ -414,7 +420,7 @@ func ValidateIPAllocation(serverAddresses []string, ipAllocatedList []string, ip
 			return false, fmt.Errorf("IP %s does not belong to any network addresses of WireGuard server", ip)
 		}
 
-		// بررسی تکراری نبودن IP
+		// بررسی تکراری نبودن IP - فقط مقایسه IP بدون CIDR
 		if allocatedMap[ip.String()] {
 			return false, fmt.Errorf("IP %s already allocated", ip)
 		}
