@@ -376,13 +376,15 @@ Wireguard Clients
             $("#apply_config_confirm").click();
         }
 
-        function setClientStatus(clientID, status) {
+        // اضافه کردن متغیر برای ذخیره آخرین فعال‌سازی دستی
+        window.lastManualActivation = null;
+
+        function setClientStatus(clientID, status, isAutomatic = false) {
             if (!clientID) {
                 console.error('Invalid client ID');
                 return;
             }
 
-            // اضافه کردن مدیریت خطا و retry برای تغییر وضعیت
             const trySetStatus = (retryCount = 0) => {
                 $.ajax({
                     cache: false,
@@ -399,39 +401,27 @@ Wireguard Clients
                         if (divElement) {
                             divElement.style.visibility = status ? "hidden" : "visible";
                         }
-                        
-                        // اعمال تغییرات در پیکربندی WireGuard با retry
-                        const applyConfig = (configRetryCount = 0) => {
-                            $.ajax({
-                                cache: false,
-                                method: 'POST',
-                                url: '{{.basePath}}/api/apply-wg-config',
-                                dataType: 'json',
-                                contentType: "application/json",
-                                success: function(data) {
-                                    toastr.success('Configuration applied successfully');
-                                    populateClientList();
-                                },
-                                error: function(jqXHR) {
-                                    console.error('Error applying config:', jqXHR.status);
-                                    if (configRetryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
-                                        setTimeout(() => applyConfig(configRetryCount + 1), 1000 * (configRetryCount + 1));
-                                    } else {
-                                        let errorMessage = 'Error applying configuration';
-                                        try {
-                                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                            errorMessage = responseJson.message || errorMessage;
-                                        } catch (e) {
-                                            console.error('Error parsing error response:', e);
-                                        }
-                                        toastr.error(errorMessage);
-                                        populateClientList();
-                                    }
-                                }
-                            });
-                        };
 
-                        applyConfig();
+                        // اگر سرویس به صورت دستی فعال شده
+                        if (status && !isAutomatic) {
+                            // ذخیره زمان فعال‌سازی
+                            window.lastManualActivation = {
+                                clientId: clientID,
+                                timestamp: new Date().getTime()
+                            };
+                            
+                            // پیام به کاربر
+                            toastr.warning('You have 1 minute to make changes before automatic check');
+                            
+                            // به‌روزرسانی UI بدون اعمال تغییرات
+                            populateClientList();
+                        } else if (isAutomatic) {
+                            // اگر تغییر اتوماتیک است، کانفیگ را اعمال کن
+                            applyWireGuardConfig();
+                        } else {
+                            // برای سایر موارد فقط UI را به‌روز کن
+                            populateClientList();
+                        }
                     },
                     error: function(jqXHR) {
                         console.error('Error setting client status:', jqXHR.status);
@@ -446,13 +436,41 @@ Wireguard Clients
                                 console.error('Error parsing error response:', e);
                             }
                             toastr.error(errorMessage);
-                            populateClientList();
                         }
                     }
                 });
             };
 
             trySetStatus();
+        }
+
+        function applyWireGuardConfig(retryCount = 0) {
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/api/apply-wg-config',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
+                    toastr.success('Configuration applied successfully');
+                    populateClientList();
+                },
+                error: function(jqXHR) {
+                    console.error('Error applying config:', jqXHR.status);
+                    if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                        setTimeout(() => applyWireGuardConfig(retryCount + 1), 1000 * (retryCount + 1));
+                    } else {
+                        let errorMessage = 'Error applying configuration';
+                        try {
+                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            errorMessage = responseJson.message || errorMessage;
+                        } catch (e) {
+                            console.error('Error parsing error response:', e);
+                        }
+                        toastr.error(errorMessage);
+                    }
+                }
+            });
         }
 
         function pauseClient(clientID) {
@@ -1221,6 +1239,41 @@ Wireguard Clients
                     if (!client || !client.id) {
                         console.error('Invalid client data:', data);
                         return;
+                    }
+
+                    // بررسی آیا این کلاینت اخیراً به صورت دستی فعال شده است
+                    const isRecentlyActivated = window.lastManualActivation && 
+                                          window.lastManualActivation.clientId === client.id && 
+                                          (new Date().getTime() - window.lastManualActivation.timestamp) < 60000;
+
+                    // فقط اگر اخیراً فعال نشده باشد، شرایط را بررسی کن
+                    if (!isRecentlyActivated && client.enabled) {
+                        let shouldDeactivate = false;
+                        let deactivationReason = '';
+
+                        // بررسی حجم مصرفی
+                        if (client.quota > 0 && client.used_quota >= client.quota) {
+                            shouldDeactivate = true;
+                            deactivationReason = 'quota exceeded';
+                        }
+
+                        // بررسی تاریخ انقضا
+                        if (client.expiration) {
+                            const expDate = new Date(client.expiration);
+                            const now = new Date();
+                            if (expDate <= now) {
+                                shouldDeactivate = true;
+                                deactivationReason = 'expired';
+                            }
+                        }
+
+                        // اگر نیاز به غیرفعال‌سازی باشد
+                        if (shouldDeactivate) {
+                            console.log(`Auto-deactivating client ${client.name} (${deactivationReason})`);
+                            setTimeout(() => {
+                                setClientStatus(client.id, false, true);
+                            }, 100);
+                        }
                     }
 
                     // ساخت HTML برای کلاینت
