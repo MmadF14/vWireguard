@@ -380,76 +380,35 @@ Wireguard Clients
         window.lastManualActivation = null;
 
         function setClientStatus(clientID, status, isAutomatic = false) {
-            if (!clientID) {
-                console.error('Invalid client ID');
-                return;
-            }
-
-            const trySetStatus = (retryCount = 0) => {
-                $.ajax({
-                    cache: false,
-                    method: 'POST',
-                    url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
-                    dataType: 'json',
-                    contentType: "application/json",
-                    data: JSON.stringify({ enabled: status }),
-                    success: function(data) {
-                        console.log("Set client " + clientID + " status to " + status);
-                        toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');
-                        
-                        const divElement = document.getElementById("paused_" + clientID);
-                        if (divElement) {
-                            divElement.style.visibility = status ? "hidden" : "visible";
-                        }
-
-                        // اگر سرویس به صورت دستی فعال شده
-                        if (status && !isAutomatic) {
-                            // ذخیره زمان فعال‌سازی
-                            window.lastManualActivation = {
-                                clientId: clientID,
-                                timestamp: new Date().getTime()
-                            };
-                            
-                            // پیام به کاربر
-                            toastr.warning('You have 1 minute to make changes before automatic check');
-                            
-                            // به‌روزرسانی UI
-                            populateClientList();
-
-                            // بعد از یک دقیقه، lastManualActivation را پاک کن
-                            setTimeout(() => {
-                                if (window.lastManualActivation && window.lastManualActivation.clientId === clientID) {
-                                    window.lastManualActivation = null;
-                                    populateClientList();
-                                }
-                            }, 60000);
-                        } else if (!status && isAutomatic) {
-                            // فقط در صورت غیرفعال‌سازی خودکار، کانفیگ را اعمال کن
-                            applyWireGuardConfig();
+            fetch(`/api/client/${clientID}/status/${status}?automatic=${isAutomatic}`)
+                .then(response => response.json())
+                .then(responseJson => {
+                    if (responseJson.status === true) {
+                        toastr.success(responseJson.message);
+                        loadClientList();
+                    } else {
+                        // اگر پیام خطا مربوط به Quota یا Expiration باشد
+                        if (responseJson.message.includes("quota limit exceeded")) {
+                            toastr.error("Cannot enable client: Quota limit exceeded. Please increase quota in Edit Client page first.");
+                            // نمایش مودال ویرایش با تمرکز روی فیلد Quota
+                            showEditClientModal(clientID, () => {
+                                document.getElementById('_quota_preset').focus();
+                            });
+                        } else if (responseJson.message.includes("expiration date has passed")) {
+                            toastr.error("Cannot enable client: Expiration date has passed. Please update expiration date in Edit Client page first.");
+                            // نمایش مودال ویرایش با تمرکز روی فیلد تاریخ انقضا
+                            showEditClientModal(clientID, () => {
+                                document.getElementById('_client_expiration').focus();
+                            });
                         } else {
-                            // برای سایر موارد فقط UI را به‌روز کن
-                            populateClientList();
-                        }
-                    },
-                    error: function(jqXHR) {
-                        console.error('Error setting client status:', jqXHR.status);
-                        if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
-                            setTimeout(() => trySetStatus(retryCount + 1), 1000 * (retryCount + 1));
-                        } else {
-                            let errorMessage = 'Error changing client status';
-                            try {
-                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                errorMessage = responseJson.message || errorMessage;
-                            } catch (e) {
-                                console.error('Error parsing error response:', e);
-                            }
-                            toastr.error(errorMessage);
+                            toastr.error(responseJson.message);
                         }
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    toastr.error('Error processing server response');
                 });
-            };
-
-            trySetStatus();
         }
 
         function applyWireGuardConfig(retryCount = 0) {
@@ -1580,5 +1539,48 @@ Wireguard Clients
                 tryCreateClient();
             });
         });
+    </script>
+    <script>
+        // تابع نمایش مودال ویرایش با callback
+        function showEditClientModal(clientID, callback) {
+            fetch(`/api/client/${clientID}`)
+                .then(response => response.json())
+                .then(client => {
+                    document.getElementById('_client_id').value = client.id;
+                    document.getElementById('_client_name').value = client.name;
+                    document.getElementById('_client_email').value = client.email;
+                    document.getElementById('_client_quota').value = client.quota ? (client.quota / 1024 / 1024 / 1024).toFixed(1) : '';
+                    if (client.expiration) {
+                        document.getElementById('_client_expiration').value = new Date(client.expiration).toISOString().slice(0, 16);
+                    } else {
+                        document.getElementById('_client_expiration').value = '';
+                    }
+                    document.getElementById('_client_allocated_ips').value = client.allocated_ips.join(',');
+                    document.getElementById('_client_allowed_ips').value = client.allowed_ips.join(',');
+                    document.getElementById('_client_extra_allowed_ips').value = client.extra_allowed_ips.join(',');
+                    document.getElementById('_client_endpoint').value = client.endpoint;
+                    document.getElementById('_use_server_dns').checked = client.use_server_dns;
+                    document.getElementById('_enabled').checked = client.enabled;
+                    document.getElementById('_client_public_key').value = client.public_key;
+                    document.getElementById('_client_preshared_key').value = client.preshared_key;
+                    document.getElementById('_client_telegram_userid').value = client.tg_userid;
+                    document.getElementById('_additional_notes').value = client.additional_notes;
+
+                    $('#modal_edit_client').modal('show');
+
+                    // اجرای callback بعد از نمایش مودال
+                    if (callback) {
+                        $('#modal_edit_client').on('shown.bs.modal', function () {
+                            callback();
+                            // حذف event listener بعد از اجرا
+                            $(this).off('shown.bs.modal');
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    toastr.error('Error loading client data');
+                });
+        }
     </script>
 {{end}}
