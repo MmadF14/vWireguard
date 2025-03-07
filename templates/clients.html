@@ -413,14 +413,14 @@ Wireguard Clients
                             // پیام به کاربر
                             toastr.warning('You have 1 minute to make changes before automatic check');
                             
-                            // به‌روزرسانی UI بدون اعمال تغییرات
+                            // به‌روزرسانی UI
                             populateClientList();
 
                             // بعد از یک دقیقه، lastManualActivation را پاک کن
                             setTimeout(() => {
                                 if (window.lastManualActivation && window.lastManualActivation.clientId === clientID) {
                                     window.lastManualActivation = null;
-                                    populateClientList(); // بررسی مجدد شرایط
+                                    populateClientList();
                                 }
                             }, 60000);
                         } else if (!status && isAutomatic) {
@@ -997,11 +997,9 @@ Wireguard Clients
             const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
             // اضافه کردن Expiration
-            let expirationValue = $("#_client_expiration").val(); // چیزی مثل "2025-12-31T23:59"
+            let expirationValue = $("#_client_expiration").val();
             let expirationIso = "";
             if (expirationValue) {
-                // تبدیل تاریخ لوکال به فرمت ISO8601 (UTC)
-                // توجه کنید که این کار ممکن است تایم‌زون را تغییر دهد.
                 expirationIso = new Date(expirationValue).toISOString();
             }
 
@@ -1035,8 +1033,6 @@ Wireguard Clients
                 "public_key": public_key,
                 "preshared_key": preshared_key,
                 "additional_notes": additional_notes,
-
-                // فیلدهای جدید
                 "quota": quotaBytes,
                 "expiration": expirationIso
             };
@@ -1048,18 +1044,17 @@ Wireguard Clients
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function (resp) {
+                success: function(resp) {
                     $("#modal_edit_client").modal('hide');
                     toastr.success('Updated client successfully');
                     populateClientList();
                 },
-                error: function (jqXHR, exception) {
+                error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
         }
-
 
         // submitHandler
         function submitHandler(form) {
@@ -1275,7 +1270,7 @@ Wireguard Clients
                         // اگر نیاز به غیرفعال‌سازی باشد
                         if (shouldDeactivate) {
                             console.log(`Auto-deactivating client ${client.name} (${deactivationReason})`);
-                            setClientStatus(client.id, false, true); // isAutomatic = true
+                            setClientStatus(client.id, false, true);
                         }
                     }
 
@@ -1514,7 +1509,7 @@ Wireguard Clients
                 updateSubnetRangesList("#subnet_ranges");
             });
 
-            // اضافه کردن کد برای اعمال خودکار تغییرات بعد از ساخت کلاینت جدید
+            // اضافه کردن کد برای ساخت کلاینت جدید
             $("#frm_new_client").on('submit', function(e) {
                 e.preventDefault();
                 
@@ -1524,11 +1519,9 @@ Wireguard Clients
                     return;
                 }
 
-                // اضافه کردن Quota
                 const quotaGB = parseFloat($("#client_quota").val()) || 0;
                 const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
-                // اضافه کردن Expiration
                 let expirationValue = $("#client_expiration").val();
                 let expirationIso = "";
                 if (expirationValue) {
@@ -1553,7 +1546,6 @@ Wireguard Clients
                     subnet_ranges: ["__default_any__"]
                 };
 
-                // اضافه کردن مدیریت خطا و retry برای ایجاد کلاینت
                 const tryCreateClient = (retryCount = 0) => {
                     $.ajax({
                         cache: false,
@@ -1565,7 +1557,7 @@ Wireguard Clients
                         success: function(response) {
                             newClientModal.modal('hide');
                             toastr.success('Created client successfully');
-                            populateClientList(); // فقط UI را به‌روز کن
+                            populateClientList();
                         },
                         error: function(jqXHR) {
                             console.error('Error creating client:', jqXHR.status);

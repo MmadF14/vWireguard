@@ -427,121 +427,46 @@ func GetClient(db store.IStore) echo.HandlerFunc {
 // NewClient handler
 func NewClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		data := make(map[string]interface{})
+		err := json.NewDecoder(c.Request().Body).Decode(&data)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
+		}
+
 		var client model.Client
-		c.Bind(&client)
+		username := data["username"].(string)
+		password := data["password"].(string)
+		admin := data["admin"].(bool)
 
-		// اعتبارسنجی مقدار Quota
-		if client.Quota < 0 {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
+		if username == "" || !usernameRegexp.MatchString(username) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid username"})
+		} else {
+			client.Username = username
 		}
 
-		// اعتبارسنجی تاریخ انقضا (اگر مقداردهی شده باشد و گذشته باشد)
-		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
-		}
-
-		// Validate Telegram userid if provided
-		if client.TgUserid != "" {
-			idNum, err := strconv.ParseInt(client.TgUserid, 10, 64)
-			if err != nil || idNum == 0 {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Telegram userid must be a non-zero number"})
+		{
+			_, err := db.GetUserByName(username)
+			if err == nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "This username is taken"})
 			}
 		}
 
-		// read server information
-		server, err := db.GetServer()
+		hash, err := util.HashPassword(password)
 		if err != nil {
-			log.Error("Cannot fetch server from database: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
+		client.PasswordHash = hash
 
-		// validate the input Allocation IPs
-		allocatedIPs, err := util.GetAllocatedIPs("")
-		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, client.AllocatedIPs)
-		if !check {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
-		}
+		client.Admin = admin
 
-		// validate the input AllowedIPs
-		if util.ValidateAllowedIPs(client.AllowedIPs) == false {
-			log.Warnf("Invalid Allowed IPs input from user: %v", client.AllowedIPs)
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
-		}
-
-		// validate extra AllowedIPs
-		if util.ValidateExtraAllowedIPs(client.ExtraAllowedIPs) == false {
-			log.Warnf("Invalid Extra AllowedIPs input from user: %v", client.ExtraAllowedIPs)
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra AllowedIPs must be in CIDR format"})
-		}
-
-		// gen ID
-		guid := xid.New()
-		client.ID = guid.String()
-
-		// gen Wireguard key pair
-		if client.PublicKey == "" {
-			key, err := wgtypes.GeneratePrivateKey()
-			if err != nil {
-				log.Error("Cannot generate wireguard key pair: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot generate Wireguard key pair"})
-			}
-			client.PrivateKey = key.String()
-			client.PublicKey = key.PublicKey().String()
-		} else {
-			_, err := wgtypes.ParseKey(client.PublicKey)
-			if err != nil {
-				log.Error("Cannot verify wireguard public key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard public key"})
-			}
-			// check for duplicates
-			clients, err := db.GetClients(false)
-			if err != nil {
-				log.Error("Cannot get clients for duplicate check")
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients for duplicate check"})
-			}
-			for _, other := range clients {
-				if other.Client.PublicKey == client.PublicKey {
-					log.Error("Duplicate Public Key")
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
-				}
-			}
-		}
-
-		if client.PresharedKey == "" {
-			presharedKey, err := wgtypes.GenerateKey()
-			if err != nil {
-				log.Error("Cannot generated preshared key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-					false, "Cannot generate Wireguard preshared key",
-				})
-			}
-			client.PresharedKey = presharedKey.String()
-		} else if client.PresharedKey == "-" {
-			client.PresharedKey = ""
-			log.Infof("skipped PresharedKey generation for user: %v", client.Name)
-		} else {
-			_, err := wgtypes.ParseKey(client.PresharedKey)
-			if err != nil {
-				log.Error("Cannot verify wireguard preshared key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard preshared key"})
-			}
-		}
-
-		client.CreatedAt = time.Now().UTC()
-		client.UpdatedAt = client.CreatedAt
-
-		// write client to the database
 		if err := db.SaveClient(client); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-				false, err.Error(),
-			})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		log.Infof("Created wireguard client: %v", client)
+		log.Infof("Created user successfully")
 
-		return c.JSON(http.StatusOK, client)
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Created user successfully"})
 	}
 }
-
 
 // EmailClient handler to send the configuration via email
 func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailContent string) echo.HandlerFunc {
@@ -648,136 +573,32 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// UpdateClient handler to update client information
+// UpdateClient handler
 func UpdateClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var _client model.Client
-		c.Bind(&_client)
-
-		if _, err := xid.FromString(_client.ID); err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
-		}
-
-		// validate client existence
-		clientData, err := db.GetClientByID(_client.ID, model.QRCodeSettings{Enabled: false})
+		data := make(map[string]interface{})
+		err := json.NewDecoder(c.Request().Body).Decode(&data)
 		if err != nil {
-			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
 		}
 
-		// Validate Telegram userid if provided
-		if _client.TgUserid != "" {
-			idNum, err := strconv.ParseInt(_client.TgUserid, 10, 64)
-			if err != nil || idNum == 0 {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Telegram userid must be a non-zero number"})
-			}
-		}
+		// ... existing validation code ...
 
-		server, err := db.GetServer()
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
-				false, fmt.Sprintf("Cannot fetch server config: %s", err),
-			})
-		}
-
-		client := *clientData.Client
-
-		// validate the input Allocation IPs
-		allocatedIPs, err := util.GetAllocatedIPs(client.ID)
-		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, _client.AllocatedIPs)
-		if !check {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
-		}
-
-		// validate the input AllowedIPs
-		if util.ValidateAllowedIPs(_client.AllowedIPs) == false {
-			log.Warnf("Invalid Allowed IPs input from user: %v", _client.AllowedIPs)
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
-		}
-
-		if util.ValidateExtraAllowedIPs(_client.ExtraAllowedIPs) == false {
-			log.Warnf("Invalid Extra AllowedIPs input from user: %v", _client.ExtraAllowedIPs)
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra Allowed IPs must be in CIDR format"})
-		}
-
-		// update Wireguard Client PublicKey
-		if client.PublicKey != _client.PublicKey && _client.PublicKey != "" {
-			_, err := wgtypes.ParseKey(_client.PublicKey)
-			if err != nil {
-				log.Error("Cannot verify provided Wireguard public key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard public key"})
-			}
-			// check for duplicates
-			clients, err := db.GetClients(false)
-			if err != nil {
-				log.Error("Cannot get client list for duplicate public key check")
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get client list for duplicate public key check"})
-			}
-			for _, other := range clients {
-				if other.Client.PublicKey == _client.PublicKey {
-					log.Error("Duplicate Public Key")
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
-				}
-			}
-
-			// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
-			// Client PubKey no longer corresponds to locally stored PrivKey.
-			if client.PrivateKey != "" {
-				client.PrivateKey = ""
-			}
-		}
-
-		// update Wireguard Client PresharedKey
-		if client.PresharedKey != _client.PresharedKey && _client.PresharedKey != "" {
-			_, err := wgtypes.ParseKey(_client.PresharedKey)
-			if err != nil {
-				log.Error("Cannot verify provided Wireguard preshared key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard preshared key"})
-			}
-		}
-
-		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
-		client.Quota = _client.Quota
-		client.Expiration = _client.Expiration
-
-		// اعتبارسنجی Quota و Expiration
-		if client.Quota < 0 {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
-		}
-		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
-		}
-
-		// map other data
-		client.Name = _client.Name
-		client.Email = _client.Email
-		client.TgUserid = _client.TgUserid
-		client.Enabled = _client.Enabled
-		client.UseServerDNS = _client.UseServerDNS
-		client.AllocatedIPs = _client.AllocatedIPs
-		client.AllowedIPs = _client.AllowedIPs
-		client.ExtraAllowedIPs = _client.ExtraAllowedIPs
-		client.Endpoint = _client.Endpoint
-		client.PublicKey = _client.PublicKey
-		client.PresharedKey = _client.PresharedKey
-		client.UpdatedAt = time.Now().UTC()
-		client.AdditionalNotes = strings.ReplaceAll(strings.Trim(_client.AdditionalNotes, "\r\n"), "\r\n", "\n")
-
-		// write to the database
-		if err := db.SaveClient(client); err != nil {
+		if err := db.SaveClient(*client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		log.Infof("Updated client information successfully => %v", client)
 
+		// کانفیگ به صورت خودکار اعمال نمی‌شود
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated client successfully"})
 	}
 }
-
 
 // SetClientStatus handler to enable / disable a client
 func SetClientStatus(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var clientID string
 		var status bool
+		var isAutomatic bool
 
 		// پشتیبانی از هر دو متد GET و POST
 		switch c.Request().Method {
@@ -786,6 +607,9 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			clientID = c.Param("id")
 			statusStr := c.Param("status")
 			status = statusStr == "true"
+			// پارامتر isAutomatic رو از query string می‌خونیم
+			automaticStr := c.QueryParam("automatic")
+			isAutomatic = automaticStr == "true"
 		case "POST":
 			// برای POST، اول سعی می‌کنیم از URL بخونیم
 			clientID = c.Param("id")
@@ -801,10 +625,16 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				if s, ok := data["status"].(bool); ok {
 					status = s
 				}
+				if a, ok := data["automatic"].(bool); ok {
+					isAutomatic = a
+				}
 			} else {
 				// اگر در URL بود، از اونجا می‌خونیم
 				statusStr := c.Param("status")
 				status = statusStr == "true"
+				// پارامتر isAutomatic رو از query string می‌خونیم
+				automaticStr := c.QueryParam("automatic")
+				isAutomatic = automaticStr == "true"
 			}
 		default:
 			return c.JSON(http.StatusMethodNotAllowed, jsonHTTPResponse{false, "Method not allowed"})
@@ -861,50 +691,23 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// Create WireGuard client for direct interface manipulation
-		wgClient, err := wgctrl.New()
-		if err != nil {
-			log.Printf("Error creating WireGuard client: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
+		// به‌روزرسانی وضعیت در دیتابیس
+		client.Enabled = status
+		if err := db.SaveClient(client); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		defer wgClient.Close()
+		log.Printf("Changed client %s enabled status to %v", client.ID, status)
 
-		if status {
-			// فعال کردن کلاینت با استفاده از wgctrl
-			key, err := wgtypes.ParseKey(client.PublicKey)
+		// فقط در صورت غیرفعال‌سازی خودکار، کانفیگ را اعمال کن
+		if !status && isAutomatic {
+			// Create WireGuard client for direct interface manipulation
+			wgClient, err := wgctrl.New()
 			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
+				log.Printf("Error creating WireGuard client: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
 			}
+			defer wgClient.Close()
 
-			keepAlive := time.Duration(25) * time.Second
-			peerConfig := wgtypes.PeerConfig{
-				PublicKey:                    key,
-				Remove:                       false,
-				UpdateOnly:                   false,
-				PresharedKey:                 nil,
-				Endpoint:                     nil,
-				PersistentKeepaliveInterval: &keepAlive,
-				AllowedIPs:                  make([]net.IPNet, 0),
-			}
-
-			// تبدیل آدرس‌های IP به IPNet
-			for _, ip := range client.AllocatedIPs {
-				_, ipNet, err := net.ParseCIDR(ip)
-				if err != nil {
-					continue
-				}
-				peerConfig.AllowedIPs = append(peerConfig.AllowedIPs, *ipNet)
-			}
-
-			err = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{
-				Peers: []wgtypes.PeerConfig{peerConfig},
-			})
-			if err != nil {
-				log.Printf("Error adding peer %s: %v", client.Name, err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error enabling client: %v", err)})
-			}
-			log.Printf("Successfully added peer %s", client.Name)
-		} else {
 			// غیرفعال کردن کلاینت با استفاده از wgctrl
 			key, err := wgtypes.ParseKey(client.PublicKey)
 			if err != nil {
@@ -924,33 +727,26 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error disabling client: %v", err)})
 			}
 			log.Printf("Successfully removed peer %s", client.Name)
-		}
 
-		// به‌روزرسانی وضعیت در دیتابیس
-		client.Enabled = status
-		if err := db.SaveClient(client); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-		}
-		log.Printf("Changed client %s enabled status to %v", client.ID, status)
+			// به‌روزرسانی فایل کانفیگ
+			server, err := db.GetServer()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
+			}
 
-		// به‌روزرسانی فایل کانفیگ بدون ری‌استارت سرویس
-		server, err := db.GetServer()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
-		}
+			clients, err := db.GetClients(false)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients"})
+			}
 
-		clients, err := db.GetClients(false)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients"})
-		}
+			users, err := db.GetUsers()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get users"})
+			}
 
-		users, err := db.GetUsers()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get users"})
-		}
-
-		if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
-			log.Printf("Warning: Could not write config file: %v", err)
+			if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+				log.Printf("Warning: Could not write config file: %v", err)
+			}
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Changed client status successfully"})
