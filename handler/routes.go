@@ -379,10 +379,17 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		// اگر لیست خالی باشد، یک آرایه خالی برگردانیم نه null
+		if clientDataList == nil {
+			clientDataList = make([]model.ClientData, 0)
+		}
+
 		// Process each client and fill subnet range
 		processedList := make([]model.ClientData, 0, len(clientDataList))
 		for _, clientData := range clientDataList {
-			processedList = append(processedList, util.FillClientSubnetRange(clientData))
+			if clientData.Client != nil { // اطمینان از معتبر بودن داده
+				processedList = append(processedList, util.FillClientSubnetRange(clientData))
+			}
 		}
 
 		// Return as a structured response
@@ -769,8 +776,37 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 // SetClientStatus handler to enable / disable a client
 func SetClientStatus(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		clientID := c.Param("id")
-		status := c.Param("status") == "true"
+		var clientID, statusStr string
+		var status bool
+
+		// پشتیبانی از هر دو متد GET و POST
+		if c.Request().Method == "GET" {
+			clientID = c.Param("id")
+			statusStr = c.Param("status")
+		} else {
+			// برای درخواست‌های POST
+			data := make(map[string]interface{})
+			if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request data"})
+			}
+			if id, ok := data["id"].(string); ok {
+				clientID = id
+			}
+			if s, ok := data["status"].(bool); ok {
+				status = s
+			} else if s, ok := data["status"].(string); ok {
+				status = s == "true"
+			}
+		}
+
+		// اگر از GET استفاده شده
+		if statusStr != "" {
+			status = statusStr == "true"
+		}
+
+		if clientID == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Client ID is required"})
+		}
 
 		if _, err := xid.FromString(clientID); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
