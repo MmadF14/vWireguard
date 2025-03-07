@@ -82,6 +82,15 @@ func checkQuotasAndExpiration(db store.IStore) {
 
     for _, cData := range clients {
         client := cData.Client
+        if client == nil {
+            continue
+        }
+
+        // فقط کلاینت‌های فعال را بررسی می‌کنیم
+        if !client.Enabled {
+            continue
+        }
+
         log.Printf("Checking client: %s", client.Name)
         wasEnabled := client.Enabled
 
@@ -91,59 +100,49 @@ func checkQuotasAndExpiration(db store.IStore) {
             client.UsedQuota = int64(total)
             if err := db.SaveClient(*client); err != nil {
                 log.Printf("Error saving client %s usage data: %v", client.Name, err)
+                continue
             }
             log.Printf("Client %s usage updated: %d bytes", client.Name, total)
         }
 
+        shouldDisable := false
+        disableReason := ""
+
         // بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
-        if !client.Expiration.IsZero() {  // فقط اگر تاریخ انقضا تنظیم شده باشد، چک می‌کنیم
-            if time.Now().After(client.Expiration) {
-                if client.Enabled {
-                    client.Enabled = false
-                    if err := db.SaveClient(*client); err != nil {
-                        log.Printf("Error saving client %s after expiration: %v", client.Name, err)
-                        continue
-                    }
-
-                    // حذف کلاینت از اینترفیس با استفاده از دستور wg
-                    cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
-                    if err := cmd.Run(); err != nil {
-                        log.Printf("Error removing peer %s: %v", client.Name, err)
-                    } else {
-                        log.Printf("Successfully removed peer %s", client.Name)
-                    }
-
-                    log.Printf("Client %s disabled due to expiration", client.Name)
-                    configChanged = true
-                }
-                continue
-            }
+        if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
+            shouldDisable = true
+            disableReason = "expiration"
         }
 
         // بررسی Quota
         if client.Quota > 0 {
             if usage, ok := usageMap[client.PublicKey]; ok {
-                total := usage[0] + usage[1] // جمع ارسال و دریافت به صورت uint64
-                // چون client.Quota از نوع int64 است، اینجا آن را به int64 تبدیل می‌کنیم
-                if int64(total) > client.Quota && client.Enabled {
-                    client.Enabled = false
-                    if err := db.SaveClient(*client); err != nil {
-                        log.Printf("Error saving client %s after quota exceeded: %v", client.Name, err)
-                        continue
-                    }
-
-                    // حذف کلاینت از اینترفیس با استفاده از دستور wg
-                    cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
-                    if err := cmd.Run(); err != nil {
-                        log.Printf("Error removing peer %s: %v", client.Name, err)
-                    } else {
-                        log.Printf("Successfully removed peer %s", client.Name)
-                    }
-
-                    log.Printf("Client %s disabled due to quota limit", client.Name)
-                    configChanged = true
+                total := usage[0] + usage[1]
+                if int64(total) > client.Quota {
+                    shouldDisable = true
+                    disableReason = "quota"
                 }
             }
+        }
+
+        // اگر نیاز به غیرفعال کردن کلاینت باشد
+        if shouldDisable {
+            client.Enabled = false
+            if err := db.SaveClient(*client); err != nil {
+                log.Printf("Error saving client %s after %s check: %v", client.Name, disableReason, err)
+                continue
+            }
+
+            // غیرفعال‌سازی خودکار کلاینت
+            cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
+            if err := cmd.Run(); err != nil {
+                log.Printf("Error removing peer %s: %v", client.Name, err)
+            } else {
+                log.Printf("Successfully removed peer %s", client.Name)
+            }
+
+            log.Printf("Client %s disabled due to %s", client.Name, disableReason)
+            configChanged = true
         }
 
         // اگر وضعیت کلاینت تغییر کرده، نیاز به اعمال تغییرات داریم
