@@ -376,9 +376,6 @@ Wireguard Clients
             $("#apply_config_confirm").click();
         }
 
-        // اضافه کردن متغیر برای ذخیره آخرین فعال‌سازی دستی
-        window.lastManualActivation = null;
-
         let disableInProgress = false;
 
         function setClientStatus(clientID, status, isAutomatic = false) {
@@ -388,7 +385,7 @@ Wireguard Clients
             }
 
             if (disableInProgress) {
-                console.log('Disable action already in progress, skipping');
+                console.log('Status change already in progress, skipping');
                 return;
             }
 
@@ -408,21 +405,6 @@ Wireguard Clients
                         const divElement = document.getElementById("paused_" + clientID);
                         if (divElement) {
                             divElement.style.visibility = status ? "hidden" : "visible";
-                        }
-
-                        if (status && !isAutomatic) {
-                            window.lastManualActivation = {
-                                clientId: clientID,
-                                timestamp: new Date().getTime()
-                            };
-                            
-                            toastr.warning('You have 1 minute to make changes before automatic check');
-                            
-                            setTimeout(() => {
-                                if (window.lastManualActivation && window.lastManualActivation.clientId === clientID) {
-                                    window.lastManualActivation = null;
-                                }
-                            }, 60000);
                         }
 
                         if (!status && isAutomatic) {
@@ -1241,39 +1223,6 @@ Wireguard Clients
                     if (!client || !client.id) {
                         console.error('Invalid client data:', data);
                         return;
-                    }
-
-                    // بررسی آیا این کلاینت اخیراً به صورت دستی فعال شده است
-                    const isRecentlyActivated = window.lastManualActivation && 
-                                          window.lastManualActivation.clientId === client.id && 
-                                          (new Date().getTime() - window.lastManualActivation.timestamp) < 60000;
-
-                    // فقط اگر اخیراً فعال نشده باشد، شرایط را بررسی کن
-                    if (client.enabled && !isRecentlyActivated) {
-                        let shouldDeactivate = false;
-                        let deactivationReason = '';
-
-                        // بررسی حجم مصرفی
-                        if (client.quota > 0 && client.used_quota >= client.quota) {
-                            shouldDeactivate = true;
-                            deactivationReason = 'quota exceeded';
-                        }
-
-                        // بررسی تاریخ انقضا
-                        if (client.expiration) {
-                            const expDate = new Date(client.expiration);
-                            const now = new Date();
-                            if (expDate <= now) {
-                                shouldDeactivate = true;
-                                deactivationReason = 'expired';
-                            }
-                        }
-
-                        // اگر نیاز به غیرفعال‌سازی باشد
-                        if (shouldDeactivate) {
-                            console.log(`Auto-deactivating client ${client.name} (${deactivationReason})`);
-                            setClientStatus(client.id, false, true);
-                        }
                     }
 
                     // ساخت HTML برای کلاینت
