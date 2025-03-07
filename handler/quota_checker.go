@@ -14,7 +14,13 @@ import (
 
 var (
     configMutex sync.Mutex
+    // نگهداری زمان آخرین غیرفعال‌سازی برای هر کلاینت
+    lastDisableTime = make(map[string]time.Time)
+    lastDisableMutex sync.RWMutex
 )
+
+// cooldownPeriod مدت زمان انتظار بین غیرفعال‌سازی‌های متوالی
+const cooldownPeriod = 5 * time.Minute
 
 // StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
 func StartQuotaChecker(db store.IStore) {
@@ -28,6 +34,9 @@ func StartQuotaChecker(db store.IStore) {
             }
         }()
 
+        // اولین بررسی را با تاخیر انجام می‌دهیم تا سیستم کاملاً بالا بیاید
+        time.Sleep(30 * time.Second)
+
         for {
             func() {
                 defer func() {
@@ -37,9 +46,28 @@ func StartQuotaChecker(db store.IStore) {
                 }()
                 checkQuotasAndExpiration(db)
             }()
+            // افزایش فاصله بین بررسی‌ها به 5 دقیقه
             time.Sleep(5 * time.Minute)
         }
     }()
+}
+
+// isInCooldown checks if a client is in cooldown period
+func isInCooldown(clientID string) bool {
+    lastDisableMutex.RLock()
+    defer lastDisableMutex.RUnlock()
+    
+    if lastTime, exists := lastDisableTime[clientID]; exists {
+        return time.Since(lastTime) < cooldownPeriod
+    }
+    return false
+}
+
+// setLastDisableTime updates the last disable time for a client
+func setLastDisableTime(clientID string) {
+    lastDisableMutex.Lock()
+    defer lastDisableMutex.Unlock()
+    lastDisableTime[clientID] = time.Now()
 }
 
 // checkQuotasAndExpiration checks all clients for quota limits and expiration dates
@@ -91,6 +119,12 @@ func checkQuotasAndExpiration(db store.IStore) {
             continue
         }
 
+        // اگر کلاینت در دوره cooldown است، آن را بررسی نمی‌کنیم
+        if isInCooldown(client.ID) {
+            log.Printf("Client %s (%s) is in cooldown period, skipping check", client.Name, client.ID)
+            continue
+        }
+
         log.Printf("Checking client: %s", client.Name)
         wasEnabled := client.Enabled
 
@@ -132,6 +166,9 @@ func checkQuotasAndExpiration(db store.IStore) {
                 log.Printf("Error saving client %s after %s check: %v", client.Name, disableReason, err)
                 continue
             }
+
+            // ثبت زمان غیرفعال‌سازی
+            setLastDisableTime(client.ID)
 
             // غیرفعال‌سازی خودکار کلاینت
             cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
