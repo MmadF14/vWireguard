@@ -732,16 +732,21 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
-		client.Quota = _client.Quota
-		client.Expiration = _client.Expiration
-
-		// اعتبارسنجی Quota و Expiration
-		if client.Quota < 0 {
+		// اعتبارسنجی Quota
+		if _client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
-		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		// اگر کلاینت غیرفعال است و Quota جدید کمتر از مصرف فعلی است
+		if !client.Enabled && _client.Quota > 0 && client.UsedQuota >= _client.Quota {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "New quota must be greater than current usage"})
+		}
+
+		// اعتبارسنجی تاریخ انقضا
+		if !_client.Expiration.IsZero() {
+			// اگر کلاینت غیرفعال است و تاریخ انقضای جدید در گذشته است
+			if !client.Enabled && _client.Expiration.Before(time.Now()) {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "New expiration date must be in the future"})
+			}
 		}
 
 		// map other data
@@ -758,6 +763,8 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.PresharedKey = _client.PresharedKey
 		client.UpdatedAt = time.Now().UTC()
 		client.AdditionalNotes = strings.ReplaceAll(strings.Trim(_client.AdditionalNotes, "\r\n"), "\r\n", "\n")
+		client.Quota = _client.Quota
+		client.Expiration = _client.Expiration
 
 		// write to the database
 		if err := db.SaveClient(client); err != nil {
@@ -765,7 +772,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 		log.Infof("Updated client information successfully => %v", client)
 
-		// کانفیگ به صورت خودکار اعمال نمی‌شود
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated client successfully"})
 	}
 }
@@ -837,11 +843,11 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		if status && !isAutomatic {
 			// بررسی شرایط فعال‌سازی
 			if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed. Please update expiration first."})
 			}
 
 			if client.Quota > 0 && client.UsedQuota >= client.Quota {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded. Please increase quota first."})
 			}
 
 			// فعال‌سازی کلاینت
@@ -1483,3 +1489,4 @@ func AboutPage() echo.HandlerFunc {
 		})
 	}
 }
+
