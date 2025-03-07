@@ -377,70 +377,52 @@ Wireguard Clients
         }
 
         function setClientStatus(clientID, status) {
-            if (status) {
-                // اگر می‌خواهیم کلاینت را فعال کنیم، اول مودال ویرایش را نشان می‌دهیم
-                $("#modal_edit_client").modal('show');
-                $("#_client_id").val(clientID);
-                $("#_enabled").prop('checked', true);
-                
-                // بعد از ذخیره تغییرات، کلاینت را فعال می‌کنیم
-                $("#frm_edit_client").off('submit').on('submit', function(e) {
-                    e.preventDefault();
-                    const formData = {
-                        id: $("#_client_id").val(),
-                        name: $("#_client_name").val(),
-                        email: $("#_client_email").val(),
-                        quota: parseInt($("#_client_quota").val()) * 1024 * 1024 * 1024, // تبدیل به بایت
-                        expiration: $("#_client_expiration").val(),
-                        enabled: true
-                    };
+            // مستقیماً وضعیت کلاینت را تغییر می‌دهیم
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
+                dataType: 'json',
+                success: function(data) {
+                    console.log("Set client " + clientID + " status to " + status);
+                    // نمایش پیام موفقیت
+                    toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');
                     
+                    // تغییر وضعیت نمایشی کلاینت
+                    const divElement = document.getElementById("paused_" + clientID);
+                    if (divElement) {
+                        divElement.style.visibility = status ? "hidden" : "visible";
+                    }
+                    
+                    // اعمال تغییرات در پیکربندی WireGuard
                     $.ajax({
                         cache: false,
                         method: 'POST',
-                        url: '{{.basePath}}/update-client',
-                        data: JSON.stringify(formData),
+                        url: '{{.basePath}}/api/apply-wg-config',
                         dataType: 'json',
                         contentType: "application/json",
                         success: function(data) {
-                            $("#modal_edit_client").modal('hide');
-                            location.reload();
+                            toastr.success('Configuration applied successfully');
                         },
                         error: function(jqXHR, exception) {
                             const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                            toastr.error(responseJson['message']);
+                            toastr.error('Error applying configuration: ' + responseJson['message']);
                         }
                     });
-                });
-            } else {
-                // اگر می‌خواهیم کلاینت را غیرفعال کنیم، مستقیماً انجام می‌دهیم
-                $.ajax({
-                    cache: false,
-                    method: 'POST',
-                    url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
-                    dataType: 'json',
-                    success: function(data) {
-                        console.log("Set client " + clientID + " status to " + status);
-                        location.reload();
-                    },
-                    error: function(jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson['message']);
-                    }
-                });
-            }
+                },
+                error: function(jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
         }
 
         function pauseClient(clientID) {
             setClientStatus(clientID, false);
-            const divElement = document.getElementById("paused_" + clientID);
-            divElement.style.visibility = "visible";
         }
 
         function resumeClient(clientID) {
             setClientStatus(clientID, true);
-            const divElement = document.getElementById("paused_" + clientID);
-            divElement.style.visibility = "hidden";
         }
 
         // updateIPAllocationSuggestion function for automatically fill
