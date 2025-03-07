@@ -383,7 +383,7 @@ Wireguard Clients
             }
 
             $.ajax({
-                url: '/api/client/' + clientID + '/enable/' + status,
+                url: '{{.basePath}}/api/client/' + clientID + '/enable/' + status,
                 type: 'POST',
                 success: function (response) {
                     if (response.success === true) {
