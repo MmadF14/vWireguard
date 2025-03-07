@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -818,14 +819,15 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
 			}
 
+			keepAlive := time.Duration(25) * time.Second
 			peerConfig := wgtypes.PeerConfig{
-				PublicKey:         key,
-				Remove:            false,
-				UpdateOnly:        false,
-				PresharedKey:      nil,
-				Endpoint:          nil,
-				PersistentKeepaliveInterval: &wgtypes.PersistentKeepaliveInterval,
-				AllowedIPs:       make([]net.IPNet, 0),
+				PublicKey:                    key,
+				Remove:                       false,
+				UpdateOnly:                   false,
+				PresharedKey:                 nil,
+				Endpoint:                     nil,
+				PersistentKeepaliveInterval: &keepAlive,
+				AllowedIPs:                  make([]net.IPNet, 0),
 			}
 
 			// تبدیل آدرس‌های IP به IPNet
