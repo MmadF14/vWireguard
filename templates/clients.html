@@ -382,34 +382,63 @@ Wireguard Clients
                 return;
             }
 
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
-                dataType: 'json',
-                success: function(data) {
-                    console.log("Set client " + clientID + " status to " + status);
-                    toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');
-                    
-                    const divElement = document.getElementById("paused_" + clientID);
-                    if (divElement) {
-                        divElement.style.visibility = status ? "hidden" : "visible";
-                    }
-                    
-                    // اعمال تغییرات در پیکربندی WireGuard
-                    $.ajax({
-                        cache: false,
-                        method: 'POST',
-                        url: '{{.basePath}}/api/apply-wg-config',
-                        dataType: 'json',
-                        contentType: "application/json",
-                        success: function(data) {
-                            toastr.success('Configuration applied successfully');
-                            // رفرش لیست کلاینت‌ها بدون رفرش کامل صفحه
-                            populateClientList();
-                        },
-                        error: function(jqXHR) {
-                            let errorMessage = 'Error applying configuration';
+            // اضافه کردن مدیریت خطا و retry برای تغییر وضعیت
+            const trySetStatus = (retryCount = 0) => {
+                $.ajax({
+                    cache: false,
+                    method: 'POST',
+                    url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
+                    dataType: 'json',
+                    contentType: "application/json",
+                    data: JSON.stringify({ enabled: status }),
+                    success: function(data) {
+                        console.log("Set client " + clientID + " status to " + status);
+                        toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');
+                        
+                        const divElement = document.getElementById("paused_" + clientID);
+                        if (divElement) {
+                            divElement.style.visibility = status ? "hidden" : "visible";
+                        }
+                        
+                        // اعمال تغییرات در پیکربندی WireGuard با retry
+                        const applyConfig = (configRetryCount = 0) => {
+                            $.ajax({
+                                cache: false,
+                                method: 'POST',
+                                url: '{{.basePath}}/api/apply-wg-config',
+                                dataType: 'json',
+                                contentType: "application/json",
+                                success: function(data) {
+                                    toastr.success('Configuration applied successfully');
+                                    populateClientList();
+                                },
+                                error: function(jqXHR) {
+                                    console.error('Error applying config:', jqXHR.status);
+                                    if (configRetryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                                        setTimeout(() => applyConfig(configRetryCount + 1), 1000 * (configRetryCount + 1));
+                                    } else {
+                                        let errorMessage = 'Error applying configuration';
+                                        try {
+                                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                            errorMessage = responseJson.message || errorMessage;
+                                        } catch (e) {
+                                            console.error('Error parsing error response:', e);
+                                        }
+                                        toastr.error(errorMessage);
+                                        populateClientList();
+                                    }
+                                }
+                            });
+                        };
+
+                        applyConfig();
+                    },
+                    error: function(jqXHR) {
+                        console.error('Error setting client status:', jqXHR.status);
+                        if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                            setTimeout(() => trySetStatus(retryCount + 1), 1000 * (retryCount + 1));
+                        } else {
+                            let errorMessage = 'Error changing client status';
                             try {
                                 const responseJson = jQuery.parseJSON(jqXHR.responseText);
                                 errorMessage = responseJson.message || errorMessage;
@@ -417,20 +446,13 @@ Wireguard Clients
                                 console.error('Error parsing error response:', e);
                             }
                             toastr.error(errorMessage);
+                            populateClientList();
                         }
-                    });
-                },
-                error: function(jqXHR) {
-                    let errorMessage = 'Error changing client status';
-                    try {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        errorMessage = responseJson.message || errorMessage;
-                    } catch (e) {
-                        console.error('Error parsing error response:', e);
                     }
-                    toastr.error(errorMessage);
-                }
-            });
+                });
+            };
+
+            trySetStatus();
         }
 
         function pauseClient(clientID) {
@@ -1392,6 +1414,30 @@ Wireguard Clients
         $(document).ready(function () {
             let newClientModal = $("#modal_new_client");
             
+            // تنظیم IP Allocation tag input برای مدال جدید
+            $("#client_allocated_ips").tagsInput({
+                'width': '100%',
+                'height': '75%',
+                'interactive': true,
+                'defaultText': 'Add More',
+                'removeWithBackspace': true,
+                'minChars': 0,
+                'minInputWidth': '100%',
+                'placeholderColor': '#666666'
+            });
+
+            // تنظیم Extra Allowed IPs tag input برای مدال جدید
+            $("#client_extra_allowed_ips").tagsInput({
+                'width': '100%',
+                'height': '75%',
+                'interactive': true,
+                'defaultText': 'Add More',
+                'removeWithBackspace': true,
+                'minChars': 0,
+                'minInputWidth': '100%',
+                'placeholderColor': '#666666'
+            });
+            
             newClientModal.on('shown.bs.modal', function (e) {
                 $("#client_name").val("");
                 $("#client_email").val("");
@@ -1435,76 +1481,87 @@ Wireguard Clients
 
                 const formData = {
                     name: name,
-                    email: $("#client_email").val(),
-                    public_key: $("#client_public_key").val(),
-                    preshared_key: $("#client_preshared_key").val(),
+                    email: $("#client_email").val() || "",
+                    public_key: $("#client_public_key").val() || "",
+                    preshared_key: $("#client_preshared_key").val() || "",
                     allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",").filter(Boolean) : [],
-                    allowed_ips: ["0.0.0.0/0", "::/0"],  // مقدار پیش‌فرض
+                    allowed_ips: ["0.0.0.0/0", "::/0"],
                     extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",").filter(Boolean) : [],
-                    endpoint: $("#client_endpoint").val(),
-                    telegram_userid: $("#client_telegram_userid").val(),
-                    additional_notes: $("#additional_notes").val(),
+                    endpoint: $("#client_endpoint").val() || "",
+                    telegram_userid: $("#client_telegram_userid").val() || "",
+                    additional_notes: $("#additional_notes").val() || "",
                     use_server_dns: $("#use_server_dns").is(":checked"),
                     enabled: true,
-                    quota: quotaBytes,
-                    expiration: expirationIso
+                    quota: quotaBytes || 0,
+                    expiration: expirationIso || null,
+                    subnet_ranges: ["__default_any__"]
                 };
 
-                $.ajax({
-                    cache: false,
-                    method: 'POST',
-                    url: '{{.basePath}}/new-client',
-                    dataType: 'json',
-                    contentType: "application/json",
-                    data: JSON.stringify(formData),
-                    success: function(response) {
-                        newClientModal.modal('hide');
-                        toastr.success('Created client successfully');
-                        
-                        // اعمال تغییرات به WireGuard با retry
-                        const applyConfig = (retryCount = 0) => {
-                            $.ajax({
-                                cache: false,
-                                method: 'POST',
-                                url: '{{.basePath}}/api/apply-wg-config',
-                                dataType: 'json',
-                                contentType: "application/json",
-                                success: function(data) {
-                                    toastr.success('Applied WireGuard configuration successfully');
-                                    populateClientList();
-                                },
-                                error: function(jqXHR) {
-                                    console.error('Error applying config:', jqXHR.status);
-                                    if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
-                                        setTimeout(() => applyConfig(retryCount + 1), 1000 * (retryCount + 1));
-                                    } else {
-                                        let errorMessage = 'Error applying configuration';
-                                        try {
-                                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                            errorMessage = responseJson.message || errorMessage;
-                                        } catch (e) {
-                                            console.error('Error parsing error response:', e);
+                // اضافه کردن مدیریت خطا و retry برای ایجاد کلاینت
+                const tryCreateClient = (retryCount = 0) => {
+                    $.ajax({
+                        cache: false,
+                        method: 'POST',
+                        url: '{{.basePath}}/new-client',
+                        dataType: 'json',
+                        contentType: "application/json",
+                        data: JSON.stringify(formData),
+                        success: function(response) {
+                            newClientModal.modal('hide');
+                            toastr.success('Created client successfully');
+                            
+                            // اعمال تغییرات به WireGuard با retry
+                            const applyConfig = (configRetryCount = 0) => {
+                                $.ajax({
+                                    cache: false,
+                                    method: 'POST',
+                                    url: '{{.basePath}}/api/apply-wg-config',
+                                    dataType: 'json',
+                                    contentType: "application/json",
+                                    success: function(data) {
+                                        toastr.success('Applied WireGuard configuration successfully');
+                                        populateClientList();
+                                    },
+                                    error: function(jqXHR) {
+                                        console.error('Error applying config:', jqXHR.status);
+                                        if (configRetryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                                            setTimeout(() => applyConfig(configRetryCount + 1), 1000 * (configRetryCount + 1));
+                                        } else {
+                                            let errorMessage = 'Error applying configuration';
+                                            try {
+                                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                                errorMessage = responseJson.message || errorMessage;
+                                            } catch (e) {
+                                                console.error('Error parsing error response:', e);
+                                            }
+                                            toastr.error(errorMessage);
+                                            populateClientList();
                                         }
-                                        toastr.error(errorMessage);
-                                        populateClientList();  // در هر صورت لیست را به‌روز کن
                                     }
-                                }
-                            });
-                        };
+                                });
+                            };
 
-                        applyConfig();
-                    },
-                    error: function(jqXHR) {
-                        let errorMessage = 'Error creating client';
-                        try {
-                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                            errorMessage = responseJson.message || errorMessage;
-                        } catch (e) {
-                            console.error('Error parsing error response:', e);
+                            applyConfig();
+                        },
+                        error: function(jqXHR) {
+                            console.error('Error creating client:', jqXHR.status);
+                            if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                                setTimeout(() => tryCreateClient(retryCount + 1), 1000 * (retryCount + 1));
+                            } else {
+                                let errorMessage = 'Error creating client';
+                                try {
+                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                    errorMessage = responseJson.message || errorMessage;
+                                } catch (e) {
+                                    console.error('Error parsing error response:', e);
+                                }
+                                toastr.error(errorMessage);
+                            }
                         }
-                        toastr.error(errorMessage);
-                    }
-                });
+                    });
+                };
+
+                tryCreateClient();
             });
         });
     </script>
