@@ -768,15 +768,8 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 // SetClientStatus handler to enable / disable a client
 func SetClientStatus(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		data := make(map[string]interface{})
-		err := json.NewDecoder(c.Request().Body).Decode(&data)
-
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
-		}
-
-		clientID := data["id"].(string)
-		status := data["status"].(bool)
+		clientID := c.Param("id")
+		status := c.Param("status") == "true"
 
 		if _, err := xid.FromString(clientID); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
@@ -788,6 +781,11 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		}
 
 		client := *clientData.Client
+
+		// اگر وضعیت فعلی با وضعیت درخواستی یکسان است، نیازی به تغییر نیست
+		if client.Enabled == status {
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
+		}
 
 		// Get settings for interface name
 		settings, err := db.GetGlobalSettings()
@@ -805,35 +803,78 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
+		// Create WireGuard client for direct interface manipulation
+		wgClient, err := wgctrl.New()
+		if err != nil {
+			log.Printf("Error creating WireGuard client: %v", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
+		}
+		defer wgClient.Close()
+
 		if status {
-			// فعال کردن کلاینت
-			cmd := exec.Command("sudo", "wg", "set", interfaceName, 
-				"peer", client.PublicKey,
-				"persistent-keepalive", "25",
-				"allowed-ips", strings.Join(client.AllocatedIPs, ","))
-			
-			if err := cmd.Run(); err != nil {
+			// فعال کردن کلاینت با استفاده از wgctrl
+			key, err := wgtypes.ParseKey(client.PublicKey)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
+			}
+
+			peerConfig := wgtypes.PeerConfig{
+				PublicKey:         key,
+				Remove:            false,
+				UpdateOnly:        false,
+				PresharedKey:      nil,
+				Endpoint:          nil,
+				PersistentKeepaliveInterval: &wgtypes.PersistentKeepaliveInterval,
+				AllowedIPs:       make([]net.IPNet, 0),
+			}
+
+			// تبدیل آدرس‌های IP به IPNet
+			for _, ip := range client.AllocatedIPs {
+				_, ipNet, err := net.ParseCIDR(ip)
+				if err != nil {
+					continue
+				}
+				peerConfig.AllowedIPs = append(peerConfig.AllowedIPs, *ipNet)
+			}
+
+			err = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{
+				Peers: []wgtypes.PeerConfig{peerConfig},
+			})
+			if err != nil {
 				log.Printf("Error adding peer %s: %v", client.Name, err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error enabling client: %v", err)})
 			}
 			log.Printf("Successfully added peer %s", client.Name)
 		} else {
-			// غیرفعال کردن کلاینت
-			cmd := exec.Command("sudo", "wg", "set", interfaceName, "peer", client.PublicKey, "remove")
-			if err := cmd.Run(); err != nil {
+			// غیرفعال کردن کلاینت با استفاده از wgctrl
+			key, err := wgtypes.ParseKey(client.PublicKey)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
+			}
+
+			peerConfig := wgtypes.PeerConfig{
+				PublicKey: key,
+				Remove:    true,
+			}
+
+			err = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{
+				Peers: []wgtypes.PeerConfig{peerConfig},
+			})
+			if err != nil {
 				log.Printf("Error removing peer %s: %v", client.Name, err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Error disabling client: %v", err)})
 			}
 			log.Printf("Successfully removed peer %s", client.Name)
 		}
 
+		// به‌روزرسانی وضعیت در دیتابیس
 		client.Enabled = status
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 		log.Printf("Changed client %s enabled status to %v", client.ID, status)
 
-		// به‌روزرسانی فایل کانفیگ
+		// به‌روزرسانی فایل کانفیگ بدون ری‌استارت سرویس
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
@@ -850,7 +891,7 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		}
 
 		if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Cannot write config: %v", err)})
+			log.Printf("Warning: Could not write config file: %v", err)
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Changed client status successfully"})
