@@ -1509,75 +1509,98 @@ Wireguard Clients
                 updateSubnetRangesList("#subnet_ranges");
             });
 
-            // اضافه کردن کد برای ساخت کلاینت جدید
-            $("#frm_new_client").on('submit', function(e) {
-                e.preventDefault();
-                
-                const name = $("#client_name").val();
-                if (!name) {
-                    toastr.error('Client name is required');
-                    return;
-                }
+            // Form validation and submission
+            $("#frm_new_client").validate({
+                rules: {
+                    client_name: {
+                        required: true
+                    }
+                },
+                messages: {
+                    client_name: {
+                        required: "Please enter a name"
+                    }
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                },
+                submitHandler: function(form, event) {
+                    event.preventDefault();
+                    
+                    const name = $("#client_name").val();
+                    const quotaGB = parseFloat($("#client_quota").val()) || 0;
+                    const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
-                const quotaGB = parseFloat($("#client_quota").val()) || 0;
-                const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
-
-                let expirationValue = $("#client_expiration").val();
-                let expirationIso = "";
-                if (expirationValue) {
-                    expirationIso = new Date(expirationValue).toISOString();
-                }
-
-                const formData = {
-                    name: name,
-                    email: $("#client_email").val() || "",
-                    public_key: $("#client_public_key").val() || "",
-                    preshared_key: $("#client_preshared_key").val() || "",
-                    allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",").filter(Boolean) : [],
-                    allowed_ips: ["0.0.0.0/0", "::/0"],
-                    extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",").filter(Boolean) : [],
-                    endpoint: $("#client_endpoint").val() || "",
-                    telegram_userid: $("#client_telegram_userid").val() || "",
-                    additional_notes: $("#additional_notes").val() || "",
-                    use_server_dns: $("#use_server_dns").is(":checked"),
-                    enabled: true,
-                    quota: quotaBytes || 0,
-                    expiration: expirationIso || null,
-                    subnet_ranges: ["__default_any__"]
-                };
-
-                const tryCreateClient = (retryCount = 0) => {
-                    $.ajax({
-                        cache: false,
-                        method: 'POST',
-                        url: '{{.basePath}}/new-client',
-                        dataType: 'json',
-                        contentType: "application/json",
-                        data: JSON.stringify(formData),
-                        success: function(response) {
-                            newClientModal.modal('hide');
-                            toastr.success('Created client successfully');
-                            populateClientList();
-                        },
-                        error: function(jqXHR) {
-                            console.error('Error creating client:', jqXHR.status);
-                            if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
-                                setTimeout(() => tryCreateClient(retryCount + 1), 1000 * (retryCount + 1));
-                            } else {
-                                let errorMessage = 'Error creating client';
-                                try {
-                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                    errorMessage = responseJson.message || errorMessage;
-                                } catch (e) {
-                                    console.error('Error parsing error response:', e);
-                                }
-                                toastr.error(errorMessage);
-                            }
+                    let expirationValue = $("#client_expiration").val();
+                    let expirationIso = "";
+                    if (expirationValue) {
+                        const expDate = new Date(expirationValue);
+                        if (expDate <= new Date()) {
+                            toastr.error('Expiration date must be in the future');
+                            return;
                         }
-                    });
-                };
+                        expirationIso = expDate.toISOString();
+                    }
 
-                tryCreateClient();
+                    const formData = {
+                        name: name,
+                        email: $("#client_email").val() || "",
+                        public_key: $("#client_public_key").val() || "",
+                        preshared_key: $("#client_preshared_key").val() || "",
+                        allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",").filter(Boolean) : [],
+                        allowed_ips: ["0.0.0.0/0", "::/0"],
+                        extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",").filter(Boolean) : [],
+                        endpoint: $("#client_endpoint").val() || "",
+                        telegram_userid: $("#client_telegram_userid").val() || "",
+                        additional_notes: $("#additional_notes").val() || "",
+                        use_server_dns: $("#use_server_dns").is(":checked"),
+                        enabled: true,
+                        quota: quotaBytes || 0,
+                        expiration: expirationIso || null,
+                        subnet_ranges: ["__default_any__"]
+                    };
+
+                    const tryCreateClient = (retryCount = 0) => {
+                        $.ajax({
+                            cache: false,
+                            method: 'POST',
+                            url: '{{.basePath}}/new-client',
+                            dataType: 'json',
+                            contentType: "application/json",
+                            data: JSON.stringify(formData),
+                            success: function(response) {
+                                newClientModal.modal('hide');
+                                toastr.success('Created client successfully');
+                                populateClientList();
+                            },
+                            error: function(jqXHR) {
+                                console.error('Error creating client:', jqXHR.status);
+                                if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                                    setTimeout(() => tryCreateClient(retryCount + 1), 1000 * (retryCount + 1));
+                                } else {
+                                    let errorMessage = 'Error creating client';
+                                    try {
+                                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                        errorMessage = responseJson.message || errorMessage;
+                                    } catch (e) {
+                                        console.error('Error parsing error response:', e);
+                                    }
+                                    toastr.error(errorMessage);
+                                }
+                            }
+                        });
+                    };
+
+                    tryCreateClient();
+                }
             });
         });
     </script>

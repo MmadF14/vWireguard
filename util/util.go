@@ -415,9 +415,9 @@ func ValidateIPAllocation(serverAddresses []string, ipAllocatedList []string, ip
 		}
 
 		// بررسی تکراری نبودن IP
-		// if allocatedMap[ip.String()] {
-		// 	return false, fmt.Errorf("IP %s already allocated", ip)
-		// }
+		if allocatedMap[ip.String()] {
+			return false, fmt.Errorf("IP %s already allocated", ip)
+		}
 	}
 
 	return true, nil
