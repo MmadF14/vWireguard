@@ -377,7 +377,11 @@ Wireguard Clients
         }
 
         function setClientStatus(clientID, status) {
-            // مستقیماً وضعیت کلاینت را تغییر می‌دهیم
+            if (!clientID) {
+                console.error('Invalid client ID');
+                return;
+            }
+
             $.ajax({
                 cache: false,
                 method: 'POST',
@@ -385,10 +389,8 @@ Wireguard Clients
                 dataType: 'json',
                 success: function(data) {
                     console.log("Set client " + clientID + " status to " + status);
-                    // نمایش پیام موفقیت
                     toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');
                     
-                    // تغییر وضعیت نمایشی کلاینت
                     const divElement = document.getElementById("paused_" + clientID);
                     if (divElement) {
                         divElement.style.visibility = status ? "hidden" : "visible";
@@ -403,16 +405,30 @@ Wireguard Clients
                         contentType: "application/json",
                         success: function(data) {
                             toastr.success('Configuration applied successfully');
+                            // رفرش لیست کلاینت‌ها بدون رفرش کامل صفحه
+                            populateClientList();
                         },
-                        error: function(jqXHR, exception) {
-                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                            toastr.error('Error applying configuration: ' + responseJson['message']);
+                        error: function(jqXHR) {
+                            let errorMessage = 'Error applying configuration';
+                            try {
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                errorMessage = responseJson.message || errorMessage;
+                            } catch (e) {
+                                console.error('Error parsing error response:', e);
+                            }
+                            toastr.error(errorMessage);
                         }
                     });
                 },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
+                error: function(jqXHR) {
+                    let errorMessage = 'Error changing client status';
+                    try {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        errorMessage = responseJson.message || errorMessage;
+                    } catch (e) {
+                        console.error('Error parsing error response:', e);
+                    }
+                    toastr.error(errorMessage);
                 }
             });
         }
@@ -1149,188 +1165,176 @@ Wireguard Clients
             }
 
             clients.forEach(function(data) {
-                // اگر داده به صورت {Client: {...}, QRCode: '...'} باشد
-                let client = data.Client || data;
-                
-                // اگر داده معتبر نیست، رد کن
-                if (!client || !client.id) {
-                    console.error('Invalid client data:', data);
-                    return;
-                }
+                try {
+                    // اگر داده به صورت {Client: {...}, QRCode: '...'} باشد
+                    let client = data.Client || data;
+                    
+                    // اگر داده معتبر نیست، رد کن
+                    if (!client || !client.id) {
+                        console.error('Invalid client data:', data);
+                        return;
+                    }
 
-                console.log('Processing client:', client);
+                    console.log('Processing client:', client);
 
-                // ساخت HTML برای کلاینت
-                let html = `
-                    <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
-                        <div class="info-box">
-                            <div class="overlay" id="paused_${client.id}" ${client.enabled ? 'style="visibility: hidden;"' : ''}>
-                                <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
-                            </div>
-                            <div class="info-box-content" style="overflow: hidden">
-                                <div class="btn-group">
-                                    <a href="download?clientid=${client.id}" class="btn btn-outline-primary btn-sm">Download</a>
+                    // ساخت HTML برای کلاینت
+                    let html = `
+                        <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
+                            <div class="info-box">
+                                <div class="overlay" id="paused_${client.id}" ${client.enabled ? 'style="visibility: hidden;"' : ''}>
+                                    <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
                                 </div>
-                                <div class="btn-group">      
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                                        data-target="#modal_qr_client" data-clientid="${client.id}"
-                                        data-clientname="${client.name}" ${data.QRCode ? '' : 'disabled'}>QR code</button>
-                                </div>
-                                <div class="btn-group">      
-                                    <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                                        data-target="#modal_email_client" data-clientid="${client.id}"
-                                        data-clientname="${client.name}">Email</button>
-                                </div>`;
+                                <div class="info-box-content" style="overflow: hidden">`;
 
-                // اضافه کردن دکمه تلگرام اگر telegram_userid وجود داشته باشد
-                if (client.telegram_userid) {
+                    // اضافه کردن دکمه‌ها
                     html += `
+                        <div class="btn-group">
+                            <a href="{{.basePath}}/download?clientid=${client.id}" class="btn btn-outline-primary btn-sm">Download</a>
+                        </div>
                         <div class="btn-group">      
                             <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                                data-target="#modal_telegram_client" data-clientid="${client.id}"
-                                data-clientname="${client.name}">Telegram</button>
+                                data-target="#modal_qr_client" data-clientid="${client.id}"
+                                data-clientname="${client.name}" ${data.QRCode ? '' : 'disabled'}>QR code</button>
+                        </div>
+                        <div class="btn-group">      
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                data-target="#modal_email_client" data-clientid="${client.id}"
+                                data-clientname="${client.name}">Email</button>
                         </div>`;
-                }
 
-                html += `
-                                <div class="btn-group">
-                                    <button type="button" class="btn btn-outline-danger btn-sm">More</button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm dropdown-toggle dropdown-icon" 
-                                        data-toggle="dropdown">
-                                    </button>
-                                    <div class="dropdown-menu" role="menu">
-                                        <a class="dropdown-item" href="#" data-toggle="modal"
-                                            data-target="#modal_edit_client" data-clientid="${client.id}"
-                                            data-clientname="${client.name}">Edit</a>
-                                        <a class="dropdown-item" href="#" data-toggle="modal"
-                                            data-target="#modal_pause_client" data-clientid="${client.id}"
-                                            data-clientname="${client.name}">Disable</a>
-                                        <a class="dropdown-item" href="#" data-toggle="modal"
-                                            data-target="#modal_remove_client" data-clientid="${client.id}"
-                                            data-clientname="${client.name}">Delete</a>
+                    // اضافه کردن دکمه تلگرام اگر telegram_userid وجود داشته باشد
+                    if (client.telegram_userid) {
+                        html += `
+                            <div class="btn-group">      
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                    data-target="#modal_telegram_client" data-clientid="${client.id}"
+                                    data-clientname="${client.name}">Telegram</button>
+                            </div>`;
+                    }
+
+                    // منوی More
+                    html += `
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-danger btn-sm">More</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm dropdown-toggle dropdown-icon" 
+                                data-toggle="dropdown">
+                            </button>
+                            <div class="dropdown-menu" role="menu">
+                                <a class="dropdown-item" href="#" data-toggle="modal"
+                                    data-target="#modal_edit_client" data-clientid="${client.id}"
+                                    data-clientname="${client.name}">Edit</a>
+                                <a class="dropdown-item" href="#" data-toggle="modal"
+                                    data-target="#modal_pause_client" data-clientid="${client.id}"
+                                    data-clientname="${client.name}">Disable</a>
+                                <a class="dropdown-item" href="#" data-toggle="modal"
+                                    data-target="#modal_remove_client" data-clientid="${client.id}"
+                                    data-clientname="${client.name}">Delete</a>
+                            </div>
+                        </div>
+                        <hr>`;
+
+                    // اطلاعات اصلی کلاینت
+                    html += `<span class="info-box-text"><i class="fas fa-user"></i> ${client.name}</span>`;
+
+                    if (client.email) {
+                        html += `<span class="info-box-text"><i class="fas fa-envelope"></i> ${client.email}</span>`;
+                    }
+
+                    if (client.created_at) {
+                        html += `<span class="info-box-text"><i class="fas fa-clock"></i> ${prettyDateTime(client.created_at)}</span>`;
+                    }
+
+                    if (client.updated_at) {
+                        html += `<span class="info-box-text"><i class="fas fa-history"></i> ${prettyDateTime(client.updated_at)}</span>`;
+                    }
+
+                    // نمایش حجم مصرفی و باقی‌مانده
+                    if (client.quota > 0) {
+                        const quotaFormatted = formatBytes(client.quota);
+                        const usedFormatted = formatBytes(client.used_quota || 0);
+                        const remainingBytes = client.quota - (client.used_quota || 0);
+                        const remainingFormatted = formatBytes(remainingBytes);
+                        
+                        const usagePercent = ((client.used_quota || 0) / client.quota * 100).toFixed(1);
+                        
+                        let progressClass = 'bg-success';
+                        if (usagePercent > 90) {
+                            progressClass = 'bg-danger';
+                        } else if (usagePercent > 70) {
+                            progressClass = 'bg-warning';
+                        }
+
+                        html += `
+                            <span class="info-box-text">
+                                <i class="fas fa-database"></i> Usage: ${usedFormatted} / ${quotaFormatted}
+                                <div class="progress progress-sm">
+                                    <div class="progress-bar ${progressClass}" role="progressbar" 
+                                         style="width: ${usagePercent}%" 
+                                         aria-valuenow="${usagePercent}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
                                     </div>
                                 </div>
-                                <hr>
-                                <span class="info-box-text"><i class="fas fa-user"></i> ${client.name}</span>`;
+                                <small>Remaining: ${remainingFormatted}</small>
+                            </span>`;
+                    } else {
+                        html += `<span class="info-box-text"><i class="fas fa-database"></i> Unlimited</span>`;
+                    }
 
-                if (client.email) {
-                    html += `<span class="info-box-text"><i class="fas fa-envelope"></i> ${client.email}</span>`;
-                }
+                    // نمایش تاریخ انقضا
+                    if (client.expiration) {
+                        const expDate = new Date(client.expiration);
+                        const now = new Date();
+                        const daysRemaining = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
+                        
+                        let expirationClass = '';
+                        if (daysRemaining <= 0) {
+                            expirationClass = 'text-danger';
+                            // اگر تاریخ انقضا گذشته باشد و کلاینت هنوز فعال باشد
+                            if (client.enabled) {
+                                setTimeout(() => {
+                                    setClientStatus(client.id, false);
+                                }, 100);
+                            }
+                        } else if (daysRemaining <= 7) {
+                            expirationClass = 'text-warning';
+                        }
+                        
+                        html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
+                    } else {
+                        html += `<span class="info-box-text"><i class="fas fa-calendar"></i> Expiration: Unlimited</span>`;
+                    }
 
-                if (client.created_at) {
-                    html += `<span class="info-box-text"><i class="fas fa-clock"></i> ${prettyDateTime(client.created_at)}</span>`;
-                }
+                    // نمایش سایر اطلاعات
+                    html += `<span class="info-box-text"><i class="fas fa-server" style="${client.use_server_dns ? "opacity: 1.0" : "opacity: 0.5"}"></i> DNS</span>`;
 
-                if (client.updated_at) {
-                    html += `<span class="info-box-text"><i class="fas fa-history"></i> ${prettyDateTime(client.updated_at)}</span>`;
-                }
+                    if (client.additional_notes) {
+                        html += `<span class="info-box-text"><i class="fas fa-file"></i> ${client.additional_notes}</span>`;
+                    }
 
-                // نمایش حجم مصرفی و باقی‌مانده با فرمت بهتر
-                if (client.quota > 0) {
-                    const quotaFormatted = formatBytes(client.quota);
-                    const usedFormatted = formatBytes(client.used_quota || 0);
-                    const remainingBytes = client.quota - (client.used_quota || 0);
-                    const remainingFormatted = formatBytes(remainingBytes);
-                    
-                    // محاسبه درصد مصرف
-                    const usagePercent = ((client.used_quota || 0) / client.quota * 100).toFixed(1);
-                    
-                    // تعیین رنگ نوار پیشرفت
-                    let progressClass = 'bg-success';
-                    if (usagePercent > 90) {
-                        progressClass = 'bg-danger';
-                    } else if (usagePercent > 70) {
-                        progressClass = 'bg-warning';
+                    if (client.allocated_ips && client.allocated_ips.length > 0) {
+                        html += `<span class="info-box-text"><strong>IP Allocation</strong></span>`;
+                        client.allocated_ips.forEach(function(ip) {
+                            html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                        });
+                    }
+
+                    if (client.allowed_ips && client.allowed_ips.length > 0) {
+                        html += `<span class="info-box-text"><strong>Allowed IPs</strong></span>`;
+                        client.allowed_ips.forEach(function(ip) {
+                            html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
+                        });
                     }
 
                     html += `
-                        <span class="info-box-text">
-                            <i class="fas fa-database"></i> Usage: ${usedFormatted} / ${quotaFormatted}
-                            <div class="progress progress-sm">
-                                <div class="progress-bar ${progressClass}" role="progressbar" 
-                                     style="width: ${usagePercent}%" 
-                                     aria-valuenow="${usagePercent}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
                                 </div>
                             </div>
-                            <small>Remaining: ${remainingFormatted}</small>
-                        </span>`;
-                } else {
-                    html += `<span class="info-box-text"><i class="fas fa-database"></i> Unlimited</span>`;
+                        </div>`;
+
+                    clientList.append(html);
+                } catch (error) {
+                    console.error('Error rendering client:', error, data);
                 }
-
-                // نمایش تاریخ انقضا
-                if (client.expiration) {
-                    const expDate = new Date(client.expiration);
-                    const now = new Date();
-                    const daysRemaining = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
-                    
-                    let expirationClass = '';
-                    if (daysRemaining <= 0) {
-                        expirationClass = 'text-danger';
-                        // اگر تاریخ انقضا گذشته باشد و کلاینت هنوز فعال باشد، آن را غیرفعال کن
-                        if (client.enabled) {
-                            setClientStatus(client.id, false);
-                            const divElement = document.getElementById("paused_" + client.id);
-                            divElement.style.visibility = "visible";
-                            
-                            // اعمال تغییرات در پیکربندی WireGuard
-                            $.ajax({
-                                cache: false,
-                                method: 'POST',
-                                url: '{{.basePath}}/api/apply-wg-config',
-                                dataType: 'json',
-                                contentType: "application/json",
-                                success: function(data) {
-                                    toastr.success('Client disabled and configuration applied successfully');
-                                    updateApplyConfigVisibility();
-                                },
-                                error: function(jqXHR, exception) {
-                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                    toastr.error(responseJson['message']);
-                                }
-                            });
-                        }
-                    } else if (daysRemaining <= 7) {
-                        expirationClass = 'text-warning';
-                    }
-                    
-                    html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
-                } else {
-                    html += `<span class="info-box-text"><i class="fas fa-calendar"></i> Expiration: Unlimited</span>`;
-                }
-
-                // نمایش DNS سرور
-                html += `<span class="info-box-text"><i class="fas fa-server" style="${client.use_server_dns ? "opacity: 1.0" : "opacity: 0.5"}"></i> DNS</span>`;
-
-                // نمایش یادداشت‌های اضافی
-                if (client.additional_notes) {
-                    html += `<span class="info-box-text"><i class="fas fa-file"></i> ${client.additional_notes}</span>`;
-                }
-
-                // نمایش IP های تخصیص داده شده
-                if (client.allocated_ips && client.allocated_ips.length > 0) {
-                    html += `<span class="info-box-text"><strong>IP Allocation</strong></span>`;
-                    client.allocated_ips.forEach(function(ip) {
-                        html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
-                    });
-                }
-
-                // نمایش IP های مجاز
-                if (client.allowed_ips && client.allowed_ips.length > 0) {
-                    html += `<span class="info-box-text"><strong>Allowed IPs</strong></span>`;
-                    client.allowed_ips.forEach(function(ip) {
-                        html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
-                    });
-                }
-
-                html += `
-                            </div>
-                        </div>
-                    </div>`;
-
-                clientList.append(html);
             });
         }
     </script>
