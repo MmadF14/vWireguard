@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -427,44 +426,117 @@ func GetClient(db store.IStore) echo.HandlerFunc {
 // NewClient handler
 func NewClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		data := make(map[string]interface{})
-		err := json.NewDecoder(c.Request().Body).Decode(&data)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
-		}
-
 		var client model.Client
-		username := data["username"].(string)
-		password := data["password"].(string)
-		admin := data["admin"].(bool)
+		c.Bind(&client)
 
-		if username == "" || !usernameRegexp.MatchString(username) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid username"})
-		} else {
-			client.Username = username
+		// اعتبارسنجی مقدار Quota
+		if client.Quota < 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
 
-		{
-			_, err := db.GetUserByName(username)
-			if err == nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "This username is taken"})
+		// اعتبارسنجی تاریخ انقضا (اگر مقداردهی شده باشد و گذشته باشد)
+		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		}
+
+		// Validate Telegram userid if provided
+		if client.TgUserid != "" {
+			idNum, err := strconv.ParseInt(client.TgUserid, 10, 64)
+			if err != nil || idNum == 0 {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Telegram userid must be a non-zero number"})
 			}
 		}
 
-		hash, err := util.HashPassword(password)
+		// read server information
+		server, err := db.GetServer()
 		if err != nil {
+			log.Error("Cannot fetch server from database: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		client.PasswordHash = hash
 
-		client.Admin = admin
+		// validate the input Allocation IPs
+		allocatedIPs, err := util.GetAllocatedIPs("")
+		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, client.AllocatedIPs)
+		if !check {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
+		}
 
+		// validate the input AllowedIPs
+		if util.ValidateAllowedIPs(client.AllowedIPs) == false {
+			log.Warnf("Invalid Allowed IPs input from user: %v", client.AllowedIPs)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
+		}
+
+		// validate extra AllowedIPs
+		if util.ValidateExtraAllowedIPs(client.ExtraAllowedIPs) == false {
+			log.Warnf("Invalid Extra AllowedIPs input from user: %v", client.ExtraAllowedIPs)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra AllowedIPs must be in CIDR format"})
+		}
+
+		// gen ID
+		guid := xid.New()
+		client.ID = guid.String()
+
+		// gen Wireguard key pair
+		if client.PublicKey == "" {
+			key, err := wgtypes.GeneratePrivateKey()
+			if err != nil {
+				log.Error("Cannot generate wireguard key pair: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot generate Wireguard key pair"})
+			}
+			client.PrivateKey = key.String()
+			client.PublicKey = key.PublicKey().String()
+		} else {
+			_, err := wgtypes.ParseKey(client.PublicKey)
+			if err != nil {
+				log.Error("Cannot verify wireguard public key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard public key"})
+			}
+			// check for duplicates
+			clients, err := db.GetClients(false)
+			if err != nil {
+				log.Error("Cannot get clients for duplicate check")
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients for duplicate check"})
+			}
+			for _, other := range clients {
+				if other.Client.PublicKey == client.PublicKey {
+					log.Error("Duplicate Public Key")
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
+				}
+			}
+		}
+
+		if client.PresharedKey == "" {
+			presharedKey, err := wgtypes.GenerateKey()
+			if err != nil {
+				log.Error("Cannot generated preshared key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+					false, "Cannot generate Wireguard preshared key",
+				})
+			}
+			client.PresharedKey = presharedKey.String()
+		} else if client.PresharedKey == "-" {
+			client.PresharedKey = ""
+			log.Infof("skipped PresharedKey generation for user: %v", client.Name)
+		} else {
+			_, err := wgtypes.ParseKey(client.PresharedKey)
+			if err != nil {
+				log.Error("Cannot verify wireguard preshared key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard preshared key"})
+			}
+		}
+
+		client.CreatedAt = time.Now().UTC()
+		client.UpdatedAt = client.CreatedAt
+
+		// write client to the database
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		log.Infof("Created user successfully")
+		log.Infof("Created wireguard client: %v", client)
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Created user successfully"})
+		// کانفیگ به صورت خودکار اعمال نمی‌شود
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Created client successfully"})
 	}
 }
 
@@ -573,20 +645,125 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// UpdateClient handler
+// UpdateClient handler to update client information
 func UpdateClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		data := make(map[string]interface{})
-		err := json.NewDecoder(c.Request().Body).Decode(&data)
-		if err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
+		var _client model.Client
+		c.Bind(&_client)
+
+		if _, err := xid.FromString(_client.ID); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
-		// ... existing validation code ...
+		// validate client existence
+		clientData, err := db.GetClientByID(_client.ID, model.QRCodeSettings{Enabled: false})
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
+		}
 
-		if err := db.SaveClient(*client); err != nil {
+		// Validate Telegram userid if provided
+		if _client.TgUserid != "" {
+			idNum, err := strconv.ParseInt(_client.TgUserid, 10, 64)
+			if err != nil || idNum == 0 {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Telegram userid must be a non-zero number"})
+			}
+		}
+
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot fetch server config: %s", err),
+			})
+		}
+
+		client := *clientData.Client
+
+		// validate the input Allocation IPs
+		allocatedIPs, err := util.GetAllocatedIPs(client.ID)
+		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, _client.AllocatedIPs)
+		if !check {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
+		}
+
+		// validate the input AllowedIPs
+		if util.ValidateAllowedIPs(_client.AllowedIPs) == false {
+			log.Warnf("Invalid Allowed IPs input from user: %v", _client.AllowedIPs)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
+		}
+
+		if util.ValidateExtraAllowedIPs(_client.ExtraAllowedIPs) == false {
+			log.Warnf("Invalid Extra AllowedIPs input from user: %v", _client.ExtraAllowedIPs)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra Allowed IPs must be in CIDR format"})
+		}
+
+		// update Wireguard Client PublicKey
+		if client.PublicKey != _client.PublicKey && _client.PublicKey != "" {
+			_, err := wgtypes.ParseKey(_client.PublicKey)
+			if err != nil {
+				log.Error("Cannot verify provided Wireguard public key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard public key"})
+			}
+			// check for duplicates
+			clients, err := db.GetClients(false)
+			if err != nil {
+				log.Error("Cannot get client list for duplicate public key check")
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get client list for duplicate public key check"})
+			}
+			for _, other := range clients {
+				if other.Client.PublicKey == _client.PublicKey {
+					log.Error("Duplicate Public Key")
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
+				}
+			}
+
+			// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
+			// Client PubKey no longer corresponds to locally stored PrivKey.
+			if client.PrivateKey != "" {
+				client.PrivateKey = ""
+			}
+		}
+
+		// update Wireguard Client PresharedKey
+		if client.PresharedKey != _client.PresharedKey && _client.PresharedKey != "" {
+			_, err := wgtypes.ParseKey(_client.PresharedKey)
+			if err != nil {
+				log.Error("Cannot verify provided Wireguard preshared key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard preshared key"})
+			}
+		}
+
+		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
+		client.Quota = _client.Quota
+		client.Expiration = _client.Expiration
+
+		// اعتبارسنجی Quota و Expiration
+		if client.Quota < 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
+		}
+		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		}
+
+		// map other data
+		client.Name = _client.Name
+		client.Email = _client.Email
+		client.TgUserid = _client.TgUserid
+		client.Enabled = _client.Enabled
+		client.UseServerDNS = _client.UseServerDNS
+		client.AllocatedIPs = _client.AllocatedIPs
+		client.AllowedIPs = _client.AllowedIPs
+		client.ExtraAllowedIPs = _client.ExtraAllowedIPs
+		client.Endpoint = _client.Endpoint
+		client.PublicKey = _client.PublicKey
+		client.PresharedKey = _client.PresharedKey
+		client.UpdatedAt = time.Now().UTC()
+		client.AdditionalNotes = strings.ReplaceAll(strings.Trim(_client.AdditionalNotes, "\r\n"), "\r\n", "\n")
+
+		// write to the database
+		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
+		log.Infof("Updated client information successfully => %v", client)
 
 		// کانفیگ به صورت خودکار اعمال نمی‌شود
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated client successfully"})
