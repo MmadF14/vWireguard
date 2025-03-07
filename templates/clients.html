@@ -379,22 +379,30 @@ Wireguard Clients
         // اضافه کردن متغیر برای ذخیره آخرین فعال‌سازی دستی
         window.lastManualActivation = null;
 
+        let disableInProgress = false;
+
         function setClientStatus(clientID, status, isAutomatic = false) {
             if (!clientID) {
                 console.error('Invalid client ID');
                 return;
             }
 
+            if (disableInProgress) {
+                console.log('Disable action already in progress, skipping');
+                return;
+            }
+
+            disableInProgress = true;
             const trySetStatus = (retryCount = 0) => {
-            $.ajax({
-                cache: false,
-                method: 'POST',
+                $.ajax({
+                    cache: false,
+                    method: 'POST',
                     url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
-                dataType: 'json',
-                contentType: "application/json",
+                    dataType: 'json',
+                    contentType: "application/json",
                     data: JSON.stringify({ enabled: status }),
                     success: function(data) {
-                    console.log("Set client " + clientID + " status to " + status);
+                        console.log("Set client " + clientID + " status to " + status);
                         toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');
                         
                         const divElement = document.getElementById("paused_" + clientID);
@@ -402,34 +410,27 @@ Wireguard Clients
                             divElement.style.visibility = status ? "hidden" : "visible";
                         }
 
-                        // اگر سرویس به صورت دستی فعال شده
                         if (status && !isAutomatic) {
-                            // ذخیره زمان فعال‌سازی
                             window.lastManualActivation = {
                                 clientId: clientID,
                                 timestamp: new Date().getTime()
                             };
                             
-                            // پیام به کاربر
                             toastr.warning('You have 1 minute to make changes before automatic check');
                             
-                            // به‌روزرسانی UI
-                            populateClientList();
-
-                            // بعد از یک دقیقه، lastManualActivation را پاک کن
                             setTimeout(() => {
                                 if (window.lastManualActivation && window.lastManualActivation.clientId === clientID) {
                                     window.lastManualActivation = null;
-                                    populateClientList();
                                 }
                             }, 60000);
-                        } else if (!status && isAutomatic) {
-                            // فقط در صورت غیرفعال‌سازی خودکار، کانفیگ را اعمال کن
-                            applyWireGuardConfig();
-                        } else {
-                            // برای سایر موارد فقط UI را به‌روز کن
-                            populateClientList();
                         }
+
+                        if (!status && isAutomatic) {
+                            applyWireGuardConfig();
+                        }
+
+                        populateClientList();
+                        disableInProgress = false;
                     },
                     error: function(jqXHR) {
                         console.error('Error setting client status:', jqXHR.status);
@@ -438,12 +439,13 @@ Wireguard Clients
                         } else {
                             let errorMessage = 'Error changing client status';
                             try {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
                                 errorMessage = responseJson.message || errorMessage;
                             } catch (e) {
                                 console.error('Error parsing error response:', e);
                             }
                             toastr.error(errorMessage);
+                            disableInProgress = false;
                         }
                     }
                 });
