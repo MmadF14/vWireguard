@@ -448,32 +448,58 @@ Wireguard Clients
             let subnetRange = $("#_subnet_ranges").select2('val');
 
             if (!subnetRange || subnetRange.length === 0) {
-                subnetRange = '__default_any__'
+                subnetRange = '__default_any__';
             }
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: `{{.basePath}}/api/suggest-client-ips?sr=${subnetRange}`,
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    const allocated_ips = $("#_client_allocated_ips").val().split(",");
-                    allocated_ips.forEach(function (item, index) {
-                        $('#_client_allocated_ips').removeTag(escape(item));
-                    })
-                    data.forEach(function (item, index) {
-                        $('#_client_allocated_ips').addTag(item);
-                    })
-                },
-                error: function(jqXHR, exception) {
-                    const allocated_ips = $("#_client_allocated_ips").val().split(",");
-                    allocated_ips.forEach(function (item, index) {
-                        $('#_client_allocated_ips').removeTag(escape(item));
-                    })
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
+            
+            // اضافه کردن مدیریت خطا و retry
+            const tryFetchSuggestions = (retryCount = 0) => {
+                $.ajax({
+                    cache: false,
+                    method: 'GET',
+                    url: `{{.basePath}}/api/suggest-client-ips`,
+                    data: { sr: subnetRange },
+                    dataType: 'json',
+                    contentType: "application/json",
+                    success: function(data) {
+                        if (!data || !Array.isArray(data)) {
+                            console.error('Invalid response format:', data);
+                            return;
+                        }
+                        
+                        const allocated_ips = $("#_client_allocated_ips").val();
+                        if (allocated_ips) {
+                            allocated_ips.split(",").forEach(function (item) {
+                                if (item) {
+                                    $('#_client_allocated_ips').removeTag(escape(item));
+                                }
+                            });
+                        }
+                        
+                        data.forEach(function (item) {
+                            if (item) {
+                                $('#_client_allocated_ips').addTag(item);
+                            }
+                        });
+                    },
+                    error: function(jqXHR) {
+                        console.error('Error fetching IP suggestions:', jqXHR.status);
+                        if (retryCount < 3 && (jqXHR.status === 503 || jqXHR.status === 0)) {
+                            setTimeout(() => tryFetchSuggestions(retryCount + 1), 1000 * (retryCount + 1));
+                        } else {
+                            let errorMessage = 'Failed to get IP suggestions';
+                            try {
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                errorMessage = responseJson.message || errorMessage;
+                            } catch (e) {
+                                console.error('Error parsing error response:', e);
+                            }
+                            toastr.error(errorMessage);
+                        }
+                    }
+                });
+            };
+
+            tryFetchSuggestions();
         }
 
         function updateSubnetRangesList(elementID, preselectedVal) {
@@ -1364,7 +1390,9 @@ Wireguard Clients
     <script>
         // New Client modal event
         $(document).ready(function () {
-            $("#modal_new_client").on('shown.bs.modal', function (e) {
+            let newClientModal = $("#modal_new_client");
+            
+            newClientModal.on('shown.bs.modal', function (e) {
                 $("#client_name").val("");
                 $("#client_email").val("");
                 $("#client_public_key").val("");
@@ -1374,59 +1402,97 @@ Wireguard Clients
                 $("#client_endpoint").val('');
                 $("#client_telegram_userid").val('');
                 $("#additional_notes").val('');
+                $("#client_quota").val("");
+                $("#client_expiration").val("");
+                
+                // تنظیم مقادیر پیش‌فرض
+                $("#use_server_dns").prop("checked", true);
+                $("#enabled").prop("checked", true);
+                
                 updateSubnetRangesList("#subnet_ranges");
-                updateIPAllocationSuggestion(true);
             });
 
             // اضافه کردن کد برای اعمال خودکار تغییرات بعد از ساخت کلاینت جدید
             $("#frm_new_client").on('submit', function(e) {
                 e.preventDefault();
+                
+                const name = $("#client_name").val();
+                if (!name) {
+                    toastr.error('Client name is required');
+                    return;
+                }
+
+                // اضافه کردن Quota
+                const quotaGB = parseFloat($("#client_quota").val()) || 0;
+                const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
+
+                // اضافه کردن Expiration
+                let expirationValue = $("#client_expiration").val();
+                let expirationIso = "";
+                if (expirationValue) {
+                    expirationIso = new Date(expirationValue).toISOString();
+                }
+
                 const formData = {
-                    name: $("#client_name").val(),
+                    name: name,
                     email: $("#client_email").val(),
                     public_key: $("#client_public_key").val(),
                     preshared_key: $("#client_preshared_key").val(),
-                    allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",") : [],
-                    extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",") : [],
+                    allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",").filter(Boolean) : [],
+                    allowed_ips: ["0.0.0.0/0", "::/0"],  // مقدار پیش‌فرض
+                    extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",").filter(Boolean) : [],
                     endpoint: $("#client_endpoint").val(),
                     telegram_userid: $("#client_telegram_userid").val(),
                     additional_notes: $("#additional_notes").val(),
-                    enabled: true
+                    use_server_dns: $("#use_server_dns").is(":checked"),
+                    enabled: true,
+                    quota: quotaBytes,
+                    expiration: expirationIso
                 };
 
                 $.ajax({
                     cache: false,
                     method: 'POST',
-                    url: '{{.basePath}}/new-client',  // تغییر مسیر API
+                    url: '{{.basePath}}/new-client',
                     dataType: 'json',
                     contentType: "application/json",
                     data: JSON.stringify(formData),
                     success: function(response) {
-                        $("#modal_new_client").modal('hide');
+                        newClientModal.modal('hide');
                         toastr.success('Created client successfully');
                         
-                        // اعمال تغییرات به WireGuard
-                        $.ajax({
-                            cache: false,
-                            method: 'POST',
-                            url: '{{.basePath}}/api/apply-wg-config',
-                            dataType: 'json',
-                            contentType: "application/json",
-                            success: function(data) {
-                                toastr.success('Applied WireGuard configuration successfully');
-                                populateClientList(); // به جای رفرش کامل صفحه، فقط لیست را به‌روز می‌کنیم
-                            },
-                            error: function(jqXHR) {
-                                let errorMessage = 'Error applying WireGuard configuration';
-                                try {
-                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                    errorMessage = responseJson.message || errorMessage;
-                                } catch (e) {
-                                    console.error('Error parsing error response:', e);
+                        // اعمال تغییرات به WireGuard با retry
+                        const applyConfig = (retryCount = 0) => {
+                            $.ajax({
+                                cache: false,
+                                method: 'POST',
+                                url: '{{.basePath}}/api/apply-wg-config',
+                                dataType: 'json',
+                                contentType: "application/json",
+                                success: function(data) {
+                                    toastr.success('Applied WireGuard configuration successfully');
+                                    populateClientList();
+                                },
+                                error: function(jqXHR) {
+                                    console.error('Error applying config:', jqXHR.status);
+                                    if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                                        setTimeout(() => applyConfig(retryCount + 1), 1000 * (retryCount + 1));
+                                    } else {
+                                        let errorMessage = 'Error applying configuration';
+                                        try {
+                                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                            errorMessage = responseJson.message || errorMessage;
+                                        } catch (e) {
+                                            console.error('Error parsing error response:', e);
+                                        }
+                                        toastr.error(errorMessage);
+                                        populateClientList();  // در هر صورت لیست را به‌روز کن
+                                    }
                                 }
-                                toastr.error(errorMessage);
-                            }
-                        });
+                            });
+                        };
+
+                        applyConfig();
                     },
                     error: function(jqXHR) {
                         let errorMessage = 'Error creating client';
