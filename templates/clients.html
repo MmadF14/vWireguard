@@ -1167,8 +1167,11 @@ Wireguard Clients
             }
 
             clients.forEach(function(data) {
+                // اگر داده به صورت {Client: {...}, QRCode: '...'} باشد
                 let client = data.Client || data;
-                if (!client || !client.name) {
+                
+                // اگر داده معتبر نیست، رد کن
+                if (!client || !client.id) {
                     console.error('Invalid client data:', data);
                     return;
                 }
