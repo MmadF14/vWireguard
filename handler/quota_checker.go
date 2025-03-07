@@ -90,13 +90,6 @@ func checkQuotasAndExpiration(db store.IStore) {
     }
     log.Printf("Successfully retrieved WireGuard usage stats")
 
-    // Get settings for interface name
-    settings, err := db.GetGlobalSettings()
-    if err != nil {
-        log.Printf("Error getting global settings: %v", err)
-        return
-    }
-
     for _, cData := range clients {
         client := cData.Client
         if client == nil {
