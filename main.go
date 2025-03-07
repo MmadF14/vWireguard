@@ -48,7 +48,7 @@ var (
 	flagSessionSecret            = util.RandomString(32)
 	flagSessionMaxDuration       = 90
 	flagWgConfTemplate           string
-	flagBasePath                 string
+	flagBasePath                 = "/"
 	flagSubnetRanges             string
 )
 

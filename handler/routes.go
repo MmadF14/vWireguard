@@ -832,6 +832,19 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
+		// اگر می‌خواهیم کلاینت را فعال کنیم، چک می‌کنیم که تاریخ انقضا و حجم مصرفی درست باشد
+		if status {
+			// بررسی تاریخ انقضا
+			if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
+			}
+
+			// بررسی حجم مصرفی
+			if client.Quota > 0 && client.UsedQuota >= client.Quota {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
+			}
+		}
+
 		// Get settings for interface name
 		settings, err := db.GetGlobalSettings()
 		if err != nil {
