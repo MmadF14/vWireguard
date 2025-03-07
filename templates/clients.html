@@ -290,84 +290,33 @@ Wireguard Clients
 {{define "bottom_js"}}
     <script>
         function populateClientList() {
-            console.log('Fetching clients list...');
-            $("#client-list").empty();
-            
             $.ajax({
                 cache: false,
-                method: 'GET',
                 url: '{{.basePath}}/api/clients',
+                method: 'GET',
                 dataType: 'json',
-                contentType: "application/json",
-                success: function(response) {
-                    console.log('Raw server response:', response);
-                    
-                    if (!response) {
-                        console.log('No response from server');
-                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
-                        return;
+                success: function(data) {
+                    if (data && Array.isArray(data)) {
+                        renderClientList(data);
+                    } else {
+                        console.error('Invalid response format:', data);
+                        toastr.error('Error loading clients: Invalid response format');
                     }
-
-                    // اگر پاسخ به صورت رشته JSON باشد، آن را پارس کنیم
-                    let data = response;
-                    if (typeof response === 'string') {
-                        try {
-                            data = JSON.parse(response);
-                        } catch (e) {
-                            console.error('Error parsing JSON response:', e);
-                            toastr.error('Error processing server response');
-                            return;
-                        }
-                    }
-
-                    // اگر داده‌ها آرایه باشند، مستقیماً آنها را رندر کنیم
-                    if (Array.isArray(data)) {
-                        console.log('Rendering array of clients:', data);
-                    renderClientList(data);
-                        return;
-                    }
-
-                    // اگر داده‌ها یک آبجکت باشند که شامل آرایه clients است
-                    if (data.clients && Array.isArray(data.clients)) {
-                        console.log('Rendering clients from data.clients:', data.clients);
-                        renderClientList(data.clients);
-                        return;
-                    }
-
-                    // اگر داده‌ها یک آبجکت باشند که شامل آرایه data است
-                    if (data.data && Array.isArray(data.data)) {
-                        console.log('Rendering clients from data.data:', data.data);
-                        renderClientList(data.data);
-                        return;
-                    }
-
-                    // اگر داده‌ها یک کلاینت منفرد باشند
-                    if (data.Client || (data.name && data.id)) {
-                        console.log('Rendering single client:', data);
-                        renderClientList([data]);
-                        return;
-                    }
-
-                    console.log('No valid client data found in response');
-                    $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                 },
-                error: function(jqXHR, exception) {
+                error: function(jqXHR) {
                     console.error('Error fetching clients:', {
                         status: jqXHR.status,
                         statusText: jqXHR.statusText,
                         responseText: jqXHR.responseText
                     });
-                    
                     let errorMessage = 'Failed to fetch clients';
                     try {
-                        const responseJson = JSON.parse(jqXHR.responseText);
+                        const responseJson = JSON.parse(jqXHR.responseText || '{}');
                         errorMessage = responseJson.message || errorMessage;
                     } catch (e) {
                         console.error('Error parsing error response:', e);
                     }
-                    
                     toastr.error(errorMessage);
-                    $("#client-list").html('<div class="col-12 text-center"><p>Error loading clients</p></div>');
                 }
             });
         }
@@ -429,7 +378,7 @@ Wireguard Clients
                     } else {
                         let errorMessage = 'Error applying configuration';
                         try {
-                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            const responseJson = JSON.parse(jqXHR.responseText || '{}');
                             errorMessage = responseJson.message || errorMessage;
                         } catch (e) {
                             console.error('Error parsing error response:', e);
@@ -495,7 +444,7 @@ Wireguard Clients
                         } else {
                             let errorMessage = 'Failed to get IP suggestions';
                             try {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                                 errorMessage = responseJson.message || errorMessage;
                             } catch (e) {
                                 console.error('Error parsing error response:', e);
@@ -725,7 +674,7 @@ Wireguard Clients
                         divElement.style.display = "none";
                     },
                     error: function(jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        const responseJson = JSON.parse(jqXHR.responseText || '{}');
                         toastr.error(responseJson['message']);
                     }
                 });
@@ -853,7 +802,7 @@ Wireguard Clients
                         });
                     },
                     error: function (jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        const responseJson = JSON.parse(jqXHR.responseText || '{}');
                         toastr.error(responseJson['message']);
                     }
                 });
@@ -884,7 +833,7 @@ Wireguard Clients
                     QRCodeA.attr('href', resp.QRCode).show();
                 },
                 error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                     toastr.error(responseJson['message']);
                 }
             });
@@ -907,7 +856,7 @@ Wireguard Clients
                     toastr.success('Sent email to client successfully');
                 },
                 error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                     toastr.error(responseJson['message']);
                 }
             });
@@ -930,7 +879,7 @@ Wireguard Clients
                     toastr.success('Sent config via telegram to client successfully');
                 },
                 error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                     toastr.error(responseJson['message']);
                 }
             });
@@ -1009,7 +958,7 @@ Wireguard Clients
                     populateClientList();
                 },
                 error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                     toastr.error(responseJson['message']);
                 }
             });
@@ -1045,7 +994,7 @@ Wireguard Clients
                     modal.find("#e_client_email").val(client.email);
                 },
                 error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                     toastr.error(responseJson['message']);
                 }
             });
@@ -1078,7 +1027,7 @@ Wireguard Clients
                     modal.find("#tg_client_userid").val(client.telegram_userid);
                 },
                 error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                     toastr.error(responseJson['message']);
                 }
             });
@@ -1516,13 +1465,17 @@ Wireguard Clients
                             populateClientList();
                         },
                         error: function(jqXHR) {
-                            console.error('Error creating client:', jqXHR.status);
+                            console.error('Error creating client:', {
+                                status: jqXHR.status,
+                                statusText: jqXHR.statusText,
+                                responseText: jqXHR.responseText
+                            });
                             if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
                                 setTimeout(() => tryCreateClient(retryCount + 1), 1000 * (retryCount + 1));
                             } else {
                                 let errorMessage = 'Error creating client';
                                 try {
-                                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                    const responseJson = JSON.parse(jqXHR.responseText || '{}');
                                     errorMessage = responseJson.message || errorMessage;
                                 } catch (e) {
                                     console.error('Error parsing error response:', e);
