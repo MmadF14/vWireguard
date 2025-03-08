@@ -10,6 +10,7 @@ import (
     "github.com/MmadF14/wireguard-ui/util"
     "strings"
     "os/exec"
+    "io/fs"
 )
 
 var (
@@ -17,20 +18,22 @@ var (
     // نگهداری زمان آخرین غیرفعال‌سازی برای هر کلاینت
     lastDisableTime = make(map[string]time.Time)
     lastDisableMutex sync.RWMutex
+    quotaCheckerTmplDir fs.FS
 )
 
 // cooldownPeriod مدت زمان انتظار بین غیرفعال‌سازی‌های متوالی
 const cooldownPeriod = 5 * time.Minute
 
 // StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
-func StartQuotaChecker(db store.IStore) {
+func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
+    quotaCheckerTmplDir = tmplDir
     go func() {
         defer func() {
             if r := recover(); r != nil {
                 log.Printf("Recovered from panic in quota checker: %v", r)
                 // Restart the goroutine after a short delay
                 time.Sleep(10 * time.Second)
-                StartQuotaChecker(db)
+                StartQuotaChecker(db, tmplDir)
             }
         }()
 
@@ -178,15 +181,15 @@ func applyWireGuardConfig(db store.IStore) error {
 
     clients, err := db.GetClients(false)
     if err != nil {
-        log.Printf("Error getting client config: %v", err)
-        return fmt.Errorf("cannot get client config: %v", err)
+        log.Printf("Error getting clients: %v", err)
+        return fmt.Errorf("cannot get clients: %v", err)
     }
-    log.Printf("Successfully got %d clients", len(clients))
+    log.Printf("Successfully got clients")
 
     users, err := db.GetUsers()
     if err != nil {
         log.Printf("Error getting users: %v", err)
-        return fmt.Errorf("cannot get users config: %v", err)
+        return fmt.Errorf("cannot get users: %v", err)
     }
     log.Printf("Successfully got users")
 
@@ -198,9 +201,10 @@ func applyWireGuardConfig(db store.IStore) error {
     log.Printf("Successfully got global settings")
 
     // Write config file
-    if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+    err = util.WriteWireGuardServerConfig(quotaCheckerTmplDir, server, clients, users, settings)
+    if err != nil {
         log.Printf("Error writing WireGuard config: %v", err)
-        return fmt.Errorf("cannot write config: %v", err)
+        return fmt.Errorf("cannot write WireGuard config: %v", err)
     }
     log.Printf("Successfully wrote WireGuard config")
 
@@ -214,26 +218,25 @@ func applyWireGuardConfig(db store.IStore) error {
         }
     }
 
-    // Restart WireGuard service using systemctl
+    // Restart WireGuard service
     serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
-    
-    // Execute systemctl restart with output capture
     cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
     output, err := cmd.CombinedOutput()
     if err != nil {
         log.Printf("Error restarting WireGuard service: %v, Output: %s", err, string(output))
         return fmt.Errorf("error restarting WireGuard service: %v, Output: %s", err, string(output))
     }
+    log.Printf("Successfully restarted WireGuard service")
 
     // Verify service is active
     checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
     status, err := checkCmd.CombinedOutput()
     if err != nil || strings.TrimSpace(string(status)) != "active" {
         log.Printf("WireGuard service is not active after restart. Status: %s", string(status))
-        return fmt.Errorf("WireGuard service is not active after restart")
+        return fmt.Errorf("WireGuard service is not active after restart. Status: %s", string(status))
     }
+    log.Printf("WireGuard service is active")
 
-    log.Printf("Successfully restarted WireGuard service and verified it is active")
     return nil
 }
 

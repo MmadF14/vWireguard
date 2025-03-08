@@ -185,7 +185,7 @@ func main() {
 	extraData["loginDisabled"] = flagDisableLogin
 
 	// Initialize the quota checker
-	handler.StartQuotaChecker(db)
+	handler.StartQuotaChecker(db, tmplDir)
 
 	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name (e.g.
 	// "base.html" instead of "templates/base.html")
