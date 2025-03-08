@@ -828,97 +828,62 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
-		// اگر وضعیت فعلی با وضعیت درخواستی یکسان است، نیازی به تغییر نیست
 		if client.Enabled == status {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
-		// اگر درخواست فعال‌سازی دستی است
-		if status && !isAutomatic {
-			// بررسی شرایط فعال‌سازی
+		// بررسی شرایط فعال‌سازی برای هر دو حالت دستی و خودکار
+		if status {
+			// بررسی تاریخ انقضا
 			if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
 			}
 
+			// بررسی حجم مصرفی
 			if client.Quota > 0 && client.UsedQuota >= client.Quota {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
 			}
-
-			// فعال‌سازی کلاینت
-			client.Enabled = true
-			if err := db.SaveClient(client); err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-			}
-
-			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
-		// اگر درخواست غیرفعال‌سازی است (دستی یا خودکار)
-		client.Enabled = false
+		// اعمال تغییر وضعیت
+		client.Enabled = status
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
-		// فقط در حالت غیرفعال‌سازی خودکار، کانفیگ را اعمال می‌کنیم
-		if isAutomatic {
-			// Get settings for interface name
-			settings, err := db.GetGlobalSettings()
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
-			}
-
-			// Get interface name
-			interfaceName := "wg0"
-			if settings.ConfigFilePath != "" {
-				parts := strings.Split(settings.ConfigFilePath, "/")
-				if len(parts) > 0 {
-					baseName := parts[len(parts)-1]
-					interfaceName = strings.TrimSuffix(baseName, ".conf")
-				}
-			}
-
-			// Create WireGuard client
-			wgClient, err := wgctrl.New()
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
-			}
-			defer wgClient.Close()
-
-			// Remove peer from interface
-			key, err := wgtypes.ParseKey(client.PublicKey)
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid public key"})
-			}
-
-			peerConfig := wgtypes.PeerConfig{
-				PublicKey: key,
-				Remove:    true,
-			}
-
-			err = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{
-				Peers: []wgtypes.PeerConfig{peerConfig},
-			})
-			if err != nil {
-				log.Printf("Error removing peer %s: %v", client.Name, err)
-			}
-
-			// به‌روزرسانی فایل کانفیگ
-			server, err := db.GetServer()
-			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
-			}
-
+		// در حالت غیرفعال‌سازی خودکار یا فعال‌سازی دستی، کانفیگ را اعمال می‌کنیم
+		if isAutomatic || status {
+			// Get all clients
 			clients, err := db.GetClients(false)
 			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients"})
+				log.Error("Cannot get clients: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
 
+			// Get all users
 			users, err := db.GetUsers()
 			if err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get users"})
+				log.Error("Cannot get users: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
 
-			// فقط در حالت غیرفعال‌سازی خودکار، کانفیگ را اعمال می‌کنیم
+			// Get global settings
+			settings, err := db.GetGlobalSettings()
+			if err != nil {
+				log.Error("Cannot get global settings: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			}
+
+			// Get interface name from server config
+			server, err := db.GetServer()
+			if err != nil {
+				log.Error("Cannot get server config: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			}
+
+			interfaceName := server.Interface.Name
+
+			// Down the interface first
 			cmd := exec.Command("sudo", "wg-quick", "down", interfaceName)
 			_ = cmd.Run() // Ignore errors
 
@@ -929,10 +894,10 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
 			_ = cmd.Run() // Ignore errors
 
-			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client disabled and configuration updated successfully"})
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s and configuration updated successfully", status ? "enabled" : "disabled")})
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client disabled successfully"})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", status ? "enabled" : "disabled")})
 	}
 }
 

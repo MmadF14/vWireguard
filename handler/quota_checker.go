@@ -11,6 +11,7 @@ import (
     "strings"
     "os/exec"
     "net/http"
+    "bytes"
 )
 
 var (
@@ -142,14 +143,16 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // اگر نیاز به غیرفعال کردن کلاینت باشد
         if shouldDisable {
-            // غیرفعال‌سازی از طریق API
-            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false?automatic=true", client.ID)
-            req, err := http.NewRequest("GET", url, nil)
+            // غیرفعال‌سازی از طریق API با POST
+            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false", client.ID)
+            jsonStr := []byte(`{"automatic": true}`)
+            req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
             if err != nil {
                 log.Printf("Error creating request to disable client %s: %v", client.Name, err)
                 continue
             }
             
+            req.Header.Set("Content-Type", "application/json")
             resp, err := http.DefaultClient.Do(req)
             if err != nil {
                 log.Printf("Error disabling client %s: %v", client.Name, err)
@@ -160,6 +163,11 @@ func checkQuotasAndExpiration(db store.IStore) {
             // ثبت زمان غیرفعال‌سازی
             setLastDisableTime(client.ID)
             log.Printf("Client %s disabled due to %s", client.Name, disableReason)
+
+            // اعمال تغییرات به WireGuard
+            if err := applyWireGuardConfig(); err != nil {
+                log.Printf("Error applying WireGuard config after disabling client %s: %v", client.Name, err)
+            }
         }
     }
 }
