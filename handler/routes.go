@@ -874,6 +874,13 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
 
+			// Get server config
+			server, err := db.GetServer()
+			if err != nil {
+				log.Error("Cannot get server config: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			}
+
 			// Get interface name from config file path
 			interfaceName := "wg0"
 			if settings.ConfigFilePath != "" {
