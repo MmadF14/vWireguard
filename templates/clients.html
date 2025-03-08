@@ -485,58 +485,36 @@ Wireguard Clients
         }
 
         function updateIPAllocationSuggestion() {
-            let subnetRange = $("#subnet_ranges").val();
-            console.log('Getting IP suggestions for subnet:', subnetRange);
-
-            if (!subnetRange || subnetRange.length === 0) {
-                subnetRange = '__default_any__';
+            const selectedSubnet = $('#subnet_ranges').val();
+            if (!selectedSubnet) {
+                console.log('No subnet selected');
+                return;
             }
-            
-            // اضافه کردن مدیریت خطا و retry
-            const tryFetchSuggestions = (retryCount = 0) => {
-                $.ajax({
-                    cache: false,
-                    method: 'GET',
-                    url: '{{.basePath}}/api/suggest-client-ips',
-                    data: { sr: subnetRange },
-                    dataType: 'json',
-                    contentType: "application/json",
-                    success: function(data) {
-                        console.log('Received IP suggestions:', data);
-                        if (!data || !Array.isArray(data)) {
-                            console.error('Invalid response format:', data);
-                            return;
-                        }
-                        
-                        // پاک کردن IP های قبلی
-                        $("#client_allocated_ips").importTags('');
-                        
-                        // اضافه کردن IP های جدید
-                        data.forEach(function (item) {
-                            if (item) {
-                                $('#client_allocated_ips').addTag(item);
+
+            // Clear previous IPs
+            $('#client_allocated_ips').tagsinput('removeAll');
+
+            // Get IP suggestion from API
+            $.ajax({
+                url: '{{.basePath}}/api/suggest-client-ips',
+                method: 'GET',
+                data: { sr: selectedSubnet },
+                success: function(response) {
+                    if (response && response.length > 0) {
+                        console.log('Suggested IPs:', response);
+                        response.forEach(function(ip) {
+                            if (ip) {
+                                $('#client_allocated_ips').tagsinput('add', ip);
                             }
                         });
-                    },
-                    error: function(jqXHR) {
-                        console.error('Error fetching IP suggestions:', jqXHR.status);
-                        if (retryCount < 3 && (jqXHR.status === 503 || jqXHR.status === 0)) {
-                            setTimeout(() => tryFetchSuggestions(retryCount + 1), 1000 * (retryCount + 1));
-                        } else {
-                            let errorMessage = 'Failed to get IP suggestions';
-                            try {
-                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                                errorMessage = responseJson.message || errorMessage;
-                            } catch (e) {
-                                console.error('Error parsing error response:', e);
-                            }
-                            toastr.error(errorMessage);
-                        }
+                    } else {
+                        console.warn('No IP suggestions received');
                     }
-                });
-            };
-
-            tryFetchSuggestions();
+                },
+                error: function(error) {
+                    console.error('Error getting IP suggestions:', error);
+                }
+            });
         }
 
         function updateSubnetRangesList(elementID, preselectedVal) {
@@ -1204,7 +1182,7 @@ Wireguard Clients
 
             const k = 1024;
             const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
             const i = Math.floor(Math.log(bytes) / Math.log(k));
 
