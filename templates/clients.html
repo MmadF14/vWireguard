@@ -485,7 +485,8 @@ Wireguard Clients
         }
 
         function updateIPAllocationSuggestion() {
-            let subnetRange = $("#subnet_ranges").select2('val');
+            let subnetRange = $("#subnet_ranges").val();
+            console.log('Getting IP suggestions for subnet:', subnetRange);
 
             if (!subnetRange || subnetRange.length === 0) {
                 subnetRange = '__default_any__';
@@ -496,25 +497,21 @@ Wireguard Clients
                 $.ajax({
                     cache: false,
                     method: 'GET',
-                    url: `{{.basePath}}/api/suggest-client-ips`,
+                    url: '{{.basePath}}/api/suggest-client-ips',
                     data: { sr: subnetRange },
                     dataType: 'json',
                     contentType: "application/json",
                     success: function(data) {
+                        console.log('Received IP suggestions:', data);
                         if (!data || !Array.isArray(data)) {
                             console.error('Invalid response format:', data);
                             return;
                         }
                         
-                        const allocated_ips = $("#client_allocated_ips").val();
-                        if (allocated_ips) {
-                            allocated_ips.split(",").forEach(function (item) {
-                                if (item) {
-                                    $('#client_allocated_ips').removeTag(escape(item));
-                                }
-                            });
-                        }
+                        // پاک کردن IP های قبلی
+                        $("#client_allocated_ips").importTags('');
                         
+                        // اضافه کردن IP های جدید
                         data.forEach(function (item) {
                             if (item) {
                                 $('#client_allocated_ips').addTag(item);
@@ -1461,6 +1458,13 @@ Wireguard Clients
                 $("#enabled").prop("checked", true);
                 
                 updateSubnetRangesList("#subnet_ranges");
+                // درخواست IP پیشنهادی بعد از باز شدن مدال
+                setTimeout(updateIPAllocationSuggestion, 500);
+            });
+
+            // وقتی subnet range تغییر میکنه، IP پیشنهادی جدید بگیریم
+            $("#subnet_ranges").on('change', function() {
+                updateIPAllocationSuggestion();
             });
 
             // Form validation and submission
