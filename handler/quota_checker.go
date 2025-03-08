@@ -127,6 +127,8 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
         if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
+            log.Printf("Client %s has expired. Expiration: %v, Current time: %v", 
+                client.Name, client.Expiration, time.Now())
             shouldDisable = true
             disableReason = "expiration"
         }
@@ -135,6 +137,8 @@ func checkQuotasAndExpiration(db store.IStore) {
         if client.Quota > 0 {
             if usage, ok := usageMap[client.PublicKey]; ok {
                 total := usage[0] + usage[1]
+                log.Printf("Client %s quota check - Used: %d, Limit: %d", 
+                    client.Name, total, client.Quota)
                 if int64(total) > client.Quota {
                     shouldDisable = true
                     disableReason = "quota"
@@ -144,51 +148,25 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // اگر نیاز به غیرفعال کردن کلاینت باشد
         if shouldDisable {
-            // غیرفعال‌سازی از طریق API
-            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false", client.ID)
-            data := map[string]interface{}{
-                "enabled": false,
-                "automatic": true,
-            }
-            jsonData, err := json.Marshal(data)
-            if err != nil {
-                log.Printf("Error marshaling request data for client %s: %v", client.Name, err)
-                continue
-            }
+            log.Printf("Disabling client %s due to %s", client.Name, disableReason)
             
-            req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
-            if err != nil {
-                log.Printf("Error creating request to disable client %s: %v", client.Name, err)
+            // غیرفعال‌سازی مستقیم کلاینت
+            client.Enabled = false
+            if err := db.SaveClient(*client); err != nil {
+                log.Printf("Error saving disabled state for client %s: %v", client.Name, err)
                 continue
             }
-            req.Header.Set("Content-Type", "application/json")
-            
-            resp, err := http.DefaultClient.Do(req)
-            if err != nil {
-                log.Printf("Error disabling client %s: %v", client.Name, err)
-                continue
-            }
-            resp.Body.Close()
+            log.Printf("Successfully disabled client %s in database", client.Name)
 
             // ثبت زمان غیرفعال‌سازی
             setLastDisableTime(client.ID)
-            log.Printf("Client %s disabled due to %s", client.Name, disableReason)
 
-            // اعمال کانفیگ وایرگارد
-            applyUrl := "http://localhost:5000/api/apply-wg-config"
-            applyReq, err := http.NewRequest("POST", applyUrl, nil)
-            if err != nil {
-                log.Printf("Error creating request to apply config: %v", err)
-                continue
+            // اعمال مستقیم کانفیگ
+            if err := applyWireGuardConfig(db); err != nil {
+                log.Printf("Error applying WireGuard config after disabling client %s: %v", client.Name, err)
+            } else {
+                log.Printf("Successfully applied WireGuard config after disabling client %s", client.Name)
             }
-            
-            applyResp, err := http.DefaultClient.Do(applyReq)
-            if err != nil {
-                log.Printf("Error applying config: %v", err)
-                continue
-            }
-            applyResp.Body.Close()
-            log.Printf("WireGuard config applied after disabling client %s", client.Name)
         }
     }
 }
