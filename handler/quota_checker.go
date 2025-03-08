@@ -10,6 +10,9 @@ import (
     "github.com/MmadF14/wireguard-ui/util"
     "strings"
     "os/exec"
+    "net/http"
+    "encoding/json"
+    "bytes"
 )
 
 var (
@@ -124,8 +127,6 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
         if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
-            log.Printf("Client %s has expired. Expiration: %v, Current time: %v", 
-                client.Name, client.Expiration, time.Now())
             shouldDisable = true
             disableReason = "expiration"
         }
@@ -134,8 +135,6 @@ func checkQuotasAndExpiration(db store.IStore) {
         if client.Quota > 0 {
             if usage, ok := usageMap[client.PublicKey]; ok {
                 total := usage[0] + usage[1]
-                log.Printf("Client %s quota check - Used: %d, Limit: %d", 
-                    client.Name, total, client.Quota)
                 if int64(total) > client.Quota {
                     shouldDisable = true
                     disableReason = "quota"
@@ -145,24 +144,23 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // اگر نیاز به غیرفعال کردن کلاینت باشد
         if shouldDisable {
-            log.Printf("Disabling client %s due to %s", client.Name, disableReason)
-            
             // غیرفعال‌سازی مستقیم کلاینت
             client.Enabled = false
             if err := db.SaveClient(*client); err != nil {
                 log.Printf("Error saving disabled state for client %s: %v", client.Name, err)
                 continue
             }
-            log.Printf("Successfully disabled client %s in database", client.Name)
 
             // ثبت زمان غیرفعال‌سازی
             setLastDisableTime(client.ID)
+            log.Printf("Client %s disabled due to %s", client.Name, disableReason)
 
             // اعمال مستقیم کانفیگ
             if err := applyWireGuardConfig(db); err != nil {
                 log.Printf("Error applying WireGuard config after disabling client %s: %v", client.Name, err)
+                // ادامه می‌دهیم چون کلاینت در هر صورت غیرفعال شده است
             } else {
-                log.Printf("Successfully applied WireGuard config after disabling client %s", client.Name)
+                log.Printf("WireGuard config applied after disabling client %s", client.Name)
             }
         }
     }

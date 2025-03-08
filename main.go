@@ -184,7 +184,11 @@ func main() {
 	extraData["basePath"] = util.BasePath
 	extraData["loginDisabled"] = flagDisableLogin
 
-	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name
+	// Initialize the quota checker
+	handler.StartQuotaChecker(db)
+
+	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name (e.g.
+	// "base.html" instead of "templates/base.html")
 	tmplDir, _ := fs.Sub(fs.FS(embeddedTemplates), "templates")
 
 	// create the wireguard config on start, if it doesn't exist
@@ -204,10 +208,7 @@ func main() {
 	// register routes
 	app := router.New(tmplDir, extraData, util.SessionSecret)
 
-	// Initialize the quota checker after server setup but before starting
-	log.Info("Starting quota checker...")
-	handler.StartQuotaChecker(db)
-	log.Info("Quota checker started successfully")
+	app.GET(util.BasePath, handler.WireGuardClients(db), handler.ValidSession, handler.RefreshSession)
 
 	// Important: Make sure that all non-GET routes check the request content type using handler.ContentTypeJson to
 	// mitigate CSRF attacks. This is effective, because browsers don't allow setting the Content-Type header on

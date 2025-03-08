@@ -1424,3 +1424,23 @@ func AboutPage() echo.HandlerFunc {
 		})
 	}
 }
+
+func init() {
+	// اضافه کردن روت داخلی برای غیرفعال‌سازی خودکار
+	internalRoutes = append(internalRoutes, Route{
+		Method:      "POST",
+		Path:        "/internal/client/:id/status/:status",
+		Handler:     SetClientStatus,
+		Middleware:  []echo.MiddlewareFunc{InternalOnly},
+	})
+}
+
+// InternalOnly middleware to ensure request is from localhost
+func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if c.Request().RemoteAddr != "127.0.0.1" && c.Request().RemoteAddr != "::1" {
+			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Internal endpoints can only be accessed from localhost"})
+		}
+		return next(c)
+	}
+}
