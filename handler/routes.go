@@ -894,10 +894,22 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
 			_ = cmd.Run() // Ignore errors
 
-			return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s and configuration updated successfully", status ? "enabled" : "disabled")})
+			// تعیین وضعیت برای پیام
+			statusStr := "disabled"
+			if status {
+				statusStr = "enabled"
+			}
+
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s and configuration updated successfully", statusStr)})
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", status ? "enabled" : "disabled")})
+		// تعیین وضعیت برای پیام نهایی
+		finalStatusStr := "disabled"
+		if status {
+			finalStatusStr = "enabled"
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", finalStatusStr)})
 	}
 }
 
