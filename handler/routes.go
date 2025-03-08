@@ -869,7 +869,11 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", status ? "enabled" : "disabled")})
+		statusText := "disabled"
+		if status {
+			statusText = "enabled"
+		}
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", statusText)})
 	}
 }
 
