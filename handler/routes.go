@@ -861,7 +861,7 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		// اگر غیرفعال‌سازی خودکار است، کانفیگ را اعمال می‌کنیم
 		if isAutomatic {
-			if err := util.ApplyWireGuardConfig(db); err != nil {
+			if err := applyWireGuardConfig(db); err != nil {
 				log.Printf("Error applying WireGuard config after automatic disable: %v", err)
 				// ادامه می‌دهیم چون کلاینت در هر صورت غیرفعال شده است
 			} else {
