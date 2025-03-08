@@ -143,22 +143,12 @@ func checkQuotasAndExpiration(db store.IStore) {
 
         // اگر نیاز به غیرفعال کردن کلاینت باشد
         if shouldDisable {
-            // غیرفعال‌سازی از طریق API با POST
-            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false", client.ID)
-            jsonStr := []byte(`{"automatic": true}`)
-            req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-            if err != nil {
-                log.Printf("Error creating request to disable client %s: %v", client.Name, err)
+            // غیرفعال‌سازی مستقیم کلاینت
+            client.Enabled = false
+            if err := db.SaveClient(*client); err != nil {
+                log.Printf("Error saving disabled state for client %s: %v", client.Name, err)
                 continue
             }
-            
-            req.Header.Set("Content-Type", "application/json")
-            resp, err := http.DefaultClient.Do(req)
-            if err != nil {
-                log.Printf("Error disabling client %s: %v", client.Name, err)
-                continue
-            }
-            resp.Body.Close()
 
             // ثبت زمان غیرفعال‌سازی
             setLastDisableTime(client.ID)
@@ -178,40 +168,27 @@ func applyWireGuardConfig(db store.IStore) error {
     defer configMutex.Unlock()
     
     log.Printf("Starting to apply WireGuard config")
+    
+    // Get all required configurations
     server, err := db.GetServer()
     if err != nil {
-        log.Printf("Error getting server config: %v", err)
         return fmt.Errorf("cannot get server config: %v", err)
     }
-    log.Printf("Successfully got server config")
 
     clients, err := db.GetClients(false)
     if err != nil {
-        log.Printf("Error getting client config: %v", err)
-        return fmt.Errorf("cannot get client config: %v", err)
+        return fmt.Errorf("cannot get clients: %v", err)
     }
-    log.Printf("Successfully got %d clients", len(clients))
 
     users, err := db.GetUsers()
     if err != nil {
-        log.Printf("Error getting users: %v", err)
-        return fmt.Errorf("cannot get users config: %v", err)
+        return fmt.Errorf("cannot get users: %v", err)
     }
-    log.Printf("Successfully got users")
 
     settings, err := db.GetGlobalSettings()
     if err != nil {
-        log.Printf("Error getting global settings: %v", err)
         return fmt.Errorf("cannot get global settings: %v", err)
     }
-    log.Printf("Successfully got global settings")
-
-    // Write config file
-    if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
-        log.Printf("Error writing WireGuard config: %v", err)
-        return fmt.Errorf("cannot write config: %v", err)
-    }
-    log.Printf("Successfully wrote WireGuard config")
 
     // Get interface name from config file path
     interfaceName := "wg0"
@@ -223,26 +200,22 @@ func applyWireGuardConfig(db store.IStore) error {
         }
     }
 
-    // Restart WireGuard service using systemctl
-    serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
-    
-    // Execute systemctl restart with output capture
-    cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
-    output, err := cmd.CombinedOutput()
-    if err != nil {
-        log.Printf("Error restarting WireGuard service: %v, Output: %s", err, string(output))
-        return fmt.Errorf("error restarting WireGuard service: %v, Output: %s", err, string(output))
+    // Write new configuration
+    if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
+        return fmt.Errorf("cannot write config: %v", err)
     }
 
-    // Verify service is active
-    checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
-    status, err := checkCmd.CombinedOutput()
-    if err != nil || strings.TrimSpace(string(status)) != "active" {
-        log.Printf("WireGuard service is not active after restart. Status: %s", string(status))
-        return fmt.Errorf("WireGuard service is not active after restart")
+    // Down the interface first
+    cmd := exec.Command("sudo", "wg-quick", "down", interfaceName)
+    _ = cmd.Run() // Ignore errors
+
+    // Bring up the interface with new config
+    cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
+    if err := cmd.Run(); err != nil {
+        return fmt.Errorf("error bringing up interface: %v", err)
     }
 
-    log.Printf("Successfully restarted WireGuard service and verified it is active")
+    log.Printf("Successfully applied WireGuard configuration")
     return nil
 }
 
