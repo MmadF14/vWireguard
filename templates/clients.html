@@ -1466,8 +1466,8 @@ Wireguard Clients
                                 .val(item)
                         );
                     });
-                    // بعد از اینکه subnet ranges لود شد، IP پیشنهاد بدیم
-                    $("#subnet_ranges").val("__default_any__").trigger('change');
+                    // فقط یک بار IP پیشنهاد بدیم - با تنظیم مقدار پیش‌فرض
+                    $("#subnet_ranges").val("__default_any__");
                     updateIPAllocationSuggestion();
                 });
             });
