@@ -165,7 +165,7 @@ func checkQuotasAndExpiration(db store.IStore) {
             log.Printf("Client %s disabled due to %s", client.Name, disableReason)
 
             // اعمال تغییرات به WireGuard
-            if err := applyWireGuardConfig(); err != nil {
+            if err := applyWireGuardConfig(db); err != nil {
                 log.Printf("Error applying WireGuard config after disabling client %s: %v", client.Name, err)
             }
         }
