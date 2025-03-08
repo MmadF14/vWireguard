@@ -1484,13 +1484,18 @@ Wireguard Clients
                         );
                     });
                     // مقدار پیش‌فرض رو تنظیم می‌کنیم
-                    $("#subnet_ranges").val("__default_any__").trigger('change');
+                    $("#subnet_ranges").val("__default_any__");
+                    // فقط یک بار updateIPAllocationSuggestion رو صدا میزنیم
+                    updateIPAllocationSuggestion();
                 });
             });
 
             // فقط وقتی subnet range تغییر میکنه، IP پیشنهادی جدید بگیریم
-            $("#subnet_ranges").on('change', function() {
-                updateIPAllocationSuggestion();
+            $("#subnet_ranges").on('change', function(e) {
+                // فقط اگر تغییر توسط کاربر بود، IP جدید بگیریم
+                if (e.originalEvent) {
+                    updateIPAllocationSuggestion();
+                }
             });
 
             // Form validation and submission
