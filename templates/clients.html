@@ -1326,11 +1326,11 @@ Wireguard Clients
                                 <small>Remaining: ${remainingFormatted}</small>
                             </span>`;
                     } else {
-                        html += `<span class="info-box-text"><i class="fas fa-database"></i> Unlimited</span>`;
+                        html += `<span class="info-box-text"><i class="fas fa-database"></i> <span class="text-success">Unlimited</span></span>`;
                     }
 
                     // نمایش تاریخ انقضا
-                    if (client.expiration) {
+                    if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
                         const expDate = new Date(client.expiration);
                         const now = new Date();
                         const daysRemaining = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
@@ -1350,7 +1350,7 @@ Wireguard Clients
                         
                         html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
                     } else {
-                        html += `<span class="info-box-text"><i class="fas fa-calendar"></i> Expiration: Unlimited</span>`;
+                        html += `<span class="info-box-text"><i class="fas fa-calendar"></i> <span class="text-success">Unlimited</span></span>`;
                     }
 
                     // نمایش سایر اطلاعات
@@ -1488,7 +1488,7 @@ Wireguard Clients
                     
                     const name = $("#client_name").val();
                     const quotaGB = parseFloat($("#client_quota").val()) || 0;
-                    const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
+                    const quotaBytes = quotaGB > 0 ? Math.floor(quotaGB * 1024 * 1024 * 1024) : 0;
 
                     let expirationValue = $("#client_expiration").val();
                     let expirationIso = "";
@@ -1514,7 +1514,7 @@ Wireguard Clients
                         additional_notes: $("#additional_notes").val() || "",
                         use_server_dns: $("#use_server_dns").is(":checked"),
                         enabled: true,
-                        quota: quotaBytes || 0,
+                        quota: quotaBytes,
                         expiration: expirationIso || null,
                         subnet_ranges: ["__default_any__"]
                     };
