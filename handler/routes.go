@@ -828,96 +828,48 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
+		// اگر وضعیت فعلی با وضعیت درخواستی یکسان است، نیازی به تغییر نیست
 		if client.Enabled == status {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
-		// بررسی شرایط فعال‌سازی برای هر دو حالت دستی و خودکار
-		if status {
-			// بررسی تاریخ انقضا
+		// اگر درخواست فعال‌سازی دستی است
+		if status && !isAutomatic {
+			// بررسی شرایط فعال‌سازی
 			if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
 			}
 
-			// بررسی حجم مصرفی
 			if client.Quota > 0 && client.UsedQuota >= client.Quota {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
 			}
+
+			// فعال‌سازی کلاینت
+			client.Enabled = true
+			if err := db.SaveClient(client); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			}
+
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
-		// اعمال تغییر وضعیت
-		client.Enabled = status
+		// اگر درخواست غیرفعال‌سازی است (دستی یا خودکار)
+		client.Enabled = false
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
-		// در حالت غیرفعال‌سازی خودکار یا فعال‌سازی دستی، کانفیگ را اعمال می‌کنیم
-		if isAutomatic || status {
-			// Get all clients
-			clients, err := db.GetClients(false)
-			if err != nil {
-				log.Error("Cannot get clients: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+		// اگر غیرفعال‌سازی خودکار است، کانفیگ را اعمال می‌کنیم
+		if isAutomatic {
+			if err := util.ApplyWireGuardConfig(db); err != nil {
+				log.Printf("Error applying WireGuard config after automatic disable: %v", err)
+				// ادامه می‌دهیم چون کلاینت در هر صورت غیرفعال شده است
+			} else {
+				log.Printf("WireGuard config applied after automatic disable of client %s", client.Name)
 			}
-
-			// Get all users
-			users, err := db.GetUsers()
-			if err != nil {
-				log.Error("Cannot get users: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-			}
-
-			// Get global settings
-			settings, err := db.GetGlobalSettings()
-			if err != nil {
-				log.Error("Cannot get global settings: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-			}
-
-			// Get server config
-			server, err := db.GetServer()
-			if err != nil {
-				log.Error("Cannot get server config: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-			}
-
-			// Get interface name from config file path
-			interfaceName := "wg0"
-			if settings.ConfigFilePath != "" {
-				parts := strings.Split(settings.ConfigFilePath, "/")
-				if len(parts) > 0 {
-					baseName := parts[len(parts)-1]
-					interfaceName = strings.TrimSuffix(baseName, ".conf")
-				}
-			}
-
-			// Down the interface first
-			cmd := exec.Command("sudo", "wg-quick", "down", interfaceName)
-			_ = cmd.Run() // Ignore errors
-
-			if err := util.WriteWireGuardServerConfig(nil, server, clients, users, settings); err != nil {
-				log.Printf("Warning: Could not write config file: %v", err)
-			}
-
-			cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
-			_ = cmd.Run() // Ignore errors
-
-			// تعیین وضعیت برای پیام
-			statusStr := "disabled"
-			if status {
-				statusStr = "enabled"
-			}
-
-			return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s and configuration updated successfully", statusStr)})
 		}
 
-		// تعیین وضعیت برای پیام نهایی
-		finalStatusStr := "disabled"
-		if status {
-			finalStatusStr = "enabled"
-		}
-
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", finalStatusStr)})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Client %s successfully", status ? "enabled" : "disabled")})
 	}
 }
 
