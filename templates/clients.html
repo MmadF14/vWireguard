@@ -408,7 +408,10 @@ Wireguard Clients
                     url: '{{.basePath}}/api/client/' + clientID + '/status/' + status,
                     dataType: 'json',
                     contentType: "application/json",
-                    data: JSON.stringify({ enabled: status }),
+                    data: JSON.stringify({ 
+                        enabled: status,
+                        automatic: isAutomatic 
+                    }),
                     success: function(data) {
                         console.log("Set client " + clientID + " status to " + status);
                         toastr.success('Client ' + (status ? 'enabled' : 'disabled') + ' successfully');

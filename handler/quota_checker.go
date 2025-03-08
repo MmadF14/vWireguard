@@ -11,6 +11,8 @@ import (
     "strings"
     "os/exec"
     "net/http"
+    "encoding/json"
+    "bytes"
 )
 
 var (
@@ -143,12 +145,23 @@ func checkQuotasAndExpiration(db store.IStore) {
         // اگر نیاز به غیرفعال کردن کلاینت باشد
         if shouldDisable {
             // غیرفعال‌سازی از طریق API
-            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false?automatic=true", client.ID)
-            req, err := http.NewRequest("POST", url, nil)
+            url := fmt.Sprintf("http://localhost:5000/api/client/%s/status/false", client.ID)
+            data := map[string]interface{}{
+                "enabled": false,
+                "automatic": true,
+            }
+            jsonData, err := json.Marshal(data)
+            if err != nil {
+                log.Printf("Error marshaling request data for client %s: %v", client.Name, err)
+                continue
+            }
+            
+            req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
             if err != nil {
                 log.Printf("Error creating request to disable client %s: %v", client.Name, err)
                 continue
             }
+            req.Header.Set("Content-Type", "application/json")
             
             resp, err := http.DefaultClient.Do(req)
             if err != nil {
