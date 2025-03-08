@@ -485,36 +485,52 @@ Wireguard Clients
         }
 
         function updateIPAllocationSuggestion() {
-            const selectedSubnet = $('#subnet_ranges').val();
-            if (!selectedSubnet) {
-                console.log('No subnet selected');
-                return;
-            }
+            const selectedSubnet = $('#subnet_ranges').val() || '__default_any__';
+            console.log('Getting IP suggestions for subnet:', selectedSubnet);
 
             // Clear previous IPs
-            $('#client_allocated_ips').tagsinput('removeAll');
+            $('#client_allocated_ips').importTags('');
 
-            // Get IP suggestion from API
-            $.ajax({
-                url: '{{.basePath}}/api/suggest-client-ips',
-                method: 'GET',
-                data: { sr: selectedSubnet },
-                success: function(response) {
-                    if (response && response.length > 0) {
-                        console.log('Suggested IPs:', response);
-                        response.forEach(function(ip) {
-                            if (ip) {
-                                $('#client_allocated_ips').tagsinput('add', ip);
+            // Get IP suggestion from API with retry logic
+            const tryGetSuggestions = (retryCount = 0) => {
+                $.ajax({
+                    cache: false,
+                    method: 'GET',
+                    url: '{{.basePath}}/api/suggest-client-ips',
+                    data: { sr: selectedSubnet },
+                    dataType: 'json',
+                    contentType: "application/json",
+                    success: function(response) {
+                        console.log('Received IP suggestions:', response);
+                        if (response && Array.isArray(response)) {
+                            response.forEach(function(ip) {
+                                if (ip) {
+                                    $('#client_allocated_ips').addTag(ip);
+                                }
+                            });
+                        } else {
+                            console.warn('Invalid response format or no IPs available');
+                        }
+                    },
+                    error: function(jqXHR) {
+                        console.error('Error getting IP suggestions:', jqXHR.status);
+                        if (retryCount < 3 && (jqXHR.status === 503 || jqXHR.status === 0)) {
+                            setTimeout(() => tryGetSuggestions(retryCount + 1), 1000 * (retryCount + 1));
+                        } else {
+                            let errorMessage = 'Failed to get IP suggestions';
+                            try {
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                errorMessage = responseJson.message || errorMessage;
+                            } catch (e) {
+                                console.error('Error parsing error response:', e);
                             }
-                        });
-                    } else {
-                        console.warn('No IP suggestions received');
+                            toastr.error(errorMessage);
+                        }
                     }
-                },
-                error: function(error) {
-                    console.error('Error getting IP suggestions:', error);
-                }
-            });
+                });
+            };
+
+            tryGetSuggestions();
         }
 
         function updateSubnetRangesList(elementID, preselectedVal) {
@@ -1435,9 +1451,25 @@ Wireguard Clients
                 $("#use_server_dns").prop("checked", true);
                 $("#enabled").prop("checked", true);
                 
-                updateSubnetRangesList("#subnet_ranges");
-                // درخواست IP پیشنهادی بعد از باز شدن مدال
-                setTimeout(updateIPAllocationSuggestion, 500);
+                // اول subnet ranges رو بگیریم و بعد IP پیشنهاد بدیم
+                $.getJSON("{{.basePath}}/api/subnet-ranges", null, function(data) {
+                    $("#subnet_ranges option").remove();
+                    $("#subnet_ranges").append(
+                        $("<option></option>")
+                            .text("Any")
+                            .val("__default_any__")
+                    );
+                    $.each(data, function(index, item) {
+                        $("#subnet_ranges").append(
+                            $("<option></option>")
+                                .text(item)
+                                .val(item)
+                        );
+                    });
+                    // بعد از اینکه subnet ranges لود شد، IP پیشنهاد بدیم
+                    $("#subnet_ranges").val("__default_any__").trigger('change');
+                    updateIPAllocationSuggestion();
+                });
             });
 
             // وقتی subnet range تغییر میکنه، IP پیشنهادی جدید بگیریم
