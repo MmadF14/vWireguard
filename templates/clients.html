@@ -486,10 +486,20 @@ Wireguard Clients
 
         function updateIPAllocationSuggestion() {
             const selectedSubnet = $('#subnet_ranges').val() || '__default_any__';
+            
+            // اگر درخواست قبلی هنوز در حال اجراست، از درخواست جدید جلوگیری کن
+            if (updateIPAllocationSuggestion.isRunning) {
+                console.log('Previous request is still running, skipping...');
+                return;
+            }
+
             console.log('Getting IP suggestions for subnet:', selectedSubnet);
 
             // Clear previous IPs
             $('#client_allocated_ips').importTags('');
+
+            // تنظیم وضعیت درخواست
+            updateIPAllocationSuggestion.isRunning = true;
 
             // Get IP suggestion from API with retry logic
             const tryGetSuggestions = (retryCount = 0) => {
@@ -511,6 +521,8 @@ Wireguard Clients
                         } else {
                             console.warn('Invalid response format or no IPs available');
                         }
+                        // پایان درخواست
+                        updateIPAllocationSuggestion.isRunning = false;
                     },
                     error: function(jqXHR) {
                         console.error('Error getting IP suggestions:', jqXHR.status);
@@ -525,6 +537,8 @@ Wireguard Clients
                                 console.error('Error parsing error response:', e);
                             }
                             toastr.error(errorMessage);
+                            // پایان درخواست در صورت خطا
+                            updateIPAllocationSuggestion.isRunning = false;
                         }
                     }
                 });
@@ -532,6 +546,9 @@ Wireguard Clients
 
             tryGetSuggestions();
         }
+
+        // مقداردهی اولیه وضعیت درخواست
+        updateIPAllocationSuggestion.isRunning = false;
 
         function updateSubnetRangesList(elementID, preselectedVal) {
             $.getJSON("{{.basePath}}/api/subnet-ranges", null, function(data) {
