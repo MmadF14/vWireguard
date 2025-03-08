@@ -10,9 +10,6 @@ import (
     "github.com/MmadF14/wireguard-ui/util"
     "strings"
     "os/exec"
-    "net/http"
-    "encoding/json"
-    "bytes"
 )
 
 var (

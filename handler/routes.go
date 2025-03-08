@@ -33,6 +33,16 @@ import (
 
 var usernameRegexp = regexp.MustCompile("^\\w[\\w\\-.]*$")
 
+// Route represents an internal API route
+type Route struct {
+	Method     string
+	Path       string
+	Handler    func(store.IStore) echo.HandlerFunc
+	Middleware []echo.MiddlewareFunc
+}
+
+var internalRoutes []Route
+
 // Health check handler
 func Health() echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -1426,6 +1436,7 @@ func AboutPage() echo.HandlerFunc {
 }
 
 func init() {
+	internalRoutes = make([]Route, 0)
 	// اضافه کردن روت داخلی برای غیرفعال‌سازی خودکار
 	internalRoutes = append(internalRoutes, Route{
 		Method:      "POST",
@@ -1443,4 +1454,9 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 		return next(c)
 	}
+}
+
+// GetInternalRoutes returns the list of internal routes
+func GetInternalRoutes() []Route {
+	return internalRoutes
 }

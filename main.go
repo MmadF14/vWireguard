@@ -279,6 +279,15 @@ func main() {
 
 	initTelegram(initDeps)
 
+	// Register internal routes
+	for _, route := range handler.GetInternalRoutes() {
+		app.Add(route.Method, route.Path, route.Handler(db), route.Middleware...)
+	}
+
+	// Register public routes
+	app.GET(util.BasePath+"/health", handler.Health())
+	app.GET(util.BasePath+"/favicon.ico", handler.Favicon())
+
 	// Start the server
 	app.Start(util.BindAddress)
 }
