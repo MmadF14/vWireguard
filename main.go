@@ -184,12 +184,12 @@ func main() {
 	extraData["basePath"] = util.BasePath
 	extraData["loginDisabled"] = flagDisableLogin
 
-	// Initialize the quota checker
-	handler.StartQuotaChecker(db, tmplDir)
-
 	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name (e.g.
 	// "base.html" instead of "templates/base.html")
 	tmplDir, _ := fs.Sub(fs.FS(embeddedTemplates), "templates")
+
+	// Initialize the quota checker
+	handler.StartQuotaChecker(db, tmplDir)
 
 	// create the wireguard config on start, if it doesn't exist
 	initServerConfig(db, tmplDir)
