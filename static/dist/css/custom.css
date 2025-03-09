@@ -372,21 +372,36 @@ body {
 .client-box {
     background-color: #fff;
     border-radius: var(--border-radius);
-    padding: 1rem;
+    padding: 1.5rem;
     margin-bottom: 1rem;
     transition: all var(--transition-speed);
     border: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.client-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .client-actions {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1rem;
+    align-items: center;
+}
+
+.client-actions .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+}
+
+.client-actions .btn-more {
+    background-color: var(--secondary-color);
+    color: #fff;
+    min-width: auto;
+}
+
+.client-actions .btn-more:hover {
+    background-color: darken(var(--secondary-color), 10%);
 }
 
 .client-info {
@@ -408,6 +423,7 @@ body {
 [data-theme="dark"] .client-box {
     background-color: var(--dark-surface);
     border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="dark"] .client-box:hover {
