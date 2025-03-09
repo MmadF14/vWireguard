@@ -49,16 +49,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Smooth scrolling
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-            target.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        if (anchor.getAttribute('href') === '#') return; // Skip empty anchors
+        
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            if (!targetId) return; // Skip if no target ID
+            
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
     });
 });
 
@@ -275,7 +282,21 @@ function populateClient(client_id) {
 function prettyDateTime(timestamp) {
     if (!timestamp) return '';
     
-    const date = new Date(timestamp * 1000);
+    // Handle different timestamp formats
+    let date;
+    if (typeof timestamp === 'string') {
+        // Try parsing ISO format
+        date = new Date(timestamp);
+    } else {
+        // Handle Unix timestamp (seconds or milliseconds)
+        date = new Date(timestamp * (timestamp > 9999999999 ? 1 : 1000));
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+        return 'Invalid Date';
+    }
+    
     const now = new Date();
     const diff = Math.floor((now - date) / 1000);
     
@@ -308,10 +329,11 @@ function prettyDateTime(timestamp) {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false
     };
     
-    return date.toLocaleDateString(undefined, options);
+    return date.toLocaleString(undefined, options);
 }
 
 // Format bytes to human readable format
