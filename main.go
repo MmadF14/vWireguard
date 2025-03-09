@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"crypto/sha512"
@@ -10,16 +10,16 @@ import (
 	"os"
 	"time"
 
+	"github.com/MmadF14/vwireguard/store"
+	"github.com/MmadF14/vwireguard/telegram"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"github.com/MmadF14/wireguard-ui/store"
-	"github.com/MmadF14/wireguard-ui/telegram"
 
-	"github.com/MmadF14/wireguard-ui/emailer"
-	"github.com/MmadF14/wireguard-ui/handler"
-	"github.com/MmadF14/wireguard-ui/router"
-	"github.com/MmadF14/wireguard-ui/store/jsondb"
-	"github.com/MmadF14/wireguard-ui/util"
+	"github.com/MmadF14/vwireguard/emailer"
+	"github.com/MmadF14/vwireguard/handler"
+	"github.com/MmadF14/vwireguard/router"
+	"github.com/MmadF14/vwireguard/store/jsondb"
+	"github.com/MmadF14/vwireguard/util"
 )
 
 var (
@@ -41,7 +41,7 @@ var (
 	flagSmtpHelo                 = "localhost"
 	flagSendgridApiKey           string
 	flagEmailFrom                string
-	flagEmailFromName            = "WireGuard UI"
+	flagEmailFromName            = "vWireguard"
 	flagTelegramToken            string
 	flagTelegramAllowConfRequest = false
 	flagTelegramFloodWait        = 60
@@ -151,12 +151,12 @@ func init() {
 	// print only if log level is INFO or lower
 	if lvl <= log.INFO {
 		// print app information
-		fmt.Println("Wireguard UI")
+		fmt.Println("vWireguard")
 		fmt.Println("App Version\t:", appVersion)
 		fmt.Println("Git Commit\t:", gitCommit)
 		fmt.Println("Git Ref\t\t:", gitRef)
 		fmt.Println("Build Time\t:", buildTime)
-		fmt.Println("Git Repo\t:", "https://github.com/MmadF14/wireguard-ui")
+		fmt.Println("Git Repo\t:", "https://github.com/MmadF14/vWireguard")
 		fmt.Println("Authentication\t:", !util.DisableLogin)
 		fmt.Println("Bind address\t:", util.BindAddress)
 		//fmt.Println("Sendgrid key\t:", util.SendgridApiKey)

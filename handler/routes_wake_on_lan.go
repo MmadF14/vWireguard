@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/store"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
-	"github.com/MmadF14/wireguard-ui/model"
-	"github.com/MmadF14/wireguard-ui/store"
 	"github.com/sabhiram/go-wol/wol"
 )
 

@@ -8,12 +8,12 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/MmadF14/vwireguard/util"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/MmadF14/wireguard-ui/util"
 )
 
 // TemplateRegistry is a custom html/template renderer for Echo framework

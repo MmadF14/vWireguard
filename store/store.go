@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/MmadF14/wireguard-ui/model"
+	"github.com/MmadF14/vwireguard/model"
 )
 
 type IStore interface {

@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/MmadF14/vwireguard/store"
 	"github.com/NicoNex/echotron/v3"
 	"github.com/labstack/gommon/log"
-	"github.com/MmadF14/wireguard-ui/store"
 )
 
 type SendRequestedConfigsToTelegram func(db store.IStore, userid int64) []string
@@ -26,6 +26,7 @@ var (
 	Bot      *echotron.API
 	BotMutex sync.RWMutex
 
+	floodMutex       sync.RWMutex
 	floodWait        = make(map[int64]int64)
 	floodMessageSent = make(map[int64]struct{})
 )
@@ -33,11 +34,11 @@ var (
 func Start(initDeps TgBotInitDependencies) (err error) {
 	ticker := time.NewTicker(time.Minute)
 	defer func() {
+		ticker.Stop()
 		if err != nil {
 			BotMutex.Lock()
 			Bot = nil
 			BotMutex.Unlock()
-			ticker.Stop()
 		}
 		if r := recover(); r != nil {
 			err = fmt.Errorf("[PANIC] recovered from panic: %v", r)
@@ -46,7 +47,7 @@ func Start(initDeps TgBotInitDependencies) (err error) {
 
 	token := Token
 	if token == "" || len(token) < 30 {
-		return
+		return fmt.Errorf("invalid telegram bot token")
 	}
 
 	bot := echotron.NewAPI(token)
@@ -54,7 +55,7 @@ func Start(initDeps TgBotInitDependencies) (err error) {
 	res, err := bot.GetMe()
 	if !res.Ok || err != nil {
 		log.Warnf("[Telegram] Unable to connect to bot.\n%v\n%v", res.Description, err)
-		return
+		return fmt.Errorf("failed to connect to telegram bot: %v", err)
 	}
 
 	BotMutex.Lock()
@@ -62,7 +63,7 @@ func Start(initDeps TgBotInitDependencies) (err error) {
 	BotMutex.Unlock()
 
 	if LogLevel <= log.INFO {
-		fmt.Printf("[Telegram] Authorized as %s\n", res.Result.Username)
+		log.Infof("[Telegram] Authorized as %s", res.Result.Username)
 	}
 
 	go func() {
@@ -72,18 +73,27 @@ func Start(initDeps TgBotInitDependencies) (err error) {
 	}()
 
 	if !AllowConfRequest {
-		return
+		return nil
 	}
 
 	updatesChan := echotron.PollingUpdatesOptions(token, false, echotron.UpdateOptions{AllowedUpdates: []echotron.UpdateType{echotron.MessageUpdate}})
 	for update := range updatesChan {
 		if update.Message != nil {
 			userid := update.Message.Chat.ID
-			if _, wait := floodWait[userid]; wait {
-				if _, notified := floodMessageSent[userid]; notified {
+
+			floodMutex.RLock()
+			_, wait := floodWait[userid]
+			_, notified := floodMessageSent[userid]
+			floodMutex.RUnlock()
+
+			if wait {
+				if notified {
 					continue
 				}
+				floodMutex.Lock()
 				floodMessageSent[userid] = struct{}{}
+				floodMutex.Unlock()
+
 				_, err := bot.SendMessage(
 					fmt.Sprintf("You can only request your configs once per %d minutes", FloodWait),
 					userid,
@@ -95,7 +105,10 @@ func Start(initDeps TgBotInitDependencies) (err error) {
 				}
 				continue
 			}
+
+			floodMutex.Lock()
 			floodWait[userid] = time.Now().Unix()
+			floodMutex.Unlock()
 
 			failed := initDeps.SendRequestedConfigsToTelegram(initDeps.DB, userid)
 			if len(failed) > 0 {
@@ -126,31 +139,40 @@ func SendConfig(userid int64, clientName string, confData, qrData []byte, ignore
 		return fmt.Errorf("telegram bot is not configured or not available")
 	}
 
-	if _, wait := floodWait[userid]; wait && !ignoreFloodWait {
-		return fmt.Errorf("this client already got their config less than %d minutes ago", FloodWait)
-	}
-
 	if !ignoreFloodWait {
+		floodMutex.RLock()
+		_, wait := floodWait[userid]
+		floodMutex.RUnlock()
+
+		if wait {
+			return fmt.Errorf("this client already got their config less than %d minutes ago", FloodWait)
+		}
+
+		floodMutex.Lock()
 		floodWait[userid] = time.Now().Unix()
+		floodMutex.Unlock()
 	}
 
 	qrAttachment := echotron.NewInputFileBytes("qr.png", qrData)
 	_, err := Bot.SendPhoto(qrAttachment, userid, &echotron.PhotoOptions{Caption: clientName})
 	if err != nil {
-		log.Error(err)
-		return fmt.Errorf("unable to send qr picture")
+		log.Errorf("Failed to send QR code: %v", err)
+		return fmt.Errorf("unable to send qr picture: %v", err)
 	}
 
 	confAttachment := echotron.NewInputFileBytes(clientName+".conf", confData)
 	_, err = Bot.SendDocument(confAttachment, userid, nil)
 	if err != nil {
-		log.Error(err)
-		return fmt.Errorf("unable to send conf file")
+		log.Errorf("Failed to send config file: %v", err)
+		return fmt.Errorf("unable to send conf file: %v", err)
 	}
 	return nil
 }
 
 func updateFloodWait() {
+	floodMutex.Lock()
+	defer floodMutex.Unlock()
+
 	thresholdTS := time.Now().Unix() - 60*int64(FloodWait)
 	for userid, ts := range floodWait {
 		if ts < thresholdTS {

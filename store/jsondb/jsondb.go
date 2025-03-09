@@ -13,8 +13,8 @@ import (
 	"github.com/skip2/go-qrcode"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
-	"github.com/MmadF14/wireguard-ui/model"
-	"github.com/MmadF14/wireguard-ui/util"
+	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/util"
 )
 
 type JsonDB struct {

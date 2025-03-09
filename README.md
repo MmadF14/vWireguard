@@ -1,4 +1,4 @@
-![](https://github.com/MmadF14/wireguard-ui/workflows/wireguard-ui%20build%20release/badge.svg)
+![](https://github.com/MmadF14/vwireguard/workflows/wireguard-ui%20build%20release/badge.svg)
 
 # wireguard-ui
 
@@ -58,7 +58,7 @@ docker-compose up
 | `WGUI_TABLE`                  | The default WireGuard table value settings                                                                                                                                                                                                                                          | `auto`                             |
 | `WGUI_CONFIG_FILE_PATH`       | The default WireGuard config file path used in global settings                                                                                                                                                                                                                      | `/etc/wireguard/wg0.conf`          |
 | `WGUI_LOG_LEVEL`              | The default log level. Possible values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`                                                                                                                                                                                                     | `INFO`                             |
-| `WG_CONF_TEMPLATE`            | The custom `wg.conf` config file template. Please refer to our [default template](https://github.com/MmadF14/wireguard-ui/blob/master/templates/wg.conf)                                                                                                                        | N/A                                |
+| `WG_CONF_TEMPLATE`            | The custom `wg.conf` config file template. Please refer to our [default template](https://github.com/MmadF14/vwireguard/blob/master/templates/wg.conf)                                                                                                                        | N/A                                |
 | `EMAIL_FROM_ADDRESS`          | The sender email address                                                                                                                                                                                                                                                            | N/A                                |
 | `EMAIL_FROM_NAME`             | The sender name                                                                                                                                                                                                                                                                     | `WireGuard UI`                     |
 | `SENDGRID_API_KEY`            | The SendGrid api key                                                                                                                                                                                                                                                                | N/A                                |
@@ -237,7 +237,7 @@ go build -o wireguard-ui
 
 ## License
 
-MIT. See [LICENSE](https://github.com/MmadF14/wireguard-ui/blob/master/LICENSE).
+MIT. See [LICENSE](https://github.com/MmadF14/vwireguard/blob/master/LICENSE).
 
 ## Support
 

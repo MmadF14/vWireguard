@@ -1,4 +1,4 @@
-﻿package handler
+package handler
 
 import (
 	"crypto/subtle"
@@ -24,11 +24,11 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
-	"github.com/MmadF14/wireguard-ui/emailer"
-	"github.com/MmadF14/wireguard-ui/model"
-	"github.com/MmadF14/wireguard-ui/store"
-	"github.com/MmadF14/wireguard-ui/telegram"
-	"github.com/MmadF14/wireguard-ui/util"
+	"github.com/MmadF14/vwireguard/emailer"
+	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/store"
+	"github.com/MmadF14/vwireguard/telegram"
+	"github.com/MmadF14/vwireguard/util"
 )
 
 var usernameRegexp = regexp.MustCompile("^\\w[\\w\\-.]*$")
@@ -1439,10 +1439,10 @@ func init() {
 	internalRoutes = make([]Route, 0)
 	// اضافه کردن روت داخلی برای غیرفعال‌سازی خودکار
 	internalRoutes = append(internalRoutes, Route{
-		Method:      "POST",
-		Path:        "/internal/client/:id/status/:status",
-		Handler:     SetClientStatus,
-		Middleware:  []echo.MiddlewareFunc{InternalOnly},
+		Method:     "POST",
+		Path:       "/internal/client/:id/status/:status",
+		Handler:    SetClientStatus,
+		Middleware: []echo.MiddlewareFunc{InternalOnly},
 	})
 }
 
