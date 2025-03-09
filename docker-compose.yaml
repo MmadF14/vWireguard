@@ -3,7 +3,7 @@ version: "3"
 services:
   wg:
     build: .
-    #image: MmadF14/wireguard-ui:latest
+    #image: MmadF14/vwireguard:latest
     container_name: wgui
     cap_add:
       - NET_ADMIN
