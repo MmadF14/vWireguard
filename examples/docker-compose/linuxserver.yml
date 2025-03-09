@@ -9,14 +9,14 @@ services:
     volumes:
       - ./config:/config
     ports:
-      # port for wireguard-ui. this must be set here as the `wireguard-ui` container joins the network of this container and hasn't its own network over which it could publish the ports
+      # port for vWireguard. this must be set here as the `vWireguard` container joins the network of this container and hasn't its own network over which it could publish the ports
       - "5000:5000"
       # port of the wireguard server
       - "51820:51820/udp"
 
-  wireguard-ui:
-    image: MmadF14/wireguard-ui:latest
-    container_name: wireguard-ui
+  vWireguard:
+    image: MmadF14/vWireguard:latest
+    container_name: vWireguard
     depends_on:
       - wireguard
     cap_add:

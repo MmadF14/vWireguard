@@ -26,7 +26,7 @@ jobs:
       - name: Prepare image tags
         id: image-tags
         run: |
-          base=MmadF14/wireguard-ui
+          base=MmadF14/vWireguard
           app_version=dev
 
           ## Set git tag as image tag

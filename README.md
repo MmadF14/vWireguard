@@ -1,6 +1,6 @@
-![](https://github.com/MmadF14/vwireguard/workflows/wireguard-ui%20build%20release/badge.svg)
+![](https://github.com/MmadF14/vwireguard/workflows/vWireguard%20build%20release/badge.svg)
 
-# wireguard-ui
+# vWireguard
 
 A web user interface to manage your WireGuard setup.
 
@@ -11,9 +11,9 @@ A web user interface to manage your WireGuard setup.
 - Manage extra client information (name, email, etc.)
 - Retrieve client config using QR code / file / email / Telegram
 
-![wireguard-ui 0.3.7](https://user-images.githubusercontent.com/37958026/177041280-e3e7ca16-d4cf-4e95-9920-68af15e780dd.png)
+![vWireguard 0.3.7](https://user-images.githubusercontent.com/37958026/177041280-e3e7ca16-d4cf-4e95-9920-68af15e780dd.png)
 
-## Run WireGuard-UI
+## Run vWireguard
 
 > ⚠️The default username and password are `admin`. Please change it to secure your setup.
 
@@ -22,7 +22,7 @@ A web user interface to manage your WireGuard setup.
 Download the binary file from the release page and run it directly on the host machine
 
 ```
-./wireguard-ui
+./vWireguard
 ```
 
 ### Using docker compose
@@ -38,7 +38,7 @@ docker-compose up
 
 | Variable                      | Description                                                                                                                                                                                                                                                                         | Default                            |
 |-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
-| `BASE_PATH`                   | Set this variable if you run wireguard-ui under a subpath of your reverse proxy virtual host (e.g. /wireguard)                                                                                                                                                                      | N/A                                |
+| `BASE_PATH`                   | Set this variable if you run vWireguard under a subpath of your reverse proxy virtual host (e.g. /wireguard)                                                                                                                                                                      | N/A                                |
 | `BIND_ADDRESS`                | The addresses that can access to the web interface and the port, use unix:///abspath/to/file.socket for unix domain socket.                                                                                                                                                         | 0.0.0.0:80                         |
 | `SESSION_SECRET`              | The secret key used to encrypt the session cookies. Set this to a random value                                                                                                                                                                                                      | N/A                                |
 | `SESSION_SECRET_FILE`         | Optional filepath for the secret key used to encrypt the session cookies. Leave `SESSION_SECRET` blank to take effect                                                                                                                                                               | N/A                                |
@@ -108,7 +108,7 @@ These environment variables only apply to the docker container.
 
 ## Auto restart WireGuard daemon
 
-WireGuard-UI only takes care of configuration generation. You can use systemd to watch for the changes and restart the
+vWireguard only takes care of configuration generation. You can use systemd to watch for the changes and restart the
 service. Following is an example:
 
 ### Using systemd
@@ -205,7 +205,7 @@ this feature work.
 Go to the project root directory and run the following command:
 
 ```sh
-docker build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD) -t wireguard-ui .
+docker build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD) -t vWireguard .
 ```
 
 or
@@ -214,11 +214,11 @@ or
 docker compose build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD)
 ```
 
-:information_source: A container image is available on [Docker Hub](https://hub.docker.com/r/MmadF14/wireguard-ui)
+:information_source: A container image is available on [Docker Hub](https://hub.docker.com/r/MmadF14/vWireguard)
 which you can pull and use
 
 ```
-docker pull MmadF14/wireguard-ui
+docker pull MmadF14/vWireguard
 ````
 
 ### Build binary file
@@ -232,7 +232,7 @@ Prepare the assets directory
 Then build your executable
 
 ```sh
-go build -o wireguard-ui
+go build -o vWireguard
 ```
 
 ## License
