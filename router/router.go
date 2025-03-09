@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/MmadF14/vwireguard/handler"
 	"github.com/MmadF14/vwireguard/util"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
@@ -153,6 +154,13 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 		templates: templates,
 		extraData: extraData,
 	}
+
+	// Middleware
+	e.Use(middleware.Recover())
+	e.Use(handler.StaticHandler)
+
+	// Static files
+	e.Static("/static", "static")
 
 	return e
 }
