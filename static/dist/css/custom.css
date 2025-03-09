@@ -105,36 +105,81 @@ body {
     color: var(--text-light);
 }
 
-/* Dark Mode - Layout */
 [data-theme="dark"] .wrapper,
 [data-theme="dark"] .content-wrapper {
     background-color: var(--dark-bg);
 }
 
-/* Dark Mode - Navbar */
-[data-theme="dark"] .navbar {
+[data-theme="dark"] .card {
     background-color: var(--dark-surface) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-[data-theme="dark"] .navbar .form-control-navbar,
-[data-theme="dark"] .navbar .btn-navbar {
+[data-theme="dark"] .card:hover {
+    background-color: var(--dark-surface-lighter) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .card .btn {
     background-color: var(--dark-surface-lighter);
     border-color: rgba(255, 255, 255, 0.1);
     color: var(--text-light);
 }
 
-[data-theme="dark"] .navbar .form-control-navbar::placeholder {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-[data-theme="dark"] .navbar .btn-navbar:hover {
+[data-theme="dark"] .card .btn:hover {
     background-color: var(--dark-surface);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-light);
 }
 
-[data-theme="dark"] #status-selector {
+[data-theme="dark"] .card .btn.btn-more {
+    background-color: var(--secondary-color) !important;
+    color: var(--text-light);
+    min-width: auto;
+}
+
+[data-theme="dark"] .card .btn.btn-more:hover {
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .card .client-info,
+[data-theme="dark"] .card .client-info span {
+    color: var(--text-light);
+}
+
+/* Button Dark Mode Styles */
+[data-theme="dark"] .btn-download,
+[data-theme="dark"] .btn-qr,
+[data-theme="dark"] .btn-email {
     background-color: var(--dark-surface-lighter);
     border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .btn-download:hover,
+[data-theme="dark"] .btn-qr:hover,
+[data-theme="dark"] .btn-email:hover {
+    background-color: var(--dark-surface);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .btn-more {
+    background-color: var(--secondary-color) !important;
+    color: var(--text-light);
+    min-width: auto;
+}
+
+[data-theme="dark"] .btn-more:hover {
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light);
+}
+
+/* Client Info Dark Mode */
+[data-theme="dark"] .client-info,
+[data-theme="dark"] .client-info span {
     color: var(--text-light);
 }
 
