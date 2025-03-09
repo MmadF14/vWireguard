@@ -269,4 +269,60 @@ function populateClient(client_id) {
             showNotification(responseJson['message'], 'error');
         }
     });
+}
+
+// Date formatting function
+function prettyDateTime(timestamp) {
+    if (!timestamp) return '';
+    
+    const date = new Date(timestamp * 1000);
+    const now = new Date();
+    const diff = Math.floor((now - date) / 1000);
+    
+    // If less than a minute ago
+    if (diff < 60) {
+        return 'Just now';
+    }
+    
+    // If less than an hour ago
+    if (diff < 3600) {
+        const minutes = Math.floor(diff / 60);
+        return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    }
+    
+    // If less than a day ago
+    if (diff < 86400) {
+        const hours = Math.floor(diff / 3600);
+        return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    }
+    
+    // If less than a week ago
+    if (diff < 604800) {
+        const days = Math.floor(diff / 86400);
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+    
+    // Format date for older timestamps
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    };
+    
+    return date.toLocaleDateString(undefined, options);
+}
+
+// Format bytes to human readable format
+function formatBytes(bytes, decimals = 2) {
+    if (!bytes) return '0 B';
+    
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 } 
