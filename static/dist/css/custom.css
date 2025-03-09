@@ -366,4 +366,177 @@ body {
     .nav-sidebar .nav-link {
         margin: 0 0.5rem;
     }
+}
+
+/* Client Card Styles */
+.client-box {
+    background-color: #fff;
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all var(--transition-speed);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.client-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.client-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.client-info {
+    margin-top: 1rem;
+}
+
+.client-tag {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Dark Mode - Client Specific */
+[data-theme="dark"] .client-box {
+    background-color: var(--dark-surface);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .client-box:hover {
+    background-color: var(--dark-surface-lighter);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .client-tag {
+    background-color: var(--dark-surface-lighter);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .client-info {
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .btn-group .btn {
+    background-color: var(--dark-surface-lighter);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .btn-group .btn:hover {
+    background-color: var(--dark-surface);
+}
+
+[data-theme="dark"] .btn-group .dropdown-menu {
+    background-color: var(--dark-surface);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .btn-group .dropdown-item {
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .btn-group .dropdown-item:hover {
+    background-color: var(--dark-surface-lighter);
+}
+
+[data-theme="dark"] .badge {
+    background-color: var(--dark-surface-lighter);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .badge-success {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+
+[data-theme="dark"] .badge-danger {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+[data-theme="dark"] .badge-warning {
+    background-color: rgba(241, 196, 15, 0.2);
+    color: #f1c40f;
+}
+
+[data-theme="dark"] .badge-info {
+    background-color: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+}
+
+[data-theme="dark"] .client-actions .btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+[data-theme="dark"] .client-actions .btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .client-actions .btn-outline-danger {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+[data-theme="dark"] .client-actions .btn-outline-danger:hover {
+    background-color: var(--danger-color);
+    color: var(--text-light);
+}
+
+[data-theme="dark"] .ip-allocation {
+    background-color: var(--dark-surface-lighter);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0.25rem;
+}
+
+[data-theme="dark"] .client-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+[data-theme="dark"] .client-status.enabled {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+
+[data-theme="dark"] .client-status.disabled {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+[data-theme="dark"] .client-quota {
+    color: var(--text-light);
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .client-expiry {
+    color: var(--text-light);
+    opacity: 0.8;
+}
+
+[data-theme="dark"] .btn-action-group {
+    background-color: var(--dark-surface-lighter);
+    border-color: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem;
+    border-radius: var(--border-radius);
+    margin-top: 1rem;
+}
+
+[data-theme="dark"] .action-buttons .btn {
+    margin: 0.25rem;
 } 
