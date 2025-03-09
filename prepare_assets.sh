@@ -15,6 +15,13 @@ mkdir -p "${DIR}/assets/dist/js" "${DIR}/assets/dist/css"
 cp -r "${DIR}/node_modules/admin-lte/dist/js/adminlte.min.js" "${DIR}/assets/dist/js/adminlte.min.js"
 cp -r "${DIR}/node_modules/admin-lte/dist/css/adminlte.min.css" "${DIR}/assets/dist/css/adminlte.min.css"
 
+# Copy custom files
+cp -r "${DIR}/static/dist/css/custom.css" "${DIR}/assets/dist/css/custom.css"
+cp -r "${DIR}/static/dist/js/custom.js" "${DIR}/assets/dist/js/custom.js"
+
+# Copy helper js
+cp -r "${DIR}/custom" "${DIR}/assets"
+
 # Copy plugins
 mkdir -p "${DIR}/assets/plugins"
 cp -r "${DIR}/node_modules/admin-lte/plugins/jquery" \
@@ -27,13 +34,10 @@ cp -r "${DIR}/node_modules/admin-lte/plugins/jquery" \
   "${DIR}/node_modules/jquery-tags-input" \
   "${DIR}/assets/plugins/"
 
-# Copy helper js
-cp -r "${DIR}/custom" "${DIR}/assets"
-
 # Create static directory structure
-mkdir -p "${DIR}/static/dist/js" "${DIR}/static/dist/css" "${DIR}/static/plugins"
+mkdir -p "${DIR}/static/dist/js" "${DIR}/static/dist/css"
 
 # Copy assets to static directory
 cp -r "${DIR}/assets/dist/js/"* "${DIR}/static/dist/js/"
 cp -r "${DIR}/assets/dist/css/"* "${DIR}/static/dist/css/"
-cp -r "${DIR}/assets/plugins/"* "${DIR}/static/plugins/"
+cp -r "${DIR}/assets/plugins" "${DIR}/static/"
