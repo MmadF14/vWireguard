@@ -25,8 +25,10 @@
     <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
     <!-- overlayScrollbars -->
     <link rel="stylesheet" href="{{.basePath}}/static/dist/css/adminlte.min.css">
-    <!-- Google Font: Source Sans Pro -->
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
+    <!-- Google Font: Source Sans Pro and Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <!-- START: On page css -->
     {{template "top_css" .}}
@@ -77,6 +79,10 @@
                 <button id="apply-config-button" style="margin-left: 0.5em; display: none;" type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal"
                     data-target="#modal_apply_config"><i class="nav-icon fas fa-check"></i> Apply
                     Config</button>
+                <!-- Dark Mode Toggle -->
+                <button id="theme-toggle" style="margin-left: 0.5em;" type="button" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-moon"></i>
+                </button>
                 {{if .baseData.CurrentUser}}
                 <button onclick="location.href='{{.basePath}}/logout';" style="margin-left: 0.5em;" type="button"
                     class="btn btn-outline-danger btn-sm"><i class="nav-icon fas fa-sign-out-alt"></i> Logout</button>
@@ -412,173 +418,15 @@
     <script src="{{.basePath}}/static/plugins/jquery-tags-input/dist/jquery.tagsinput.min.js"></script>
     <!-- AdminLTE App -->
     <script src="{{.basePath}}/static/dist/js/adminlte.min.js"></script>
-    <!-- Custom js -->
-    <script src="{{.basePath}}/static/custom/js/helper.js"></script>
+    <!-- Base Path -->
     <script>
-        // initialize all tooltips
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip()
-        })
-
-        $(document).ready(function () {
-
-            addGlobalStyle(`
-.toast-top-right-fix {
-    top: 67px;
-    right: 12px;
-}
-            `, 'toastrToastStyleFix')
-
-            toastr.options.closeDuration = 100;
-            // toastr.options.timeOut = 10000;
-            toastr.options.positionClass = 'toast-top-right-fix';
-
-            updateApplyConfigVisibility()
-
-        });
-
-        function addGlobalStyle(css, id) {
-            if (!document.querySelector('#' + id)) {
-                let head = document.head
-                if (!head) { return }
-                let style = document.createElement('style')
-                style.type = 'text/css'
-                style.id = id
-                style.innerHTML = css
-                head.appendChild(style)
-            }
-        }
-
-        function updateApplyConfigVisibility() {
-                $.ajax({
-                    cache: false,
-                    method: 'GET',
-                    url: '{{.basePath}}/test-hash',
-                    dataType: 'json',
-                    contentType: "application/json",
-                    success: function(data) {
-                        if (data.status) {
-                            $("#apply-config-button").show()
-                        }
-                        else
-                        {
-                            $("#apply-config-button").hide()
-                        }
-                    },
-                    error: function(jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson['message']);
-                    }
-                });
-        }
-
-        function updateQuotaInput() {
-            const quotaPreset = document.getElementById('quota_preset');
-            const quotaInput = document.getElementById('client_quota');
-            
-            if (quotaPreset.value === 'custom') {
-                quotaInput.value = '';
-                quotaInput.disabled = false;
-            } else {
-                quotaInput.value = quotaPreset.value;
-                quotaInput.disabled = true;
-            }
-        }
-
-        // Initialize quota input on page load
-        $(document).ready(function() {
-            updateQuotaInput();
-        });
-        
-        // populateClient function for render new client info
-        // on the client page.
-        function populateClient(client_id) {
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/client/' + client_id,
-                dataType: 'json',
-                contentType: "application/json",
-                success: function (resp) {
-                    renderClientList([resp]);
-                },
-                error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        }
-
-        // AllowedIPs tag input
-        $("#client_allowed_ips").tagsInput({
-            'width': '100%',
-            'height': '75%',
-            'interactive': true,
-            'defaultText': 'Add More',
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'minInputWidth': '100%',
-            'placeholderColor': '#666666'
-        });
-
-        $("#client_extra_allowed_ips").tagsInput({
-            'width': '100%',
-            'height': '75%',
-            'interactive': true,
-            'defaultText': 'Add More',
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'minInputWidth': '100%',
-            'placeholderColor': '#666666'
-        });
-
-        // New Client modal event
-        $(document).ready(function () {
-            $("#modal_new_client").on('shown.bs.modal', function (e) {
-                $("#client_name").val("");
-                $("#client_email").val("");
-                $("#client_public_key").val("");
-                $("#client_preshared_key").val("");
-                $("#client_allocated_ips").importTags('');
-                $("#client_extra_allowed_ips").importTags('');
-                $("#client_endpoint").val('');
-                $("#client_telegram_userid").val('');
-                $("#additional_notes").val('');
-                updateSubnetRangesList("#subnet_ranges");
-            });
-        });
-
-        // handle subnet range select
-        $('#subnet_ranges').on('select2:select', function (e) {
-            updateIPAllocationSuggestion();
-        });
-
-        // apply_config_confirm button event
-        $(document).ready(function () {
-            $("#apply_config_confirm").click(function () {
-                $.ajax({
-                    cache: false,
-                    method: 'POST',
-                    url: '{{.basePath}}/api/apply-wg-config',
-                    dataType: 'json',
-                    contentType: "application/json",
-                    success: function(data) {
-                        updateApplyConfigVisibility()
-                        $("#modal_apply_config").modal('hide');
-                        toastr.success('Applied config successfully');
-                    },
-                    error: function(jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson['message']);
-                    }
-                });
-            });
-        });
+        const basePath = '{{.basePath}}';
     </script>
-
-    <!-- START: On page script -->
+    <!-- Custom JavaScript -->
+    <script src="{{.basePath}}/static/dist/js/custom.js"></script>
+    <!-- START: On page js -->
     {{template "bottom_js" .}}
-    <!-- END: On page script -->
+    <!-- END: On page js -->
 </body>
 
 </html>

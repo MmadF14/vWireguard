@@ -1,0 +1,272 @@
+// Dark mode functionality
+document.addEventListener('DOMContentLoaded', () => {
+    const themeToggle = document.getElementById('theme-toggle');
+    const body = document.body;
+    const icon = themeToggle.querySelector('i');
+    
+    // Check for saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        body.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(icon, savedTheme);
+    }
+    
+    // Theme toggle click handler
+    themeToggle.addEventListener('click', () => {
+        const currentTheme = body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        
+        body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(icon, newTheme);
+    });
+});
+
+function updateThemeIcon(icon, theme) {
+    if (theme === 'dark') {
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+    } else {
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+    }
+}
+
+// Card hover effects
+document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', () => {
+            card.style.transform = 'translateY(-5px)';
+            card.style.boxShadow = '0 8px 16px rgba(0,0,0,0.1)';
+        });
+        
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'translateY(0)';
+            card.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+        });
+    });
+});
+
+// Smooth scrolling
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    });
+});
+
+// Loading state for buttons
+document.addEventListener('DOMContentLoaded', () => {
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (this.getAttribute('data-loading-text')) {
+                const originalText = this.innerHTML;
+                this.innerHTML = this.getAttribute('data-loading-text');
+                this.classList.add('disabled');
+                
+                // Reset button after action completes
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.classList.remove('disabled');
+                }, 2000);
+            }
+        });
+    });
+});
+
+// Original functionality
+function addGlobalStyle(css, id) {
+    if (!document.querySelector('#' + id)) {
+        let head = document.head;
+        if (!head) { return; }
+        let style = document.createElement('style');
+        style.type = 'text/css';
+        style.id = id;
+        style.innerHTML = css;
+        head.appendChild(style);
+    }
+}
+
+function updateApplyConfigVisibility() {
+    $.ajax({
+        cache: false,
+        method: 'GET',
+        url: basePath + '/test-hash',
+        dataType: 'json',
+        contentType: "application/json",
+        success: function(data) {
+            if (data.status) {
+                $("#apply-config-button").show();
+            } else {
+                $("#apply-config-button").hide();
+            }
+        },
+        error: function(jqXHR, exception) {
+            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+            showNotification(responseJson['message'], 'error');
+        }
+    });
+}
+
+function updateQuotaInput() {
+    const quotaPreset = document.getElementById('quota_preset');
+    const quotaInput = document.getElementById('client_quota');
+    
+    if (quotaPreset.value === 'custom') {
+        quotaInput.value = '';
+        quotaInput.disabled = false;
+    } else {
+        quotaInput.value = quotaPreset.value;
+        quotaInput.disabled = true;
+    }
+}
+
+// Enhanced notifications
+function showNotification(message, type = 'info') {
+    toastr.options.closeDuration = 100;
+    toastr.options.positionClass = 'toast-top-right-fix';
+    
+    switch(type) {
+        case 'error':
+            toastr.error(message);
+            break;
+        case 'success':
+            toastr.success(message);
+            break;
+        case 'warning':
+            toastr.warning(message);
+            break;
+        default:
+            toastr.info(message);
+    }
+}
+
+// Status indicator updates
+function updateStatusIndicators() {
+    const indicators = document.querySelectorAll('.status-indicator');
+    indicators.forEach(indicator => {
+        const status = indicator.getAttribute('data-status');
+        if (status === 'online') {
+            indicator.classList.add('status-online');
+            indicator.classList.remove('status-offline');
+        } else {
+            indicator.classList.add('status-offline');
+            indicator.classList.remove('status-online');
+        }
+    });
+}
+
+// Initialize all functionality
+document.addEventListener('DOMContentLoaded', () => {
+    // Add custom toast style
+    addGlobalStyle(`
+        .toast-top-right-fix {
+            top: 67px;
+            right: 12px;
+        }
+    `, 'toastrToastStyleFix');
+
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Initialize popovers
+    $('[data-toggle="popover"]').popover();
+    
+    // Update status indicators periodically
+    updateStatusIndicators();
+    setInterval(updateStatusIndicators, 30000);
+    
+    // Initialize quota input
+    updateQuotaInput();
+    
+    // Update apply config visibility
+    updateApplyConfigVisibility();
+    
+    // Initialize AllowedIPs tag inputs
+    $("#client_allowed_ips").tagsInput({
+        'width': '100%',
+        'height': '75%',
+        'interactive': true,
+        'defaultText': 'Add More',
+        'removeWithBackspace': true,
+        'minChars': 0,
+        'minInputWidth': '100%',
+        'placeholderColor': '#666666'
+    });
+
+    $("#client_extra_allowed_ips").tagsInput({
+        'width': '100%',
+        'height': '75%',
+        'interactive': true,
+        'defaultText': 'Add More',
+        'removeWithBackspace': true,
+        'minChars': 0,
+        'minInputWidth': '100%',
+        'placeholderColor': '#666666'
+    });
+    
+    // New Client modal event
+    $("#modal_new_client").on('shown.bs.modal', function (e) {
+        $("#client_name").val("");
+        $("#client_email").val("");
+        $("#client_public_key").val("");
+        $("#client_preshared_key").val("");
+        $("#client_allocated_ips").importTags('');
+        $("#client_extra_allowed_ips").importTags('');
+        $("#client_endpoint").val('');
+        $("#client_telegram_userid").val('');
+        $("#additional_notes").val('');
+        updateSubnetRangesList("#subnet_ranges");
+    });
+    
+    // Handle subnet range select
+    $('#subnet_ranges').on('select2:select', function (e) {
+        updateIPAllocationSuggestion();
+    });
+    
+    // Apply config confirm button event
+    $("#apply_config_confirm").click(function () {
+        $.ajax({
+            cache: false,
+            method: 'POST',
+            url: basePath + '/api/apply-wg-config',
+            dataType: 'json',
+            contentType: "application/json",
+            success: function(data) {
+                updateApplyConfigVisibility();
+                $("#modal_apply_config").modal('hide');
+                showNotification('Applied config successfully', 'success');
+            },
+            error: function(jqXHR, exception) {
+                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                showNotification(responseJson['message'], 'error');
+            }
+        });
+    });
+});
+
+// Client population function
+function populateClient(client_id) {
+    $.ajax({
+        cache: false,
+        method: 'GET',
+        url: basePath + '/api/client/' + client_id,
+        dataType: 'json',
+        contentType: "application/json",
+        success: function (resp) {
+            renderClientList([resp]);
+        },
+        error: function (jqXHR, exception) {
+            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+            showNotification(responseJson['message'], 'error');
+        }
+    });
+} 
