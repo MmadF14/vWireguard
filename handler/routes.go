@@ -846,13 +846,13 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		// اگر درخواست فعال‌سازی دستی است
 		if status && !isAutomatic {
 			// بررسی شرایط فعال‌سازی
-			if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
-			}
+			// if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
+			// 	return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
+			// }
 
-			if client.Quota > 0 && client.UsedQuota >= client.Quota {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
-			}
+			// if client.Quota > 0 && client.UsedQuota >= client.Quota {
+			// 	return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
+			// }
 
 			// فعال‌سازی کلاینت
 			client.Enabled = true

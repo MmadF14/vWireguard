@@ -107,10 +107,13 @@ body {
 
 /* Dark Mode - Layout */
 [data-theme="dark"] .wrapper,
-[data-theme="dark"] .content-wrapper {
+[data-theme="dark"] .content-wrapper{
     background-color: var(--dark-bg);
 }
-
+[data-theme="dark"] .info-box ,
+[data-theme="dark"] .card-body{
+    background-color: var(--dark-surface);
+}
 /* Dark Mode - Navbar */
 [data-theme="dark"] .navbar {
     background-color: var(--dark-surface) !important;
