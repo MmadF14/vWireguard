@@ -1315,11 +1315,26 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
+		// Handle WARP configuration
+		if globalSettings.WARPEnabled {
+			// Install WARP if not already installed
+			if err := util.InstallWARP(); err != nil {
+				log.Error("Failed to install WARP:", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to install WARP: %v", err)})
+			}
+		}
+
+		// Configure WARP with the specified domains
+		if err := util.ConfigureWARP(globalSettings.WARPEnabled, globalSettings.WARPDomains); err != nil {
+			log.Error("Failed to configure WARP:", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to configure WARP: %v", err)})
+		}
+
 		globalSettings.UpdatedAt = time.Now().UTC()
 
 		// write config to the database
 		if err := db.SaveGlobalSettings(globalSettings); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot generate Wireguard key pair"})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot save global settings"})
 		}
 
 		log.Infof("Updated global settings: %v", globalSettings)

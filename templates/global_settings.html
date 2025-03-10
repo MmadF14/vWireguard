@@ -148,6 +148,92 @@ Global Settings
     <!-- /.modal-dialog -->
 </div>
 <!-- /.modal -->
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">WARP Settings</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled" {{if .globalSettings.WARPEnabled}}checked{{end}}>
+                <label class="custom-control-label" for="warpEnabled">Enable WARP</label>
+            </div>
+            <small class="form-text text-muted">Enable Cloudflare WARP for specific domains</small>
+        </div>
+        <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
+            <label for="warpDomains">WARP Domains</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="warpDomain" placeholder="Enter domain (e.g. example.com)">
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button" id="addWarpDomain">Add</button>
+                </div>
+            </div>
+            <small class="form-text text-muted">Enter domains that should be routed through WARP</small>
+            <div class="mt-2" id="warpDomainsList">
+                {{range .globalSettings.WARPDomains}}
+                <div class="badge badge-info mr-2 mb-2 warp-domain-item">
+                    {{.}} <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>
+                </div>
+                {{end}}
+            </div>
+            <input type="hidden" name="warp_domains" id="warpDomainsInput" value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // Toggle WARP domains section visibility
+    $('#warpEnabled').change(function() {
+        $('#warpDomainsGroup').toggle(this.checked);
+    });
+
+    // Add new WARP domain
+    $('#addWarpDomain').click(function() {
+        var domain = $('#warpDomain').val().trim();
+        if (domain) {
+            // Basic domain validation
+            if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
+                addWarpDomainBadge(domain);
+                $('#warpDomain').val('');
+                updateWarpDomainsInput();
+            } else {
+                toastr.error('Please enter a valid domain');
+            }
+        }
+    });
+
+    // Remove WARP domain
+    $(document).on('click', '.remove-domain', function() {
+        $(this).closest('.warp-domain-item').remove();
+        updateWarpDomainsInput();
+    });
+
+    // Add domain on Enter key
+    $('#warpDomain').keypress(function(e) {
+        if (e.which == 13) {
+            $('#addWarpDomain').click();
+            return false;
+        }
+    });
+
+    function addWarpDomainBadge(domain) {
+        var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item">')
+            .text(domain)
+            .append('<i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>');
+        $('#warpDomainsList').append(badge);
+    }
+
+    function updateWarpDomainsInput() {
+        var domains = [];
+        $('.warp-domain-item').each(function() {
+            domains.push($(this).text().trim());
+        });
+        $('#warpDomainsInput').val(domains.join(','));
+    }
+});
+</script>
 {{end}}
 
 {{define "bottom_js"}}
