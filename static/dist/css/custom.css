@@ -111,7 +111,8 @@ body {
     background-color: var(--dark-bg);
 }
 [data-theme="dark"] .info-box ,
-[data-theme="dark"] .card-body{
+[data-theme="dark"] .card-body ,
+[data-theme="dark"] .card-footer{
     background-color: var(--dark-surface);
 }
 /* Dark Mode - Navbar */
@@ -558,6 +559,254 @@ body {
 
 [data-theme="dark"] .action-buttons .btn {
     margin: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .container {
+        max-width: 95%;
+    }
+}
+
+@media (max-width: 992px) {
+    .client-box {
+        padding: 1.25rem;
+    }
+
+    .client-actions {
+        flex-wrap: wrap;
+    }
+
+    .client-actions .btn {
+        min-width: calc(50% - 0.5rem);
+        margin-bottom: 0.5rem;
+    }
+
+    .client-actions .btn-more {
+        min-width: auto;
+        order: -1;
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+
+    .client-box {
+        padding: 1rem;
+    }
+
+    .client-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .client-actions .btn {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .client-actions .btn-more {
+        width: auto;
+        align-self: flex-end;
+    }
+
+    .client-info {
+        flex-direction: column;
+    }
+
+    .client-tag {
+        margin-bottom: 0.5rem;
+        width: 100%;
+        text-align: center;
+    }
+
+    .ip-allocation {
+        width: 100%;
+        text-align: center;
+        margin: 0.25rem 0;
+    }
+
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .modal-content {
+        border-radius: var(--border-radius);
+    }
+
+    .table-responsive {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+        width: calc(100% + 2rem);
+    }
+}
+
+@media (max-width: 576px) {
+    .card {
+        margin: 0.5rem -0.5rem;
+        border-radius: 0;
+    }
+
+    .client-box {
+        margin: 0.5rem -0.5rem;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    .navbar {
+        padding: 0.5rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+
+    .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .modal-header {
+        padding: 1rem;
+    }
+
+    .modal-body {
+        padding: 1rem;
+    }
+
+    .modal-footer {
+        padding: 1rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-control {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* Fix for iOS input zoom */
+@media screen and (-webkit-min-device-pixel-ratio: 0) { 
+    select,
+    textarea,
+    input {
+        font-size: 16px !important;
+    }
+}
+
+/* Landscape Mode Optimization */
+@media (max-height: 576px) and (orientation: landscape) {
+    .modal-dialog {
+        max-height: 100vh;
+        margin: 0 auto;
+    }
+
+    .modal-content {
+        max-height: 100vh;
+        overflow-y: auto;
+    }
+
+    .client-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .client-actions .btn {
+        width: auto;
+        min-width: calc(33.333% - 0.5rem);
+    }
+}
+
+/* Dark Mode Responsive Adjustments */
+@media (max-width: 768px) {
+    [data-theme="dark"] .client-box {
+        border-left: none;
+        border-right: none;
+        box-shadow: none;
+    }
+
+    [data-theme="dark"] .modal-content {
+        border: none;
+    }
+
+    [data-theme="dark"] .navbar {
+        border-bottom: none;
+    }
+}
+
+/* Client Connection Status */
+.client-status {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    display: inline-block;
+}
+
+.client-status.enabled {
+    background-color: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.client-status.disabled {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.connection-details {
+    font-size: 0.85rem;
+    color: #777;
+    background-color: rgba(0, 0, 0, 0.03);
+    padding: 0.6rem;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .connection-details {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.client-quota {
+    margin-top: 0.5rem;
+}
+
+.client-quota .progress {
+    margin-top: 0.25rem;
+    height: 6px;
+}
+
+/* IP Allocation Display */
+.ip-allocation {
+    background-color: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    display: inline-block;
+    font-family: monospace;
+}
+
+[data-theme="dark"] .ip-allocation {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1); 
+    color: var(--text-light);
 }
 
 /* Responsive Design */

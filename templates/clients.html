@@ -1234,173 +1234,223 @@ Wireguard Clients
                 return;
             }
 
+            // Fetch connection status data first
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/status-data',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(statusData) {
+                    // Create a map of public key to connection status
+                    const connectionMap = {};
+                    if (statusData && statusData.devices) {
+                        statusData.devices.forEach(device => {
+                            if (device.peers) {
+                                device.peers.forEach(peer => {
+                                    connectionMap[peer.publicKey] = {
+                                        connected: peer.connected,
+                                        lastHandshake: peer.lastHandshakeTime,
+                                        endpoint: peer.endpoint,
+                                        received: peer.receivedBytes,
+                                        transmitted: peer.transmitBytes
+                                    };
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Now render clients with status info
+                    renderClientsWithStatus(clients, connectionMap);
+                },
+                error: function() {
+                    // If status fetch fails, render without status data
+                    renderClientsWithStatus(clients, {});
+                }
+            });
+        }
+
+        function renderClientsWithStatus(clients, connectionMap) {
+            const clientList = $("#client-list");
+            
             clients.forEach(function(data) {
                 try {
-                    let client = data.Client || data;
+                    let client = data;
                     
-                    if (!client || !client.id) {
-                        console.error('Invalid client data:', data);
-                        return;
+                    // Handle different data structures
+                    if (data.Client) {
+                        client = data.Client;
                     }
 
-                    // ساخت HTML برای کلاینت
+                    const connectionStatus = connectionMap[client.public_key] || {};
+                    const isConnected = connectionStatus.connected || false;
+                    const lastHandshake = connectionStatus.lastHandshake ? new Date(connectionStatus.lastHandshake) : null;
+                    const lastHandshakeText = lastHandshake ? 
+                        `Last seen: ${formatTimeAgo(lastHandshake)}` : 
+                        'Never connected';
+
+                    // Client status class
+                    let statusClass = isConnected ? 'client-status enabled' : 'client-status disabled';
+                    let statusText = isConnected ? 'Connected' : 'Disconnected';
+                    
                     let html = `
                         <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
-                            <div class="info-box">
-                                <div class="overlay" id="paused_${client.id}" style="visibility: ${client.enabled ? 'hidden' : 'visible'}">
+                            <div class="client-box">
+                                <div class="overlay" id="paused_${client.id}"${client.enabled ? ' style="visibility: hidden;"' : ''}>
                                     <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
                                 </div>
-                                <div class="info-box-content" style="overflow: hidden">`;
-
-                    // اضافه کردن دکمه‌ها
-                    html += `
-                        <div class="btn-group">
-                            <a href="{{.basePath}}/download?clientid=${client.id}" class="btn btn-outline-primary btn-sm">Download</a>
-                        </div>
-                        <div class="btn-group">      
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                                data-target="#modal_qr_client" data-clientid="${client.id}"
-                                data-clientname="${client.name}" ${data.QRCode ? '' : 'disabled'}>QR code</button>
-                        </div>
-                        <div class="btn-group">      
-                            <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                                data-target="#modal_email_client" data-clientid="${client.id}"
-                                data-clientname="${client.name}">Email</button>
-                        </div>`;
-
-                    // اضافه کردن دکمه تلگرام اگر telegram_userid وجود داشته باشد
+                                <div class="client-actions">
+                                    <a href="download?clientid=${client.id}" class="btn btn-outline-primary">Download</a>
+                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal"
+                                        data-target="#modal_qr_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}" ${data.QRCode ? '' : ' disabled'}>QR Code</button>
+                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal"
+                                        data-target="#modal_email_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Email</button>`;
+                
+                    // Add Telegram button if applicable
                     if (client.telegram_userid) {
                         html += `
-                            <div class="btn-group">      
-                                <button type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
+                                <button type="button" class="btn btn-outline-primary" data-toggle="modal"
                                     data-target="#modal_telegram_client" data-clientid="${client.id}"
-                                    data-clientname="${client.name}">Telegram</button>
-                            </div>`;
+                                    data-clientname="${client.name}">Telegram</button>`;
                     }
-
-                    // منوی More
+                    
                     html += `
-                        <div class="btn-group">
-                            <button type="button" class="btn btn-outline-danger btn-sm">More</button>
-                            <button type="button" class="btn btn-outline-danger btn-sm dropdown-toggle dropdown-icon" 
-                                data-toggle="dropdown">
-                            </button>
-                            <div class="dropdown-menu" role="menu">
-                                <a class="dropdown-item" href="#" data-toggle="modal"
-                                    data-target="#modal_edit_client" data-clientid="${client.id}"
-                                    data-clientname="${client.name}">Edit</a>
-                                <a class="dropdown-item" href="#" data-toggle="modal"
-                                    data-target="#modal_pause_client" data-clientid="${client.id}"
-                                    data-clientname="${client.name}">Disable</a>
-                                <a class="dropdown-item" href="#" data-toggle="modal"
-                                    data-target="#modal_remove_client" data-clientid="${client.id}"
-                                    data-clientname="${client.name}">Delete</a>
-                            </div>
-                        </div>
-                        <hr>`;
-
-                    // اطلاعات اصلی کلاینت
-                    html += `<span class="info-box-text"><i class="fas fa-user"></i> ${client.name || 'Unnamed Client'}</span>`;
-
-                    if (client.email) {
-                        html += `<span class="info-box-text"><i class="fas fa-envelope"></i> ${client.email}</span>`;
-                    }
-
-                    if (client.created_at) {
-                        html += `<span class="info-box-text"><i class="fas fa-clock"></i> ${prettyDateTime(client.created_at)}</span>`;
-                    }
-
-                    if (client.updated_at) {
-                        html += `<span class="info-box-text"><i class="fas fa-history"></i> ${prettyDateTime(client.updated_at)}</span>`;
-                    }
-
-                    // نمایش حجم مصرفی و باقی‌مانده
-                    if (client.quota > 0) {
-                        const quotaFormatted = formatBytes(client.quota);
-                        const usedFormatted = formatBytes(client.used_quota || 0);
-                        const remainingBytes = Math.max(0, client.quota - (client.used_quota || 0));
-                        const remainingFormatted = formatBytes(remainingBytes);
-                        
-                        const usagePercent = Math.min(100, ((client.used_quota || 0) / client.quota * 100)).toFixed(1);
-                        
-                        let progressClass = 'bg-success';
-                        if (usagePercent > 90) {
-                            progressClass = 'bg-danger';
-                        } else if (usagePercent > 70) {
-                            progressClass = 'bg-warning';
-                        }
-
-                        html += `
-                            <span class="info-box-text">
-                                <i class="fas fa-database"></i> Usage: ${usedFormatted} / ${quotaFormatted}
-                                <div class="progress progress-sm">
-                                    <div class="progress-bar ${progressClass}" role="progressbar" 
-                                         style="width: ${usagePercent}%" 
-                                         aria-valuenow="${usagePercent}" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="100">
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-more">More</button>
+                                    <button type="button" class="btn btn-more dropdown-toggle dropdown-icon" 
+                                        data-toggle="dropdown">
+                                    </button>
+                                    <div class="dropdown-menu" role="menu">
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal_edit_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Edit</a>
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal_pause_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Disable</a>
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal_remove_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Delete</a>
                                     </div>
                                 </div>
-                                <small>Remaining: ${remainingFormatted}</small>
-                            </span>`;
-                    } else {
-                        html += `<span class="info-box-text"><i class="fas fa-database"></i> <span class="text-success">Unlimited</span></span>`;
-                    }
-
-                    // نمایش تاریخ انقضا
-                    if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
-                        const expDate = new Date(client.expiration);
-                        const now = new Date();
-                        const daysRemaining = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
-                        
-                        let expirationClass = '';
-                        if (daysRemaining <= 0) {
-                            expirationClass = 'text-danger';
+                            </div>
                             
-                        } else if (daysRemaining <= 7) {
-                            expirationClass = 'text-warning';
-                        }
-                        
-                        html += `<span class="info-box-text ${expirationClass}"><i class="fas fa-calendar"></i> Expires: ${prettyDateTime(client.expiration)} (${daysRemaining > 0 ? daysRemaining + ' days remaining' : 'Expired'})</span>`;
-                    } else {
-                        html += `<span class="info-box-text"><i class="fas fa-calendar"></i> <span class="text-success">Unlimited</span></span>`;
+                            <div class="client-info">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="m-0">${client.name}</h5>
+                                    <div class="${statusClass}">${statusText}</div>
+                                </div>
+                                
+                                <div class="connection-details mb-2">
+                                    <div><i class="fas fa-clock"></i> ${lastHandshakeText}</div>`;
+                
+                    // Show bandwidth details if connected previously
+                    if (connectionStatus.received || connectionStatus.transmitted) {
+                        html += `
+                                    <div>
+                                        <i class="fas fa-download"></i> ${formatBytes(connectionStatus.received || 0)}
+                                        <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionStatus.transmitted || 0)}
+                                    </div>`;
                     }
-
-                    // نمایش سایر اطلاعات
-                    html += `<span class="info-box-text"><i class="fas fa-server" style="opacity: ${client.use_server_dns ? '1.0' : '0.5'}"></i> DNS</span>`;
-
-                    if (client.additional_notes) {
-                        html += `<span class="info-box-text"><i class="fas fa-file"></i> ${client.additional_notes}</span>`;
-                    }
-
-                    if (client.allocated_ips && Array.isArray(client.allocated_ips) && client.allocated_ips.length > 0) {
-                        html += `<span class="info-box-text"><strong>IP Allocation</strong></span>`;
-                        client.allocated_ips.forEach(function(ip) {
-                            if (ip) {
-                                html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
-                            }
-                        });
-                    }
-
-                    if (client.allowed_ips && Array.isArray(client.allowed_ips) && client.allowed_ips.length > 0) {
-                        html += `<span class="info-box-text"><strong>Allowed IPs</strong></span>`;
-                        client.allowed_ips.forEach(function(ip) {
-                            if (ip) {
-                                html += `<small class="badge badge-secondary">${ip}</small>&nbsp;`;
-                            }
-                        });
-                    }
-
+                    
                     html += `
                                 </div>
+                                
+                                <div class="client-details">`;
+                
+                    // Client details
+                    if (client.email) {
+                        html += `<div><i class="fas fa-envelope"></i> ${client.email}</div>`;
+                    }
+                    
+                    // Show quota if set
+                    if (client.quota && client.quota > 0) {
+                        const usedQuota = client.used_quota || 0;
+                        const quotaPercentage = Math.min(100, Math.round((usedQuota / client.quota) * 100));
+                        
+                        html += `
+                                    <div class="client-quota">
+                                        <div class="d-flex justify-content-between">
+                                            <span><i class="fas fa-database"></i> Quota: ${formatBytes(usedQuota)} / ${formatBytes(client.quota)}</span>
+                                            <span>${quotaPercentage}%</span>
+                                        </div>
+                                        <div class="progress progress-sm">
+                                            <div class="progress-bar ${quotaPercentage > 80 ? 'bg-danger' : 'bg-primary'}" style="width: ${quotaPercentage}%"></div>
+                                        </div>
+                                    </div>`;
+                    }
+                    
+                    // Show expiration if set
+                    if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
+                        const expirationDate = new Date(client.expiration);
+                        const now = new Date();
+                        const isExpired = expirationDate < now;
+                        
+                        html += `
+                                    <div class="client-expiry mt-2">
+                                        <i class="fas fa-calendar-alt"></i> 
+                                        <span class="${isExpired ? 'text-danger' : ''}">
+                                            ${isExpired ? 'Expired' : 'Expires'}: ${formatDate(expirationDate)}
+                                        </span>
+                                    </div>`;
+                    }
+                    
+                    // Additional notes
+                    if (client.additional_notes) {
+                        html += `
+                                    <div class="mt-2">
+                                        <i class="fas fa-sticky-note"></i> ${client.additional_notes}
+                                    </div>`;
+                    }
+                    
+                    html += `
+                                </div>`;
+                    
+                    // IP allocation 
+                    if (client.allocated_ips && Array.isArray(client.allocated_ips) && client.allocated_ips.length > 0) {
+                        html += `<div class="mt-2"><strong>IP Allocation</strong></div>`;
+                        client.allocated_ips.forEach(function(ip) {
+                            if (ip) {
+                                html += `<span class="ip-allocation">${ip}</span>`;
+                            }
+                        });
+                    }
+                    
+                    html += `
                             </div>
-                        </div>`;
-
+                        </div>
+                    </div>`;
+                    
                     clientList.append(html);
                 } catch (error) {
                     console.error('Error rendering client:', error, data);
                 }
             });
+        }
+
+        function formatTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.round(diffMs / 1000);
+            const diffMin = Math.round(diffSec / 60);
+            const diffHour = Math.round(diffMin / 60);
+            const diffDay = Math.round(diffHour / 24);
+            
+            if (diffSec < 60) {
+                return diffSec + ' seconds ago';
+            } else if (diffMin < 60) {
+                return diffMin + ' minutes ago';
+            } else if (diffHour < 24) {
+                return diffHour + ' hours ago';
+            } else {
+                return diffDay + ' days ago';
+            }
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString() + ' ' + 
+                   date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         }
     </script>
     <script>
