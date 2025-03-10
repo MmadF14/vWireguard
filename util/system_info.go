@@ -26,14 +26,21 @@ func init() {
 
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
-	log.Debug("Initializing system status")
-	status := &model.SystemStatus{}
+	status := &model.SystemStatus{
+		CPU:     model.CPUInfo{},
+		Memory:  model.MemoryInfo{},
+		Swap:    model.SwapInfo{},
+		Disk:    model.DiskInfo{},
+		Network: model.NetworkInfo{},
+		Load:    []float64{0, 0, 0},
+		Uptime:  "Unknown",
+	}
 
 	// CPU Info
-	log.Debug("Getting CPU info")
 	cpuCores, err := cpu.Counts(true)
 	if err != nil {
 		log.Warnf("Failed to get CPU cores: %v", err)
+		status.CPU.Cores = 0
 	} else {
 		status.CPU.Cores = cpuCores
 	}
@@ -41,12 +48,12 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	cpuPercent, err := cpu.Percent(0, false)
 	if err != nil {
 		log.Warnf("Failed to get CPU percent: %v", err)
+		status.CPU.Used = 0
 	} else if len(cpuPercent) > 0 {
 		status.CPU.Used = cpuPercent[0]
 	}
 
 	// Memory Info
-	log.Debug("Getting memory info")
 	memInfo, err := mem.VirtualMemory()
 	if err != nil {
 		log.Warnf("Failed to get memory info: %v", err)
@@ -57,7 +64,6 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	}
 
 	// Swap Info
-	log.Debug("Getting swap info")
 	swapInfo, err := mem.SwapMemory()
 	if err != nil {
 		log.Warnf("Failed to get swap info: %v", err)
@@ -68,7 +74,6 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	}
 
 	// Disk Info
-	log.Debug("Getting disk info")
 	diskInfo, err := disk.Usage("/")
 	if err != nil {
 		log.Warnf("Failed to get disk info: %v", err)
@@ -79,7 +84,6 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	}
 
 	// Load Average
-	log.Debug("Getting load average")
 	loadInfo, err := load.Avg()
 	if err != nil {
 		log.Warnf("Failed to get load average: %v", err)
@@ -89,7 +93,6 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	}
 
 	// Uptime
-	log.Debug("Getting uptime")
 	uptime, err := host.Uptime()
 	if err != nil {
 		log.Warnf("Failed to get uptime: %v", err)
@@ -101,7 +104,6 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	}
 
 	// Network Info
-	log.Debug("Getting network info")
 	netStats, err := net.IOCounters(false)
 	if err != nil {
 		log.Warnf("Failed to get network stats: %v", err)
@@ -128,6 +130,5 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	status.Network.IPv4 = true  // Assuming IPv4 is always available
 	status.Network.IPv6 = false // Would need more complex detection
 
-	log.Debugf("System status collected successfully: %+v", status)
 	return status, nil
 }

@@ -1538,10 +1538,13 @@ func SystemStatus() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		status, err := util.GetSystemStatus()
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"success": false,
-				"error":   "Failed to retrieve system status",
-			})
+			log.Error("Failed to get system status:", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+		}
+
+		if status == nil {
+			log.Error("System status is nil")
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "System status data is unavailable"})
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
