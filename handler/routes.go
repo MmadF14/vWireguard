@@ -1535,11 +1535,13 @@ func SystemStatusPage() echo.HandlerFunc {
 // SystemStatus handler returns system status information
 func SystemStatus() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		log.Info("Getting system status...")
 		status, err := util.GetSystemStatus()
 		if err != nil {
-			log.Error("Error getting system status:", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			log.Errorf("Error getting system status: %v", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to get system status: %v", err)})
 		}
+		log.Info("System status retrieved successfully")
 		return c.JSON(http.StatusOK, status)
 	}
 }
