@@ -1535,13 +1535,21 @@ func SystemStatusPage() echo.HandlerFunc {
 // SystemStatus handler returns system status information
 func SystemStatus() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		log.Info("Getting system status...")
+		log.Info("شروع دریافت وضعیت سیستم...")
+
 		status, err := util.GetSystemStatus()
 		if err != nil {
-			log.Errorf("Error getting system status: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to get system status: %v", err)})
+			log.Errorf("خطا در دریافت وضعیت سیستم: %v", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("خطا در دریافت وضعیت سیستم: %v", err)})
 		}
-		log.Info("System status retrieved successfully")
+
+		// لاگ کردن اطلاعات برای دیباگ
+		log.Infof("اطلاعات CPU: Cores=%d, Used=%.2f%%", status.CPU.Cores, status.CPU.Used)
+		log.Infof("اطلاعات حافظه: Total=%d, Used=%d, Free=%d", status.Memory.Total, status.Memory.Used, status.Memory.Free)
+		log.Infof("اطلاعات دیسک: Total=%d, Used=%d, Free=%d", status.Disk.Total, status.Disk.Used, status.Disk.Free)
+		log.Infof("اطلاعات شبکه: Upload=%d, Download=%d", status.Network.UploadSpeed, status.Network.DownloadSpeed)
+
+		log.Info("دریافت وضعیت سیستم با موفقیت انجام شد")
 		return c.JSON(http.StatusOK, status)
 	}
 }
