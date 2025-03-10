@@ -123,20 +123,20 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 	// Enable WARP mode
 	log.Println("Setting WARP mode...")
-	if _, err := runCommand("warp-cli", "mode", "warp"); err != nil {
+	if _, err := runCommand("warp-cli", "--accept-tos", "mode", "warp"); err != nil {
 		return fmt.Errorf("failed to set WARP mode: %v", err)
 	}
 
 	// Clear existing rules
 	log.Println("Clearing existing rules...")
-	if _, err := runCommand("warp-cli", "routing", "clear"); err != nil {
+	if _, err := runCommand("warp-cli", "--accept-tos", "routing", "clear"); err != nil {
 		log.Printf("Warning: failed to clear rules: %v", err)
 	}
 
 	// Add domains to split tunnel
 	log.Println("Adding domains to split tunnel...")
 	for _, domain := range domains {
-		if _, err := runCommand("warp-cli", "routing", "add", domain); err != nil {
+		if _, err := runCommand("warp-cli", "--accept-tos", "routing", "add", domain); err != nil {
 			log.Printf("Warning: failed to add domain %s to routing: %v", domain, err)
 			continue
 		}
@@ -145,13 +145,13 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 	// Connect WARP
 	log.Println("Connecting WARP...")
-	if _, err := runCommand("warp-cli", "connect"); err != nil {
+	if _, err := runCommand("warp-cli", "--accept-tos", "connect"); err != nil {
 		return fmt.Errorf("failed to connect WARP: %v", err)
 	}
 
 	// Enable always-on mode
 	log.Println("Enabling always-on mode...")
-	if _, err := runCommand("warp-cli", "preferences", "set", "auto-connect", "true"); err != nil {
+	if _, err := runCommand("warp-cli", "--accept-tos", "preferences", "set", "auto-connect", "true"); err != nil {
 		log.Printf("Warning: failed to enable auto-connect: %v", err)
 	}
 
@@ -165,7 +165,7 @@ func GetWARPStatus() (bool, error) {
 		return false, fmt.Errorf("Windows is not supported for WARP status check")
 	}
 
-	output, err := runCommand("warp-cli", "status")
+	output, err := runCommand("warp-cli", "--accept-tos", "status")
 	if err != nil {
 		return false, fmt.Errorf("failed to get WARP status: %v", err)
 	}
