@@ -246,7 +246,20 @@ $(document).ready(function() {
             const firewall_mark = $("#firewall_mark").val();
             const table = $("#table").val();
             const config_file_path = $("#config_file_path").val();
-            const data = {"endpoint_address": endpoint_address, "dns_servers": dns_servers, "mtu": mtu, "persistent_keepalive": persistent_keepalive, "firewall_mark": firewall_mark, "table": table, "config_file_path": config_file_path};
+            const warp_enabled = $("#warpEnabled").is(":checked");
+            const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
+            
+            const data = {
+                "endpoint_address": endpoint_address, 
+                "dns_servers": dns_servers, 
+                "mtu": mtu, 
+                "persistent_keepalive": persistent_keepalive, 
+                "firewall_mark": firewall_mark, 
+                "table": table, 
+                "config_file_path": config_file_path,
+                "warp_enabled": warp_enabled,
+                "warp_domains": warp_domains
+            };
 
             $.ajax({
                 cache: false,
