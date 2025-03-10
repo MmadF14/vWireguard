@@ -1061,6 +1061,9 @@ func WireGuardServer(db store.IStore) echo.HandlerFunc {
 		server, err := db.GetServer()
 		if err != nil {
 			log.Error("Cannot get server config: ", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot get server config: %v", err),
+			})
 		}
 
 		return c.Render(http.StatusOK, "server.html", map[string]interface{}{
