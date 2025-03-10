@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/MmadF14/vwireguard/model"
+	"github.com/labstack/gommon/log"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
@@ -25,64 +26,86 @@ func init() {
 
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
+	log.Debug("Initializing system status")
 	status := &model.SystemStatus{}
 
 	// CPU Info
+	log.Debug("Getting CPU info")
 	cpuCores, err := cpu.Counts(true)
-	if err == nil {
+	if err != nil {
+		log.Warnf("Failed to get CPU cores: %v", err)
+	} else {
 		status.CPU.Cores = cpuCores
 	}
 
 	cpuPercent, err := cpu.Percent(0, false)
-	if err == nil && len(cpuPercent) > 0 {
+	if err != nil {
+		log.Warnf("Failed to get CPU percent: %v", err)
+	} else if len(cpuPercent) > 0 {
 		status.CPU.Used = cpuPercent[0]
 	}
 
 	// Memory Info
+	log.Debug("Getting memory info")
 	memInfo, err := mem.VirtualMemory()
-	if err == nil {
+	if err != nil {
+		log.Warnf("Failed to get memory info: %v", err)
+	} else {
 		status.Memory.Total = memInfo.Total
 		status.Memory.Used = memInfo.Used
 		status.Memory.Free = memInfo.Free
 	}
 
 	// Swap Info
+	log.Debug("Getting swap info")
 	swapInfo, err := mem.SwapMemory()
-	if err == nil {
+	if err != nil {
+		log.Warnf("Failed to get swap info: %v", err)
+	} else {
 		status.Swap.Total = swapInfo.Total
 		status.Swap.Used = swapInfo.Used
 		status.Swap.Free = swapInfo.Free
 	}
 
 	// Disk Info
+	log.Debug("Getting disk info")
 	diskInfo, err := disk.Usage("/")
-	if err == nil {
+	if err != nil {
+		log.Warnf("Failed to get disk info: %v", err)
+	} else {
 		status.Disk.Total = diskInfo.Total
 		status.Disk.Used = diskInfo.Used
 		status.Disk.Free = diskInfo.Free
 	}
 
 	// Load Average
+	log.Debug("Getting load average")
 	loadInfo, err := load.Avg()
-	if err == nil {
-		status.Load = []float64{loadInfo.Load1, loadInfo.Load5, loadInfo.Load15}
-	} else {
+	if err != nil {
+		log.Warnf("Failed to get load average: %v", err)
 		status.Load = []float64{0, 0, 0}
+	} else {
+		status.Load = []float64{loadInfo.Load1, loadInfo.Load5, loadInfo.Load15}
 	}
 
 	// Uptime
+	log.Debug("Getting uptime")
 	uptime, err := host.Uptime()
-	if err == nil {
+	if err != nil {
+		log.Warnf("Failed to get uptime: %v", err)
+		status.Uptime = "Unknown"
+	} else {
 		hours := uptime / 3600
 		minutes := (uptime % 3600) / 60
 		status.Uptime = fmt.Sprintf("up %d hours, %d minutes", hours, minutes)
-	} else {
-		status.Uptime = "Unknown"
 	}
 
 	// Network Info
+	log.Debug("Getting network info")
 	netStats, err := net.IOCounters(false)
-	if err == nil && len(netStats) > 0 {
+	if err != nil {
+		log.Warnf("Failed to get network stats: %v", err)
+	} else if len(netStats) > 0 {
 		currentTime := time.Now()
 		timeDiff := currentTime.Sub(lastUpdateTime).Seconds()
 
@@ -105,5 +128,6 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	status.Network.IPv4 = true  // Assuming IPv4 is always available
 	status.Network.IPv6 = false // Would need more complex detection
 
+	log.Debugf("System status collected successfully: %+v", status)
 	return status, nil
 }
