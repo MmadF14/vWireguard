@@ -28,7 +28,7 @@ func init() {
 
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
-	fmt.Printf("Starting GetSystemStatus function\n")
+	log.Info("=== GetSystemStatus Started ===")
 
 	// ساخت یک وضعیت ثابت برای تست
 	status := &model.SystemStatus{
@@ -58,7 +58,7 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 		},
 	}
 
-	fmt.Printf("Created test status object successfully\n")
+	log.Info("Test status object created successfully")
 	return status, nil
 }
 
