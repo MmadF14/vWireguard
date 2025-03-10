@@ -1300,25 +1300,25 @@ Wireguard Clients
                                     <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
                                 </div>
                                 <div class="client-actions">
-                                    <a href="download?clientid=${client.id}" class="btn btn-outline-primary">Download</a>
+                                    <a href="download?clientid=${client.id}" class="btn btn-outline-primary">DOWNLOAD</a>
                                     <button type="button" class="btn btn-outline-primary" data-toggle="modal"
                                         data-target="#modal_qr_client" data-clientid="${client.id}"
-                                        data-clientname="${client.name}" ${data.QRCode ? '' : ' disabled'}>QR Code</button>
+                                        data-clientname="${client.name}" ${data.QRCode ? '' : ' disabled'}>QR CODE</button>
                                     <button type="button" class="btn btn-outline-primary" data-toggle="modal"
                                         data-target="#modal_email_client" data-clientid="${client.id}"
-                                        data-clientname="${client.name}">Email</button>`;
+                                        data-clientname="${client.name}">EMAIL</button>`;
                 
                     // Add Telegram button if applicable
                     if (client.telegram_userid) {
                         html += `
                                 <button type="button" class="btn btn-outline-primary" data-toggle="modal"
                                     data-target="#modal_telegram_client" data-clientid="${client.id}"
-                                    data-clientname="${client.name}">Telegram</button>`;
+                                    data-clientname="${client.name}">TELEGRAM</button>`;
                     }
                     
                     html += `
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-more">More</button>
+                                    <button type="button" class="btn btn-more">MORE</button>
                                     <button type="button" class="btn btn-more dropdown-toggle dropdown-icon" 
                                         data-toggle="dropdown">
                                     </button>
@@ -1340,10 +1340,14 @@ Wireguard Clients
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h5 class="m-0">${client.name}</h5>
                                     <div class="${statusClass}">${statusText}</div>
-                                </div>
-                                
-                                <div class="connection-details mb-2">
-                                    <div><i class="fas fa-clock"></i> ${lastHandshakeText}</div>`;
+                                </div>`;
+                
+                    if (client.email) {
+                        html += `<div class="mb-1"><i class="fas fa-envelope"></i> ${client.email}</div>`;
+                    }
+
+                    html += `<div class="connection-details mb-2">
+                                <div><i class="fas fa-clock"></i> ${lastHandshakeText}</div>`;
                 
                     // Show bandwidth details if connected previously
                     if (connectionStatus.received || connectionStatus.transmitted) {
@@ -1354,23 +1358,26 @@ Wireguard Clients
                                     </div>`;
                     }
                     
-                    html += `
-                                </div>
-                                
-                                <div class="client-details">`;
-                
-                    // Client details
-                    if (client.email) {
-                        html += `<div><i class="fas fa-envelope"></i> ${client.email}</div>`;
+                    html += `</div>`;
+
+                    // Show creation and update time
+                    html += `<div class="client-dates">`;
+                    if (client.created_at) {
+                        html += `<div><i class="fas fa-calendar-plus"></i> Created: ${formatDate(new Date(client.created_at))}</div>`;
                     }
+                    if (client.updated_at) {
+                        html += `<div><i class="fas fa-history"></i> Updated: ${formatDate(new Date(client.updated_at))}</div>`;
+                    }
+                    html += `</div>`;
                     
                     // Show quota if set
                     if (client.quota && client.quota > 0) {
                         const usedQuota = client.used_quota || 0;
                         const quotaPercentage = Math.min(100, Math.round((usedQuota / client.quota) * 100));
+                        const remainingBytes = Math.max(0, client.quota - usedQuota);
                         
                         html += `
-                                    <div class="client-quota">
+                                    <div class="client-quota mt-2">
                                         <div class="d-flex justify-content-between">
                                             <span><i class="fas fa-database"></i> Quota: ${formatBytes(usedQuota)} / ${formatBytes(client.quota)}</span>
                                             <span>${quotaPercentage}%</span>
@@ -1378,7 +1385,10 @@ Wireguard Clients
                                         <div class="progress progress-sm">
                                             <div class="progress-bar ${quotaPercentage > 80 ? 'bg-danger' : 'bg-primary'}" style="width: ${quotaPercentage}%"></div>
                                         </div>
+                                        <small class="text-muted">Remaining: ${formatBytes(remainingBytes)}</small>
                                     </div>`;
+                    } else {
+                        html += `<div class="mt-2"><i class="fas fa-database"></i> <span class="text-success">Unlimited</span></div>`;
                     }
                     
                     // Show expiration if set
@@ -1387,14 +1397,25 @@ Wireguard Clients
                         const now = new Date();
                         const isExpired = expirationDate < now;
                         
+                        // Calculate days remaining
+                        const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+                        const expiryText = daysRemaining > 0 ? 
+                            `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` : 
+                            `Expired: ${formatDate(expirationDate)}`;
+                        
                         html += `
                                     <div class="client-expiry mt-2">
                                         <i class="fas fa-calendar-alt"></i> 
                                         <span class="${isExpired ? 'text-danger' : ''}">
-                                            ${isExpired ? 'Expired' : 'Expires'}: ${formatDate(expirationDate)}
+                                            ${expiryText}
                                         </span>
                                     </div>`;
+                    } else {
+                        html += `<div class="mt-2"><i class="fas fa-calendar-alt"></i> <span class="text-success">Never expires</span></div>`;
                     }
+                    
+                    // Show DNS setting
+                    html += `<div class="mt-2"><i class="fas fa-server" style="opacity: ${client.use_server_dns ? '1.0' : '0.5'}"></i> DNS ${client.use_server_dns ? 'enabled' : 'disabled'}</div>`;
                     
                     // Additional notes
                     if (client.additional_notes) {
@@ -1404,12 +1425,9 @@ Wireguard Clients
                                     </div>`;
                     }
                     
-                    html += `
-                                </div>`;
-                    
                     // IP allocation 
                     if (client.allocated_ips && Array.isArray(client.allocated_ips) && client.allocated_ips.length > 0) {
-                        html += `<div class="mt-2"><strong>IP Allocation</strong></div>`;
+                        html += `<div class="mt-3"><strong>IP Allocation</strong></div>`;
                         client.allocated_ips.forEach(function(ip) {
                             if (ip) {
                                 html += `<span class="ip-allocation">${ip}</span>`;
@@ -1418,9 +1436,9 @@ Wireguard Clients
                     }
                     
                     html += `
+                                </div>
                             </div>
-                        </div>
-                    </div>`;
+                        </div>`;
                     
                     clientList.append(html);
                 } catch (error) {
