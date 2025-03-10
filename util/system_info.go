@@ -1,223 +1,115 @@
 package util
 
 import (
-	"fmt"
+	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/MmadF14/vwireguard/model"
-	"github.com/labstack/gommon/log"
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/host"
-	"github.com/shirou/gopsutil/v3/load"
-	"github.com/shirou/gopsutil/v3/mem"
-	"github.com/shirou/gopsutil/v3/net"
 )
 
 var (
-	lastNetStats   map[string]net.IOCountersStat
+	lastNetStats   map[string]uint64
 	lastUpdateTime time.Time
 )
 
 func init() {
-	lastNetStats = make(map[string]net.IOCountersStat)
+	lastNetStats = make(map[string]uint64)
 	lastUpdateTime = time.Now()
 }
 
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
 	status := &model.SystemStatus{}
-	var err error
 
-	// Get CPU info with error handling
-	if err = getCPUInfo(&status.CPU); err != nil {
-		status.CPU = model.CPUInfo{
-			Cores: 0,
-			Used:  0,
+	// CPU Info
+	if out, err := exec.Command("sh", "-c", "grep -c processor /proc/cpuinfo").Output(); err == nil {
+		if cores, err := strconv.Atoi(strings.TrimSpace(string(out))); err == nil {
+			status.CPU.Cores = cores
 		}
-		log.Warn("Failed to get CPU info:", err)
 	}
-
-	// Get memory info with error handling
-	if err = getMemoryInfo(&status.Memory); err != nil {
-		status.Memory = model.MemoryInfo{
-			Total: 0,
-			Used:  0,
-			Free:  0,
+	if out, err := exec.Command("sh", "-c", "top -bn1 | grep 'Cpu(s)' | awk '{print $2}'").Output(); err == nil {
+		if used, err := strconv.ParseFloat(strings.TrimSpace(string(out)), 64); err == nil {
+			status.CPU.Used = used
 		}
-		log.Warn("Failed to get memory info:", err)
 	}
 
-	// Get swap info with error handling
-	if err = getSwapInfo(&status.Swap); err != nil {
-		status.Swap = model.SwapInfo{
-			Total: 0,
-			Used:  0,
-			Free:  0,
-		}
-		log.Warn("Failed to get swap info:", err)
-	}
-
-	// Get disk info with error handling
-	if err = getDiskInfo(&status.Disk); err != nil {
-		status.Disk = model.DiskInfo{
-			Total: 0,
-			Used:  0,
-			Free:  0,
-		}
-		log.Warn("Failed to get disk info:", err)
-	}
-
-	// Get system load with error handling
-	if err = getSystemLoad(&status.Load); err != nil {
-		status.Load = []float64{0, 0, 0}
-		log.Warn("Failed to get system load:", err)
-	}
-
-	// Get uptime with error handling
-	if err = getUptime(&status.Uptime); err != nil {
-		status.Uptime = "Unknown"
-		log.Warn("Failed to get uptime:", err)
-	}
-
-	// Get network info with error handling
-	if err = getNetworkInfo(&status.Network); err != nil {
-		status.Network = model.NetworkInfo{
-			UploadSpeed:   0,
-			DownloadSpeed: 0,
-			TotalUpload:   0,
-			TotalDownload: 0,
-			IPv4:          false,
-			IPv6:          false,
-		}
-		log.Warn("Failed to get network info:", err)
-	}
-
-	// Return status even if some components failed
-	return status, nil
-}
-
-func getCPUInfo(info *model.CPUInfo) error {
-	cpus, err := cpu.Info()
-	if err != nil {
-		return err
-	}
-	info.Cores = len(cpus)
-
-	percentage, err := cpu.Percent(0, false)
-	if err != nil {
-		return err
-	}
-	if len(percentage) > 0 {
-		info.Used = percentage[0]
-	}
-	return nil
-}
-
-func getMemoryInfo(info *model.MemoryInfo) error {
-	vm, err := mem.VirtualMemory()
-	if err != nil {
-		return err
-	}
-	info.Total = vm.Total
-	info.Used = vm.Used
-	info.Free = vm.Free
-	return nil
-}
-
-func getSwapInfo(info *model.SwapInfo) error {
-	swap, err := mem.SwapMemory()
-	if err != nil {
-		return err
-	}
-	info.Total = swap.Total
-	info.Used = swap.Used
-	info.Free = swap.Free
-	return nil
-}
-
-func getDiskInfo(info *model.DiskInfo) error {
-	usage, err := disk.Usage("/")
-	if err != nil {
-		return err
-	}
-	info.Total = usage.Total
-	info.Used = usage.Used
-	info.Free = usage.Free
-	return nil
-}
-
-func getSystemLoad(loadAvg *[]float64) error {
-	avg, err := load.Avg()
-	if err != nil {
-		return err
-	}
-	*loadAvg = []float64{avg.Load1, avg.Load5, avg.Load15}
-	return nil
-}
-
-func getUptime(uptime *string) error {
-	hostInfo, err := host.Info()
-	if err != nil {
-		return err
-	}
-	duration := time.Duration(hostInfo.Uptime) * time.Second
-	days := int(duration.Hours() / 24)
-	hours := int(duration.Hours()) % 24
-	minutes := int(duration.Minutes()) % 60
-
-	*uptime = fmt.Sprintf("%dd %dh %dm", days, hours, minutes)
-	return nil
-}
-
-func getNetworkInfo(info *model.NetworkInfo) error {
-	// Get network interfaces statistics
-	netStats, err := net.IOCounters(false)
-	if err != nil {
-		return err
-	}
-
-	if len(netStats) > 0 {
-		currentTime := time.Now()
-		timeDiff := currentTime.Sub(lastUpdateTime).Seconds()
-
-		// Calculate speeds
-		if lastStat, ok := lastNetStats["total"]; ok && timeDiff > 0 {
-			info.UploadSpeed = uint64(float64(netStats[0].BytesSent-lastStat.BytesSent) / timeDiff)
-			info.DownloadSpeed = uint64(float64(netStats[0].BytesRecv-lastStat.BytesRecv) / timeDiff)
-		}
-
-		// Update total values
-		info.TotalUpload = netStats[0].BytesSent
-		info.TotalDownload = netStats[0].BytesRecv
-
-		// Store current values for next calculation
-		lastNetStats["total"] = netStats[0]
-		lastUpdateTime = currentTime
-	}
-
-	// Get network interfaces
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return err
-	}
-
-	// Check for IPv4 and IPv6 support
-	info.IPv4 = false
-	info.IPv6 = false
-	for _, iface := range interfaces {
-		for _, addr := range iface.Addrs {
-			addrStr := addr.String()
-			if addrStr != "" {
-				if addrStr[0] == '[' {
-					info.IPv6 = true
-				} else {
-					info.IPv4 = true
-				}
+	// Memory Info
+	if out, err := exec.Command("sh", "-c", "free -b | grep Mem | awk '{print $2,$3,$4}'").Output(); err == nil {
+		fields := strings.Fields(string(out))
+		if len(fields) == 3 {
+			if total, err := strconv.ParseUint(fields[0], 10, 64); err == nil {
+				status.Memory.Total = total
+			}
+			if used, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
+				status.Memory.Used = used
+			}
+			if free, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
+				status.Memory.Free = free
 			}
 		}
 	}
 
-	// Note: WireGuard ports will be set by the caller
-	return nil
+	// Swap Info
+	if out, err := exec.Command("sh", "-c", "free -b | grep Swap | awk '{print $2,$3,$4}'").Output(); err == nil {
+		fields := strings.Fields(string(out))
+		if len(fields) == 3 {
+			if total, err := strconv.ParseUint(fields[0], 10, 64); err == nil {
+				status.Swap.Total = total
+			}
+			if used, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
+				status.Swap.Used = used
+			}
+			if free, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
+				status.Swap.Free = free
+			}
+		}
+	}
+
+	// Disk Info
+	if out, err := exec.Command("sh", "-c", "df -B1 / | tail -1 | awk '{print $2,$3,$4}'").Output(); err == nil {
+		fields := strings.Fields(string(out))
+		if len(fields) == 3 {
+			if total, err := strconv.ParseUint(fields[0], 10, 64); err == nil {
+				status.Disk.Total = total
+			}
+			if used, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
+				status.Disk.Used = used
+			}
+			if free, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
+				status.Disk.Free = free
+			}
+		}
+	}
+
+	// System Load
+	if out, err := exec.Command("sh", "-c", "cat /proc/loadavg | awk '{print $1,$2,$3}'").Output(); err == nil {
+		fields := strings.Fields(string(out))
+		status.Load = make([]float64, 3)
+		for i := 0; i < 3 && i < len(fields); i++ {
+			if val, err := strconv.ParseFloat(fields[i], 64); err == nil {
+				status.Load[i] = val
+			}
+		}
+	}
+
+	// Uptime
+	if out, err := exec.Command("sh", "-c", "uptime -p").Output(); err == nil {
+		status.Uptime = strings.TrimSpace(string(out))
+	} else {
+		status.Uptime = "Unknown"
+	}
+
+	// Network Info
+	status.Network = model.NetworkInfo{
+		UploadSpeed:   0,
+		DownloadSpeed: 0,
+		TotalUpload:   0,
+		TotalDownload: 0,
+		IPv4:          true, // Default values
+		IPv6:          false,
+	}
+
+	return status, nil
 }
