@@ -1,7 +1,9 @@
 package util
 
 import (
-	"os/exec"
+	"bufio"
+	"fmt"
+	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -19,26 +21,50 @@ func init() {
 	lastUpdateTime = time.Now()
 }
 
+func readFileContent(path string) (string, error) {
+	content, err := ioutil.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(content), nil
+}
+
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
-	status := &model.SystemStatus{}
+	status := &model.SystemStatus{
+		CPU:     model.CPUInfo{},
+		Memory:  model.MemoryInfo{},
+		Swap:    model.SwapInfo{},
+		Disk:    model.DiskInfo{},
+		Load:    make([]float64, 3),
+		Network: model.NetworkInfo{},
+	}
 
 	// CPU Info
-	if out, err := exec.Command("/usr/bin/grep", "-c", "processor", "/proc/cpuinfo").Output(); err == nil {
-		if cores, err := strconv.Atoi(strings.TrimSpace(string(out))); err == nil {
-			status.CPU.Cores = cores
+	if content, err := readFileContent("/proc/cpuinfo"); err == nil {
+		cores := 0
+		for _, line := range strings.Split(content, "\n") {
+			if strings.HasPrefix(line, "processor") {
+				cores++
+			}
 		}
+		status.CPU.Cores = cores
 	}
-	if out, err := exec.Command("/usr/bin/top", "-bn1").Output(); err == nil {
-		for _, line := range strings.Split(string(out), "\n") {
-			if strings.Contains(line, "Cpu(s)") {
+
+	// CPU Usage
+	if content, err := readFileContent("/proc/stat"); err == nil {
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			if strings.HasPrefix(line, "cpu ") {
 				fields := strings.Fields(line)
-				for i, field := range fields {
-					if field == "id," && i > 0 {
-						if idle, err := strconv.ParseFloat(fields[i-1], 64); err == nil {
-							status.CPU.Used = 100.0 - idle
-							break
-						}
+				if len(fields) >= 8 {
+					user, _ := strconv.ParseUint(fields[1], 10, 64)
+					nice, _ := strconv.ParseUint(fields[2], 10, 64)
+					system, _ := strconv.ParseUint(fields[3], 10, 64)
+					idle, _ := strconv.ParseUint(fields[4], 10, 64)
+					total := user + nice + system + idle
+					if total > 0 {
+						status.CPU.Used = float64(user+nice+system) * 100.0 / float64(total)
 					}
 				}
 				break
@@ -47,84 +73,54 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	}
 
 	// Memory Info
-	if out, err := exec.Command("/usr/bin/free", "-b").Output(); err == nil {
-		lines := strings.Split(string(out), "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, "Mem:") {
+	if content, err := readFileContent("/proc/meminfo"); err == nil {
+		var total, free, available uint64
+		scanner := bufio.NewScanner(strings.NewReader(content))
+		for scanner.Scan() {
+			line := scanner.Text()
+			if strings.HasPrefix(line, "MemTotal:") {
 				fields := strings.Fields(line)
-				if len(fields) >= 4 {
-					if total, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
-						status.Memory.Total = total
-					}
-					if used, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
-						status.Memory.Used = used
-					}
-					if free, err := strconv.ParseUint(fields[3], 10, 64); err == nil {
-						status.Memory.Free = free
-					}
+				if len(fields) >= 2 {
+					total, _ = strconv.ParseUint(fields[1], 10, 64)
+					total *= 1024 // Convert from KB to bytes
 				}
-				break
-			}
-		}
-	}
-
-	// Swap Info
-	if out, err := exec.Command("/usr/bin/free", "-b").Output(); err == nil {
-		lines := strings.Split(string(out), "\n")
-		for _, line := range lines {
-			if strings.HasPrefix(line, "Swap:") {
+			} else if strings.HasPrefix(line, "MemFree:") {
 				fields := strings.Fields(line)
-				if len(fields) >= 4 {
-					if total, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
-						status.Swap.Total = total
-					}
-					if used, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
-						status.Swap.Used = used
-					}
-					if free, err := strconv.ParseUint(fields[3], 10, 64); err == nil {
-						status.Swap.Free = free
-					}
+				if len(fields) >= 2 {
+					free, _ = strconv.ParseUint(fields[1], 10, 64)
+					free *= 1024
 				}
-				break
-			}
-		}
-	}
-
-	// Disk Info
-	if out, err := exec.Command("/usr/bin/df", "-B1", "/").Output(); err == nil {
-		lines := strings.Split(string(out), "\n")
-		if len(lines) >= 2 {
-			fields := strings.Fields(lines[1])
-			if len(fields) >= 4 {
-				if total, err := strconv.ParseUint(fields[1], 10, 64); err == nil {
-					status.Disk.Total = total
-				}
-				if used, err := strconv.ParseUint(fields[2], 10, 64); err == nil {
-					status.Disk.Used = used
-				}
-				if free, err := strconv.ParseUint(fields[3], 10, 64); err == nil {
-					status.Disk.Free = free
+			} else if strings.HasPrefix(line, "MemAvailable:") {
+				fields := strings.Fields(line)
+				if len(fields) >= 2 {
+					available, _ = strconv.ParseUint(fields[1], 10, 64)
+					available *= 1024
 				}
 			}
 		}
+		status.Memory.Total = total
+		status.Memory.Free = available
+		status.Memory.Used = total - available
 	}
 
-	// System Load
-	if out, err := exec.Command("/usr/bin/cat", "/proc/loadavg").Output(); err == nil {
-		fields := strings.Fields(string(out))
-		status.Load = make([]float64, 3)
+	// Load Average
+	if content, err := readFileContent("/proc/loadavg"); err == nil {
+		fields := strings.Fields(content)
 		for i := 0; i < 3 && i < len(fields); i++ {
-			if val, err := strconv.ParseFloat(fields[i], 64); err == nil {
-				status.Load[i] = val
-			}
+			status.Load[i], _ = strconv.ParseFloat(fields[i], 64)
 		}
 	}
 
 	// Uptime
-	if out, err := exec.Command("/usr/bin/uptime", "-p").Output(); err == nil {
-		status.Uptime = strings.TrimSpace(string(out))
-	} else {
-		status.Uptime = "Unknown"
+	if content, err := readFileContent("/proc/uptime"); err == nil {
+		fields := strings.Fields(content)
+		if len(fields) > 0 {
+			if uptime, err := strconv.ParseFloat(fields[0], 64); err == nil {
+				hours := int(uptime / 3600)
+				minutes := int((uptime - float64(hours)*3600) / 60)
+				status.Uptime = fmt.Sprintf("up %d hours, %d minutes", hours, minutes)
+			}
+		}
 	}
 
 	// Network Info (simplified)
