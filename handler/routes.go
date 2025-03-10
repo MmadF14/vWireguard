@@ -1528,6 +1528,7 @@ func SystemStatusPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "system_status.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "system-status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
+			"basePath": util.BasePath,
 		})
 	}
 }
