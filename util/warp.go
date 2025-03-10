@@ -117,33 +117,27 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 	// Initialize WARP
 	log.Println("Initializing WARP...")
-	if _, err := runCommand("warp-cli", "--accept-tos", "init"); err != nil {
+	if _, err := runCommand("warp-cli", "--accept-tos", "registration", "new"); err != nil {
 		log.Printf("Warning: WARP initialization failed: %v", err)
 	}
 
-	// Register WARP
-	log.Println("Registering WARP...")
-	if _, err := runCommand("warp-cli", "--accept-tos", "register"); err != nil {
-		log.Printf("Warning: WARP registration failed: %v", err)
-	}
-
-	// Set mode to WARP
+	// Enable WARP mode
 	log.Println("Setting WARP mode...")
-	if _, err := runCommand("warp-cli", "set-mode", "warp"); err != nil {
+	if _, err := runCommand("warp-cli", "mode", "warp"); err != nil {
 		return fmt.Errorf("failed to set WARP mode: %v", err)
 	}
 
 	// Clear existing rules
 	log.Println("Clearing existing rules...")
-	if _, err := runCommand("warp-cli", "delete", "rules"); err != nil {
+	if _, err := runCommand("warp-cli", "routing", "clear"); err != nil {
 		log.Printf("Warning: failed to clear rules: %v", err)
 	}
 
 	// Add domains to split tunnel
 	log.Println("Adding domains to split tunnel...")
 	for _, domain := range domains {
-		if _, err := runCommand("warp-cli", "add-excluded-route", domain); err != nil {
-			log.Printf("Warning: failed to add domain %s to excluded routes: %v", domain, err)
+		if _, err := runCommand("warp-cli", "routing", "add", domain); err != nil {
+			log.Printf("Warning: failed to add domain %s to routing: %v", domain, err)
 			continue
 		}
 		log.Printf("Added domain: %s", domain)
@@ -157,8 +151,8 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 	// Enable always-on mode
 	log.Println("Enabling always-on mode...")
-	if _, err := runCommand("warp-cli", "enable-always-on"); err != nil {
-		log.Printf("Warning: failed to enable always-on mode: %v", err)
+	if _, err := runCommand("warp-cli", "preferences", "set", "auto-connect", "true"); err != nil {
+		log.Printf("Warning: failed to enable auto-connect: %v", err)
 	}
 
 	log.Println("WARP configuration completed successfully")
