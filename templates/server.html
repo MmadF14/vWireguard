@@ -128,275 +128,128 @@ Wireguard Server Settings
     <!-- /.modal-dialog -->
 </div>
 <!-- /.modal -->
+{{end}}
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">WARP Settings</h3>
-    </div>
-    <div class="card-body">
-        <form id="warp-settings-form">
-            <div class="form-group">
-                <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="warp-enabled" name="warp_enabled">
-                    <label class="custom-control-label" for="warp-enabled">Enable WARP</label>
-                </div>
-            </div>
-            
-            <div class="form-group warp-settings" style="display: none;">
-                <label for="warp-domains">Domains to Route through WARP</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" id="warp-domain-input" placeholder="Enter domain (e.g. google.com)">
-                    <div class="input-group-append">
-                        <button type="button" class="btn btn-primary" id="add-warp-domain">Add</button>
-                    </div>
-                </div>
-                <small class="form-text text-muted">Enter domains that should be routed through WARP (one per line)</small>
-                <div class="mt-2">
-                    <ul class="list-group" id="warp-domains-list">
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="form-group warp-settings" style="display: none;">
-                <label for="warp-excludes">Domains to Exclude from WARP</label>
-                <div class="input-group">
-                    <input type="text" class="form-control" id="warp-exclude-input" placeholder="Enter domain to exclude">
-                    <div class="input-group-append">
-                        <button type="button" class="btn btn-primary" id="add-warp-exclude">Add</button>
-                    </div>
-                </div>
-                <small class="form-text text-muted">Enter domains that should be excluded from WARP routing (one per line)</small>
-                <div class="mt-2">
-                    <ul class="list-group" id="warp-excludes-list">
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="form-group warp-settings" style="display: none;">
-                <button type="submit" class="btn btn-primary">Save WARP Settings</button>
-            </div>
-        </form>
-    </div>
-</div>
+{{define "bottom_js"}}
+    <script>
+        function submitServerInterfaceSetting() {
+            const addresses = $("#addresses").val().split(",");
+            const listen_port = $("#listen_port").val();
+            const post_up = $("#post_up").val();
+            const pre_down = $("#pre_down").val();
+            const post_down = $("#post_down").val();
+            const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down};
 
-<script>
-    function submitServerInterfaceSetting() {
-        const addresses = $("#addresses").val().split(",");
-        const listen_port = $("#listen_port").val();
-        const post_up = $("#post_up").val();
-        const pre_down = $("#pre_down").val();
-        const post_down = $("#post_down").val();
-        const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down};
-
-        $.ajax({
-            cache: false,
-            method: 'POST',
-            url: '{{.basePath}}/wg-server/interfaces',
-            dataType: 'json',
-            contentType: "application/json",
-            data: JSON.stringify(data),
-            success: function(data) {
-                $("#modal_new_client").modal('hide');
-                toastr.success('Updated Wireguard server interface addresses successfully');
-            },
-            error: function(jqXHR, exception) {
-                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                toastr.error(responseJson['message']);
-            }
-        });
-    }
-</script>
-<script>
-    // Wireguard Interface Addresses tag input
-    $("#addresses").tagsInput({
-        'width': '100%',
-        // 'height': '75%',
-        'interactive': true,
-        'defaultText': 'Add More',
-        'removeWithBackspace': true,
-        'minChars': 0,
-        'minInputWidth': '100%',
-        'placeholderColor': '#666666'
-    });
-
-    // Load server addresses to the form
-    {{range .serverInterface.Addresses}}
-    $("#addresses").removeTag('{{.}}');
-    $("#addresses").addTag('{{.}}');
-    {{end}}
-
-    // Wireguard Interface Addresses form validation
-    $(document).ready(function () {
-        $.validator.setDefaults({
-            submitHandler: function () {
-                submitServerInterfaceSetting();
-            }
-        });
-        $("#frm_server_interface").validate({
-            rules: {
-                listen_port: {
-                    required: true,
-                    digits: true,
-                    range: [1, 65535]
-                }
-            },
-            messages: {
-                listen_port: {
-                    required: "Please enter a port",
-                    digits: "Port must be an integer",
-                    range: "Port must be in range 1..65535"
-                }
-            },
-            errorElement: 'span',
-            errorPlacement: function (error, element) {
-                error.addClass('invalid-feedback');
-                element.closest('.form-group').append(error);
-            },
-            highlight: function (element, errorClass, validClass) {
-                $(element).addClass('is-invalid');
-            },
-            unhighlight: function (element, errorClass, validClass) {
-                $(element).removeClass('is-invalid');
-            }
-        });
-    });
-
-    // Wireguard Key Pair generation confirmation button
-    $(document).ready(function () {
-        $("#btn_generate_confirm").click(function () {
             $.ajax({
                 cache: false,
                 method: 'POST',
-                url: '{{.basePath}}/wg-server/keypair',
+                url: '{{.basePath}}/wg-server/interfaces',
                 dataType: 'json',
                 contentType: "application/json",
+                data: JSON.stringify(data),
                 success: function(data) {
-                    $("#modal_keypair_confirmation").modal('hide');
-                    toastr.success('Generate new key pair successfully');
-                    // update the UI
-                    $("#private_key").val(data['private_key']);
-                    $("#public_key").val(data['public_key']);
+                    $("#modal_new_client").modal('hide');
+                    toastr.success('Updated Wireguard server interface addresses successfully');
                 },
                 error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
+        }
+    </script>
+    <script>
+        // Wireguard Interface Addresses tag input
+        $("#addresses").tagsInput({
+            'width': '100%',
+            // 'height': '75%',
+            'interactive': true,
+            'defaultText': 'Add More',
+            'removeWithBackspace': true,
+            'minChars': 0,
+            'minInputWidth': '100%',
+            'placeholderColor': '#666666'
         });
-    });
 
-    // Show private key button event
-    $(document).ready(function () {
-        $("#btn_show_private_key").click(function () {
-            const privateElement = document.getElementById("private_key");
-            const btnElement = document.getElementById("btn_show_private_key");
-            if (privateElement.type === 'password') {
-                privateElement.type = 'text';
-                btnElement.innerText = 'Hide';
-            } else {
-                privateElement.type = 'password';
-                btnElement.innerText = 'Show';
-            }
-        });
-    });
-</script>
+        // Load server addresses to the form
+        {{range .serverInterface.Addresses}}
+        $("#addresses").removeTag('{{.}}');
+        $("#addresses").addTag('{{.}}');
+        {{end}}
 
-<script>
-$(document).ready(function() {
-    // Load current WARP settings
-    $.get('/api/settings/warp', function(data) {
-        if (data.success) {
-            $('#warp-enabled').prop('checked', data.settings.warp_enabled);
-            if (data.settings.warp_enabled) {
-                $('.warp-settings').show();
-            }
-            
-            // Load domains
-            data.settings.warp_domains.forEach(function(domain) {
-                addDomainToList(domain, 'warp-domains-list');
-            });
-            
-            // Load excludes
-            data.settings.warp_exclude.forEach(function(domain) {
-                addDomainToList(domain, 'warp-excludes-list');
-            });
-        }
-    });
-    
-    // Toggle WARP settings visibility
-    $('#warp-enabled').change(function() {
-        $('.warp-settings').toggle(this.checked);
-    });
-    
-    // Add domain to WARP list
-    $('#add-warp-domain').click(function() {
-        const domain = $('#warp-domain-input').val().trim();
-        if (domain) {
-            addDomainToList(domain, 'warp-domains-list');
-            $('#warp-domain-input').val('');
-        }
-    });
-    
-    // Add domain to exclude list
-    $('#add-warp-exclude').click(function() {
-        const domain = $('#warp-exclude-input').val().trim();
-        if (domain) {
-            addDomainToList(domain, 'warp-excludes-list');
-            $('#warp-exclude-input').val('');
-        }
-    });
-    
-    // Helper function to add domain to list
-    function addDomainToList(domain, listId) {
-        const item = $('<li class="list-group-item d-flex justify-content-between align-items-center"></li>')
-            .text(domain)
-            .append(
-                $('<button type="button" class="btn btn-danger btn-sm">Remove</button>')
-                    .click(function() {
-                        item.remove();
-                    })
-            );
-        $(`#${listId}`).append(item);
-    }
-    
-    // Save WARP settings
-    $('#warp-settings-form').submit(function(e) {
-        e.preventDefault();
-        
-        const settings = {
-            warp_enabled: $('#warp-enabled').is(':checked'),
-            warp_domains: [],
-            warp_exclude: []
-        };
-        
-        // Collect domains
-        $('#warp-domains-list li').each(function() {
-            settings.warp_domains.push($(this).text());
-        });
-        
-        // Collect excludes
-        $('#warp-excludes-list li').each(function() {
-            settings.warp_exclude.push($(this).text());
-        });
-        
-        // Save settings
-        $.ajax({
-            url: '/api/settings/warp',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(settings),
-            success: function(response) {
-                if (response.success) {
-                    toastr.success('WARP settings saved successfully');
-                } else {
-                    toastr.error(response.message || 'Failed to save WARP settings');
+        // Wireguard Interface Addresses form validation
+        $(document).ready(function () {
+            $.validator.setDefaults({
+                submitHandler: function () {
+                    submitServerInterfaceSetting();
                 }
-            },
-            error: function() {
-                toastr.error('Failed to save WARP settings');
-            }
+            });
+            $("#frm_server_interface").validate({
+                rules: {
+                    listen_port: {
+                        required: true,
+                        digits: true,
+                        range: [1, 65535]
+                    }
+                },
+                messages: {
+                    listen_port: {
+                        required: "Please enter a port",
+                        digits: "Port must be an integer",
+                        range: "Port must be in range 1..65535"
+                    }
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                }
+            });
         });
-    });
-});
-</script>
+
+        // Wireguard Key Pair generation confirmation button
+        $(document).ready(function () {
+            $("#btn_generate_confirm").click(function () {
+                $.ajax({
+                    cache: false,
+                    method: 'POST',
+                    url: '{{.basePath}}/wg-server/keypair',
+                    dataType: 'json',
+                    contentType: "application/json",
+                    success: function(data) {
+                        $("#modal_keypair_confirmation").modal('hide');
+                        toastr.success('Generate new key pair successfully');
+                        // update the UI
+                        $("#private_key").val(data['private_key']);
+                        $("#public_key").val(data['public_key']);
+                    },
+                    error: function(jqXHR, exception) {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        toastr.error(responseJson['message']);
+                    }
+                });
+            });
+        });
+
+        // Show private key button event
+        $(document).ready(function () {
+            $("#btn_show_private_key").click(function () {
+                const privateElement = document.getElementById("private_key");
+                const btnElement = document.getElementById("btn_show_private_key");
+                if (privateElement.type === 'password') {
+                    privateElement.type = 'text';
+                    btnElement.innerText = 'Hide';
+                } else {
+                    privateElement.type = 'password';
+                    btnElement.innerText = 'Show';
+                }
+            });
+        });
+    </script>
 {{end}}

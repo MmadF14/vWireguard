@@ -289,16 +289,6 @@ func main() {
 	app.GET(util.BasePath+"/health", handler.Health())
 	app.GET(util.BasePath+"/favicon.ico", handler.Favicon())
 
-	// API routes
-	apiGroup := app.Group("/api")
-	{
-		// ... existing routes ...
-
-		// WARP settings
-		apiGroup.GET("/settings/warp", handler.GetWARPSettings(db))
-		apiGroup.POST("/settings/warp", handler.UpdateWARPSettings(db))
-	}
-
 	// Start the server
 	app.Start(util.BindAddress)
 }

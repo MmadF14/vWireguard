@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// GlobalSetting represents global settings
+// GlobalSetting model
 type GlobalSetting struct {
 	EndpointAddress     string    `json:"endpoint_address"`
 	DNSServers          []string  `json:"dns_servers"`
@@ -14,12 +14,4 @@ type GlobalSetting struct {
 	Table               string    `json:"table"`
 	ConfigFilePath      string    `json:"config_file_path"`
 	UpdatedAt           time.Time `json:"updated_at"`
-
-	// WARP settings
-	WARPEnabled bool     `json:"warp_enabled"`
-	WARPDomains []string `json:"warp_domains"`
-	WARPExclude []string `json:"warp_exclude"` // Domains to exclude from WARP
-
-	// Internal use
-	Hash string `json:"-"`
 }
