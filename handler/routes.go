@@ -1535,30 +1535,21 @@ func SystemStatusPage() echo.HandlerFunc {
 // SystemStatus handler returns system status information
 func SystemStatus() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		log.Info("درخواست دریافت وضعیت سیستم دریافت شد")
+		fmt.Printf("Starting SystemStatus handler\n")
+		fmt.Printf("Current user: %s\n", currentUser(c))
+		fmt.Printf("Is admin: %v\n", isAdmin(c))
 
-		// بررسی وضعیت کاربر
-		log.Infof("کاربر: %s, ادمین: %v", currentUser(c), isAdmin(c))
-
+		fmt.Printf("Attempting to get system status...\n")
 		status, err := util.GetSystemStatus()
 		if err != nil {
-			log.Errorf("خطا در دریافت وضعیت سیستم: %v", err)
+			fmt.Printf("Error getting system status: %v\n", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
 				false,
-				fmt.Sprintf("خطا در دریافت وضعیت سیستم: %v", err),
+				fmt.Sprintf("Error getting system status: %v", err),
 			})
 		}
 
-		log.Info("وضعیت سیستم با موفقیت دریافت شد")
-
-		// تبدیل به JSON برای لاگ
-		jsonBytes, err := json.Marshal(status)
-		if err != nil {
-			log.Warnf("خطا در تبدیل وضعیت به JSON: %v", err)
-		} else {
-			log.Infof("داده‌های وضعیت: %s", string(jsonBytes))
-		}
-
+		fmt.Printf("Successfully retrieved system status\n")
 		return c.JSON(http.StatusOK, status)
 	}
 }
