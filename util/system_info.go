@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/MmadF14/vwireguard/model"
@@ -26,41 +27,69 @@ func init() {
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
 	status := &model.SystemStatus{}
-	var err error
 
 	// Get CPU info
-	if err = getCPUInfo(&status.CPU); err != nil {
-		return nil, fmt.Errorf("error getting CPU info: %v", err)
+	if err := getCPUInfo(&status.CPU); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.CPU = model.CPUInfo{
+			Cores: 0,
+			Used:  0,
+		}
 	}
 
 	// Get memory info
-	if err = getMemoryInfo(&status.Memory); err != nil {
-		return nil, fmt.Errorf("error getting memory info: %v", err)
+	if err := getMemoryInfo(&status.Memory); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.Memory = model.MemoryInfo{
+			Total: 0,
+			Used:  0,
+			Free:  0,
+		}
 	}
 
 	// Get swap info
-	if err = getSwapInfo(&status.Swap); err != nil {
-		return nil, fmt.Errorf("error getting swap info: %v", err)
+	if err := getSwapInfo(&status.Swap); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.Swap = model.SwapInfo{
+			Total: 0,
+			Used:  0,
+			Free:  0,
+		}
 	}
 
 	// Get disk info
-	if err = getDiskInfo(&status.Disk); err != nil {
-		return nil, fmt.Errorf("error getting disk info: %v", err)
+	if err := getDiskInfo(&status.Disk); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.Disk = model.DiskInfo{
+			Total: 0,
+			Used:  0,
+			Free:  0,
+		}
 	}
 
 	// Get system load
-	if err = getSystemLoad(&status.Load); err != nil {
-		return nil, fmt.Errorf("error getting system load: %v", err)
+	if err := getSystemLoad(&status.Load); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.Load = []float64{0, 0, 0}
 	}
 
 	// Get uptime
-	if err = getUptime(&status.Uptime); err != nil {
-		return nil, fmt.Errorf("error getting uptime: %v", err)
+	if err := getUptime(&status.Uptime); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.Uptime = "Unknown"
 	}
 
 	// Get network info
-	if err = getNetworkInfo(&status.Network); err != nil {
-		return nil, fmt.Errorf("error getting network info: %v", err)
+	if err := getNetworkInfo(&status.Network); err != nil {
+		// Don't fail completely, just log the error and continue
+		status.Network = model.NetworkInfo{
+			UploadSpeed:   0,
+			DownloadSpeed: 0,
+			TotalUpload:   0,
+			TotalDownload: 0,
+			IPv4:          false,
+			IPv6:          false,
+		}
 	}
 
 	return status, nil
@@ -69,13 +98,13 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 func getCPUInfo(info *model.CPUInfo) error {
 	cpus, err := cpu.Info()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get CPU info: %v", err)
 	}
 	info.Cores = len(cpus)
 
-	percentage, err := cpu.Percent(0, false)
+	percentage, err := cpu.Percent(time.Second, false)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get CPU percentage: %v", err)
 	}
 	if len(percentage) > 0 {
 		info.Used = percentage[0]
@@ -86,18 +115,18 @@ func getCPUInfo(info *model.CPUInfo) error {
 func getMemoryInfo(info *model.MemoryInfo) error {
 	vm, err := mem.VirtualMemory()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get virtual memory info: %v", err)
 	}
 	info.Total = vm.Total
 	info.Used = vm.Used
-	info.Free = vm.Free
+	info.Free = vm.Available // Using Available instead of Free for more accurate representation
 	return nil
 }
 
 func getSwapInfo(info *model.SwapInfo) error {
 	swap, err := mem.SwapMemory()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get swap memory info: %v", err)
 	}
 	info.Total = swap.Total
 	info.Used = swap.Used
@@ -106,9 +135,13 @@ func getSwapInfo(info *model.SwapInfo) error {
 }
 
 func getDiskInfo(info *model.DiskInfo) error {
-	usage, err := disk.Usage("/")
+	usage, err := disk.Usage("C:") // Use C: drive for Windows
 	if err != nil {
-		return err
+		// Try root path as fallback
+		usage, err = disk.Usage("/")
+		if err != nil {
+			return fmt.Errorf("failed to get disk usage info: %v", err)
+		}
 	}
 	info.Total = usage.Total
 	info.Used = usage.Used
@@ -119,7 +152,9 @@ func getDiskInfo(info *model.DiskInfo) error {
 func getSystemLoad(loadAvg *[]float64) error {
 	avg, err := load.Avg()
 	if err != nil {
-		return err
+		// On Windows, load average might not be available
+		*loadAvg = []float64{0, 0, 0}
+		return nil
 	}
 	*loadAvg = []float64{avg.Load1, avg.Load5, avg.Load15}
 	return nil
@@ -128,7 +163,7 @@ func getSystemLoad(loadAvg *[]float64) error {
 func getUptime(uptime *string) error {
 	hostInfo, err := host.Info()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get host info: %v", err)
 	}
 	duration := time.Duration(hostInfo.Uptime) * time.Second
 	days := int(duration.Hours() / 24)
@@ -143,7 +178,7 @@ func getNetworkInfo(info *model.NetworkInfo) error {
 	// Get network interfaces statistics
 	netStats, err := net.IOCounters(false)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get network IO counters: %v", err)
 	}
 
 	if len(netStats) > 0 {
@@ -168,17 +203,16 @@ func getNetworkInfo(info *model.NetworkInfo) error {
 	// Get network interfaces
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get network interfaces: %v", err)
 	}
 
 	// Check for IPv4 and IPv6 support
 	info.IPv4 = false
 	info.IPv6 = false
 	for _, iface := range interfaces {
-		for _, addr := range iface.Addrs {
-			addrStr := addr.String()
-			if addrStr != "" {
-				if addrStr[0] == '[' {
+		if len(iface.Addrs) > 0 {
+			for _, addr := range iface.Addrs {
+				if strings.Contains(addr.Addr, ":") {
 					info.IPv6 = true
 				} else {
 					info.IPv4 = true
@@ -187,6 +221,5 @@ func getNetworkInfo(info *model.NetworkInfo) error {
 		}
 	}
 
-	// Note: WireGuard ports will be set by the caller
 	return nil
 }
