@@ -1535,21 +1535,30 @@ func SystemStatusPage() echo.HandlerFunc {
 // SystemStatus handler returns system status information
 func SystemStatus() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		log.Info("شروع دریافت وضعیت سیستم...")
+		log.Info("درخواست دریافت وضعیت سیستم دریافت شد")
+
+		// بررسی وضعیت کاربر
+		log.Infof("کاربر: %s, ادمین: %v", currentUser(c), isAdmin(c))
 
 		status, err := util.GetSystemStatus()
 		if err != nil {
 			log.Errorf("خطا در دریافت وضعیت سیستم: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("خطا در دریافت وضعیت سیستم: %v", err)})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false,
+				fmt.Sprintf("خطا در دریافت وضعیت سیستم: %v", err),
+			})
 		}
 
-		// لاگ کردن اطلاعات برای دیباگ
-		log.Infof("اطلاعات CPU: Cores=%d, Used=%.2f%%", status.CPU.Cores, status.CPU.Used)
-		log.Infof("اطلاعات حافظه: Total=%d, Used=%d, Free=%d", status.Memory.Total, status.Memory.Used, status.Memory.Free)
-		log.Infof("اطلاعات دیسک: Total=%d, Used=%d, Free=%d", status.Disk.Total, status.Disk.Used, status.Disk.Free)
-		log.Infof("اطلاعات شبکه: Upload=%d, Download=%d", status.Network.UploadSpeed, status.Network.DownloadSpeed)
+		log.Info("وضعیت سیستم با موفقیت دریافت شد")
 
-		log.Info("دریافت وضعیت سیستم با موفقیت انجام شد")
+		// تبدیل به JSON برای لاگ
+		jsonBytes, err := json.Marshal(status)
+		if err != nil {
+			log.Warnf("خطا در تبدیل وضعیت به JSON: %v", err)
+		} else {
+			log.Infof("داده‌های وضعیت: %s", string(jsonBytes))
+		}
+
 		return c.JSON(http.StatusOK, status)
 	}
 }

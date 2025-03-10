@@ -28,72 +28,37 @@ func init() {
 
 // GetSystemStatus returns complete system status information
 func GetSystemStatus() (*model.SystemStatus, error) {
-	status := &model.SystemStatus{}
+	log.Info("تست دریافت وضعیت سیستم...")
 
-	// Get CPU info
-	if err := getCPUInfo(&status.CPU); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.CPU = model.CPUInfo{
-			Cores: 0,
-			Used:  0,
-		}
-	}
-
-	// Get memory info
-	if err := getMemoryInfo(&status.Memory); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.Memory = model.MemoryInfo{
-			Total: 0,
-			Used:  0,
-			Free:  0,
-		}
-	}
-
-	// Get swap info
-	if err := getSwapInfo(&status.Swap); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.Swap = model.SwapInfo{
-			Total: 0,
-			Used:  0,
-			Free:  0,
-		}
-	}
-
-	// Get disk info
-	if err := getDiskInfo(&status.Disk); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.Disk = model.DiskInfo{
-			Total: 0,
-			Used:  0,
-			Free:  0,
-		}
-	}
-
-	// Get system load
-	if err := getSystemLoad(&status.Load); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.Load = []float64{0, 0, 0}
-	}
-
-	// Get uptime
-	if err := getUptime(&status.Uptime); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.Uptime = "Unknown"
-	}
-
-	// Get network info
-	if err := getNetworkInfo(&status.Network); err != nil {
-		// Don't fail completely, just log the error and continue
-		status.Network = model.NetworkInfo{
-			UploadSpeed:   0,
-			DownloadSpeed: 0,
-			TotalUpload:   0,
-			TotalDownload: 0,
-			IPv4:          false,
+	// ساخت یک وضعیت ثابت برای تست
+	status := &model.SystemStatus{
+		CPU: model.CPUInfo{
+			Cores: 4,
+			Used:  50.0,
+		},
+		Memory: model.MemoryInfo{
+			Total: 8 * 1024 * 1024 * 1024, // 8GB
+			Used:  4 * 1024 * 1024 * 1024, // 4GB
+			Free:  4 * 1024 * 1024 * 1024, // 4GB
+		},
+		Disk: model.DiskInfo{
+			Total: 100 * 1024 * 1024 * 1024, // 100GB
+			Used:  50 * 1024 * 1024 * 1024,  // 50GB
+			Free:  50 * 1024 * 1024 * 1024,  // 50GB
+		},
+		Load:   []float64{1.0, 1.0, 1.0},
+		Uptime: "1d 2h 30m",
+		Network: model.NetworkInfo{
+			UploadSpeed:   1024 * 1024,             // 1MB/s
+			DownloadSpeed: 2 * 1024 * 1024,         // 2MB/s
+			TotalUpload:   10 * 1024 * 1024 * 1024, // 10GB
+			TotalDownload: 20 * 1024 * 1024 * 1024, // 20GB
+			IPv4:          true,
 			IPv6:          false,
-		}
+		},
 	}
 
+	log.Info("وضعیت تست با موفقیت ساخته شد")
 	return status, nil
 }
 
