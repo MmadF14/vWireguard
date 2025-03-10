@@ -1536,32 +1536,18 @@ func SystemStatusPage() echo.HandlerFunc {
 // SystemStatus handler returns system status information
 func SystemStatus() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		log.Debug("Starting SystemStatus API handler")
-
-		defer func() {
-			if r := recover(); r != nil {
-				log.Errorf("Panic in SystemStatus: %v", r)
-			}
-		}()
-
-		log.Debug("Calling GetSystemStatus")
 		status, err := util.GetSystemStatus()
 		if err != nil {
-			log.Errorf("Error in GetSystemStatus: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": fmt.Sprintf("Failed to retrieve system status: %v", err),
+				"success": false,
+				"error":   "Failed to retrieve system status",
 			})
 		}
 
-		if status == nil {
-			log.Error("GetSystemStatus returned nil status")
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": "System status is nil",
-			})
-		}
-
-		log.Debugf("System status retrieved successfully: %+v", status)
-		return c.JSON(http.StatusOK, status)
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true,
+			"data":    status,
+		})
 	}
 }
 
