@@ -1539,12 +1539,12 @@ func SystemStatus() echo.HandlerFunc {
 		log.Debug("Starting SystemStatus API handler")
 		status, err := util.GetSystemStatus()
 		if err != nil {
-			log.Error("Error in SystemStatus:", err)
+			log.Errorf("Error in SystemStatus: %v", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"error": err.Error(),
+				"error": "Failed to retrieve system status",
 			})
 		}
-		log.Debug("System status retrieved successfully")
+		log.Debugf("System status retrieved successfully: CPU: %v cores, %.2f%% used", status.CPU.Cores, status.CPU.Used)
 		return c.JSON(http.StatusOK, status)
 	}
 }
