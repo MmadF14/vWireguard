@@ -133,11 +133,10 @@ Wireguard Clients
                         <label for="_client_quota" class="control-label">Quota</label>
                         <select class="form-control" id="_quota_preset" onchange="updateQuotaInput()">
                             <option value="">Select Quota</option>
-                            <option value="1">1 GB</option>
-                            <option value="2">2 GB</option>
-                            <option value="5">5 GB</option>
                             <option value="10">10 GB</option>
                             <option value="20">20 GB</option>
+                            <option value="30">30 GB</option>
+                            <option value="40">40 GB</option>
                             <option value="50">50 GB</option>
                             <option value="100">100 GB</option>
                             <option value="200">200 GB</option>
@@ -157,27 +156,20 @@ Wireguard Clients
                     </div>
 
                     <div class="form-group">
-                        <label for="_subnet_ranges" class="control-label">Subnet range</label>
-                        <select id="_subnet_ranges" class="select2"
-                                data-placeholder="Select a subnet range" style="width: 100%;">
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label for="_client_allocated_ips" class="control-label">IP Allocation</label>
                         <input type="text" data-role="tagsinput" class="form-control" id="_client_allocated_ips">
                     </div>
                     <div class="form-group">
-                        <label for="_client_allowed_ips" class="control-label">Allowed IPs</label>
-                        <input type="text" data-role="tagsinput" class="form-control" id="_client_allowed_ips">
-                    </div>
-                    <div class="form-group">
-                        <label for="_client_extra_allowed_ips" class="control-label">Extra Allowed IPs</label>
-                        <input type="text" data-role="tagsinput" class="form-control"
-                               id="_client_extra_allowed_ips">
-                    </div>
-                    <div class="form-group">
                         <label for="_client_endpoint" class="control-label">Endpoint</label>
                         <input type="text" class="form-control" id="_client_endpoint" name="client_endpoint">
+                    </div>
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label for="_client_telegram_userid" class="control-label">Telegram userid</label>
+                        <input type="text" class="form-control" id="_client_telegram_userid" name="_client_telegram_userid">
+                    </div>
+                    <div class="form-group">
+                        <label for="_additional_notes" class="control-label">Notes</label>
+                        <textarea class="form-control" style="min-height: 6rem;" id="_additional_notes" name="_additional_notes" placeholder="Additional notes about this client"></textarea>
                     </div>
                     <div class="form-group">
                         <div class="icheck-primary d-inline">
@@ -220,13 +212,20 @@ Wireguard Clients
                         <summary>
                             <strong>Additional configuration</strong>
                         </summary>
-                        <div class="form-group" style="margin-top: 0.5rem;">
-                            <label for="_client_telegram_userid" class="control-label">Telegram userid</label>
-                            <input type="text" class="form-control" id="_client_telegram_userid" name="_client_telegram_userid">
+                        <div class="form-group">
+                            <label for="_client_allowed_ips" class="control-label">Allowed IPs</label>
+                            <input type="text" data-role="tagsinput" class="form-control" id="_client_allowed_ips">
                         </div>
                         <div class="form-group">
-                            <label for="_additional_notes" class="control-label">Notes</label>
-                            <textarea class="form-control" style="min-height: 6rem;" id="_additional_notes" name="_additional_notes" placeholder="Additional notes about this client"></textarea>
+                            <label for="_client_extra_allowed_ips" class="control-label">Extra Allowed IPs</label>
+                            <input type="text" data-role="tagsinput" class="form-control"
+                                   id="_client_extra_allowed_ips">
+                        </div>
+                        <div class="form-group">
+                            <label for="_subnet_ranges" class="control-label">Subnet range</label>
+                            <select id="_subnet_ranges" class="select2"
+                                    data-placeholder="Select a subnet range" style="width: 100%;">
+                            </select>
                         </div>
                     </details>
                 </div>
@@ -757,8 +756,8 @@ Wireguard Clients
                 const data = {"id": client_id};
                 $.ajax({
                     cache: false,
-                    method: 'DELETE',
-                    url: '{{.basePath}}/api/client/' + client_id,
+                    method: 'POST',
+                    url: '{{.basePath}}/remove-client',
                     dataType: 'json',
                     contentType: "application/json",
                     data: JSON.stringify(data),
@@ -1484,7 +1483,7 @@ Wireguard Clients
                             $("<option></option>")
                                 .text(item)
                                 .val(item)
-                        );
+                            );
                     });
                     // مقدار پیش‌فرض رو تنظیم می‌کنیم
                     $("#subnet_ranges").val("__default_any__");
