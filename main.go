@@ -289,6 +289,10 @@ func main() {
 	app.GET(util.BasePath+"/health", handler.Health())
 	app.GET(util.BasePath+"/favicon.ico", handler.Favicon())
 
+	// System Status
+	app.GET(util.BasePath+"/system-status", handler.SystemStatusPage(), handler.ValidSession)
+	app.GET(util.BasePath+"/api/system-status", handler.SystemStatus(), handler.ValidSession)
+
 	// Start the server
 	app.Start(util.BindAddress)
 }

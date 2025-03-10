@@ -1523,6 +1523,27 @@ func AboutPage() echo.HandlerFunc {
 	}
 }
 
+// SystemStatusPage handler
+func SystemStatusPage() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.Render(http.StatusOK, "system_status.html", map[string]interface{}{
+			"baseData": model.BaseData{Active: "system-status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
+		})
+	}
+}
+
+// SystemStatus handler returns system status information
+func SystemStatus() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		status, err := util.GetSystemStatus()
+		if err != nil {
+			log.Error("Error getting system status:", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+		}
+		return c.JSON(http.StatusOK, status)
+	}
+}
+
 func init() {
 	internalRoutes = make([]Route, 0)
 	// اضافه کردن روت داخلی برای غیرفعال‌سازی خودکار
