@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/MmadF14/vwireguard/model"
+	"github.com/labstack/gommon/log"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
@@ -28,41 +29,71 @@ func GetSystemStatus() (*model.SystemStatus, error) {
 	status := &model.SystemStatus{}
 	var err error
 
-	// Get CPU info
+	// Get CPU info with error handling
 	if err = getCPUInfo(&status.CPU); err != nil {
-		return nil, fmt.Errorf("error getting CPU info: %v", err)
+		status.CPU = model.CPUInfo{
+			Cores: 0,
+			Used:  0,
+		}
+		log.Warn("Failed to get CPU info:", err)
 	}
 
-	// Get memory info
+	// Get memory info with error handling
 	if err = getMemoryInfo(&status.Memory); err != nil {
-		return nil, fmt.Errorf("error getting memory info: %v", err)
+		status.Memory = model.MemoryInfo{
+			Total: 0,
+			Used:  0,
+			Free:  0,
+		}
+		log.Warn("Failed to get memory info:", err)
 	}
 
-	// Get swap info
+	// Get swap info with error handling
 	if err = getSwapInfo(&status.Swap); err != nil {
-		return nil, fmt.Errorf("error getting swap info: %v", err)
+		status.Swap = model.SwapInfo{
+			Total: 0,
+			Used:  0,
+			Free:  0,
+		}
+		log.Warn("Failed to get swap info:", err)
 	}
 
-	// Get disk info
+	// Get disk info with error handling
 	if err = getDiskInfo(&status.Disk); err != nil {
-		return nil, fmt.Errorf("error getting disk info: %v", err)
+		status.Disk = model.DiskInfo{
+			Total: 0,
+			Used:  0,
+			Free:  0,
+		}
+		log.Warn("Failed to get disk info:", err)
 	}
 
-	// Get system load
+	// Get system load with error handling
 	if err = getSystemLoad(&status.Load); err != nil {
-		return nil, fmt.Errorf("error getting system load: %v", err)
+		status.Load = []float64{0, 0, 0}
+		log.Warn("Failed to get system load:", err)
 	}
 
-	// Get uptime
+	// Get uptime with error handling
 	if err = getUptime(&status.Uptime); err != nil {
-		return nil, fmt.Errorf("error getting uptime: %v", err)
+		status.Uptime = "Unknown"
+		log.Warn("Failed to get uptime:", err)
 	}
 
-	// Get network info
+	// Get network info with error handling
 	if err = getNetworkInfo(&status.Network); err != nil {
-		return nil, fmt.Errorf("error getting network info: %v", err)
+		status.Network = model.NetworkInfo{
+			UploadSpeed:   0,
+			DownloadSpeed: 0,
+			TotalUpload:   0,
+			TotalDownload: 0,
+			IPv4:          false,
+			IPv6:          false,
+		}
+		log.Warn("Failed to get network info:", err)
 	}
 
+	// Return status even if some components failed
 	return status, nil
 }
 
