@@ -25,20 +25,8 @@ Wireguard Clients
     <div class="container-fluid">
         <!-- <h5 class="mt-4 mb-2">Wireguard Clients</h5> -->
         <div class="row mb-2">
-            <div class="col-12 d-flex justify-content-end align-items-center">
-                <div class="mr-3">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="auto-refresh-toggle">
-                        <label class="custom-control-label" for="auto-refresh-toggle">Auto Refresh</label>
-                    </div>
-                </div>
-                <select id="refresh-interval" class="form-control mr-2" style="width: auto;" disabled>
-                    <option value="5">5 seconds</option>
-                    <option value="10">10 seconds</option>
-                    <option value="30" selected>30 seconds</option>
-                    <option value="60">60 seconds</option>
-                </select>
-                <button type="button" id="refresh-status-btn" class="btn btn-outline-secondary">
+            <div class="col-12">
+                <button type="button" id="refresh-status-btn" class="btn btn-outline-secondary float-right">
                     <i class="fas fa-sync-alt"></i> Refresh Status
                 </button>
             </div>
@@ -633,49 +621,10 @@ Wireguard Clients
             updateSearchList();
             populateClientList();
             
-            let autoRefreshInterval;
-            
-            // Handle auto-refresh toggle
-            $("#auto-refresh-toggle").change(function() {
-                const isChecked = $(this).prop('checked');
-                $("#refresh-interval").prop('disabled', !isChecked);
-                
-                if (isChecked) {
-                    startAutoRefresh();
-                } else {
-                    stopAutoRefresh();
-                }
-            });
-            
-            // Handle refresh interval change
-            $("#refresh-interval").change(function() {
-                if ($("#auto-refresh-toggle").prop('checked')) {
-                    startAutoRefresh();
-                }
-            });
-            
-            function startAutoRefresh() {
-                // Clear any existing interval
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                }
-                
-                // Get interval in seconds and convert to milliseconds
-                const intervalSeconds = parseInt($("#refresh-interval").val());
-                const intervalMs = intervalSeconds * 1000;
-                
-                // Start new interval
-                autoRefreshInterval = setInterval(function() {
-                    refreshConnectionStatus();
-                }, intervalMs);
-            }
-            
-            function stopAutoRefresh() {
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                    autoRefreshInterval = null;
-                }
-            }
+            // Auto-refresh connection status every 30 seconds
+            setInterval(function() {
+                refreshConnectionStatus();
+            }, 30000);
             
             // Manual refresh button
             $("#refresh-status-btn").click(function() {
@@ -1325,11 +1274,11 @@ Wireguard Clients
                             if (device.peers) {
                                 device.peers.forEach(peer => {
                                     connectionMap[peer.publicKey] = {
-                                        connected: peer.lastHandshakeTime ? 
-                                            (new Date() - new Date(peer.lastHandshakeTime)) < 180000 : false, // Consider connected if handshake within last 3 minutes
-                                            lastHandshake: peer.lastHandshakeTime,
-                                            receivedBytes: peer.receivedBytes,
-                                            transmitBytes: peer.transmitBytes
+                                        connected: peer.connected,
+                                        lastHandshake: peer.lastHandshakeTime,
+                                        endpoint: peer.endpoint,
+                                        received: peer.receivedBytes,
+                                        transmitted: peer.transmitBytes
                                     };
                                 });
                             }
@@ -1750,11 +1699,8 @@ Wireguard Clients
                 dataType: 'json',
                 contentType: "application/json",
                 success: function(statusData) {
-                    console.log('Status data received:', statusData); // Debug log
-                    if (statusData && statusData.devices) {
+                    if (statusData && statusData.success && statusData.devices) {
                         updateClientConnectionStatus(statusData.devices);
-                    } else {
-                        console.error('Invalid status data format:', statusData);
                     }
                 },
                 error: function(jqXHR) {
@@ -1765,60 +1711,31 @@ Wireguard Clients
 
         // Update only connection status elements without redrawing the entire client list
         function updateClientConnectionStatus(devices) {
-            console.log('Updating client connection status with devices:', devices); // Debug log
+            // Create a map of public key to connection status
             const connectionMap = {};
             
-            if (!devices || !Array.isArray(devices)) {
-                console.error('Invalid devices data received:', devices);
-                toastr.error('Error: Invalid status data received from server');
-                return;
-            }
-            
             devices.forEach(device => {
-                if (!device.Peers) {
-                    console.warn('Device has no peers:', device);
-                    return;
+                if (device.peers) {
+                    device.peers.forEach(peer => {
+                        connectionMap[peer.publicKey] = {
+                            connected: peer.connected,
+                            lastHandshake: peer.lastHandshakeTime,
+                            receivedBytes: peer.receivedBytes,
+                            transmitBytes: peer.transmitBytes
+                        };
+                    });
                 }
-                
-                device.Peers.forEach(peer => {
-                    if (!peer.PublicKey) {
-                        console.warn('Peer missing public key:', peer);
-                        return;
-                    }
-                    
-                    // Store connection info by public key
-                    connectionMap[peer.PublicKey] = {
-                        connected: peer.LastHandshakeTime ? 
-                            (new Date() - new Date(peer.LastHandshakeTime)) < 180000 : false, // Consider connected if handshake within last 3 minutes
-                        lastHandshake: peer.LastHandshakeTime,
-                        receivedBytes: peer.ReceivedBytes,
-                        transmitBytes: peer.TransmitBytes
-                    };
-                    console.log('Peer status:', peer.PublicKey, connectionMap[peer.PublicKey]); // Debug log
-                });
             });
             
-            let updatedCount = 0;
             // Update status for each client card
             $("[data-public-key]").each(function() {
                 const cardElement = $(this);
                 const publicKey = cardElement.data("public-key");
-                console.log('Checking client:', publicKey); // Debug log
                 
-                if (!publicKey) {
-                    console.warn('Client card missing public key attribute');
-                    return;
-                }
-                
-                if (connectionMap[publicKey]) {
+                if (publicKey && connectionMap[publicKey]) {
                     const connectionInfo = connectionMap[publicKey];
                     const statusElement = cardElement.find(".client-status");
                     const connectionDetailsElement = cardElement.find(".connection-details");
-                    
-                    if (!statusElement.length || !connectionDetailsElement.length) {
-                        console.warn('Missing required elements for client:', publicKey);
-                        return;
-                    }
                     
                     // Update connection status
                     if (connectionInfo.connected) {
@@ -1853,17 +1770,8 @@ Wireguard Clients
                             connectionDetailsElement.append(bandwidthHtml);
                         }
                     }
-                    updatedCount++;
-                } else {
-                    console.log('No connection info for client:', publicKey); // Debug log
                 }
             });
-            
-            console.log(`Updated ${updatedCount} clients`);
-            if (updatedCount === 0) {
-                console.warn('No clients were updated');
-                toastr.warning('No client status information available');
-            }
         }
     </script>
 {{end}}

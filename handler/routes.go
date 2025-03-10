@@ -1221,30 +1221,23 @@ func Status(db store.IStore) echo.HandlerFunc {
 // StatusData handler to return JSON status data for clients
 func StatusData(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		log.Debug("Starting StatusData handler")
 		wgClient, err := wgctrl.New()
 		if err != nil {
-			log.Error("Failed to create WireGuard client:", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
 		devices, err := wgClient.Devices()
 		if err != nil {
-			log.Error("Failed to get WireGuard devices:", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-		log.Debugf("Found %d WireGuard devices", len(devices))
 
 		devicesVm := make([]DeviceVM, 0, len(devices))
 		if len(devices) > 0 {
 			m := make(map[string]*model.Client)
 			clients, err := db.GetClients(false)
 			if err != nil {
-				log.Error("Failed to get clients from database:", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
-			log.Debugf("Found %d clients in database", len(clients))
-
 			for i := range clients {
 				if clients[i].Client != nil {
 					m[clients[i].Client.PublicKey] = clients[i].Client
@@ -1254,8 +1247,6 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 			conv := map[bool]int{true: 1, false: 0}
 			for i := range devices {
 				devVm := DeviceVM{Name: devices[i].Name}
-				log.Debugf("Processing device %s with %d peers", devices[i].Name, len(devices[i].Peers))
-
 				for j := range devices[i].Peers {
 					var allocatedIPs string
 					for _, ip := range devices[i].Peers[j].AllowedIPs {
@@ -1273,8 +1264,6 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 						AllocatedIP:       allocatedIPs,
 					}
 					pVm.Connected = pVm.LastHandshakeRel.Minutes() < 3.
-					log.Debugf("Peer %s: last handshake %v ago, connected: %v",
-						pVm.PublicKey[:8], pVm.LastHandshakeRel, pVm.Connected)
 
 					if isAdmin(c) {
 						pVm.Endpoint = devices[i].Peers[j].Endpoint.String()
@@ -1283,9 +1272,6 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 					if _client, ok := m[pVm.PublicKey]; ok {
 						pVm.Name = _client.Name
 						pVm.Email = _client.Email
-						log.Debugf("Found client info for peer %s: name=%s", pVm.PublicKey[:8], pVm.Name)
-					} else {
-						log.Debugf("No client info found for peer %s", pVm.PublicKey[:8])
 					}
 					devVm.Peers = append(devVm.Peers, pVm)
 				}
@@ -1295,7 +1281,6 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		log.Debug("StatusData handler completed successfully")
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
 			"devices": devicesVm,
