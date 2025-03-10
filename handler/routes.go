@@ -1221,23 +1221,30 @@ func Status(db store.IStore) echo.HandlerFunc {
 // StatusData handler to return JSON status data for clients
 func StatusData(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		log.Debug("Starting StatusData handler")
 		wgClient, err := wgctrl.New()
 		if err != nil {
+			log.Error("Failed to create WireGuard client:", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
 		devices, err := wgClient.Devices()
 		if err != nil {
+			log.Error("Failed to get WireGuard devices:", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
+		log.Debugf("Found %d WireGuard devices", len(devices))
 
 		devicesVm := make([]DeviceVM, 0, len(devices))
 		if len(devices) > 0 {
 			m := make(map[string]*model.Client)
 			clients, err := db.GetClients(false)
 			if err != nil {
+				log.Error("Failed to get clients from database:", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
+			log.Debugf("Found %d clients in database", len(clients))
+
 			for i := range clients {
 				if clients[i].Client != nil {
 					m[clients[i].Client.PublicKey] = clients[i].Client
@@ -1247,6 +1254,8 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 			conv := map[bool]int{true: 1, false: 0}
 			for i := range devices {
 				devVm := DeviceVM{Name: devices[i].Name}
+				log.Debugf("Processing device %s with %d peers", devices[i].Name, len(devices[i].Peers))
+
 				for j := range devices[i].Peers {
 					var allocatedIPs string
 					for _, ip := range devices[i].Peers[j].AllowedIPs {
@@ -1264,6 +1273,8 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 						AllocatedIP:       allocatedIPs,
 					}
 					pVm.Connected = pVm.LastHandshakeRel.Minutes() < 3.
+					log.Debugf("Peer %s: last handshake %v ago, connected: %v",
+						pVm.PublicKey[:8], pVm.LastHandshakeRel, pVm.Connected)
 
 					if isAdmin(c) {
 						pVm.Endpoint = devices[i].Peers[j].Endpoint.String()
@@ -1272,6 +1283,9 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 					if _client, ok := m[pVm.PublicKey]; ok {
 						pVm.Name = _client.Name
 						pVm.Email = _client.Email
+						log.Debugf("Found client info for peer %s: name=%s", pVm.PublicKey[:8], pVm.Name)
+					} else {
+						log.Debugf("No client info found for peer %s", pVm.PublicKey[:8])
 					}
 					devVm.Peers = append(devVm.Peers, pVm)
 				}
@@ -1281,6 +1295,7 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
+		log.Debug("StatusData handler completed successfully")
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
 			"devices": devicesVm,
@@ -1508,33 +1523,72 @@ func AboutPage() echo.HandlerFunc {
 	}
 }
 
-// SystemStatusPage handler
-func SystemStatusPage() echo.HandlerFunc {
+// GetWARPSettings handler to get WARP settings
+func GetWARPSettings(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.Render(http.StatusOK, "system_status.html", map[string]interface{}{
-			"baseData": model.BaseData{Active: "system-status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
-			"basePath": util.BasePath,
-		})
-	}
-}
-
-// SystemStatus handler returns system status information
-func SystemStatus() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		status, err := util.GetSystemStatus()
+		settings, err := db.GetGlobalSettings()
 		if err != nil {
-			log.Error("Failed to get system status:", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-		}
-
-		if status == nil {
-			log.Error("System status is nil")
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "System status data is unavailable"})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot get WARP settings: %v", err),
+			})
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
-			"data":    status,
+			"settings": map[string]interface{}{
+				"warp_enabled": settings.WARPEnabled,
+				"warp_domains": settings.WARPDomains,
+				"warp_exclude": settings.WARPExclude,
+			},
+		})
+	}
+}
+
+// UpdateWARPSettings handler to update WARP settings
+func UpdateWARPSettings(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var data struct {
+			WARPEnabled bool     `json:"warp_enabled"`
+			WARPDomains []string `json:"warp_domains"`
+			WARPExclude []string `json:"warp_exclude"`
+		}
+
+		if err := c.Bind(&data); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
+				false, "Invalid request data",
+			})
+		}
+
+		// Get current settings
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot get current settings: %v", err),
+			})
+		}
+
+		// Update WARP settings
+		settings.WARPEnabled = data.WARPEnabled
+		settings.WARPDomains = data.WARPDomains
+		settings.WARPExclude = data.WARPExclude
+		settings.UpdatedAt = time.Now().UTC()
+
+		// Save settings
+		if err := db.SaveGlobalSettings(settings); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot save settings: %v", err),
+			})
+		}
+
+		// Update WARP configuration
+		if err := util.UpdateWARPConfig(settings); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot update WARP configuration: %v", err),
+			})
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{
+			true, "WARP settings updated successfully",
 		})
 	}
 }

@@ -175,14 +175,6 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{{.basePath}}/system-status" class="nav-link {{if eq .baseData.Active "system-status" }}active{{end}}">
-                                <i class="nav-icon fas fa-desktop"></i>
-                                <p>
-                                    System Status
-                                </p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a href="{{.basePath}}/wake_on_lan_hosts" class="nav-link {{if eq .baseData.Active "wake_on_lan_hosts" }}active{{end}}">
                                 <i class="nav-icon fas  fa-solid fa-power-off"></i>
                                 <p>
@@ -256,21 +248,39 @@
                                        placeholder="e.g. 2025-12-31T23:59" />
                             </div>
                             <div class="form-group">
+                                <label for="subnet_ranges" class="control-label">Subnet range</label>
+                                <select id="subnet_ranges" class="select2"
+                                        data-placeholder="Select a subnet range" style="width: 100%;">
+                                </select>
+                            </div>
+                            <div class="form-group">
                                 <label for="client_allocated_ips" class="control-label">IP Allocation</label>
                                 <input type="text" data-role="tagsinput" class="form-control" id="client_allocated_ips">
                             </div>
-
+                            <div class="form-group">
+                                <label for="client_allowed_ips" class="control-label">
+                                    Allowed IPs
+                                    <i class="fas fa-info-circle" data-toggle="tooltip"
+                                       data-original-title="Specify a list of addresses that will get routed to the
+                                       server. These addresses will be included in 'AllowedIPs' of client config">
+                                    </i>
+                                </label>
+                                <input type="text" data-role="tagsinput" class="form-control" id="client_allowed_ips"
+                                       value="{{ StringsJoin .client_defaults.AllowedIps "," }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="client_extra_allowed_ips" class="control-label">
+                                    Extra Allowed IPs
+                                    <i class="fas fa-info-circle" data-toggle="tooltip"
+                                       data-original-title="Specify a list of addresses that will get routed to the
+                                       client. These addresses will be included in 'AllowedIPs' of WG server config">
+                                    </i>
+                                </label>
+                                <input type="text" data-role="tagsinput" class="form-control" id="client_extra_allowed_ips" value="{{ StringsJoin .client_defaults.ExtraAllowedIps "," }}">
+                            </div>
                             <div class="form-group">
                                 <label for="client_endpoint" class="control-label">Endpoint</label>
                                 <input type="text" class="form-control" id="client_endpoint" name="client_endpoint">
-                            </div>
-                            <div class="form-group" style="margin-top: 0.5rem;">
-                                <label for="client_telegram_userid" class="control-label">Telegram userid</label>
-                                <input type="text" class="form-control" id="client_telegram_userid" name="client_telegram_userid">
-                            </div>
-                            <div class="form-group">
-                                <label for="additional_notes" class="control-label">Notes</label>
-                                <textarea class="form-control" style="min-height: 6rem;" id="additional_notes" name="additional_notes" placeholder="Additional notes about this client"></textarea>
                             </div>
                             <div class="form-group">
                                 <div class="icheck-primary d-inline">
@@ -314,33 +324,13 @@
                                 <summary>
                                     <strong>Additional configuration</strong>
                                 </summary>
-
-                                <div class="form-group">
-                                    <label for="client_allowed_ips" class="control-label">
-                                        Allowed IPs
-                                        <i class="fas fa-info-circle" data-toggle="tooltip"
-                                           data-original-title="Specify a list of addresses that will get routed to the
-                                           server. These addresses will be included in 'AllowedIPs' of client config">
-                                        </i>
-                                    </label>
-                                    <input type="text" data-role="tagsinput" class="form-control" id="client_allowed_ips"
-                                           value="{{ StringsJoin .client_defaults.AllowedIps "," }}">
+                                <div class="form-group" style="margin-top: 0.5rem;">
+                                    <label for="client_telegram_userid" class="control-label">Telegram userid</label>
+                                    <input type="text" class="form-control" id="client_telegram_userid" name="client_telegram_userid">
                                 </div>
                                 <div class="form-group">
-                                    <label for="client_extra_allowed_ips" class="control-label">
-                                        Extra Allowed IPs
-                                        <i class="fas fa-info-circle" data-toggle="tooltip"
-                                           data-original-title="Specify a list of addresses that will get routed to the
-                                           client. These addresses will be included in 'AllowedIPs' of WG server config">
-                                        </i>
-                                    </label>
-                                    <input type="text" data-role="tagsinput" class="form-control" id="client_extra_allowed_ips" value="{{ StringsJoin .client_defaults.ExtraAllowedIps "," }}">
-                                </div>
-                                <div class="form-group">
-                                    <label for="subnet_ranges" class="control-label">Subnet range</label>
-                                    <select id="subnet_ranges" class="select2"
-                                            data-placeholder="Select a subnet range" style="width: 100%;">
-                                    </select>
+                                    <label for="additional_notes" class="control-label">Notes</label>
+                                    <textarea class="form-control" style="min-height: 6rem;" id="additional_notes" name="additional_notes" placeholder="Additional notes about this client"></textarea>
                                 </div>
                             </details>
                         </div>
