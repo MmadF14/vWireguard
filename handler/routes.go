@@ -1580,8 +1580,8 @@ func UpdateWARPSettings(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Update WARP configuration
-		if err := util.UpdateWARPConfig(settings); err != nil {
+		// Update WARP configuration - using & to pass the address of settings
+		if err := util.UpdateWARPConfig(&settings); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
 				false, fmt.Sprintf("Cannot update WARP configuration: %v", err),
 			})
