@@ -109,16 +109,22 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 	if !enabled {
 		log.Println("Disabling WARP...")
-		if _, err := runCommand("warp-cli", "disconnect"); err != nil {
+		if _, err := runCommand("warp-cli", "--accept-tos", "disconnect"); err != nil {
 			return fmt.Errorf("failed to disconnect WARP: %v", err)
 		}
 		return nil
 	}
 
+	// Delete old registration if exists
+	log.Println("Checking for existing registration...")
+	if _, err := runCommand("warp-cli", "--accept-tos", "registration", "delete"); err != nil {
+		log.Printf("Warning: failed to delete old registration: %v", err)
+	}
+
 	// Initialize WARP
 	log.Println("Initializing WARP...")
 	if _, err := runCommand("warp-cli", "--accept-tos", "registration", "new"); err != nil {
-		log.Printf("Warning: WARP initialization failed: %v", err)
+		return fmt.Errorf("failed to initialize WARP: %v", err)
 	}
 
 	// Enable WARP mode
@@ -127,18 +133,16 @@ func ConfigureWARP(enabled bool, domains []string) error {
 		return fmt.Errorf("failed to set WARP mode: %v", err)
 	}
 
-	// Clear existing rules
-	log.Println("Clearing existing rules...")
-	if _, err := runCommand("warp-cli", "--accept-tos", "routing", "clear"); err != nil {
-		log.Printf("Warning: failed to clear rules: %v", err)
-	}
-
-	// Add domains to split tunnel
-	log.Println("Adding domains to split tunnel...")
+	// Configure split tunnel for domains
+	log.Println("Configuring split tunnel for domains...")
 	for _, domain := range domains {
-		if _, err := runCommand("warp-cli", "--accept-tos", "routing", "add", domain); err != nil {
-			log.Printf("Warning: failed to add domain %s to routing: %v", domain, err)
-			continue
+		// First try to exclude the domain
+		if _, err := runCommand("warp-cli", "--accept-tos", "add-excluded-domain", domain); err != nil {
+			// If that fails, try the older split-tunnel command
+			if _, err := runCommand("warp-cli", "--accept-tos", "split-tunnel", "add", domain); err != nil {
+				log.Printf("Warning: failed to add domain %s to split tunnel: %v", domain, err)
+				continue
+			}
 		}
 		log.Printf("Added domain: %s", domain)
 	}
@@ -149,10 +153,10 @@ func ConfigureWARP(enabled bool, domains []string) error {
 		return fmt.Errorf("failed to connect WARP: %v", err)
 	}
 
-	// Enable always-on mode
+	// Enable always-on mode using the correct command
 	log.Println("Enabling always-on mode...")
-	if _, err := runCommand("warp-cli", "--accept-tos", "preferences", "set", "auto-connect", "true"); err != nil {
-		log.Printf("Warning: failed to enable auto-connect: %v", err)
+	if _, err := runCommand("warp-cli", "--accept-tos", "always-on", "on"); err != nil {
+		log.Printf("Warning: failed to enable always-on mode: %v", err)
 	}
 
 	log.Println("WARP configuration completed successfully")
@@ -172,4 +176,33 @@ func GetWARPStatus() (bool, error) {
 
 	outputStr := strings.ToLower(output)
 	return strings.Contains(outputStr, "connected"), nil
+}
+
+// GetExcludedDomains returns the list of domains currently excluded from WARP
+func GetExcludedDomains() ([]string, error) {
+	if runtime.GOOS == "windows" {
+		return nil, fmt.Errorf("Windows is not supported for WARP configuration")
+	}
+
+	// Try the newer command first
+	output, err := runCommand("warp-cli", "--accept-tos", "show-excluded-domains")
+	if err != nil {
+		// If that fails, try the older split-tunnel command
+		output, err = runCommand("warp-cli", "--accept-tos", "split-tunnel", "list")
+		if err != nil {
+			return nil, fmt.Errorf("failed to get excluded domains: %v", err)
+		}
+	}
+
+	// Parse the output to extract domains
+	domains := []string{}
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "Domains") && !strings.HasPrefix(line, "-") {
+			domains = append(domains, line)
+		}
+	}
+
+	return domains, nil
 }

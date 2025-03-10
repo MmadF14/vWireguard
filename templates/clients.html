@@ -303,6 +303,34 @@ Wireguard Clients
     <!-- /.modal-dialog -->
 </div>
 <!-- /.modal -->
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">WARP Settings</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label class="form-label">WARP Status</label>
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="warpEnabled" ${warp_enabled ? 'checked' : ''}>
+                <label class="custom-control-label" for="warpEnabled">Enable WARP</label>
+            </div>
+        </div>
+        
+        <div class="form-group mt-4">
+            <label class="form-label">Excluded Domains</label>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="newDomain" placeholder="Enter domain (e.g., example.com)">
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="button" id="addDomain">Add Domain</button>
+                </div>
+            </div>
+            <div id="domainsList" class="list-group mt-3">
+                <!-- Domains will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
 {{end}}
 
 {{define "bottom_js"}}
@@ -1430,7 +1458,7 @@ Wireguard Clients
                         html += `
                                     <div class="bandwidth-info">
                                         <i class="fas fa-download"></i> ${formatBytes(connectionStatus.received || 0)}
-                                        <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionStatus.transmitted || 0)}
+                                        <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionStatus.transmitBytes || 0)}
                                     </div>`;
                     }
                     
@@ -1865,5 +1893,59 @@ Wireguard Clients
                 toastr.warning('No client status information available');
             }
         }
+    </script>
+    <script>
+        function loadExcludedDomains() {
+            $.get('/api/warp/domains', function(data) {
+                const domainsList = $('#domainsList');
+                domainsList.empty();
+                
+                data.domains.forEach(domain => {
+                    domainsList.append(`
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            ${domain}
+                            <button class="btn btn-danger btn-sm remove-domain" data-domain="${domain}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            // Load initial domains
+            loadExcludedDomains();
+            
+            // Add new domain
+            $('#addDomain').click(function() {
+                const domain = $('#newDomain').val().trim();
+                if (domain) {
+                    $.post('/api/warp/domains', { domain: domain }, function() {
+                        $('#newDomain').val('');
+                        loadExcludedDomains();
+                    });
+                }
+            });
+            
+            // Remove domain
+            $(document).on('click', '.remove-domain', function() {
+                const domain = $(this).data('domain');
+                $.ajax({
+                    url: '/api/warp/domains',
+                    type: 'DELETE',
+                    data: { domain: domain },
+                    success: function() {
+                        loadExcludedDomains();
+                    }
+                });
+            });
+            
+            // Handle WARP enable/disable
+            $('#warpEnabled').change(function() {
+                const enabled = $(this).is(':checked');
+                $.post('/global-settings', { warp_enabled: enabled });
+            });
+        });
     </script>
 {{end}}
