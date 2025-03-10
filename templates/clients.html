@@ -24,6 +24,13 @@ Wireguard Clients
 <section class="content">
     <div class="container-fluid">
         <!-- <h5 class="mt-4 mb-2">Wireguard Clients</h5> -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <button type="button" id="refresh-status-btn" class="btn btn-outline-secondary float-right">
+                    <i class="fas fa-sync-alt"></i> Refresh Status
+                </button>
+            </div>
+        </div>
         <div class="row" id="client-list">
         </div>
         <!-- /.row -->
@@ -324,6 +331,7 @@ Wireguard Clients
                         if (Array.isArray(data)) {
                             console.log('Rendering array of clients:', data);
                             renderClientList(data);
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
@@ -331,6 +339,7 @@ Wireguard Clients
                         if (data.clients && Array.isArray(data.clients)) {
                             console.log('Rendering clients from data.clients:', data.clients);
                             renderClientList(data.clients);
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
@@ -338,6 +347,7 @@ Wireguard Clients
                         if (data.data && Array.isArray(data.data)) {
                             console.log('Rendering clients from data.data:', data.data);
                             renderClientList(data.data);
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
@@ -345,6 +355,7 @@ Wireguard Clients
                         if (data.Client || (data.name && data.id)) {
                             console.log('Rendering single client:', data);
                             renderClientList([data]);
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
@@ -609,6 +620,20 @@ Wireguard Clients
         $(document).ready(function () {
             updateSearchList();
             populateClientList();
+            
+            // Auto-refresh connection status every 30 seconds
+            setInterval(function() {
+                refreshConnectionStatus();
+            }, 30000);
+            
+            // Manual refresh button
+            $("#refresh-status-btn").click(function() {
+                $(this).find('i').addClass('fa-spin');
+                refreshConnectionStatus();
+                setTimeout(() => {
+                    $(this).find('i').removeClass('fa-spin');
+                }, 1000);
+            });
         })
 
         // show search bar and override :contains to be case-insensitive
@@ -1295,7 +1320,7 @@ Wireguard Clients
                     
                     let html = `
                         <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
-                            <div class="client-box">
+                            <div class="client-box" data-public-key="${client.public_key}">
                                 <div class="overlay" id="paused_${client.id}"${client.enabled ? ' style="visibility: hidden;"' : ''}>
                                     <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
                                 </div>
@@ -1347,12 +1372,12 @@ Wireguard Clients
                     }
 
                     html += `<div class="connection-details mb-2">
-                                <div><i class="fas fa-clock"></i> ${lastHandshakeText}</div>`;
+                                <div class="last-handshake"><i class="fas fa-clock"></i> ${lastHandshakeText}</div>`;
                 
                     // Show bandwidth details if connected previously
                     if (connectionStatus.received || connectionStatus.transmitted) {
                         html += `
-                                    <div>
+                                    <div class="bandwidth-info">
                                         <i class="fas fa-download"></i> ${formatBytes(connectionStatus.received || 0)}
                                         <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionStatus.transmitted || 0)}
                                     </div>`;
@@ -1662,5 +1687,91 @@ Wireguard Clients
                 }
             });
         });
+    </script>
+    <script>
+        // Function to refresh only connection status without reloading all clients
+        function refreshConnectionStatus() {
+            console.log('Refreshing connection status...');
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/status-data',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(statusData) {
+                    if (statusData && statusData.success && statusData.devices) {
+                        updateClientConnectionStatus(statusData.devices);
+                    }
+                },
+                error: function(jqXHR) {
+                    console.error('Error refreshing connection status:', jqXHR.status);
+                }
+            });
+        }
+
+        // Update only connection status elements without redrawing the entire client list
+        function updateClientConnectionStatus(devices) {
+            // Create a map of public key to connection status
+            const connectionMap = {};
+            
+            devices.forEach(device => {
+                if (device.peers) {
+                    device.peers.forEach(peer => {
+                        connectionMap[peer.publicKey] = {
+                            connected: peer.connected,
+                            lastHandshake: peer.lastHandshakeTime,
+                            receivedBytes: peer.receivedBytes,
+                            transmitBytes: peer.transmitBytes
+                        };
+                    });
+                }
+            });
+            
+            // Update status for each client card
+            $("[data-public-key]").each(function() {
+                const cardElement = $(this);
+                const publicKey = cardElement.data("public-key");
+                
+                if (publicKey && connectionMap[publicKey]) {
+                    const connectionInfo = connectionMap[publicKey];
+                    const statusElement = cardElement.find(".client-status");
+                    const connectionDetailsElement = cardElement.find(".connection-details");
+                    
+                    // Update connection status
+                    if (connectionInfo.connected) {
+                        statusElement.removeClass("disabled").addClass("enabled");
+                        statusElement.text("Connected");
+                    } else {
+                        statusElement.removeClass("enabled").addClass("disabled");
+                        statusElement.text("Disconnected");
+                    }
+                    
+                    // Update last handshake text
+                    if (connectionInfo.lastHandshake) {
+                        const lastHandshake = new Date(connectionInfo.lastHandshake);
+                        const lastHandshakeText = `Last seen: ${formatTimeAgo(lastHandshake)}`;
+                        connectionDetailsElement.find(".last-handshake").html(`<i class="fas fa-clock"></i> ${lastHandshakeText}`);
+                        
+                        // Update bandwidth info
+                        let bandwidthHtml = '';
+                        if (connectionInfo.receivedBytes || connectionInfo.transmitBytes) {
+                            bandwidthHtml = `
+                                <div class="bandwidth-info">
+                                    <i class="fas fa-download"></i> ${formatBytes(connectionInfo.receivedBytes || 0)}
+                                    <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionInfo.transmitBytes || 0)}
+                                </div>`;
+                        }
+                        
+                        // Update or add bandwidth info
+                        const bandwidthElement = connectionDetailsElement.find(".bandwidth-info");
+                        if (bandwidthElement.length) {
+                            bandwidthElement.replaceWith(bandwidthHtml);
+                        } else if (bandwidthHtml) {
+                            connectionDetailsElement.append(bandwidthHtml);
+                        }
+                    }
+                }
+            });
+        }
     </script>
 {{end}}
