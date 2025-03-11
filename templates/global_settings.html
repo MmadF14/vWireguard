@@ -402,12 +402,19 @@ $(document).ready(function() {
             $('#addDomain').click(function() {
                 const domain = $('#newDomain').val().trim();
                 if (domain) {
-                    $.post('/api/warp/domains', { domain: domain }, function() {
-                        $('#newDomain').val('');
-                        loadExcludedDomains();
-                    }).fail(function(xhr) {
-                        console.error("Error adding domain:", xhr.responseText);
-                        toastr.error("Error adding domain: " + xhr.responseText);
+                    $.ajax({
+                        url: '/api/warp/domains',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ domain: domain }),
+                        success: function(response) {
+                            $('#newDomain').val('');
+                            loadExcludedDomains();
+                        },
+                        error: function(xhr) {
+                            console.error("Error adding domain:", xhr.responseText);
+                            toastr.error("Error adding domain: " + xhr.responseText);
+                        }
                     });
                 } else {
                     toastr.error("Domain cannot be empty.");
@@ -419,11 +426,10 @@ $(document).ready(function() {
                 const domain = $(this).data('domain');
                 $.ajax({
                     url: '/api/warp/domains',
-                    type: 'DELETE',
-                    data: { domain: domain },
-                    success: function() {
-                        loadExcludedDomains();
-                    }
+                    method: 'DELETE',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ domain: domain }),
+                    success: loadExcludedDomains
                 });
             });
             
