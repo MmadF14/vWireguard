@@ -405,7 +405,12 @@ $(document).ready(function() {
                     $.post('/api/warp/domains', { domain: domain }, function() {
                         $('#newDomain').val('');
                         loadExcludedDomains();
+                    }).fail(function(xhr) {
+                        console.error("Error adding domain:", xhr.responseText);
+                        toastr.error("Error adding domain: " + xhr.responseText);
                     });
+                } else {
+                    toastr.error("Domain cannot be empty.");
                 }
             });
             
