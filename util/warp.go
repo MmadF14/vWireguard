@@ -25,40 +25,19 @@ func runCommand(name string, args ...string) (string, error) {
 	return string(output), nil
 }
 
-// checkWARPService checks if WARP is installed and running
+// checkWARPService checks if WARP service is installed and running
 func checkWARPService() error {
-	// Check if warp-cli exists
-	warpCliPath, err := exec.LookPath("warp-cli")
-	if err != nil {
-		log.Printf("Warning: warp-cli not found in PATH: %v", err)
-		return fmt.Errorf("WARP CLI is not installed or not in PATH")
+	// Check if warp-svc exists
+	if _, err := exec.LookPath("warp-svc"); err != nil {
+		return fmt.Errorf("WARP service is not installed")
 	}
 
-	log.Printf("Found warp-cli at: %s", warpCliPath)
-
-	// Try to check status using warp-cli
-	_, err = runCommand("warp-cli", "--accept-tos", "status")
-	if err != nil {
-		log.Printf("Warning: warp-cli status check failed: %v", err)
-
-		// Try to check service with systemctl
-		output, err := runCommand("systemctl", "is-active", "warp-svc")
-		if err != nil || !strings.Contains(strings.ToLower(output), "active") {
-			log.Printf("Warning: WARP service is not active: %v", err)
-
-			// Try to start the service
-			log.Println("Attempting to start WARP service...")
-			_, err = runCommand("sudo", "systemctl", "start", "warp-svc")
-			if err != nil {
-				log.Printf("Warning: Failed to start WARP service: %v", err)
-			} else {
-				// Wait for service to start
-				time.Sleep(5 * time.Second)
-			}
-		}
+	// Check if service is running
+	output, err := runCommand("systemctl", "is-active", "warp-svc")
+	if err != nil || !strings.Contains(strings.ToLower(output), "active") {
+		return fmt.Errorf("WARP service is not running")
 	}
 
-	// Continue anyway - we won't block configuration just because service status check failed
 	return nil
 }
 
@@ -83,83 +62,57 @@ func waitForWARPService(timeout time.Duration) error {
 func InstallWARP() error {
 	log.Println("Checking if WARP is already installed...")
 
-	// Check if warp-cli is already installed
-	if warpCliPath, err := exec.LookPath("warp-cli"); err == nil {
-		log.Printf("warp-cli already installed at: %s", warpCliPath)
-		return nil
+	// First try to install using apt directly
+	if _, err := runCommand("sudo", "apt", "update"); err != nil {
+		log.Printf("Warning: apt update failed: %v", err)
 	}
 
-	log.Println("WARP CLI not found, attempting to install...")
+	log.Println("Installing cloudflare-warp package...")
+	if output, err := runCommand("sudo", "apt", "install", "-y", "cloudflare-warp"); err != nil {
+		// If direct installation fails, try adding the repository first
+		log.Printf("Direct installation failed: %v\nTrying with repository setup...", err)
 
-	// Try to install in different ways
-	installMethods := []func() error{
-		// Method 1: Direct apt install
-		func() error {
-			log.Println("Trying direct apt install...")
-			if _, err := runCommand("sudo", "apt", "update"); err != nil {
-				log.Printf("Warning: apt update failed: %v", err)
-			}
-			_, err := runCommand("sudo", "apt", "install", "-y", "cloudflare-warp")
-			return err
-		},
-		// Method 2: Add repository first
-		func() error {
-			log.Println("Trying with repository setup...")
-			// Download and add GPG key
-			if _, err := runCommand("curl", "-fsSL", "https://pkg.cloudflareclient.com/pubkey.gpg", "--output", "/tmp/cloudflare.gpg"); err != nil {
-				return fmt.Errorf("failed to download GPG key: %v", err)
-			}
-
-			if _, err := runCommand("sudo", "apt-key", "add", "/tmp/cloudflare.gpg"); err != nil {
-				return fmt.Errorf("failed to add GPG key: %v", err)
-			}
-
-			// Add repository
-			repoCmd := `echo "deb [arch=amd64] https://pkg.cloudflareclient.com/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list`
-			if _, err := runCommand("bash", "-c", repoCmd); err != nil {
-				return fmt.Errorf("failed to add repository: %v", err)
-			}
-
-			if _, err := runCommand("sudo", "apt", "update"); err != nil {
-				log.Printf("Warning: apt update failed: %v", err)
-			}
-
-			_, err := runCommand("sudo", "apt", "install", "-y", "cloudflare-warp")
-			return err
-		},
-	}
-
-	// Try each installation method
-	var lastErr error
-	for i, method := range installMethods {
-		log.Printf("Trying installation method %d...", i+1)
-		if err := method(); err != nil {
-			log.Printf("Installation method %d failed: %v", i+1, err)
-			lastErr = err
-		} else {
-			log.Printf("Installation method %d succeeded", i+1)
-			lastErr = nil
-			break
+		// Download and add GPG key
+		log.Println("Adding Cloudflare GPG key...")
+		if _, err := runCommand("curl", "-fsSL", "https://pkg.cloudflareclient.com/pubkey.gpg", "--output", "/tmp/cloudflare.gpg"); err != nil {
+			return fmt.Errorf("failed to download GPG key: %v", err)
 		}
-	}
 
-	// Check if warp-cli was installed
-	if _, err := exec.LookPath("warp-cli"); err != nil {
-		if lastErr != nil {
-			log.Printf("All installation methods failed, last error: %v", lastErr)
-			return fmt.Errorf("failed to install WARP: %v", lastErr)
+		if _, err := runCommand("sudo", "apt-key", "add", "/tmp/cloudflare.gpg"); err != nil {
+			return fmt.Errorf("failed to add GPG key: %v", err)
 		}
+
+		// Add repository
+		log.Println("Adding Cloudflare repository...")
+		repoCmd := `echo "deb [arch=amd64] https://pkg.cloudflareclient.com/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list`
+		if _, err := runCommand("bash", "-c", repoCmd); err != nil {
+			return fmt.Errorf("failed to add repository: %v", err)
+		}
+
+		// Update and install
+		log.Println("Updating package list and installing WARP...")
+		if _, err := runCommand("sudo", "apt", "update"); err != nil {
+			return fmt.Errorf("failed to update package list: %v", err)
+		}
+
+		if _, err := runCommand("sudo", "apt", "install", "-y", "cloudflare-warp"); err != nil {
+			return fmt.Errorf("failed to install WARP: %v", err)
+		}
+	} else {
+		log.Printf("Installation output: %s", output)
 	}
 
-	// Try to start the service
+	// Ensure the service is running
 	log.Println("Starting WARP service...")
 	if _, err := runCommand("sudo", "systemctl", "start", "warp-svc"); err != nil {
-		log.Printf("Warning: Failed to start WARP service: %v", err)
+		return fmt.Errorf("failed to start WARP service: %v", err)
 	}
 
-	// Wait for service to be ready
+	// Wait for service to be ready with timeout
 	log.Println("Waiting for WARP service to be ready...")
-	time.Sleep(5 * time.Second)
+	if err := waitForWARPService(30 * time.Second); err != nil {
+		return fmt.Errorf("WARP service failed to become ready: %v", err)
+	}
 
 	return nil
 }
@@ -170,142 +123,82 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 	// Check WARP service status
 	if err := checkWARPService(); err != nil {
-		log.Printf("Warning: WARP service check failed: %v, continuing anyway", err)
+		return fmt.Errorf("WARP service check failed: %v", err)
 	}
 
 	if !enabled {
 		log.Println("Disabling WARP...")
 		if _, err := runCommand("warp-cli", "--accept-tos", "disconnect"); err != nil {
-			log.Printf("Warning: failed to disconnect WARP: %v", err)
+			return fmt.Errorf("failed to disconnect WARP: %v", err)
 		}
 		return nil
 	}
 
-	// Try to delete old registration - this might fail but that's okay
+	// Delete old registration if exists
 	log.Println("Checking for existing registration...")
 	if _, err := runCommand("warp-cli", "--accept-tos", "registration", "delete"); err != nil {
-		log.Printf("Warning: failed to delete old registration (this is normal for first setup): %v", err)
+		log.Printf("Warning: failed to delete old registration: %v", err)
 	}
 
-	// Try different initialization commands (different warp-cli versions use different commands)
-	registrationSuccess := false
-	registrationAttempts := [][]string{
-		{"warp-cli", "--accept-tos", "registration", "new"},
-		{"warp-cli", "--accept-tos", "register"},
-		{"warp-cli", "--accept-tos", "init"},
+	// Initialize WARP
+	log.Println("Initializing WARP...")
+	if _, err := runCommand("warp-cli", "--accept-tos", "registration", "new"); err != nil {
+		return fmt.Errorf("failed to initialize WARP: %v", err)
 	}
 
-	for _, cmdArgs := range registrationAttempts {
-		log.Printf("Trying to initialize WARP with command: %v", cmdArgs)
-		if _, err := runCommand(cmdArgs[0], cmdArgs[1:]...); err == nil {
-			registrationSuccess = true
-			log.Println("WARP initialization successful")
-			break
-		} else {
-			log.Printf("Initialization attempt failed: %v", err)
-		}
+	// Set mode to proxy
+	log.Println("Setting WARP mode to proxy...")
+	if _, err := runCommand("warp-cli", "--accept-tos", "mode", "proxy"); err != nil {
+		return fmt.Errorf("failed to set WARP mode: %v", err)
 	}
 
-	if !registrationSuccess {
-		log.Println("Warning: All WARP initialization attempts failed, but continuing anyway")
+	// Enable split tunnel mode
+	log.Println("Enabling split tunnel mode...")
+	if _, err := runCommand("warp-cli", "--accept-tos", "disable-dns-log"); err != nil {
+		log.Printf("Warning: failed to disable DNS logging: %v", err)
 	}
 
-	// Try different mode commands
-	modeSuccess := false
-	modeAttempts := [][]string{
-		{"warp-cli", "--accept-tos", "mode", "proxy"},
-		{"warp-cli", "--accept-tos", "set-mode", "proxy"},
-		{"warp-cli", "--accept-tos", "set-mode", "warp+doh"},
-	}
-
-	for _, cmdArgs := range modeAttempts {
-		log.Printf("Trying to set WARP mode with command: %v", cmdArgs)
-		if _, err := runCommand(cmdArgs[0], cmdArgs[1:]...); err == nil {
-			modeSuccess = true
-			log.Println("WARP mode set successfully")
-			break
-		} else {
-			log.Printf("Mode setting attempt failed: %v", err)
-		}
-	}
-
-	if !modeSuccess {
-		log.Println("Warning: All WARP mode setting attempts failed, but continuing anyway")
-	}
-
-	// Try to clear existing proxy settings
-	log.Println("Setting up proxy...")
+	// Clear any existing rules
+	log.Println("Clearing existing proxy rules...")
 	if _, err := runCommand("warp-cli", "--accept-tos", "proxy-port", "40000"); err != nil {
-		log.Printf("Warning: failed to set proxy port: %v", err)
+		return fmt.Errorf("failed to set proxy port: %v", err)
 	}
 
-	// Try different commands to add domains
+	// Add domains to proxy rules
+	log.Println("Adding domains to proxy rules...")
 	for _, domain := range domains {
-		domainSuccess := false
-		domainAttempts := [][]string{
-			{"warp-cli", "--accept-tos", "add-proxy-domain", domain},
-			{"warp-cli", "--accept-tos", "add-excluded-route", domain},
-			{"warp-cli", "--accept-tos", "routing", "add", domain},
+		if _, err := runCommand("warp-cli", "--accept-tos", "add-proxy-domain", domain); err != nil {
+			log.Printf("Warning: failed to add domain %s to proxy rules: %v", domain, err)
+			continue
 		}
-
-		for _, cmdArgs := range domainAttempts {
-			log.Printf("Trying to add domain %s with command: %v", domain, cmdArgs)
-			if _, err := runCommand(cmdArgs[0], cmdArgs[1:]...); err == nil {
-				domainSuccess = true
-				log.Printf("Added domain to proxy: %s", domain)
-				break
-			} else {
-				log.Printf("Domain addition attempt failed: %v", err)
-			}
-		}
-
-		if !domainSuccess {
-			log.Printf("Warning: All attempts to add domain %s failed, but continuing", domain)
-		}
+		log.Printf("Added domain to proxy: %s", domain)
 	}
 
-	// Try to connect WARP
+	// Connect WARP
 	log.Println("Connecting WARP...")
 	if _, err := runCommand("warp-cli", "--accept-tos", "connect"); err != nil {
-		log.Printf("Warning: failed to connect WARP: %v", err)
-		// Not failing here, we'll check status to confirm
+		return fmt.Errorf("failed to connect WARP: %v", err)
 	}
 
-	// Check if WARP is connected
-	log.Println("Checking WARP connection status...")
-	status, err := GetWARPStatus()
-	if err != nil || !status {
-		log.Printf("Warning: WARP connection check failed or not connected: %v, status: %v", err, status)
-	} else {
-		log.Println("WARP connected successfully")
+	// Wait for connection to be established
+	if err := waitForWARPService(30 * time.Second); err != nil {
+		return fmt.Errorf("WARP failed to connect: %v", err)
 	}
 
-	log.Println("WARP configuration completed")
+	log.Println("WARP configuration completed successfully")
 	return nil
 }
 
 // GetWARPStatus returns the current WARP connection status
 func GetWARPStatus() (bool, error) {
-	// First try to run status command without service check
-	output, err := runCommand("warp-cli", "--accept-tos", "status")
-	if err == nil {
-		outputStr := strings.ToLower(output)
-		return strings.Contains(outputStr, "connected"), nil
-	}
-
-	log.Printf("Initial WARP status check failed: %v", err)
-
-	// If that failed, try to check service and then status again
+	// Check service status first
 	if err := checkWARPService(); err != nil {
-		log.Printf("WARP service check failed: %v", err)
-		// Don't return error, try once more after service check
+		return false, err
 	}
 
-	output, err = runCommand("warp-cli", "--accept-tos", "status")
+	output, err := runCommand("warp-cli", "--accept-tos", "status")
 	if err != nil {
-		log.Printf("WARP status check failed after service check: %v", err)
-		// Instead of error, return false as status
-		return false, nil
+		return false, fmt.Errorf("failed to get WARP status: %v", err)
 	}
 
 	outputStr := strings.ToLower(output)
@@ -314,54 +207,25 @@ func GetWARPStatus() (bool, error) {
 
 // GetExcludedDomains returns the list of domains currently excluded from WARP
 func GetExcludedDomains() ([]string, error) {
+	// Check service status first
+	if err := checkWARPService(); err != nil {
+		return nil, err
+	}
+
+	// Try the newer command first
+	output, err := runCommand("warp-cli", "--accept-tos", "proxy-list")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get proxy domains: %v", err)
+	}
+
+	// Parse the output to extract domains
 	domains := []string{}
-
-	// Try different commands to get domain list
-	domainCommandAttempts := [][]string{
-		{"warp-cli", "--accept-tos", "proxy-list"},
-		{"warp-cli", "--accept-tos", "excluded-routes", "list"},
-		{"warp-cli", "--accept-tos", "routing", "list"},
-	}
-
-	for _, cmdArgs := range domainCommandAttempts {
-		log.Printf("Trying to get domain list with command: %v", cmdArgs)
-		output, err := runCommand(cmdArgs[0], cmdArgs[1:]...)
-		if err != nil {
-			log.Printf("Domain list attempt failed: %v", err)
-			continue
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" && !strings.HasPrefix(line, "Domains") && !strings.HasPrefix(line, "-") {
+			domains = append(domains, line)
 		}
-
-		// Parse the output to extract domains
-		lines := strings.Split(output, "\n")
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			// Skip header lines and empty lines
-			if line != "" &&
-				!strings.HasPrefix(line, "Domains") &&
-				!strings.HasPrefix(line, "Route") &&
-				!strings.HasPrefix(line, "Name") &&
-				!strings.HasPrefix(line, "-") &&
-				!strings.HasPrefix(line, "=") {
-				// Extract domain name if it's in a table format
-				fields := strings.Fields(line)
-				if len(fields) > 0 {
-					domainField := fields[0]
-					// Remove any trailing commas or other punctuation
-					domainField = strings.TrimRight(domainField, ",.:;")
-					domains = append(domains, domainField)
-				}
-			}
-		}
-
-		// If we found domains, return them
-		if len(domains) > 0 {
-			return domains, nil
-		}
-	}
-
-	// If we get here, we haven't found any domains with any command
-	if len(domains) == 0 {
-		log.Println("No domains found in WARP configuration")
 	}
 
 	return domains, nil

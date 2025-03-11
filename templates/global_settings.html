@@ -219,8 +219,8 @@ $(document).ready(function() {
     });
 
     function addWarpDomainBadge(domain) {
-        var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item"></div>')
-            .append($('<span></span>').text(domain))
+        var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item">')
+            .text(domain)
             .append('<i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>');
         $('#warpDomainsList').append(badge);
     }
@@ -228,13 +228,7 @@ $(document).ready(function() {
     function updateWarpDomainsInput() {
         var domains = [];
         $('.warp-domain-item').each(function() {
-            var domainText = $(this).clone()
-                .children()
-                .remove()
-                .end()
-                .text().trim();
-            
-            domains.push(domainText);
+            domains.push($(this).text().trim());
         });
         $('#warpDomainsInput').val(domains.join(','));
     }
@@ -256,8 +250,10 @@ $(document).ready(function() {
             const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
             
             $.ajax({
-                url: "{{ .baseData.BasePath }}/global-settings",
-                type: "POST",
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/global-settings',
+                dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify({
                     endpoint_address: endpoint_address,
