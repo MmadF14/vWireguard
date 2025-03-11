@@ -117,17 +117,25 @@ func ContainsCIDR(ipnet1, ipnet2 *net.IPNet) bool {
 // ValidateCIDR to validate a network CIDR
 func ValidateCIDR(cidr string) bool {
 	_, _, err := net.ParseCIDR(cidr)
-	return err == nil
+	if err != nil {
+		return false
+	}
+	return true
 }
 
 // ValidateCIDRList to validate a list of network CIDR
 func ValidateCIDRList(cidrs []string, allowEmpty bool) bool {
 	for _, cidr := range cidrs {
-		if allowEmpty && len(cidr) == 0 {
-			continue
-		}
-		if !ValidateCIDR(cidr) {
-			return false
+		if allowEmpty {
+			if len(cidr) > 0 {
+				if ValidateCIDR(cidr) == false {
+					return false
+				}
+			}
+		} else {
+			if ValidateCIDR(cidr) == false {
+				return false
+			}
 		}
 	}
 	return true
@@ -135,28 +143,40 @@ func ValidateCIDRList(cidrs []string, allowEmpty bool) bool {
 
 // ValidateAllowedIPs to validate allowed ip addresses in CIDR format
 func ValidateAllowedIPs(cidrs []string) bool {
-	return ValidateCIDRList(cidrs, false)
+	if ValidateCIDRList(cidrs, false) == false {
+		return false
+	}
+	return true
 }
 
 // ValidateExtraAllowedIPs to validate extra Allowed ip addresses, allowing empty strings
 func ValidateExtraAllowedIPs(cidrs []string) bool {
-	return ValidateCIDRList(cidrs, true)
+	if ValidateCIDRList(cidrs, true) == false {
+		return false
+	}
+	return true
 }
 
 // ValidateServerAddresses to validate allowed ip addresses in CIDR format
 func ValidateServerAddresses(cidrs []string) bool {
-	return ValidateCIDRList(cidrs, false)
+	if ValidateCIDRList(cidrs, false) == false {
+		return false
+	}
+	return true
 }
 
 // ValidateIPAddress to validate the IPv4 and IPv6 address
 func ValidateIPAddress(ip string) bool {
-	return net.ParseIP(ip) != nil
+	if net.ParseIP(ip) == nil {
+		return false
+	}
+	return true
 }
 
 // ValidateIPAddressList to validate a list of IPv4 and IPv6 addresses
 func ValidateIPAddressList(ips []string) bool {
 	for _, ip := range ips {
-		if !ValidateIPAddress(ip) {
+		if ValidateIPAddress(ip) == false {
 			return false
 		}
 	}
