@@ -238,87 +238,77 @@ $(document).ready(function() {
 
 {{define "bottom_js"}}
     <script>
-    function submitGlobalSettings() {
-        const formData = {
-            endpoint_address: $("#endpoint_address").val(),
-            dns_servers: $("#dns_servers").tagsinput('items'),
-            mtu: $("#mtu").val(),
-            persistent_keepalive: $("#persistent_keepalive").val(),
-            firewall_mark: $("#firewall_mark").val(),
-            table: $("#table").val(),
-            config_file_path: $("#config_file_path").val(),
-            warp_enabled: $("#warpEnabled").is(":checked"),
-            warp_domains: $("#warpDomainsInput").val().split(',').filter(d => d.trim()),
-            updated_at: new Date().toISOString()
-        };
-
-        $.ajax({
-            url: "{{ .basePath }}/global-settings",
+        function submitGlobalSettings() {
+            const endpoint_address = $("#endpoint_address").val();
+            const dns_servers = $("#dns_servers").val().split(",");
+            const mtu = $("#mtu").val();
+            const persistent_keepalive = $("#persistent_keepalive").val();
+            const firewall_mark = $("#firewall_mark").val();
+            const table = $("#table").val();
+            const config_file_path = $("#config_file_path").val();
+            const warp_enabled = $("#warpEnabled").is(":checked");
+            const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
+            
+            $.ajax({
+            url: "{{.basePath}}/global-settings",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify(formData),
             success: function(response) {
-                if(response.success) {
-                    toastr.success('Settings saved successfully');
-                    location.reload(); // برای به روزرسانی مقادیر
+                if (response.success) {
+                    toastr.success('Settings saved successfully!');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    toastr.error(response.message || 'Unknown error');
+                    toastr.error(response.message || 'Failed to save settings.');
                 }
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON?.message || xhr.statusText;
                 toastr.error(`Error: ${errorMsg}`);
-                console.error('Full error:', xhr);
+                console.error('Error details:', xhr);
             }
         });
-    }
-
-    // مقداردهی اولیه Tags Input برای DNS
-    $('#dns_servers').tagsinput({
-        trimValue: true,
-        allowDuplicates: false
-    });
-
-    // مقداردهی اولیه مقادیر DNS از سرور
-    {{range .globalSettings.DNSServers}}
-        $('#dns_servers').tagsinput('add', '{{.}}');
-    {{end}}
-
-    // مدیریت پیشنهاد IP
-    $('#modal_endpoint_address_suggestion').on('show.bs.modal', function() {
-        $.getJSON("{{ .basePath }}/machine-ip-addresses", function(data) {
-            $('#ip_suggestion').empty();
-            data.forEach(function(ip) {
-                $('#ip_suggestion').append(new Option(ip.ip_address, ip.ip_address));
-            });
-        });
-    });
-
-    // اعتبارسنجی فرم
-    $("#frm_global_settings").validate({
-        rules: {
-            config_file_path: "required",
-            mtu: {
-                digits: true,
-                range: [68, 65535]
-            }
-        },
-        messages: {
-            config_file_path: "Config file path is required",
-            mtu: {
-                digits: "Must be a valid number",
-                range: "Must be between 68-65535"
-            }
-        },
-        errorElement: "div",
-        errorClass: "invalid-feedback",
-        highlight: function(element) {
-            $(element).addClass('is-invalid');
-        },
-        unhighlight: function(element) {
-            $(element).removeClass('is-invalid');
         }
-    });
+
+        $("#frm_global_settings").submit(function (e) {
+            e.preventDefault();
+            submitGlobalSettings();
+        });
+
+        // Initialize DNS servers input
+        $("#dns_servers").val("{{ range $index, $element := .globalSettings.DNSServers}}{{if $index}},{{end}}{{$element}}{{end}}");
+        $("#dns_servers").tagsinput();
+
+        // Initialize IP suggestion
+        $("#ip_suggestion").select2({
+            ajax: {
+                url: "{{ .baseData.BasePath }}/machine-ip-addresses",
+                dataType: "json",
+                delay: 250,
+                processResults: function (data) {
+                    return {
+                        results: data.map(function (item) {
+                            return {
+                                id: item.ip_address,
+                                text: item.name + " (" + item.ip_address + ")"
+                            }
+                        })
+                    };
+                },
+                cache: true
+            },
+            minimumInputLength: 0
+        });
+
+        $("#ip_suggestion").on("select2:select", function (e) {
+            $("#btn_use_ip").prop("disabled", false);
+        });
+
+        $("#btn_use_ip").click(function () {
+            const selectedData = $("#ip_suggestion").select2("data")[0];
+            $("#endpoint_address").val(selectedData.id);
+            $("#modal_endpoint_address_suggestion").modal("hide");
+        });
 
         // Add help text for WARP settings
         var warpHelp = $('<div class="card card-success mt-3">' +
