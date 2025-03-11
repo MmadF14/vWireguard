@@ -250,22 +250,22 @@ $(document).ready(function() {
             const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
             
             $.ajax({
-            url: "{{.basePath}}/global-settings",
+            url: "{{ .basePath }}/global-settings",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify(formData),
             success: function(response) {
-                if (response.success) {
-                    toastr.success('Settings saved successfully!');
-                    setTimeout(() => location.reload(), 1500);
+                if(response.success) {
+                    toastr.success('Settings saved successfully');
+                    location.reload(); // برای به روزرسانی مقادیر
                 } else {
-                    toastr.error(response.message || 'Failed to save settings.');
+                    toastr.error(response.message || 'Unknown error');
                 }
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON?.message || xhr.statusText;
                 toastr.error(`Error: ${errorMsg}`);
-                console.error('Error details:', xhr);
+                console.error('Full error:', xhr);
             }
         });
         }
