@@ -265,10 +265,6 @@ func main() {
 	app.DELETE(util.BasePath+"/wake_on_lan_host/:mac_address", handler.DeleteWakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.PUT(util.BasePath+"/wake_on_lan_host/:mac_address", handler.WakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/terminate-client", handler.TerminateClient(db, tmplDir), handler.ValidSession, handler.ContentTypeJson)
-	// در بخش ثبت مسیرها (Routes) اضافه کنید:
-	app.GET(util.BasePath+"/api/warp/domains", handler.GetExcludedDomainsHandler(db), handler.ValidSession)
-	app.POST(util.BasePath+"/api/warp/domains", handler.AddWarpDomainHandler(db), handler.ValidSession, handler.ContentTypeJson)
-	app.DELETE(util.BasePath+"/api/warp/domains", handler.RemoveWarpDomainHandler(db), handler.ValidSession, handler.ContentTypeJson)
 
 	// strip the "assets/" prefix from the embedded directory so files can be called directly without the "assets/"
 	// prefix

@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
@@ -62,38 +61,6 @@ type PeerVM struct {
 	LastHandshakeTime time.Time
 	LastHandshakeRel  time.Duration
 	Connected         bool
-}
-
-// Handler handles HTTP requests
-type Handler struct {
-	settings *Settings
-}
-
-// Settings represents the application settings
-type Settings struct {
-	WARPEnabled bool     `json:"warp_enabled"`
-	WARPDomains []string `json:"warp_domains"`
-}
-
-// NewHandler creates a new Handler instance
-func NewHandler() *Handler {
-	return &Handler{
-		settings: &Settings{
-			WARPEnabled: false,
-			WARPDomains: []string{},
-		},
-	}
-}
-
-// GetSettings returns the current settings
-func (h *Handler) GetSettings() (*Settings, error) {
-	return h.settings, nil
-}
-
-// SaveSettings saves the current settings
-func (h *Handler) SaveSettings(settings *Settings) error {
-	h.settings = settings
-	return nil
 }
 
 // Health check handler
@@ -1348,41 +1315,19 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
-		// Get current settings to compare WARP changes
-		currentSettings, err := db.GetGlobalSettings()
-		if err != nil {
-			log.Error("Failed to get current settings:", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get current settings"})
-		}
-
 		// Handle WARP configuration
 		if globalSettings.WARPEnabled {
-			// Check if WARP is already installed
-			if status, err := util.GetWARPStatus(); err != nil || !status {
-				// Install WARP if not installed or not running
-				if err := util.InstallWARP(); err != nil {
-					log.Error("Failed to install WARP:", err)
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to install WARP: %v", err)})
-				}
+			// Install WARP if not already installed
+			if err := util.InstallWARP(); err != nil {
+				log.Error("Failed to install WARP:", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to install WARP: %v", err)})
 			}
+		}
 
-			// Configure WARP with the specified domains
-			if err := util.ConfigureWARP(true, globalSettings.WARPDomains); err != nil {
-				log.Error("Failed to configure WARP:", err)
-				// Rollback to previous settings
-				if currentSettings.WARPEnabled {
-					if err := util.ConfigureWARP(true, currentSettings.WARPDomains); err != nil {
-						log.Error("Failed to rollback WARP configuration:", err)
-					}
-				}
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to configure WARP: %v", err)})
-			}
-		} else if currentSettings.WARPEnabled {
-			// If WARP was previously enabled but now being disabled
-			if err := util.ConfigureWARP(false, nil); err != nil {
-				log.Error("Failed to disable WARP:", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to disable WARP: %v", err)})
-			}
+		// Configure WARP with the specified domains
+		if err := util.ConfigureWARP(globalSettings.WARPEnabled, globalSettings.WARPDomains); err != nil {
+			log.Error("Failed to configure WARP:", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to configure WARP: %v", err)})
 		}
 
 		globalSettings.UpdatedAt = time.Now().UTC()
@@ -1617,148 +1562,4 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 // GetInternalRoutes returns the list of internal routes
 func GetInternalRoutes() []Route {
 	return internalRoutes
-}
-
-// Add these structs to your existing structs
-type DomainRequest struct {
-	Domain string `json:"domain"`
-}
-
-type DomainsResponse struct {
-	Domains []string `json:"domains"`
-}
-
-// Add these handlers to your routes
-func (h *Handler) GetWARPDomains(c *gin.Context) {
-	domains, err := util.GetExcludedDomains()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, DomainsResponse{Domains: domains})
-}
-
-func (h *Handler) AddWARPDomain(c *gin.Context) {
-	var req DomainRequest
-	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Get current settings
-	settings, err := h.GetSettings()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Add domain if not already present
-	found := false
-	for _, d := range settings.WARPDomains {
-		if d == req.Domain {
-			found = true
-			break
-		}
-	}
-	if !found {
-		settings.WARPDomains = append(settings.WARPDomains, req.Domain)
-		if err := h.SaveSettings(settings); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Reconfigure WARP with updated domains
-		if err := util.ConfigureWARP(settings.WARPEnabled, settings.WARPDomains); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
-}
-
-func (h *Handler) RemoveWARPDomain(c *gin.Context) {
-	var req DomainRequest
-	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Get current settings
-	settings, err := h.GetSettings()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Remove domain
-	newDomains := []string{}
-	for _, d := range settings.WARPDomains {
-		if d != req.Domain {
-			newDomains = append(newDomains, d)
-		}
-	}
-	settings.WARPDomains = newDomains
-
-	if err := h.SaveSettings(settings); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	// Reconfigure WARP with updated domains
-	if err := util.ConfigureWARP(settings.WARPEnabled, settings.WARPDomains); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
-}
-
-// SetupRoutes sets up the routes for the handler
-func (h *Handler) SetupRoutes(r *gin.Engine) {
-	// Add WARP domain management routes
-	r.GET("/api/warp/domains", h.GetWARPDomains)
-	r.POST("/api/warp/domains", h.AddWARPDomain)
-	r.DELETE("/api/warp/domains", h.RemoveWARPDomain)
-}
-
-// Global variable to hold excluded domains
-var warpDomains []string
-
-// GetExcludedDomainsHandler retrieves the list of excluded domains
-func GetExcludedDomainsHandler(db store.IStore) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"domains": warpDomains,
-		})
-	}
-}
-
-// AddWarpDomainHandler adds a new domain to the excluded list
-func AddWarpDomainHandler(db store.IStore) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		var domain string
-		if err := json.NewDecoder(c.Request().Body).Decode(&domain); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid domain"})
-		}
-		warpDomains = append(warpDomains, domain)
-		return c.JSON(http.StatusOK, map[string]string{"message": "Domain added successfully"})
-	}
-}
-
-// RemoveWarpDomainHandler removes a domain from the excluded list
-func RemoveWarpDomainHandler(db store.IStore) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		var domain string
-		if err := json.NewDecoder(c.Request().Body).Decode(&domain); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid domain"})
-		}
-		for i, d := range warpDomains {
-			if d == domain {
-				warpDomains = append(warpDomains[:i], warpDomains[i+1:]...)
-				break
-			}
-		}
-		return c.JSON(http.StatusOK, map[string]string{"message": "Domain removed successfully"})
-	}
 }
