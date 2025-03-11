@@ -1343,7 +1343,7 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 		c.Bind(&globalSettings)
 
 		// validate the input dns server list
-		if util.ValidateIPAddressList(globalSettings.DNSServers) == false {
+		if !util.ValidateIPAddressList(globalSettings.DNSServers) {
 			log.Warnf("Invalid DNS server list input from user: %v", globalSettings.DNSServers)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
@@ -1361,27 +1361,21 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			if status, err := util.GetWARPStatus(); err != nil || !status {
 				// Install WARP if not installed or not running
 				if err := util.InstallWARP(); err != nil {
-					log.Error("Failed to install WARP:", err)
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to install WARP: %v", err)})
+					log.Warnf("WARP installation failed but continuing anyway: %v", err)
+					// No need to return error here, we'll warn the user but still save settings
 				}
 			}
 
 			// Configure WARP with the specified domains
 			if err := util.ConfigureWARP(true, globalSettings.WARPDomains); err != nil {
-				log.Error("Failed to configure WARP:", err)
-				// Rollback to previous settings
-				if currentSettings.WARPEnabled {
-					if err := util.ConfigureWARP(true, currentSettings.WARPDomains); err != nil {
-						log.Error("Failed to rollback WARP configuration:", err)
-					}
-				}
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to configure WARP: %v", err)})
+				log.Warnf("WARP configuration failed but continuing anyway: %v", err)
+				// No need to return error here, we'll warn the user but still save settings
 			}
 		} else if currentSettings.WARPEnabled {
 			// If WARP was previously enabled but now being disabled
 			if err := util.ConfigureWARP(false, nil); err != nil {
-				log.Error("Failed to disable WARP:", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to disable WARP: %v", err)})
+				log.Warnf("Failed to disable WARP but continuing anyway: %v", err)
+				// No need to return error here, we'll warn the user but still save settings
 			}
 		}
 
