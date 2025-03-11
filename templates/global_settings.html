@@ -156,12 +156,12 @@ Global Settings
     <div class="card-body">
         <div class="form-group">
             <div class="custom-control custom-switch">
-                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled">
+                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled" {{if .globalSettings.WARPEnabled}}checked{{end}}>
                 <label class="custom-control-label" for="warpEnabled">Enable WARP</label>
             </div>
             <small class="form-text text-muted">Enable Cloudflare WARP for specific domains</small>
         </div>
-        <div class="form-group" id="warpDomainsGroup" style="display: none;">
+        <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
             <label for="warpDomains">WARP Domains</label>
             <div class="input-group">
                 <input type="text" class="form-control" id="warpDomain" placeholder="Enter domain (e.g. example.com)">
@@ -170,28 +170,20 @@ Global Settings
                 </div>
             </div>
             <small class="form-text text-muted">Enter domains that should be routed through WARP</small>
-            <div class="mt-2" id="warpDomainsList"></div>
-            <input type="hidden" name="warp_domains" id="warpDomainsInput" value="">
+            <div class="mt-2" id="warpDomainsList">
+                {{range .globalSettings.WARPDomains}}
+                <div class="badge badge-info mr-2 mb-2 warp-domain-item">
+                    {{.}} <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>
+                </div>
+                {{end}}
+            </div>
+            <input type="hidden" name="warp_domains" id="warpDomainsInput" value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
         </div>
     </div>
 </div>
 
 <script>
 $(document).ready(function() {
-    // Initialize WARP settings
-    var warpEnabled = {{if .globalSettings.WARPEnabled}}true{{else}}false{{end}};
-    var warpDomains = {{if .globalSettings.WARPDomains}}JSON.parse('{{.globalSettings.WARPDomains | json}}'){{else}}[]{{end}};
-    
-    $('#warpEnabled').prop('checked', warpEnabled);
-    $('#warpDomainsGroup').toggle(warpEnabled);
-    
-    if (warpDomains && warpDomains.length > 0) {
-        warpDomains.forEach(function(domain) {
-            addWarpDomainBadge(domain);
-        });
-        updateWarpDomainsInput();
-    }
-
     // Toggle WARP domains section visibility
     $('#warpEnabled').change(function() {
         $('#warpDomainsGroup').toggle(this.checked);
@@ -201,6 +193,7 @@ $(document).ready(function() {
     $('#addWarpDomain').click(function() {
         var domain = $('#warpDomain').val().trim();
         if (domain) {
+            // Basic domain validation
             if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
                 addWarpDomainBadge(domain);
                 $('#warpDomain').val('');
@@ -226,8 +219,8 @@ $(document).ready(function() {
     });
 
     function addWarpDomainBadge(domain) {
-        var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item">')
-            .text(domain)
+        var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item"></div>')
+            .append($('<span></span>').text(domain))
             .append('<i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>');
         $('#warpDomainsList').append(badge);
     }
@@ -235,93 +228,16 @@ $(document).ready(function() {
     function updateWarpDomainsInput() {
         var domains = [];
         $('.warp-domain-item').each(function() {
-            var text = $(this).clone().children().remove().end().text().trim();
-            domains.push(text);
+            var domainText = $(this).clone()
+                .children()
+                .remove()
+                .end()
+                .text().trim();
+            
+            domains.push(domainText);
         });
         $('#warpDomainsInput').val(domains.join(','));
     }
-
-    // Override form submission
-    $('#frm_global_settings').submit(function(e) {
-        e.preventDefault();
-        
-        var formData = {
-            endpoint_address: $("#endpoint_address").val(),
-            dns_servers: $("#dns_servers").val().split(",").filter(s => s.trim()),
-            mtu: parseInt($("#mtu").val()) || 0,
-            persistent_keepalive: parseInt($("#persistent_keepalive").val()) || 0,
-            firewall_mark: $("#firewall_mark").val(),
-            table: $("#table").val(),
-            config_file_path: $("#config_file_path").val(),
-            warp_enabled: $("#warpEnabled").is(":checked"),
-            warp_domains: $("#warpDomainsInput").val().split(",").filter(d => d.trim())
-        };
-
-        $.ajax({
-            url: "{{ .baseData.BasePath }}/global-settings",
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(formData),
-            success: function(response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function(xhr, status, error) {
-                toastr.error('Failed to save settings: ' + error);
-            }
-        });
-    });
-
-    // Initialize DNS servers input
-    $("#dns_servers").val("{{ range $index, $element := .globalSettings.DNSServers}}{{if $index}},{{end}}{{$element}}{{end}}");
-    $("#dns_servers").tagsinput();
-
-    // Initialize IP suggestion
-    $("#ip_suggestion").select2({
-        ajax: {
-            url: "{{ .baseData.BasePath }}/machine-ip-addresses",
-            dataType: "json",
-            delay: 250,
-            processResults: function (data) {
-                return {
-                    results: data.map(function (item) {
-                        return {
-                            id: item.ip_address,
-                            text: item.name + " (" + item.ip_address + ")"
-                        }
-                    })
-                };
-            },
-            cache: true
-        },
-        minimumInputLength: 0
-    });
-
-    $("#ip_suggestion").on("select2:select", function (e) {
-        $("#btn_use_ip").prop("disabled", false);
-    });
-
-    $("#btn_use_ip").click(function () {
-        const selectedData = $("#ip_suggestion").select2("data")[0];
-        $("#endpoint_address").val(selectedData.id);
-        $("#modal_endpoint_address_suggestion").modal("hide");
-    });
-
-    // Add help text for WARP settings
-    var warpHelp = $('<div class="card card-success mt-3">' +
-        '<div class="card-header"><h3 class="card-title">WARP Settings Help</h3></div>' +
-        '<div class="card-body"><dl>' +
-        '<dt>Enable WARP</dt>' +
-        '<dd>When enabled, WARP will be used to route traffic for specific domains through Cloudflare\'s network.</dd>' +
-        '<dt>WARP Domains</dt>' +
-        '<dd>Enter the domains that should be routed through WARP. Only traffic to these domains will use WARP, all other traffic will use your normal connection.</dd>' +
-        '<dd>Example domains: google.com, github.com, etc.</dd>' +
-        '</dl></div></div>');
-    
-    $('.col-md-6:last').append(warpHelp);
 });
 </script>
 {{end}}
