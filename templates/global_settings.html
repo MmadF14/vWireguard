@@ -232,196 +232,93 @@ $(document).ready(function() {
         });
         $('#warpDomainsInput').val(domains.join(','));
     }
-
-    $("#frm_global_settings").submit(function (e) {
-        e.preventDefault();
-        
-        // Validate required fields
-        if (!$("#endpoint_address").val()) {
-            toastr.error("Endpoint Address is required.");
-            return;
-        }
-
-        // Submit the form
-        submitGlobalSettings();
-    });
-
-    function submitGlobalSettings() {
-        const endpoint_address = $("#endpoint_address").val();
-        const dns_servers = $("#dns_servers").val().split(",");
-        const mtu = $("#mtu").val();
-        const persistent_keepalive = $("#persistent_keepalive").val();
-        const firewall_mark = $("#firewall_mark").val();
-        const table = $("#table").val();
-        const config_file_path = $("#config_file_path").val();
-        const warp_enabled = $("#warpEnabled").is(":checked");
-        const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
-        
-        $.ajax({
-            url: "{{ .baseData.BasePath }}/global-settings",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                endpoint_address: endpoint_address,
-                dns_servers: dns_servers,
-                mtu: mtu,
-                persistent_keepalive: persistent_keepalive,
-                firewall_mark: firewall_mark,
-                table: table,
-                config_file_path: config_file_path,
-                warp_enabled: warp_enabled,
-                warp_domains: warp_domains,
-                updated_at: new Date().toISOString()
-            }),
-            success: function (response) {
-                if (response.success) {
-                    toastr.success(response.message);
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function (xhr, status, error) {
-                // Log the error for debugging
-                console.error("Error updating global settings:", error);
-                toastr.error("Error updating global settings: " + error);
-            }
-        });
-    }
-
-    // Initialize DNS servers input
-    $("#dns_servers").val("{{ range $index, $element := .globalSettings.DNSServers}}{{if $index}},{{end}}{{$element}}{{end}}");
-    $("#dns_servers").tagsinput();
-
-    // Initialize IP suggestion
-    $("#ip_suggestion").select2({
-        ajax: {
-            url: "{{ .baseData.BasePath }}/machine-ip-addresses",
-            dataType: "json",
-            delay: 250,
-            processResults: function (data) {
-                return {
-                    results: data.map(function (item) {
-                        return {
-                            id: item.ip_address,
-                            text: item.name + " (" + item.ip_address + ")"
-                        }
-                    })
-                };
-            },
-            cache: true
-        },
-        minimumInputLength: 0
-    });
-
-    $("#ip_suggestion").on("select2:select", function (e) {
-        $("#btn_use_ip").prop("disabled", false);
-    });
-
-    $("#btn_use_ip").click(function () {
-        const selectedData = $("#ip_suggestion").select2("data")[0];
-        $("#endpoint_address").val(selectedData.id);
-        $("#modal_endpoint_address_suggestion").modal("hide");
-    });
-
-    // Add help text for WARP settings
-    var warpHelp = $('<div class="card card-success mt-3">' +
-        '<div class="card-header"><h3 class="card-title">WARP Settings Help</h3></div>' +
-        '<div class="card-body"><dl>' +
-        '<dt>Enable WARP</dt>' +
-        '<dd>When enabled, WARP will be used to route traffic for specific domains through Cloudflare\'s network.</dd>' +
-        '<dt>WARP Domains</dt>' +
-        '<dd>Enter the domains that should be routed through WARP. Only traffic to these domains will use WARP, all other traffic will use your normal connection.</dd>' +
-        '<dd>Example domains: google.com, github.com, etc.</dd>' +
-        '</dl></div></div>');
-    
-    $('.col-md-6:last').append(warpHelp);
 });
 </script>
 {{end}}
 
-<!-- {{define "bottom_js"}}
+{{define "bottom_js"}}
     <script>
-        function submitGlobalSettings() {
-            const endpoint_address = $("#endpoint_address").val();
-            const dns_servers = $("#dns_servers").val().split(",");
-            const mtu = $("#mtu").val();
-            const persistent_keepalive = $("#persistent_keepalive").val();
-            const firewall_mark = $("#firewall_mark").val();
-            const table = $("#table").val();
-            const config_file_path = $("#config_file_path").val();
-            const warp_enabled = $("#warpEnabled").is(":checked");
-            const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
-            
-            $.ajax({
-                url: "{{ .baseData.BasePath }}/global-settings",
-                type: "POST",
-                contentType: "application/json",
-                data: JSON.stringify({
-                    endpoint_address: endpoint_address,
-                    dns_servers: dns_servers,
-                    mtu: mtu,
-                    persistent_keepalive: persistent_keepalive,
-                    firewall_mark: firewall_mark,
-                    table: table,
-                    config_file_path: config_file_path,
-                    warp_enabled: warp_enabled,
-                    warp_domains: warp_domains,
-                    updated_at: new Date().toISOString()
-                }),
-                success: function (response) {
-                    if (response.success) {
-                        toastr.success(response.message);
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function (xhr, status, error) {
-                    // Log the error for debugging
-                    console.error("Error updating global settings:", error);
-                    toastr.error("Error updating global settings: " + error);
+    function submitGlobalSettings() {
+        const formData = {
+            endpoint_address: $("#endpoint_address").val(),
+            dns_servers: $("#dns_servers").tagsinput('items'),
+            mtu: $("#mtu").val(),
+            persistent_keepalive: $("#persistent_keepalive").val(),
+            firewall_mark: $("#firewall_mark").val(),
+            table: $("#table").val(),
+            config_file_path: $("#config_file_path").val(),
+            warp_enabled: $("#warpEnabled").is(":checked"),
+            warp_domains: $("#warpDomainsInput").val().split(',').filter(d => d.trim()),
+            updated_at: new Date().toISOString()
+        };
+
+        $.ajax({
+            url: "{{ .basePath }}/global-settings",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if(response.success) {
+                    toastr.success('Settings saved successfully');
+                    location.reload(); // برای به روزرسانی مقادیر
+                } else {
+                    toastr.error(response.message || 'Unknown error');
                 }
-            });
-        }
-
-        $("#frm_global_settings").submit(function (e) {
-            e.preventDefault();
-            submitGlobalSettings();
-        });
-
-        // Initialize DNS servers input
-        $("#dns_servers").val("{{ range $index, $element := .globalSettings.DNSServers}}{{if $index}},{{end}}{{$element}}{{end}}");
-        $("#dns_servers").tagsinput();
-
-        // Initialize IP suggestion
-        $("#ip_suggestion").select2({
-            ajax: {
-                url: "{{ .baseData.BasePath }}/machine-ip-addresses",
-                dataType: "json",
-                delay: 250,
-                processResults: function (data) {
-                    return {
-                        results: data.map(function (item) {
-                            return {
-                                id: item.ip_address,
-                                text: item.name + " (" + item.ip_address + ")"
-                            }
-                        })
-                    };
-                },
-                cache: true
             },
-            minimumInputLength: 0
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || xhr.statusText;
+                toastr.error(`Error: ${errorMsg}`);
+                console.error('Full error:', xhr);
+            }
         });
+    }
 
-        $("#ip_suggestion").on("select2:select", function (e) {
-            $("#btn_use_ip").prop("disabled", false);
-        });
+    // مقداردهی اولیه Tags Input برای DNS
+    $('#dns_servers').tagsinput({
+        trimValue: true,
+        allowDuplicates: false
+    });
 
-        $("#btn_use_ip").click(function () {
-            const selectedData = $("#ip_suggestion").select2("data")[0];
-            $("#endpoint_address").val(selectedData.id);
-            $("#modal_endpoint_address_suggestion").modal("hide");
+    // مقداردهی اولیه مقادیر DNS از سرور
+    {{range .globalSettings.DNSServers}}
+        $('#dns_servers').tagsinput('add', '{{.}}');
+    {{end}}
+
+    // مدیریت پیشنهاد IP
+    $('#modal_endpoint_address_suggestion').on('show.bs.modal', function() {
+        $.getJSON("{{ .basePath }}/machine-ip-addresses", function(data) {
+            $('#ip_suggestion').empty();
+            data.forEach(function(ip) {
+                $('#ip_suggestion').append(new Option(ip.ip_address, ip.ip_address));
+            });
         });
+    });
+
+    // اعتبارسنجی فرم
+    $("#frm_global_settings").validate({
+        rules: {
+            config_file_path: "required",
+            mtu: {
+                digits: true,
+                range: [68, 65535]
+            }
+        },
+        messages: {
+            config_file_path: "Config file path is required",
+            mtu: {
+                digits: "Must be a valid number",
+                range: "Must be between 68-65535"
+            }
+        },
+        errorElement: "div",
+        errorClass: "invalid-feedback",
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        }
+    });
 
         // Add help text for WARP settings
         var warpHelp = $('<div class="card card-success mt-3">' +
@@ -436,4 +333,4 @@ $(document).ready(function() {
         
         $('.col-md-6:last').append(warpHelp);
     </script>
-{{end}} -->
+{{end}}
