@@ -155,29 +155,24 @@ Global Settings
     </div>
     <div class="card-body">
         <div class="form-group">
+            <label class="form-label">WARP Status</label>
             <div class="custom-control custom-switch">
-                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled" {{if .globalSettings.WARPEnabled}}checked{{end}}>
+                <input type="checkbox" class="custom-control-input" id="warpEnabled" ${warp_enabled ? 'checked' : ''}>
                 <label class="custom-control-label" for="warpEnabled">Enable WARP</label>
             </div>
-            <small class="form-text text-muted">Enable Cloudflare WARP for specific domains</small>
         </div>
-        <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
-            <label for="warpDomains">WARP Domains</label>
-            <div class="input-group">
-                <input type="text" class="form-control" id="warpDomain" placeholder="Enter domain (e.g. example.com)">
+        
+        <div class="form-group mt-4">
+            <label class="form-label">Excluded Domains</label>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="newDomain" placeholder="Enter domain (e.g., example.com)">
                 <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="button" id="addWarpDomain">Add</button>
+                    <button class="btn btn-primary" type="button" id="addDomain">Add Domain</button>
                 </div>
             </div>
-            <small class="form-text text-muted">Enter domains that should be routed through WARP</small>
-            <div class="mt-2" id="warpDomainsList">
-                {{range .globalSettings.WARPDomains}}
-                <div class="badge badge-info mr-2 mb-2 warp-domain-item">
-                    {{.}} <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>
-                </div>
-                {{end}}
+            <div id="domainsList" class="list-group mt-3">
+                <!-- Domains will be loaded here -->
             </div>
-            <input type="hidden" name="warp_domains" id="warpDomainsInput" value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
         </div>
     </div>
 </div>
@@ -377,6 +372,60 @@ $(document).ready(function() {
                 const ip = $("#ip_suggestion").select2('val');
                 $("#endpoint_address").val(ip);
                 $("#modal_endpoint_address_suggestion").modal('hide');
+            });
+        });
+    </script>
+       <script>
+        function loadExcludedDomains() {
+            $.get('/api/warp/domains', function(data) {
+                const domainsList = $('#domainsList');
+                domainsList.empty();
+                
+                data.domains.forEach(domain => {
+                    domainsList.append(`
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            ${domain}
+                            <button class="btn btn-danger btn-sm remove-domain" data-domain="${domain}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `);
+                });
+            });
+        }
+
+        $(document).ready(function() {
+            // Load initial domains
+            loadExcludedDomains();
+            
+            // Add new domain
+            $('#addDomain').click(function() {
+                const domain = $('#newDomain').val().trim();
+                if (domain) {
+                    $.post('/api/warp/domains', { domain: domain }, function() {
+                        $('#newDomain').val('');
+                        loadExcludedDomains();
+                    });
+                }
+            });
+            
+            // Remove domain
+            $(document).on('click', '.remove-domain', function() {
+                const domain = $(this).data('domain');
+                $.ajax({
+                    url: '/api/warp/domains',
+                    type: 'DELETE',
+                    data: { domain: domain },
+                    success: function() {
+                        loadExcludedDomains();
+                    }
+                });
+            });
+            
+            // Handle WARP enable/disable
+            $('#warpEnabled').change(function() {
+                const enabled = $(this).is(':checked');
+                $.post('/global-settings', { warp_enabled: enabled });
             });
         });
     </script>
