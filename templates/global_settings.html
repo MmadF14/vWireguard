@@ -250,8 +250,10 @@ $(document).ready(function() {
             const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
             
             $.ajax({
-                url: "{{ .baseData.BasePath }}/global-settings",
-                type: "POST",
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/global-settings',
+                dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify({
                     endpoint_address: endpoint_address,
