@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/sessions"
@@ -62,6 +63,14 @@ type PeerVM struct {
 	LastHandshakeRel  time.Duration
 	Connected         bool
 }
+
+// GlobalSettings holds the global settings including domains
+var GlobalSettings struct {
+	WarpEnabled bool     `json:"warp_enabled"`
+	Domains     []string `json:"domains"`
+}
+
+var mu sync.Mutex
 
 // Health check handler
 func Health() echo.HandlerFunc {
@@ -1120,22 +1129,7 @@ func WireGuardServerKeyPair(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GlobalSettings handler
-func GlobalSettings(db store.IStore) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		globalSettings, err := db.GetGlobalSettings()
-		if err != nil {
-			log.Error("Cannot get global settings: ", err)
-		}
-
-		return c.Render(http.StatusOK, "global_settings.html", map[string]interface{}{
-			"baseData":       model.BaseData{Active: "global-settings", CurrentUser: currentUser(c), Admin: isAdmin(c)},
-			"globalSettings": globalSettings,
-		})
-	}
-}
-
-// Status handler to show wireguard connection status
+// GlobalSettings handler to show wireguard connection status
 func Status(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		wgClient, err := wgctrl.New()
@@ -1562,4 +1556,60 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 // GetInternalRoutes returns the list of internal routes
 func GetInternalRoutes() []Route {
 	return internalRoutes
+}
+
+// GetGlobalSettings handles GET requests for global settings
+func GetGlobalSettings(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(GlobalSettings)
+}
+
+// UpdateGlobalSettings handles POST requests to update global settings
+func UpdateGlobalSettings(w http.ResponseWriter, r *http.Request) {
+	var settings struct {
+		WarpEnabled bool     `json:"warp_enabled"`
+		Domains     []string `json:"domains"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mu.Lock()
+	GlobalSettings.WarpEnabled = settings.WarpEnabled
+	GlobalSettings.Domains = settings.Domains
+	mu.Unlock()
+
+	// Call ConfigureWARP with the new settings
+	if err := util.ConfigureWARP(GlobalSettings.WarpEnabled, GlobalSettings.Domains); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// AddDomain handles POST requests to add a new domain
+func AddDomain(w http.ResponseWriter, r *http.Request) {
+	var domain struct {
+		Domain string `json:"domain"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&domain); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	mu.Lock()
+	GlobalSettings.Domains = append(GlobalSettings.Domains, domain.Domain)
+	mu.Unlock()
+
+	// Call ConfigureWARP to update the configuration
+	if err := util.ConfigureWARP(GlobalSettings.WarpEnabled, GlobalSettings.Domains); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
