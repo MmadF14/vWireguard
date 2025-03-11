@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha512"
 	"embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -51,7 +50,6 @@ var (
 	flagWgConfTemplate           string
 	flagBasePath                 = "/"
 	flagSubnetRanges             string
-	warpDomains                  []string // This will hold the list of excluded domains
 )
 
 const (
@@ -72,18 +70,6 @@ var embeddedTemplates embed.FS
 //
 //go:embed assets/*
 var embeddedAssets embed.FS
-
-type GlobalSettings struct {
-	EndpointAddress     string   `json:"endpoint_address"`
-	DNSServers          []string `json:"dns_servers"`
-	MTU                 string   `json:"mtu"`
-	PersistentKeepalive string   `json:"persistent_keepalive"`
-	FirewallMark        string   `json:"firewall_mark"`
-	Table               string   `json:"table"`
-	ConfigFilePath      string   `json:"config_file_path"`
-	WarpEnabled         bool     `json:"warp_enabled"`
-	WarpDomains         []string `json:"warp_domains"`
-}
 
 func init() {
 	// command-line flags and env variables
@@ -279,6 +265,10 @@ func main() {
 	app.DELETE(util.BasePath+"/wake_on_lan_host/:mac_address", handler.DeleteWakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.PUT(util.BasePath+"/wake_on_lan_host/:mac_address", handler.WakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/terminate-client", handler.TerminateClient(db, tmplDir), handler.ValidSession, handler.ContentTypeJson)
+	// در بخش ثبت مسیرها (Routes) اضافه کنید:
+	app.GET(util.BasePath+"/api/warp/domains", handler.GetExcludedDomainsHandler(db), handler.ValidSession)
+	app.POST(util.BasePath+"/api/warp/domains", handler.AddWarpDomainHandler(db), handler.ValidSession, handler.ContentTypeJson)
+	app.DELETE(util.BasePath+"/api/warp/domains", handler.RemoveWarpDomainHandler(db), handler.ValidSession, handler.ContentTypeJson)
 
 	// strip the "assets/" prefix from the embedded directory so files can be called directly without the "assets/"
 	// prefix
@@ -349,53 +339,4 @@ func initTelegram(initDeps telegram.TgBotInitDependencies) {
 			}
 		}
 	}()
-}
-
-func updateGlobalSettings(w http.ResponseWriter, r *http.Request) {
-	var settings GlobalSettings
-	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// TODO: Process the settings (e.g., save to database or configuration file)
-
-	// Respond with success
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Global settings updated successfully", "success": "true"})
-}
-
-func addDomain(w http.ResponseWriter, r *http.Request) {
-	var domain string
-	if err := json.NewDecoder(r.Body).Decode(&domain); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// Add the domain to the list
-	warpDomains = append(warpDomains, domain)
-
-	// Respond with success
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Domain added successfully", "success": "true"})
-}
-
-func deleteDomain(w http.ResponseWriter, r *http.Request) {
-	var domain string
-	if err := json.NewDecoder(r.Body).Decode(&domain); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// Remove the domain from the list
-	for i, d := range warpDomains {
-		if d == domain {
-			warpDomains = append(warpDomains[:i], warpDomains[i+1:]...)
-			break
-		}
-	}
-
-	// Respond with success
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Domain removed successfully", "success": "true"})
 }

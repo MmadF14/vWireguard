@@ -1721,3 +1721,44 @@ func (h *Handler) SetupRoutes(r *gin.Engine) {
 	r.POST("/api/warp/domains", h.AddWARPDomain)
 	r.DELETE("/api/warp/domains", h.RemoveWARPDomain)
 }
+
+// Global variable to hold excluded domains
+var warpDomains []string
+
+// GetExcludedDomainsHandler retrieves the list of excluded domains
+func GetExcludedDomainsHandler(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"domains": warpDomains,
+		})
+	}
+}
+
+// AddWarpDomainHandler adds a new domain to the excluded list
+func AddWarpDomainHandler(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var domain string
+		if err := json.NewDecoder(c.Request().Body).Decode(&domain); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid domain"})
+		}
+		warpDomains = append(warpDomains, domain)
+		return c.JSON(http.StatusOK, map[string]string{"message": "Domain added successfully"})
+	}
+}
+
+// RemoveWarpDomainHandler removes a domain from the excluded list
+func RemoveWarpDomainHandler(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var domain string
+		if err := json.NewDecoder(c.Request().Body).Decode(&domain); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid domain"})
+		}
+		for i, d := range warpDomains {
+			if d == domain {
+				warpDomains = append(warpDomains[:i], warpDomains[i+1:]...)
+				break
+			}
+		}
+		return c.JSON(http.StatusOK, map[string]string{"message": "Domain removed successfully"})
+	}
+}
