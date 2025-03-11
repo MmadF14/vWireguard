@@ -1348,19 +1348,41 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
-		// Handle WARP configuration
-		if globalSettings.WARPEnabled {
-			// Install WARP if not already installed
-			if err := util.InstallWARP(); err != nil {
-				log.Error("Failed to install WARP:", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to install WARP: %v", err)})
-			}
+		// Get current settings to compare WARP changes
+		currentSettings, err := db.GetGlobalSettings()
+		if err != nil {
+			log.Error("Failed to get current settings:", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get current settings"})
 		}
 
-		// Configure WARP with the specified domains
-		if err := util.ConfigureWARP(globalSettings.WARPEnabled, globalSettings.WARPDomains); err != nil {
-			log.Error("Failed to configure WARP:", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to configure WARP: %v", err)})
+		// Handle WARP configuration
+		if globalSettings.WARPEnabled {
+			// Check if WARP is already installed
+			if status, err := util.GetWARPStatus(); err != nil || !status {
+				// Install WARP if not installed or not running
+				if err := util.InstallWARP(); err != nil {
+					log.Error("Failed to install WARP:", err)
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to install WARP: %v", err)})
+				}
+			}
+
+			// Configure WARP with the specified domains
+			if err := util.ConfigureWARP(true, globalSettings.WARPDomains); err != nil {
+				log.Error("Failed to configure WARP:", err)
+				// Rollback to previous settings
+				if currentSettings.WARPEnabled {
+					if err := util.ConfigureWARP(true, currentSettings.WARPDomains); err != nil {
+						log.Error("Failed to rollback WARP configuration:", err)
+					}
+				}
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to configure WARP: %v", err)})
+			}
+		} else if currentSettings.WARPEnabled {
+			// If WARP was previously enabled but now being disabled
+			if err := util.ConfigureWARP(false, nil); err != nil {
+				log.Error("Failed to disable WARP:", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to disable WARP: %v", err)})
+			}
 		}
 
 		globalSettings.UpdatedAt = time.Now().UTC()

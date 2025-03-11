@@ -249,135 +249,86 @@ $(document).ready(function() {
             const warp_enabled = $("#warpEnabled").is(":checked");
             const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
             
-            const data = {
-                "endpoint_address": endpoint_address, 
-                "dns_servers": dns_servers, 
-                "mtu": mtu, 
-                "persistent_keepalive": persistent_keepalive, 
-                "firewall_mark": firewall_mark, 
-                "table": table, 
-                "config_file_path": config_file_path,
-                "warp_enabled": warp_enabled,
-                "warp_domains": warp_domains
-            };
-
             $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/global-settings',
-                dataType: 'json',
+                url: "{{ .baseData.BasePath }}/global-settings",
+                type: "POST",
                 contentType: "application/json",
-                data: JSON.stringify(data),
-                success: function(data) {
-                    $("#modal_new_client").modal('hide');
-                    toastr.success('Update global settings successfully');
+                data: JSON.stringify({
+                    endpoint_address: endpoint_address,
+                    dns_servers: dns_servers,
+                    mtu: mtu,
+                    persistent_keepalive: persistent_keepalive,
+                    firewall_mark: firewall_mark,
+                    table: table,
+                    config_file_path: config_file_path,
+                    warp_enabled: warp_enabled,
+                    warp_domains: warp_domains,
+                    updated_at: new Date().toISOString()
+                }),
+                success: function (response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                    } else {
+                        toastr.error(response.message);
+                    }
                 },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
+                error: function (xhr, status, error) {
+                    toastr.error("Error updating global settings: " + error);
                 }
             });
         }
 
-        function updateEndpointSuggestionIP() {
-            $.getJSON("{{.basePath}}/api/machine-ips", null, function(data) {
-                $("#ip_suggestion option").remove();
-                $.each(data, function(index, item) {
-                    $("#ip_suggestion").append(
-                        $("<option></option>")
-                            .text(item.ip_address + ' - ' + item.name)
-                            .val(item.ip_address)
-                    );
-                });
-                document.getElementById("btn_use_ip").disabled = false;
-            });
-        }
-    </script>
-    <script>
-        // Wireguard Interface DNS server tag input
-        $("#dns_servers").tagsInput({
-            'width': '100%',
-            'height': '75%',
-            'interactive': true,
-            'defaultText': 'Add More',
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'minInputWidth': '100%',
-            'placeholderColor': '#666666'
+        $("#frm_global_settings").submit(function (e) {
+            e.preventDefault();
+            submitGlobalSettings();
         });
 
-        // Load DNS server to the form
-        {{range .globalSettings.DNSServers}}
-        $("#dns_servers").removeTag('{{.}}');
-        $("#dns_servers").addTag('{{.}}');
-        {{end}}
+        // Initialize DNS servers input
+        $("#dns_servers").val("{{ range $index, $element := .globalSettings.DNSServers}}{{if $index}},{{end}}{{$element}}{{end}}");
+        $("#dns_servers").tagsinput();
 
-        // Global setting form validation
-        $(document).ready(function () {
-            $.validator.setDefaults({
-                submitHandler: function () {
-                    submitGlobalSettings();
-                }
-            });
-            $("#frm_global_settings").validate({
-                rules: {
-                    mtu: {
-                        digits: true,
-                        range: [68, 65535]
-                    },
-                    persistent_keepalive: {
-                        digits: true
-                    },
-                    config_file_path: {
-                        required: true
-                    },
-                    firewall_mark: {
-                        required: false
-                    },
-                    table: {
-                        required: false
-                    }
+        // Initialize IP suggestion
+        $("#ip_suggestion").select2({
+            ajax: {
+                url: "{{ .baseData.BasePath }}/machine-ip-addresses",
+                dataType: "json",
+                delay: 250,
+                processResults: function (data) {
+                    return {
+                        results: data.map(function (item) {
+                            return {
+                                id: item.ip_address,
+                                text: item.name + " (" + item.ip_address + ")"
+                            }
+                        })
+                    };
                 },
-                messages: {
-                    mtu: {
-                        digits: "MTU must be an integer",
-                        range: "MTU must be in range 68..65535"
-                    },
-                    persistent_keepalive: {
-                        digits: "Persistent keepalive must be an integer"
-                    },
-                    config_file_path: {
-                        required: "Please enter WireGuard config file path"
-                    }
-                },
-                errorElement: 'span',
-                errorPlacement: function (error, element) {
-                    error.addClass('invalid-feedback');
-                    element.closest('.form-group').append(error);
-                },
-                highlight: function (element, errorClass, validClass) {
-                    $(element).addClass('is-invalid');
-                },
-                unhighlight: function (element, errorClass, validClass) {
-                    $(element).removeClass('is-invalid');
-                }
-            });
+                cache: true
+            },
+            minimumInputLength: 0
         });
 
-        // Endpoint IP suggestion modal event
-        $(document).ready(function () {
-            $("#modal_endpoint_address_suggestion").on('shown.bs.modal', function (e) {
-                updateEndpointSuggestionIP();
-            });
+        $("#ip_suggestion").on("select2:select", function (e) {
+            $("#btn_use_ip").prop("disabled", false);
         });
 
-        // Use selected IP address from suggestion form
-        $(document).ready(function () {
-            $("#btn_use_ip").click(function () {
-                const ip = $("#ip_suggestion").select2('val');
-                $("#endpoint_address").val(ip);
-                $("#modal_endpoint_address_suggestion").modal('hide');
-            });
+        $("#btn_use_ip").click(function () {
+            const selectedData = $("#ip_suggestion").select2("data")[0];
+            $("#endpoint_address").val(selectedData.id);
+            $("#modal_endpoint_address_suggestion").modal("hide");
         });
+
+        // Add help text for WARP settings
+        var warpHelp = $('<div class="card card-success mt-3">' +
+            '<div class="card-header"><h3 class="card-title">WARP Settings Help</h3></div>' +
+            '<div class="card-body"><dl>' +
+            '<dt>Enable WARP</dt>' +
+            '<dd>When enabled, WARP will be used to route traffic for specific domains through Cloudflare\'s network.</dd>' +
+            '<dt>WARP Domains</dt>' +
+            '<dd>Enter the domains that should be routed through WARP. Only traffic to these domains will use WARP, all other traffic will use your normal connection.</dd>' +
+            '<dd>Example domains: google.com, github.com, etc.</dd>' +
+            '</dl></div></div>');
+        
+        $('.col-md-6:last').append(warpHelp);
     </script>
 {{end}}
