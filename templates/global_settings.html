@@ -1,18 +1,3 @@
-{{define "title"}}
-Global Settings
-{{end}}
-
-{{define "top_css"}}
-{{end}}
-
-{{define "username"}}
-{{ .username }}
-{{end}}
-
-{{define "page_title"}}
-Global Settings
-{{end}}
-
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
@@ -20,6 +5,7 @@ Global Settings
         <div class="row">
             <!-- left column -->
             <div class="col-md-6">
+                <!-- کارت تنظیمات WireGuard -->
                 <div class="card card-success">
                     <div class="card-header">
                         <h3 class="card-title">Wireguard Global Settings</h3>
@@ -28,50 +14,65 @@ Global Settings
                     <!-- form start -->
                     <form role="form" id="frm_global_settings" name="frm_global_settings">
                         <div class="card-body">
+                            <!-- Endpoint Address -->
                             <div class="form-group">
                                 <label for="endpoint_address">Endpoint Address</label>
                                 <div class="input-group input-group">
-                                    <input type="text" class="form-control" id="endpoint_address" name="endpoint_address" placeholder="Endpoint Address"
-                                        value="{{ .globalSettings.EndpointAddress }}">
+                                    <input type="text" class="form-control" id="endpoint_address" name="endpoint_address"
+                                           placeholder="Endpoint Address"
+                                           value="{{ .globalSettings.EndpointAddress }}">
                                     <span class="input-group-append">
                                         <button type="button" class="btn btn-success btn-flat" data-toggle="modal"
-                                            data-target="#modal_endpoint_address_suggestion"><i
-                                                class="nav-icon fas fa-magic"></i> Suggest</button>
+                                                data-target="#modal_endpoint_address_suggestion">
+                                            <i class="nav-icon fas fa-magic"></i> Suggest
+                                        </button>
                                     </span>
                                 </div>
                             </div>
+
+                            <!-- DNS Servers -->
                             <div class="form-group">
                                 <label for="dns_servers" class="control-label">DNS Servers</label>
                                 <input type="text" data-role="tagsinput" class="form-control" id="dns_servers" value="">
                             </div>
+
+                            <!-- MTU -->
                             <div class="form-group">
                                 <label for="mtu">MTU</label>
                                 <input type="text" class="form-control" id="mtu" name="mtu" placeholder="MTU"
-                                    value="{{if .globalSettings.MTU}}{{ .globalSettings.MTU }}{{end}}">
+                                       value="{{if .globalSettings.MTU}}{{ .globalSettings.MTU }}{{end}}">
                             </div>
+
+                            <!-- Persistent Keepalive -->
                             <div class="form-group">
                                 <label for="persistent_keepalive">Persistent Keepalive</label>
                                 <input type="text" class="form-control" id="persistent_keepalive"
-                                    name="persistent_keepalive" placeholder="Persistent Keepalive"
-                                    value="{{if .globalSettings.PersistentKeepalive }}{{ .globalSettings.PersistentKeepalive }}{{end}}">
+                                       name="persistent_keepalive" placeholder="Persistent Keepalive"
+                                       value="{{if .globalSettings.PersistentKeepalive }}{{ .globalSettings.PersistentKeepalive }}{{end}}">
                             </div>
+
+                            <!-- Firewall Mark -->
                             <div class="form-group">
                                 <label for="firewall_mark">Firewall Mark</label>
                                 <input type="text" class="form-control" id="firewall_mark"
-                                    name="firewall_mark" placeholder="Firewall Mark"
-                                    value="{{ .globalSettings.FirewallMark }}">
+                                       name="firewall_mark" placeholder="Firewall Mark"
+                                       value="{{ .globalSettings.FirewallMark }}">
                             </div>
+
+                            <!-- Table -->
                             <div class="form-group">
                                 <label for="Table">Table</label>
                                 <input type="text" class="form-control" id="table"
-                                    name="table" placeholder="auto"
-                                    value="{{ .globalSettings.Table }}">
+                                       name="table" placeholder="auto"
+                                       value="{{ .globalSettings.Table }}">
                             </div>
+
+                            <!-- Wireguard Config File Path -->
                             <div class="form-group">
                                 <label for="config_file_path">Wireguard Config File Path</label>
                                 <input type="text" class="form-control" id="config_file_path"
-                                    name="config_file_path" placeholder="E.g. /etc/wireguard/wg0.conf"
-                                    value="{{ .globalSettings.ConfigFilePath }}">
+                                       name="config_file_path" placeholder="E.g. /etc/wireguard/wg0.conf"
+                                       value="{{ .globalSettings.ConfigFilePath }}">
                             </div>
                         </div>
                         <!-- /.card-body -->
@@ -83,6 +84,8 @@ Global Settings
                 </div>
                 <!-- /.card -->
             </div>
+
+            <!-- ستون دوم: Help -->
             <div class="col-md-6">
                 <div class="card card-success">
                     <div class="card-header">
@@ -92,13 +95,14 @@ Global Settings
                     <div class="card-body">
                         <dl>
                             <dt>1. Endpoint Address</dt>
-                            <dd>The public IP address of your Wireguard server that the client will connect to. Click on
-                                <strong>Suggest</strong> button to auto detect the public IP address of your server.</dd>
+                            <dd>The public IP address of your Wireguard server that the client will connect to. 
+                                Click on <strong>Suggest</strong> button to auto detect the public IP address of your server.</dd>
                             <dt>2. DNS Servers</dt>
                             <dd>The DNS servers will be set to client config.</dd>
                             <dt>3. MTU</dt>
-                            <dd>The MTU will be set to server and client config. By default it is <code>1450</code>. You might want
-                                to adjust the MTU size if your connection (e.g PPPoE, 3G, satellite network, etc) has a low MTU.</dd>
+                            <dd>The MTU will be set to server and client config. By default it is <code>1450</code>. 
+                                You might want to adjust the MTU size if your connection (e.g PPPoE, 3G, satellite network, etc) 
+                                has a low MTU.</dd>
                             <dd>Leave blank to omit this setting in the configs.</dd>
                             <dt>4. Persistent Keepalive</dt>
                             <dd>By default, WireGuard peers remain silent while they do not need to communicate,
@@ -107,9 +111,10 @@ Global Settings
                                 can ensure that the connection remains open.</dd>
                             <dd>Leave blank to omit this setting in the Client config.</dd>
                             <dt>5. Firewall Mark</dt>
-                            <dd>Add a matching <code>fwmark</code> on all packets going out of a WireGuard non-default-route tunnel. Default value: <code>0xca6c</code></dd>
+                            <dd>Add a matching <code>fwmark</code> on all packets going out of a WireGuard non-default-route tunnel. 
+                                Default value: <code>0xca6c</code></dd>
                             <dt>6. Table</dt>
-                            <dd>Value for the <code>Table</code> setting in the wg conf file. Default value: <code>auto</code></dd>                            
+                            <dd>Value for the <code>Table</code> setting in the wg conf file. Default value: <code>auto</code></dd>
                             <dt>7. Wireguard Config File Path</dt>
                             <dd>The path of your Wireguard server config file. Please make sure the parent directory
                                 exists and is writable.</dd>
@@ -123,6 +128,7 @@ Global Settings
     </div>
 </section>
 
+<!-- Modal Endpoint Address Suggestion -->
 <div class="modal fade" id="modal_endpoint_address_suggestion">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -135,7 +141,7 @@ Global Settings
             <div class="modal-body">
                 <p>Following is the list of public and local IP addresses for your consideration.</p>
                 <select id="ip_suggestion" class="select2"
-                    data-placeholder="Select an IP address" style="width: 100%;">
+                        data-placeholder="Select an IP address" style="width: 100%;">
                 </select>
             </div>
             <div class="modal-footer justify-content-between">
@@ -149,6 +155,7 @@ Global Settings
 </div>
 <!-- /.modal -->
 
+<!-- کارت تنظیمات WARP -->
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">WARP Settings</h3>
@@ -164,7 +171,7 @@ Global Settings
         </div>
         <!-- بخش وارد کردن دامنه‌ها که باید به صورت داینامیک نمایش/مخفی شود -->
         <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
-            <label for="warpDomains">WARP Domains</label>
+            <label for="warpDomain">WARP Domains</label>
             <div class="input-group">
                 <input type="text" class="form-control" id="warpDomain" placeholder="Enter domain (e.g. example.com)">
                 <div class="input-group-append">
@@ -179,20 +186,72 @@ Global Settings
                 </div>
                 {{end}}
             </div>
-            <input type="hidden" name="warp_domains" id="warpDomainsInput" value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
+            <input type="hidden" name="warp_domains" id="warpDomainsInput" 
+                   value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
         </div>
     </div>
 </div>
+{{end}}  <!-- پایان تعریف page_content -->
 
-
+{{define "bottom_js"}}
 <script>
+    // آماده‌سازی فرم گلوبال ستینگ و اعتبارسنجی
+    function submitGlobalSettings() {
+        const endpoint_address = $("#endpoint_address").val();
+        const dns_servers = $("#dns_servers").val().split(",");
+        const mtu = $("#mtu").val();
+        const persistent_keepalive = $("#persistent_keepalive").val();
+        const firewall_mark = $("#firewall_mark").val();
+        const table = $("#table").val();
+        const config_file_path = $("#config_file_path").val();
+
+        // اطلاعات وارپ
+        const warp_enabled = $("#warpEnabled").is(":checked");
+        const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
+
+        const data = {
+            "endpoint_address": endpoint_address,
+            "dns_servers": dns_servers,
+            "mtu": mtu,
+            "persistent_keepalive": persistent_keepalive,
+            "firewall_mark": firewall_mark,
+            "table": table,
+            "config_file_path": config_file_path,
+            "warp_enabled": warp_enabled,
+            "warp_domains": warp_domains
+        };
+
+        $.ajax({
+            cache: false,
+            method: 'POST',
+            url: '{{.basePath}}/global-settings',
+            dataType: 'json',
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function(resp) {
+                toastr.success('Update global settings successfully');
+                // می‌توانید در صورت نیاز صفحه را ریلود یا مقداردهی مجدد کنید
+                // location.reload();
+            },
+            error: function(jqXHR, exception) {
+                let msg = 'Error updating settings';
+                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
+                    msg = jqXHR.responseJSON.message;
+                }
+                toastr.error(msg);
+            }
+        });
+    }
+
+    // راه‌اندازی اولیه رویدادها
     $(document).ready(function() {
-        // تغییر نمایش بخش دامنه‌ها براساس وضعیت چک‌باکس وارپ
+
+        // نمایش/مخفی کردن بخش دامنه‌ها با تغییر وضعیت چک‌باکس
         $('#warpEnabled').change(function() {
             $('#warpDomainsGroup').toggle(this.checked);
         });
-    
-        // افزودن دامنه جدید
+
+        // افزودن دامنه
         $('#addWarpDomain').click(function() {
             var domain = $('#warpDomain').val().trim();
             if (domain) {
@@ -206,89 +265,85 @@ Global Settings
                 }
             }
         });
-    
-        // حذف دامنه از لیست وقتی روی آیکون "x" کلیک می‌شود
+
+        // حذف دامنه از لیست
         $(document).on('click', '.remove-domain', function() {
             $(this).closest('.warp-domain-item').remove();
             updateWarpDomainsInput();
         });
-    
-        // افزودن دامنه با زدن کلید Enter
+
+        // افزودن دامنه با فشردن کلید Enter
         $('#warpDomain').keypress(function(e) {
-            if (e.which == 13) {
+            if (e.which === 13) {
                 $('#addWarpDomain').click();
                 return false;
             }
         });
-    
+
+        // متد افزودن یک badge دامنه
         function addWarpDomainBadge(domain) {
-            var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item">')
-                .text(domain)
-                .append('<i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>');
+            const badge = $(
+                '<div class="badge badge-info mr-2 mb-2 warp-domain-item">' +
+                domain + ' <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i></div>'
+            );
             $('#warpDomainsList').append(badge);
         }
-    
+
+        // متد آپدیت فیلد مخفی دامنه‌ها
         function updateWarpDomainsInput() {
-            var domains = [];
+            let domains = [];
             $('.warp-domain-item').each(function() {
-                domains.push($(this).text().trim());
+                // فقط متن دامنه (بدون آیکون x)
+                domains.push($(this).clone().children().remove().end().text().trim());
             });
             $('#warpDomainsInput').val(domains.join(','));
         }
-    });
-    </script>
-    
-{{end}}
 
-{{define "bottom_js"}}
-    <script>
-        function submitGlobalSettings() {
-    const endpoint_address = $("#endpoint_address").val();
-    // سایر مقادیر...
-    const warp_enabled = $("#warpEnabled").is(":checked");
-    const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
+        // اعتبارسنجی فرم با jQuery Validate (اختیاری)
+        $.validator.setDefaults({
+            submitHandler: function () {
+                submitGlobalSettings();
+            }
+        });
+        $("#frm_global_settings").validate({
+            rules: {
+                mtu: {
+                    digits: true,
+                    range: [68, 65535]
+                },
+                persistent_keepalive: {
+                    digits: true
+                },
+                config_file_path: {
+                    required: true
+                }
+            },
+            messages: {
+                mtu: {
+                    digits: "MTU must be an integer",
+                    range: "MTU must be in range 68..65535"
+                },
+                persistent_keepalive: {
+                    digits: "Persistent keepalive must be an integer"
+                },
+                config_file_path: {
+                    required: "Please enter WireGuard config file path"
+                }
+            },
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group').append(error);
+            },
+            highlight: function (element, errorClass, validClass) {
+                $(element).addClass('is-invalid');
+            },
+            unhighlight: function (element, errorClass, validClass) {
+                $(element).removeClass('is-invalid');
+            }
+        });
 
-    const data = {
-        "endpoint_address": endpoint_address, 
-        // سایر مقادیر...
-        "warp_enabled": warp_enabled,
-        "warp_domains": warp_domains
-    };
-
-    $.ajax({
-        cache: false,
-        method: 'POST',
-        url: '{{.basePath}}/global-settings',
-        dataType: 'json',
-        contentType: "application/json",
-        data: JSON.stringify(data),
-        success: function(data) {
-            $("#modal_new_client").modal('hide');
-            toastr.success('Update global settings successfully');
-        },
-        error: function(jqXHR, exception) {
-            const responseJson = jQuery.parseJSON(jqXHR.responseText);
-            toastr.error(responseJson['message']);
-        }
-    });
-}
-
-        function updateEndpointSuggestionIP() {
-            $.getJSON("{{.basePath}}/api/machine-ips", null, function(data) {
-                $("#ip_suggestion option").remove();
-                $.each(data, function(index, item) {
-                    $("#ip_suggestion").append(
-                        $("<option></option>")
-                            .text(item.ip_address + ' - ' + item.name)
-                            .val(item.ip_address)
-                    );
-                });
-                document.getElementById("btn_use_ip").disabled = false;
-            });
-        }
-    </script>
-    <script>
-        // Wireguard Interface DNS server tag input
+        // مقداردهی اولیه برای DNS Servers با پلاگین tagsinput
         $("#dns_servers").tagsInput({
             'width': '100%',
             'height': '75%',
@@ -296,82 +351,34 @@ Global Settings
             'defaultText': 'Add More',
             'removeWithBackspace': true,
             'minChars': 0,
-            'minInputWidth': '100%',
             'placeholderColor': '#666666'
         });
 
-        // Load DNS server to the form
+        // پرکردن تگ‌های DNS با مقادیری که در سرور ذخیره شده
         {{range .globalSettings.DNSServers}}
-        $("#dns_servers").removeTag('{{.}}');
-        $("#dns_servers").addTag('{{.}}');
+            $("#dns_servers").removeTag('{{.}}');
+            $("#dns_servers").addTag('{{.}}');
         {{end}}
 
-        // Global setting form validation
-        $(document).ready(function () {
-            $.validator.setDefaults({
-                submitHandler: function () {
-                    submitGlobalSettings();
-                }
-            });
-            $("#frm_global_settings").validate({
-                rules: {
-                    mtu: {
-                        digits: true,
-                        range: [68, 65535]
-                    },
-                    persistent_keepalive: {
-                        digits: true
-                    },
-                    config_file_path: {
-                        required: true
-                    },
-                    firewall_mark: {
-                        required: false
-                    },
-                    table: {
-                        required: false
-                    }
-                },
-                messages: {
-                    mtu: {
-                        digits: "MTU must be an integer",
-                        range: "MTU must be in range 68..65535"
-                    },
-                    persistent_keepalive: {
-                        digits: "Persistent keepalive must be an integer"
-                    },
-                    config_file_path: {
-                        required: "Please enter WireGuard config file path"
-                    }
-                },
-                errorElement: 'span',
-                errorPlacement: function (error, element) {
-                    error.addClass('invalid-feedback');
-                    element.closest('.form-group').append(error);
-                },
-                highlight: function (element, errorClass, validClass) {
-                    $(element).addClass('is-invalid');
-                },
-                unhighlight: function (element, errorClass, validClass) {
-                    $(element).removeClass('is-invalid');
-                }
+        // مدیریت Modal مربوط به Endpoint Address Suggestion
+        $("#modal_endpoint_address_suggestion").on('shown.bs.modal', function () {
+            $.getJSON("{{.basePath}}/api/machine-ips", function(data) {
+                $('#ip_suggestion').empty();
+                $.each(data, function(index, item) {
+                    $('#ip_suggestion').append(
+                        $('<option></option>').text(item.ip_address + ' - ' + item.name).val(item.ip_address)
+                    );
+                });
+                $("#btn_use_ip").prop('disabled', data.length === 0);
             });
         });
 
-        // Endpoint IP suggestion modal event
-        $(document).ready(function () {
-            $("#modal_endpoint_address_suggestion").on('shown.bs.modal', function (e) {
-                updateEndpointSuggestionIP();
-            });
+        // Use selected IP address from suggestion
+        $("#btn_use_ip").click(function () {
+            const ip = $("#ip_suggestion").val();
+            $("#endpoint_address").val(ip);
+            $("#modal_endpoint_address_suggestion").modal('hide');
         });
-
-        // Use selected IP address from suggestion form
-        $(document).ready(function () {
-            $("#btn_use_ip").click(function () {
-                const ip = $("#ip_suggestion").select2('val');
-                $("#endpoint_address").val(ip);
-                $("#modal_endpoint_address_suggestion").modal('hide');
-            });
-        });
-    </script>
+    });
+</script>
 {{end}}
