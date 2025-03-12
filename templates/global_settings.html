@@ -1,3 +1,18 @@
+{{define "title"}}
+Global Settings
+{{end}}
+
+{{define "top_css"}}
+{{end}}
+
+{{define "username"}}
+{{ .username }}
+{{end}}
+
+{{define "page_title"}}
+Global Settings
+{{end}}
+
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
@@ -5,7 +20,6 @@
         <div class="row">
             <!-- left column -->
             <div class="col-md-6">
-                <!-- کارت تنظیمات WireGuard -->
                 <div class="card card-success">
                     <div class="card-header">
                         <h3 class="card-title">Wireguard Global Settings</h3>
@@ -61,7 +75,7 @@
 
                             <!-- Table -->
                             <div class="form-group">
-                                <label for="Table">Table</label>
+                                <label for="table">Table</label>
                                 <input type="text" class="form-control" id="table"
                                        name="table" placeholder="auto"
                                        value="{{ .globalSettings.Table }}">
@@ -77,6 +91,7 @@
                         </div>
                         <!-- /.card-body -->
 
+                        <!-- اینجا تگ footer را اصلاح کرده‌ایم -->
                         <div class="card-footer">
                             <button type="submit" class="btn btn-success">Save</button>
                         </div>
@@ -85,7 +100,7 @@
                 <!-- /.card -->
             </div>
 
-            <!-- ستون دوم: Help -->
+            <!-- ستون دوم: بخش Help -->
             <div class="col-md-6">
                 <div class="card card-success">
                     <div class="card-header">
@@ -95,13 +110,13 @@
                     <div class="card-body">
                         <dl>
                             <dt>1. Endpoint Address</dt>
-                            <dd>The public IP address of your Wireguard server that the client will connect to. 
+                            <dd>The public IP address of your Wireguard server that the client will connect to.
                                 Click on <strong>Suggest</strong> button to auto detect the public IP address of your server.</dd>
                             <dt>2. DNS Servers</dt>
                             <dd>The DNS servers will be set to client config.</dd>
                             <dt>3. MTU</dt>
-                            <dd>The MTU will be set to server and client config. By default it is <code>1450</code>. 
-                                You might want to adjust the MTU size if your connection (e.g PPPoE, 3G, satellite network, etc) 
+                            <dd>The MTU will be set to server and client config. By default it is <code>1450</code>.
+                                You might want to adjust the MTU size if your connection (e.g PPPoE, 3G, satellite network, etc)
                                 has a low MTU.</dd>
                             <dd>Leave blank to omit this setting in the configs.</dd>
                             <dt>4. Persistent Keepalive</dt>
@@ -111,7 +126,7 @@
                                 can ensure that the connection remains open.</dd>
                             <dd>Leave blank to omit this setting in the Client config.</dd>
                             <dt>5. Firewall Mark</dt>
-                            <dd>Add a matching <code>fwmark</code> on all packets going out of a WireGuard non-default-route tunnel. 
+                            <dd>Add a matching <code>fwmark</code> on all packets going out of a WireGuard non-default-route tunnel.
                                 Default value: <code>0xca6c</code></dd>
                             <dt>6. Table</dt>
                             <dd>Value for the <code>Table</code> setting in the wg conf file. Default value: <code>auto</code></dd>
@@ -128,7 +143,7 @@
     </div>
 </section>
 
-<!-- Modal Endpoint Address Suggestion -->
+<!-- Modal Suggestion -->
 <div class="modal fade" id="modal_endpoint_address_suggestion">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -155,7 +170,7 @@
 </div>
 <!-- /.modal -->
 
-<!-- کارت تنظیمات WARP -->
+<!-- کارت WARP Settings -->
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">WARP Settings</h3>
@@ -164,12 +179,14 @@
         <!-- چک‌باکس فعال‌سازی وارپ -->
         <div class="form-group">
             <div class="custom-control custom-switch">
-                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled" {{if .globalSettings.WARPEnabled}}checked{{end}}>
+                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled"
+                       {{if .globalSettings.WARPEnabled}}checked{{end}}>
                 <label class="custom-control-label" for="warpEnabled">Enable WARP</label>
             </div>
             <small class="form-text text-muted">Enable Cloudflare WARP for specific domains</small>
         </div>
-        <!-- بخش وارد کردن دامنه‌ها که باید به صورت داینامیک نمایش/مخفی شود -->
+
+        <!-- بخش وارد کردن دامنه‌ها (به صورت داینامیک) -->
         <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
             <label for="warpDomain">WARP Domains</label>
             <div class="input-group">
@@ -179,6 +196,8 @@
                 </div>
             </div>
             <small class="form-text text-muted">Enter domains that should be routed through WARP</small>
+
+            <!-- نمایش لیست دامنه‌ها به صورت Badge -->
             <div class="mt-2" id="warpDomainsList">
                 {{range .globalSettings.WARPDomains}}
                 <div class="badge badge-info mr-2 mb-2 warp-domain-item">
@@ -186,199 +205,178 @@
                 </div>
                 {{end}}
             </div>
-            <input type="hidden" name="warp_domains" id="warpDomainsInput" 
+
+            <!-- فیلد مخفی برای نگهداری دامنه‌ها به صورت CSV -->
+            <input type="hidden" name="warp_domains" id="warpDomainsInput"
                    value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
         </div>
     </div>
 </div>
-{{end}}  <!-- پایان تعریف page_content -->
+{{end}}
 
 {{define "bottom_js"}}
 <script>
-    // آماده‌سازی فرم گلوبال ستینگ و اعتبارسنجی
+$(document).ready(function() {
+    // نمایش یا مخفی کردن بخش دامنه‌ها بر اساس وضعیت چک‌باکس وارپ
+    $('#warpEnabled').change(function() {
+        $('#warpDomainsGroup').toggle(this.checked);
+    });
+
+    // افزودن دامنه جدید
+    $('#addWarpDomain').click(function() {
+        var domain = $('#warpDomain').val().trim();
+        if (domain) {
+            // اعتبارسنجی ساده دامنه
+            if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
+                addWarpDomainBadge(domain);
+                $('#warpDomain').val('');
+                updateWarpDomainsInput();
+            } else {
+                toastr.error('Please enter a valid domain');
+            }
+        }
+    });
+
+    // حذف دامنه با کلیک روی آیکون ضربدر
+    $(document).on('click', '.remove-domain', function() {
+        $(this).closest('.warp-domain-item').remove();
+        updateWarpDomainsInput();
+    });
+
+    // افزودن دامنه با کلید Enter
+    $('#warpDomain').keypress(function(e) {
+        if (e.which == 13) {
+            $('#addWarpDomain').click();
+            return false;
+        }
+    });
+
+    // تابع کمکی برای افزودن یک Badge دامنه
+    function addWarpDomainBadge(domain) {
+        var badge = $(
+            '<div class="badge badge-info mr-2 mb-2 warp-domain-item">' +
+            domain + ' <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i></div>'
+        );
+        $('#warpDomainsList').append(badge);
+    }
+
+    // تابع کمکی برای به‌روزرسانی فیلد مخفی warpDomainsInput
+    function updateWarpDomainsInput() {
+        var domains = [];
+        $('.warp-domain-item').each(function() {
+            // فقط متن دامنه (بدون آیکون x)
+            domains.push($(this).clone().children().remove().end().text().trim());
+        });
+        $('#warpDomainsInput').val(domains.join(','));
+    }
+
+    // راه‌اندازی پلاگین tagsinput برای فیلد DNS Servers
+    $('#dns_servers').tagsInput({
+        trimValue: true,
+        allowDuplicates: false
+    });
+
+    // مقداردهی اولیه DNS سرورها (از داده‌های سرور)
+    {{range .globalSettings.DNSServers}}
+        $('#dns_servers').removeTag('{{.}}');
+        $('#dns_servers').addTag('{{.}}');
+    {{end}}
+
+    // اعتبارسنجی فرم (MTU و غیره) با jQuery Validate
+    $("#frm_global_settings").validate({
+        rules: {
+            mtu: {
+                digits: true,
+                range: [68, 65535]
+            },
+            persistent_keepalive: {
+                digits: true
+            },
+            config_file_path: {
+                required: true
+            }
+        },
+        messages: {
+            mtu: {
+                digits: "MTU must be an integer",
+                range: "MTU must be in range 68..65535"
+            },
+            persistent_keepalive: {
+                digits: "Persistent keepalive must be an integer"
+            },
+            config_file_path: {
+                required: "Please enter WireGuard config file path"
+            }
+        },
+        errorElement: "div",
+        errorClass: "invalid-feedback",
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            // اگر اعتبارسنجی درست بود، این تابع فراخوانی می‌شود
+            submitGlobalSettings();
+        }
+    });
+
+    // تابع ارسال تنظیمات گلوبال به سرور
     function submitGlobalSettings() {
-        const endpoint_address = $("#endpoint_address").val();
-        const dns_servers = $("#dns_servers").val().split(",");
-        const mtu = $("#mtu").val();
-        const persistent_keepalive = $("#persistent_keepalive").val();
-        const firewall_mark = $("#firewall_mark").val();
-        const table = $("#table").val();
-        const config_file_path = $("#config_file_path").val();
-
-        // اطلاعات وارپ
-        const warp_enabled = $("#warpEnabled").is(":checked");
-        const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
-
-        const data = {
-            "endpoint_address": endpoint_address,
-            "dns_servers": dns_servers,
-            "mtu": mtu,
-            "persistent_keepalive": persistent_keepalive,
-            "firewall_mark": firewall_mark,
-            "table": table,
-            "config_file_path": config_file_path,
-            "warp_enabled": warp_enabled,
-            "warp_domains": warp_domains
+        const formData = {
+            endpoint_address: $("#endpoint_address").val(),
+            dns_servers: $("#dns_servers").val().split(","),
+            mtu: $("#mtu").val(),
+            persistent_keepalive: $("#persistent_keepalive").val(),
+            firewall_mark: $("#firewall_mark").val(),
+            table: $("#table").val(),
+            config_file_path: $("#config_file_path").val(),
+            warp_enabled: $("#warpEnabled").is(":checked"),
+            warp_domains: $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "")
         };
 
         $.ajax({
-            cache: false,
-            method: 'POST',
-            url: '{{.basePath}}/global-settings',
-            dataType: 'json',
+            url: "{{.basePath}}/global-settings",
+            method: "POST",
             contentType: "application/json",
-            data: JSON.stringify(data),
-            success: function(resp) {
-                toastr.success('Update global settings successfully');
-                // می‌توانید در صورت نیاز صفحه را ریلود یا مقداردهی مجدد کنید
-                // location.reload();
-            },
-            error: function(jqXHR, exception) {
-                let msg = 'Error updating settings';
-                if (jqXHR.responseJSON && jqXHR.responseJSON.message) {
-                    msg = jqXHR.responseJSON.message;
+            data: JSON.stringify(formData),
+            success: function(response) {
+                if(response.success) {
+                    toastr.success('Settings saved successfully');
+                    // اگر نیاز به رفرش صفحه دارید: location.reload();
+                } else {
+                    toastr.error(response.message || 'Unknown error');
                 }
-                toastr.error(msg);
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || xhr.statusText;
+                toastr.error(`Error: ${errorMsg}`);
+                console.error('Full error:', xhr);
             }
         });
     }
 
-    // راه‌اندازی اولیه رویدادها
-    $(document).ready(function() {
-
-        // نمایش/مخفی کردن بخش دامنه‌ها با تغییر وضعیت چک‌باکس
-        $('#warpEnabled').change(function() {
-            $('#warpDomainsGroup').toggle(this.checked);
-        });
-
-        // افزودن دامنه
-        $('#addWarpDomain').click(function() {
-            var domain = $('#warpDomain').val().trim();
-            if (domain) {
-                // اعتبارسنجی ساده دامنه
-                if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
-                    addWarpDomainBadge(domain);
-                    $('#warpDomain').val('');
-                    updateWarpDomainsInput();
-                } else {
-                    toastr.error('Please enter a valid domain');
-                }
-            }
-        });
-
-        // حذف دامنه از لیست
-        $(document).on('click', '.remove-domain', function() {
-            $(this).closest('.warp-domain-item').remove();
-            updateWarpDomainsInput();
-        });
-
-        // افزودن دامنه با فشردن کلید Enter
-        $('#warpDomain').keypress(function(e) {
-            if (e.which === 13) {
-                $('#addWarpDomain').click();
-                return false;
-            }
-        });
-
-        // متد افزودن یک badge دامنه
-        function addWarpDomainBadge(domain) {
-            const badge = $(
-                '<div class="badge badge-info mr-2 mb-2 warp-domain-item">' +
-                domain + ' <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i></div>'
-            );
-            $('#warpDomainsList').append(badge);
-        }
-
-        // متد آپدیت فیلد مخفی دامنه‌ها
-        function updateWarpDomainsInput() {
-            let domains = [];
-            $('.warp-domain-item').each(function() {
-                // فقط متن دامنه (بدون آیکون x)
-                domains.push($(this).clone().children().remove().end().text().trim());
+    // مدیریت مودال IP Suggestion
+    $("#modal_endpoint_address_suggestion").on('show.bs.modal', function() {
+        $.getJSON("{{.basePath}}/machine-ip-addresses", function(data) {
+            $('#ip_suggestion').empty();
+            data.forEach(function(ip) {
+                $('#ip_suggestion').append(new Option(ip.ip_address, ip.ip_address));
             });
-            $('#warpDomainsInput').val(domains.join(','));
-        }
-
-        // اعتبارسنجی فرم با jQuery Validate (اختیاری)
-        $.validator.setDefaults({
-            submitHandler: function () {
-                submitGlobalSettings();
-            }
-        });
-        $("#frm_global_settings").validate({
-            rules: {
-                mtu: {
-                    digits: true,
-                    range: [68, 65535]
-                },
-                persistent_keepalive: {
-                    digits: true
-                },
-                config_file_path: {
-                    required: true
-                }
-            },
-            messages: {
-                mtu: {
-                    digits: "MTU must be an integer",
-                    range: "MTU must be in range 68..65535"
-                },
-                persistent_keepalive: {
-                    digits: "Persistent keepalive must be an integer"
-                },
-                config_file_path: {
-                    required: "Please enter WireGuard config file path"
-                }
-            },
-            errorElement: 'span',
-            errorPlacement: function (error, element) {
-                error.addClass('invalid-feedback');
-                element.closest('.form-group').append(error);
-            },
-            highlight: function (element, errorClass, validClass) {
-                $(element).addClass('is-invalid');
-            },
-            unhighlight: function (element, errorClass, validClass) {
-                $(element).removeClass('is-invalid');
-            }
-        });
-
-        // مقداردهی اولیه برای DNS Servers با پلاگین tagsinput
-        $("#dns_servers").tagsInput({
-            'width': '100%',
-            'height': '75%',
-            'interactive': true,
-            'defaultText': 'Add More',
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'placeholderColor': '#666666'
-        });
-
-        // پرکردن تگ‌های DNS با مقادیری که در سرور ذخیره شده
-        {{range .globalSettings.DNSServers}}
-            $("#dns_servers").removeTag('{{.}}');
-            $("#dns_servers").addTag('{{.}}');
-        {{end}}
-
-        // مدیریت Modal مربوط به Endpoint Address Suggestion
-        $("#modal_endpoint_address_suggestion").on('shown.bs.modal', function () {
-            $.getJSON("{{.basePath}}/api/machine-ips", function(data) {
-                $('#ip_suggestion').empty();
-                $.each(data, function(index, item) {
-                    $('#ip_suggestion').append(
-                        $('<option></option>').text(item.ip_address + ' - ' + item.name).val(item.ip_address)
-                    );
-                });
-                $("#btn_use_ip").prop('disabled', data.length === 0);
-            });
-        });
-
-        // Use selected IP address from suggestion
-        $("#btn_use_ip").click(function () {
-            const ip = $("#ip_suggestion").val();
-            $("#endpoint_address").val(ip);
-            $("#modal_endpoint_address_suggestion").modal('hide');
+            // وقتی لیست پر شد، اگر آیتمی باشد دکمه فعال می‌شود
+            $("#btn_use_ip").prop('disabled', data.length === 0);
         });
     });
+
+    // استفاده از IP انتخاب شده
+    $("#btn_use_ip").click(function() {
+        const selectedIP = $("#ip_suggestion").val();
+        if(selectedIP) {
+            $("#endpoint_address").val(selectedIP);
+            $("#modal_endpoint_address_suggestion").modal('hide');
+        }
+    });
+});
 </script>
 {{end}}
