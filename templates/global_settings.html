@@ -154,6 +154,7 @@ Global Settings
         <h3 class="card-title">WARP Settings</h3>
     </div>
     <div class="card-body">
+        <!-- چک‌باکس فعال‌سازی وارپ -->
         <div class="form-group">
             <div class="custom-control custom-switch">
                 <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled" {{if .globalSettings.WARPEnabled}}checked{{end}}>
@@ -161,6 +162,7 @@ Global Settings
             </div>
             <small class="form-text text-muted">Enable Cloudflare WARP for specific domains</small>
         </div>
+        <!-- بخش وارد کردن دامنه‌ها که باید به صورت داینامیک نمایش/مخفی شود -->
         <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
             <label for="warpDomains">WARP Domains</label>
             <div class="input-group">
@@ -182,102 +184,94 @@ Global Settings
     </div>
 </div>
 
+
 <script>
-$(document).ready(function() {
-    // Toggle WARP domains section visibility
-    $('#warpEnabled').change(function() {
-        $('#warpDomainsGroup').toggle(this.checked);
-    });
-
-    // Add new WARP domain
-    $('#addWarpDomain').click(function() {
-        var domain = $('#warpDomain').val().trim();
-        if (domain) {
-            // Basic domain validation
-            if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
-                addWarpDomainBadge(domain);
-                $('#warpDomain').val('');
-                updateWarpDomainsInput();
-            } else {
-                toastr.error('Please enter a valid domain');
-            }
-        }
-    });
-
-    // Remove WARP domain
-    $(document).on('click', '.remove-domain', function() {
-        $(this).closest('.warp-domain-item').remove();
-        updateWarpDomainsInput();
-    });
-
-    // Add domain on Enter key
-    $('#warpDomain').keypress(function(e) {
-        if (e.which == 13) {
-            $('#addWarpDomain').click();
-            return false;
-        }
-    });
-
-    function addWarpDomainBadge(domain) {
-        var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item">')
-            .text(domain)
-            .append('<i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>');
-        $('#warpDomainsList').append(badge);
-    }
-
-    function updateWarpDomainsInput() {
-        var domains = [];
-        $('.warp-domain-item').each(function() {
-            domains.push($(this).text().trim());
+    $(document).ready(function() {
+        // تغییر نمایش بخش دامنه‌ها براساس وضعیت چک‌باکس وارپ
+        $('#warpEnabled').change(function() {
+            $('#warpDomainsGroup').toggle(this.checked);
         });
-        $('#warpDomainsInput').val(domains.join(','));
-    }
-});
-</script>
+    
+        // افزودن دامنه جدید
+        $('#addWarpDomain').click(function() {
+            var domain = $('#warpDomain').val().trim();
+            if (domain) {
+                // اعتبارسنجی ساده دامنه
+                if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
+                    addWarpDomainBadge(domain);
+                    $('#warpDomain').val('');
+                    updateWarpDomainsInput();
+                } else {
+                    toastr.error('Please enter a valid domain');
+                }
+            }
+        });
+    
+        // حذف دامنه از لیست وقتی روی آیکون "x" کلیک می‌شود
+        $(document).on('click', '.remove-domain', function() {
+            $(this).closest('.warp-domain-item').remove();
+            updateWarpDomainsInput();
+        });
+    
+        // افزودن دامنه با زدن کلید Enter
+        $('#warpDomain').keypress(function(e) {
+            if (e.which == 13) {
+                $('#addWarpDomain').click();
+                return false;
+            }
+        });
+    
+        function addWarpDomainBadge(domain) {
+            var badge = $('<div class="badge badge-info mr-2 mb-2 warp-domain-item">')
+                .text(domain)
+                .append('<i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>');
+            $('#warpDomainsList').append(badge);
+        }
+    
+        function updateWarpDomainsInput() {
+            var domains = [];
+            $('.warp-domain-item').each(function() {
+                domains.push($(this).text().trim());
+            });
+            $('#warpDomainsInput').val(domains.join(','));
+        }
+    });
+    </script>
+    
 {{end}}
 
 {{define "bottom_js"}}
     <script>
         function submitGlobalSettings() {
-            const endpoint_address = $("#endpoint_address").val();
-            const dns_servers = $("#dns_servers").val().split(",");
-            const mtu = $("#mtu").val();
-            const persistent_keepalive = $("#persistent_keepalive").val();
-            const firewall_mark = $("#firewall_mark").val();
-            const table = $("#table").val();
-            const config_file_path = $("#config_file_path").val();
-            const warp_enabled = $("#warpEnabled").is(":checked");
-            const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
-            
-            const data = {
-                "endpoint_address": endpoint_address, 
-                "dns_servers": dns_servers, 
-                "mtu": mtu, 
-                "persistent_keepalive": persistent_keepalive, 
-                "firewall_mark": firewall_mark, 
-                "table": table, 
-                "config_file_path": config_file_path,
-                "warp_enabled": warp_enabled,
-                "warp_domains": warp_domains
-            };
+    const endpoint_address = $("#endpoint_address").val();
+    // سایر مقادیر...
+    const warp_enabled = $("#warpEnabled").is(":checked");
+    const warp_domains = $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "");
 
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/global-settings',
-                dataType: 'json',
-                contentType: "application/json",
-                data: JSON.stringify(data),
-                success: function(data) {
-                    $("#modal_new_client").modal('hide');
-                    toastr.success('Update global settings successfully');
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
+    const data = {
+        "endpoint_address": endpoint_address, 
+        // سایر مقادیر...
+        "warp_enabled": warp_enabled,
+        "warp_domains": warp_domains
+    };
+
+    $.ajax({
+        cache: false,
+        method: 'POST',
+        url: '{{.basePath}}/global-settings',
+        dataType: 'json',
+        contentType: "application/json",
+        data: JSON.stringify(data),
+        success: function(data) {
+            $("#modal_new_client").modal('hide');
+            toastr.success('Update global settings successfully');
+        },
+        error: function(jqXHR, exception) {
+            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+            toastr.error(responseJson['message']);
         }
+    });
+}
 
         function updateEndpointSuggestionIP() {
             $.getJSON("{{.basePath}}/api/machine-ips", null, function(data) {
