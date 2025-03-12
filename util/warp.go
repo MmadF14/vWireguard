@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -158,5 +157,5 @@ func GetWARPStatus() (bool, error) {
 	}
 
 	outputStr := strings.ToLower(output)
-	return strings.Contains(outputStr, "connected"), nil
+	return strings.contains(outputStr, "connected"), nil
 }
