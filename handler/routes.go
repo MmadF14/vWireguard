@@ -1563,3 +1563,29 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 func GetInternalRoutes() []Route {
 	return internalRoutes
 }
+
+type WARPSettings struct {
+	Enabled  bool     `json:"warp_enabled"`
+	Domains  []string `json:"warp_domains"`
+}
+
+func HandleWARPSettings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var settings WARPSettings
+	if err := json.NewDecoder(r.Body).Decode(&settings); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := util.ConfigureWARP(settings.Enabled, settings.Domains); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}

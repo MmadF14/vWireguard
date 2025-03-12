@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 )
@@ -23,10 +21,6 @@ func runCommand(name string, args ...string) (string, error) {
 
 // InstallWARP installs Cloudflare WARP if not already installed
 func InstallWARP() error {
-	if runtime.GOOS == "windows" {
-		return fmt.Errorf("Windows is not supported for WARP installation")
-	}
-
 	log.Println("Checking if WARP is already installed...")
 
 	// First try to install using apt directly
@@ -82,20 +76,13 @@ func InstallWARP() error {
 	return nil
 }
 
-// getWarpPath returns the path to warp-cli based on the operating system
+// getWarpPath returns the path to warp-cli
 func getWarpPath() string {
-	if runtime.GOOS == "windows" {
-		return filepath.Join(os.Getenv("ProgramFiles"), "Cloudflare", "Cloudflare WARP", "warp-cli.exe")
-	}
 	return "/usr/bin/warp-cli"
 }
 
 // ConfigureWARP configures WARP with the specified domains
 func ConfigureWARP(enabled bool, domains []string) error {
-	if runtime.GOOS == "windows" {
-		return fmt.Errorf("Windows is not supported for WARP configuration")
-	}
-
 	log.Printf("Configuring WARP (enabled=%v, domains=%v)...", enabled, domains)
 
 	// Check if service is running
@@ -153,7 +140,7 @@ func ConfigureWARP(enabled bool, domains []string) error {
 		return fmt.Errorf("failed to connect WARP: %v", err)
 	}
 
-	// Enable always-on mode using the correct command
+	// Enable always-on mode
 	log.Println("Enabling always-on mode...")
 	if _, err := runCommand("warp-cli", "--accept-tos", "always-on", "on"); err != nil {
 		log.Printf("Warning: failed to enable always-on mode: %v", err)
@@ -165,15 +152,11 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 // GetWARPStatus returns the current WARP connection status
 func GetWARPStatus() (bool, error) {
-	if runtime.GOOS == "windows" {
-		return false, fmt.Errorf("Windows is not supported for WARP status check")
-	}
-
 	output, err := runCommand("warp-cli", "--accept-tos", "status")
 	if err != nil {
 		return false, fmt.Errorf("failed to get WARP status: %v", err)
 	}
 
 	outputStr := strings.ToLower(output)
-	return strings.Contains(outputStr, "connected"), nil
+	return strings.contains(outputStr, "connected"), nil
 }

@@ -162,5 +162,8 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	// Static files
 	e.Static("/static", "static")
 
+	// در تابع SetupRoutes
+	router.HandleFunc("/api/warp/settings", handler.HandleWARPSettings)
+
 	return e
 }
