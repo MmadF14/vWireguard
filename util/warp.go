@@ -158,5 +158,5 @@ func GetWARPStatus() (bool, error) {
 	}
 
 	outputStr := strings.ToLower(output)
-	return strings.contains(outputStr, "connected"), nil
+	return strings.Contains(outputStr, "connected"), nil
 }
