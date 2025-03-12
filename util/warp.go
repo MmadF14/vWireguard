@@ -151,11 +151,11 @@ func ConfigureWARP(enabled bool, domains []string) error {
 
 // GetWARPStatus returns the current WARP connection status
 func GetWARPStatus() (bool, error) {
-	output, err := runCommand("warp-cli", "--accept-tos", "status")
-	if err != nil {
-		return false, fmt.Errorf("failed to get WARP status: %v", err)
-	}
+    output, err := runCommand("warp-cli", "--accept-tos", "status")
+    if err != nil {
+        return false, fmt.Errorf("failed to get WARP status: %v", err)
+    }
 
-	outputStr := strings.ToLower(output)
-	return strings.contains(outputStr, "connected"), nil
+    outputStr := strings.ToLower(output)
+    return strings.Contains(outputStr, "connected"), nil
 }
