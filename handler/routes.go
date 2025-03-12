@@ -408,6 +408,7 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		// اگر لیست خالی باشد، یک آرایه خالی برگردانیم نه null
 		if clientDataList == nil {
 			clientDataList = make([]model.ClientData, 0)
 		}
@@ -415,11 +416,12 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 		// Process each client and fill subnet range
 		processedList := make([]model.ClientData, 0, len(clientDataList))
 		for _, clientData := range clientDataList {
-			if clientData.Client != nil {
+			if clientData.Client != nil { // اطمینان از معتبر بودن داده
 				processedList = append(processedList, util.FillClientSubnetRange(clientData))
 			}
 		}
 
+		// Return as a structured response
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
 			"data":    processedList,
@@ -457,14 +459,17 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		var client model.Client
 		c.Bind(&client)
 
+		// اعتبارسنجی مقدار Quota
 		if client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
 
+		// اعتبارسنجی تاریخ انقضا (اگر مقداردهی شده باشد و گذشته باشد)
 		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
 		}
 
+		// Validate Telegram userid if provided
 		if client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(client.TgUserid, 10, 64)
 			if err != nil || idNum == 0 {
@@ -472,31 +477,37 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
+		// read server information
 		server, err := db.GetServer()
 		if err != nil {
 			log.Error("Cannot fetch server from database: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
+		// validate the input Allocation IPs
 		allocatedIPs, err := util.GetAllocatedIPs("")
 		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, client.AllocatedIPs)
 		if !check {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
 		}
 
+		// validate the input AllowedIPs
 		if util.ValidateAllowedIPs(client.AllowedIPs) == false {
 			log.Warnf("Invalid Allowed IPs input from user: %v", client.AllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
 		}
 
+		// validate extra AllowedIPs
 		if util.ValidateExtraAllowedIPs(client.ExtraAllowedIPs) == false {
 			log.Warnf("Invalid Extra AllowedIPs input from user: %v", client.ExtraAllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra AllowedIPs must be in CIDR format"})
 		}
 
+		// gen ID
 		guid := xid.New()
 		client.ID = guid.String()
 
+		// gen Wireguard key pair
 		if client.PublicKey == "" {
 			key, err := wgtypes.GeneratePrivateKey()
 			if err != nil {
@@ -511,6 +522,7 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 				log.Error("Cannot verify wireguard public key: ", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard public key"})
 			}
+			// check for duplicates
 			clients, err := db.GetClients(false)
 			if err != nil {
 				log.Error("Cannot get clients for duplicate check")
@@ -547,11 +559,13 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		client.CreatedAt = time.Now().UTC()
 		client.UpdatedAt = client.CreatedAt
 
+		// write client to the database
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 		log.Infof("Created wireguard client: %v", client)
 
+		// کانفیگ به صورت خودکار اعمال نمی‌شود
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Created client successfully"})
 	}
 }
@@ -566,6 +580,7 @@ func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailCon
 	return func(c echo.Context) error {
 		var payload clientIdEmailPayload
 		c.Bind(&payload)
+		// TODO validate email
 
 		if _, err := xid.FromString(payload.ID); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
@@ -582,6 +597,7 @@ func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailCon
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
+		// build config
 		server, _ := db.GetServer()
 		globalSettings, _ := db.GetGlobalSettings()
 		config := util.BuildClientConfig(*clientData.Client, server, globalSettings)
@@ -630,6 +646,7 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
+		// build config
 		server, _ := db.GetServer()
 		globalSettings, _ := db.GetGlobalSettings()
 		config := util.BuildClientConfig(*clientData.Client, server, globalSettings)
@@ -649,6 +666,7 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		err = telegram.SendConfig(userid, clientData.Client.Name, configData, qrData, false)
+
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
@@ -667,11 +685,13 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
+		// validate client existence
 		clientData, err := db.GetClientByID(_client.ID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
+		// Validate Telegram userid if provided
 		if _client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(_client.TgUserid, 10, 64)
 			if err != nil || idNum == 0 {
@@ -688,12 +708,14 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
+		// validate the input Allocation IPs
 		allocatedIPs, err := util.GetAllocatedIPs(client.ID)
 		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, _client.AllocatedIPs)
 		if !check {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
 		}
 
+		// validate the input AllowedIPs
 		if util.ValidateAllowedIPs(_client.AllowedIPs) == false {
 			log.Warnf("Invalid Allowed IPs input from user: %v", _client.AllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
@@ -704,12 +726,14 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra Allowed IPs must be in CIDR format"})
 		}
 
+		// update Wireguard Client PublicKey
 		if client.PublicKey != _client.PublicKey && _client.PublicKey != "" {
 			_, err := wgtypes.ParseKey(_client.PublicKey)
 			if err != nil {
 				log.Error("Cannot verify provided Wireguard public key: ", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard public key"})
 			}
+			// check for duplicates
 			clients, err := db.GetClients(false)
 			if err != nil {
 				log.Error("Cannot get client list for duplicate public key check")
@@ -721,11 +745,15 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
 				}
 			}
+
+			// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
+			// Client PubKey no longer corresponds to locally stored PrivKey.
 			if client.PrivateKey != "" {
 				client.PrivateKey = ""
 			}
 		}
 
+		// update Wireguard Client PresharedKey
 		if client.PresharedKey != _client.PresharedKey && _client.PresharedKey != "" {
 			_, err := wgtypes.ParseKey(_client.PresharedKey)
 			if err != nil {
@@ -734,9 +762,11 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
+		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
 		client.Quota = _client.Quota
 		client.Expiration = _client.Expiration
 
+		// اعتبارسنجی Quota و Expiration
 		if client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
@@ -744,6 +774,7 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
 		}
 
+		// map other data
 		client.Name = _client.Name
 		client.Email = _client.Email
 		client.TgUserid = _client.TgUserid
@@ -758,11 +789,13 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.UpdatedAt = time.Now().UTC()
 		client.AdditionalNotes = strings.ReplaceAll(strings.Trim(_client.AdditionalNotes, "\r\n"), "\r\n", "\n")
 
+		// write to the database
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 		log.Infof("Updated client information successfully => %v", client)
 
+		// کانفیگ به صورت خودکار اعمال نمی‌شود
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated client successfully"})
 	}
 }
@@ -774,6 +807,7 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		var status bool
 		var isAutomatic bool
 
+		// پشتیبانی از هر دو متد GET و POST
 		switch c.Request().Method {
 		case "GET":
 			clientID = c.Param("id")
@@ -815,6 +849,7 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
+		// Get client data
 		clientData, err := db.GetClientByID(clientID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
 			log.Printf("Error getting client: %v", err)
@@ -823,26 +858,42 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
+		// اگر وضعیت فعلی با وضعیت درخواستی یکسان است، نیازی به تغییر نیست
 		if client.Enabled == status {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
+		// اگر درخواست فعال‌سازی دستی است
 		if status && !isAutomatic {
+			// بررسی شرایط فعال‌سازی
+			// if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
+			// 	return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
+			// }
+
+			// if client.Quota > 0 && client.UsedQuota >= client.Quota {
+			// 	return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
+			// }
+
+			// فعال‌سازی کلاینت
 			client.Enabled = true
 			if err := db.SaveClient(client); err != nil {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
+
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
+		// اگر درخواست غیرفعال‌سازی است (دستی یا خودکار)
 		client.Enabled = false
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
+		// اگر غیرفعال‌سازی خودکار است، کانفیگ را اعمال می‌کنیم
 		if isAutomatic {
 			if err := applyWireGuardConfig(db); err != nil {
 				log.Printf("Error applying WireGuard config after automatic disable: %v", err)
+				// ادامه می‌دهیم چون کلاینت در هر صورت غیرفعال شده است
 			} else {
 				log.Printf("WireGuard config applied after automatic disable of client %s", client.Name)
 			}
@@ -874,6 +925,7 @@ func DownloadClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
+		// build config
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
@@ -884,8 +936,10 @@ func DownloadClient(db store.IStore) echo.HandlerFunc {
 		}
 		config := util.BuildClientConfig(*clientData.Client, server, globalSettings)
 
+		// create io reader from string
 		reader := strings.NewReader(config)
 
+		// set response header for downloading
 		c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%s.conf", clientData.Client.Name))
 		return c.Stream(http.StatusOK, "text/conf", reader)
 	}
@@ -901,6 +955,8 @@ func RemoveClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
+		// delete client from database
+
 		if err := db.DeleteClient(client.ID); err != nil {
 			log.Error("Cannot delete wireguard client: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot delete client from database"})
@@ -914,6 +970,7 @@ func RemoveClient(db store.IStore) echo.HandlerFunc {
 // TerminateClient handler to terminate a client connection
 func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// Parse request body
 		data := make(map[string]interface{})
 		if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
@@ -924,16 +981,19 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
+		// Get client data
 		clientData, err := db.GetClientByID(clientID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
+		// Get settings for interface name
 		settings, err := db.GetGlobalSettings()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
 		}
 
+		// Get interface name from config file path or use default
 		interfaceName := "wg0"
 		if settings.ConfigFilePath != "" {
 			parts := strings.Split(settings.ConfigFilePath, "/")
@@ -943,17 +1003,20 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
+		// Create WireGuard client
 		wgClient, err := wgctrl.New()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
 		}
 		defer wgClient.Close()
 
+		// Parse public key
 		pubKey, err := wgtypes.ParseKey(clientData.Client.PublicKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot parse client public key"})
 		}
 
+		// Remove peer from interface
 		peerConfig := wgtypes.PeerConfig{
 			PublicKey: pubKey,
 			Remove:    true,
@@ -966,6 +1029,7 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Cannot remove peer: %v", err)})
 		}
 
+		// Write new configuration
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
@@ -1013,12 +1077,15 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 		var serverInterface model.ServerInterface
 		c.Bind(&serverInterface)
 
+		// validate the input addresses
 		if util.ValidateServerAddresses(serverInterface.Addresses) == false {
 			log.Warnf("Invalid server interface addresses input from user: %v", serverInterface.Addresses)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
 		}
 
 		serverInterface.UpdatedAt = time.Now().UTC()
+
+		// write config to the database
 
 		if err := db.SaveServerInterface(serverInterface); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
@@ -1032,6 +1099,7 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 // WireGuardServerKeyPair handler to generate private and public keys
 func WireGuardServerKeyPair(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// gen Wireguard key pair
 		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
 			log.Error("Cannot generate wireguard key pair: ", err)
@@ -1247,7 +1315,6 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
-		// اینجا قبلاً تنظیمات WARP بررسی و فراخوانی می‌شد که اکنون حذف شده است
 
 		globalSettings.UpdatedAt = time.Now().UTC()
 
@@ -1265,15 +1332,19 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 // MachineIPAddresses handler to get local interface ip addresses
 func MachineIPAddresses() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// get private ip addresses
 		interfaceList, err := util.GetInterfaceIPs()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get machine ip addresses"})
 		}
 
+		// get public ip address
+		// TODO: Remove the go-external-ip dependency
 		publicInterface, err := util.GetPublicIP()
 		if err != nil {
 			log.Warn("Cannot get machine public ip address: ", err)
 		} else {
+			// prepend public ip to the list
 			interfaceList = append([]model.Interface{publicInterface}, interfaceList...)
 		}
 
@@ -1297,6 +1368,9 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, err.Error()})
 		}
 
+		// return the list of suggestedIPs
+		// we take the first available ip address from
+		// each server's network addresses.
 		suggestedIPs := make([]string, 0)
 		allocatedIPs, err := util.GetAllocatedIPs("")
 		if err != nil {
@@ -1310,6 +1384,7 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 		searchCIDRList := make([]string, 0)
 		found := false
 
+		// Use subnet range or default to interface addresses
 		if util.SubnetRanges[sr] != nil {
 			for _, cidr := range util.SubnetRanges[sr] {
 				searchCIDRList = append(searchCIDRList, cidr.String())
@@ -1318,6 +1393,7 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 			searchCIDRList = append(searchCIDRList, server.Interface.Addresses...)
 		}
 
+		// Save only unique IPs
 		ipSet := make(map[string]struct{})
 
 		for _, cidr := range searchCIDRList {
@@ -1376,6 +1452,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
 		}
 
+		// Write config file
 		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 		if err != nil {
 			log.Error("Cannot apply server config: ", err)
@@ -1384,6 +1461,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			})
 		}
 
+		// Get interface name from config file path
 		interfaceName := "wg0"
 		if settings.ConfigFilePath != "" {
 			parts := strings.Split(settings.ConfigFilePath, "/")
@@ -1393,6 +1471,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
+		// Restart WireGuard service
 		serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 		cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
 		output, err := cmd.CombinedOutput()
@@ -1403,6 +1482,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			})
 		}
 
+		// Verify service is active
 		checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
 		status, err := checkCmd.CombinedOutput()
 		if err != nil || strings.TrimSpace(string(status)) != "active" {
@@ -1446,6 +1526,7 @@ func AboutPage() echo.HandlerFunc {
 
 func init() {
 	internalRoutes = make([]Route, 0)
+	// اضافه کردن روت داخلی برای غیرفعال‌سازی خودکار
 	internalRoutes = append(internalRoutes, Route{
 		Method:     "POST",
 		Path:       "/internal/client/:id/status/:status",
@@ -1469,115 +1550,3 @@ func GetInternalRoutes() []Route {
 	return internalRoutes
 }
 
-// -------------- حذف کدهای مربوط به WARP --------------
-// پیش از این تابع و ساختار WARPSettings و HandleWARPSettings اینجا بودند که حذف شده‌اند
-// -----------------------------------------------------
-
-// کمکی‌ها
-type jsonHTTPResponse struct {
-	Success bool   `json:"success"`
-	Message string `json:"message"`
-}
-
-// applyWireGuardConfig یک تابع داخلی برای مثال SetClientStatus است
-func applyWireGuardConfig(db store.IStore) error {
-	server, err := db.GetServer()
-	if err != nil {
-		return fmt.Errorf("Cannot get server config: %v", err)
-	}
-
-	clients, err := db.GetClients(false)
-	if err != nil {
-		return fmt.Errorf("Cannot get client config: %v", err)
-	}
-
-	users, err := db.GetUsers()
-	if err != nil {
-		return fmt.Errorf("Cannot get users config: %v", err)
-	}
-
-	settings, err := db.GetGlobalSettings()
-	if err != nil {
-		return fmt.Errorf("Cannot get global settings: %v", err)
-	}
-
-	tmplDir := os.DirFS(util.GetTemplatesDir())
-	if err := util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings); err != nil {
-		return fmt.Errorf("Cannot apply server config: %v", err)
-	}
-
-	interfaceName := "wg0"
-	if settings.ConfigFilePath != "" {
-		parts := strings.Split(settings.ConfigFilePath, "/")
-		if len(parts) > 0 {
-			baseName := parts[len(parts)-1]
-			interfaceName = strings.TrimSuffix(baseName, ".conf")
-		}
-	}
-
-	serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
-	cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("Cannot restart WireGuard service: %v, output: %s", err, string(output))
-	}
-
-	checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
-	status, err := checkCmd.CombinedOutput()
-	if err != nil || strings.TrimSpace(string(status)) != "active" {
-		return fmt.Errorf("WireGuard service is not active after restart. Status: %s", string(status))
-	}
-
-	if err := util.UpdateHashes(db); err != nil {
-		return fmt.Errorf("Cannot update hashes: %v", err)
-	}
-
-	return nil
-}
-
-// helper functions for session
-func currentUser(c echo.Context) string {
-	sess, _ := session.Get("session", c)
-	username, ok := sess.Values["username"].(string)
-	if !ok {
-		return ""
-	}
-	return username
-}
-
-func isAdmin(c echo.Context) bool {
-	sess, _ := session.Get("session", c)
-	admin, ok := sess.Values["admin"].(bool)
-	if !ok {
-		return false
-	}
-	return admin
-}
-
-func setUser(c echo.Context, username string, admin bool, userHash uint32) {
-	sess, _ := session.Get("session", c)
-	sess.Values["username"] = username
-	sess.Values["admin"] = admin
-	sess.Values["user_hash"] = userHash
-	sess.Values["updated_at"] = time.Now().UTC().Unix()
-	sess.Save(c.Request(), c.Response())
-}
-
-func clearSession(c echo.Context) {
-	sess, _ := session.Get("session", c)
-	for k := range sess.Values {
-		delete(sess.Values, k)
-	}
-	sess.Options.MaxAge = -1
-	sess.Save(c.Request(), c.Response())
-
-	cookiePath := util.GetCookiePath()
-	cookie := new(http.Cookie)
-	cookie.Name = "session_token"
-	cookie.Path = cookiePath
-	cookie.Value = ""
-	cookie.MaxAge = -1
-	cookie.HttpOnly = true
-	cookie.SameSite = http.SameSiteLaxMode
-	c.SetCookie(cookie)
-}
