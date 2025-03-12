@@ -162,8 +162,5 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	// Static files
 	e.Static("/static", "static")
 
-	// Routes
-	e.POST("/api/warp/settings", handler.HandleWARPSettings)
-
 	return e
 }

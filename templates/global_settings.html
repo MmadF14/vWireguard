@@ -91,7 +91,6 @@ Global Settings
                         </div>
                         <!-- /.card-body -->
 
-                        <!-- اینجا تگ footer را اصلاح کرده‌ایم -->
                         <div class="card-footer">
                             <button type="submit" class="btn btn-success">Save</button>
                         </div>
@@ -169,107 +168,11 @@ Global Settings
     <!-- /.modal-dialog -->
 </div>
 <!-- /.modal -->
-
-<!-- کارت WARP Settings -->
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">WARP Settings</h3>
-    </div>
-    <div class="card-body">
-        <!-- چک‌باکس فعال‌سازی وارپ -->
-        <div class="form-group">
-            <div class="custom-control custom-switch">
-                <input type="checkbox" class="custom-control-input" id="warpEnabled" name="warp_enabled"
-                       {{if .globalSettings.WARPEnabled}}checked{{end}}>
-                <label class="custom-control-label" for="warpEnabled">Enable WARP</label>
-            </div>
-            <small class="form-text text-muted">Enable Cloudflare WARP for specific domains</small>
-        </div>
-
-        <!-- بخش وارد کردن دامنه‌ها (به صورت داینامیک) -->
-        <div class="form-group" id="warpDomainsGroup" {{if not .globalSettings.WARPEnabled}}style="display: none;"{{end}}>
-            <label for="warpDomain">WARP Domains</label>
-            <div class="input-group">
-                <input type="text" class="form-control" id="warpDomain" placeholder="Enter domain (e.g. example.com)">
-                <div class="input-group-append">
-                    <button class="btn btn-outline-secondary" type="button" id="addWarpDomain">Add</button>
-                </div>
-            </div>
-            <small class="form-text text-muted">Enter domains that should be routed through WARP</small>
-
-            <!-- نمایش لیست دامنه‌ها به صورت Badge -->
-            <div class="mt-2" id="warpDomainsList">
-                {{range .globalSettings.WARPDomains}}
-                <div class="badge badge-info mr-2 mb-2 warp-domain-item">
-                    {{.}} <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i>
-                </div>
-                {{end}}
-            </div>
-
-            <!-- فیلد مخفی برای نگهداری دامنه‌ها به صورت CSV -->
-            <input type="hidden" name="warp_domains" id="warpDomainsInput"
-                   value="{{range $index, $element := .globalSettings.WARPDomains}}{{if $index}},{{end}}{{$element}}{{end}}">
-        </div>
-    </div>
-</div>
 {{end}}
 
 {{define "bottom_js"}}
 <script>
 $(document).ready(function() {
-    // نمایش یا مخفی کردن بخش دامنه‌ها بر اساس وضعیت چک‌باکس وارپ
-    $('#warpEnabled').change(function() {
-        $('#warpDomainsGroup').toggle(this.checked);
-    });
-
-    // افزودن دامنه جدید
-    $('#addWarpDomain').click(function() {
-        var domain = $('#warpDomain').val().trim();
-        if (domain) {
-            // اعتبارسنجی ساده دامنه
-            if (/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/.test(domain)) {
-                addWarpDomainBadge(domain);
-                $('#warpDomain').val('');
-                updateWarpDomainsInput();
-            } else {
-                toastr.error('Please enter a valid domain');
-            }
-        }
-    });
-
-    // حذف دامنه با کلیک روی آیکون ضربدر
-    $(document).on('click', '.remove-domain', function() {
-        $(this).closest('.warp-domain-item').remove();
-        updateWarpDomainsInput();
-    });
-
-    // افزودن دامنه با کلید Enter
-    $('#warpDomain').keypress(function(e) {
-        if (e.which == 13) {
-            $('#addWarpDomain').click();
-            return false;
-        }
-    });
-
-    // تابع کمکی برای افزودن یک Badge دامنه
-    function addWarpDomainBadge(domain) {
-        var badge = $(
-            '<div class="badge badge-info mr-2 mb-2 warp-domain-item">' +
-            domain + ' <i class="fas fa-times ml-1 remove-domain" style="cursor: pointer;"></i></div>'
-        );
-        $('#warpDomainsList').append(badge);
-    }
-
-    // تابع کمکی برای به‌روزرسانی فیلد مخفی warpDomainsInput
-    function updateWarpDomainsInput() {
-        var domains = [];
-        $('.warp-domain-item').each(function() {
-            // فقط متن دامنه (بدون آیکون x)
-            domains.push($(this).clone().children().remove().end().text().trim());
-        });
-        $('#warpDomainsInput').val(domains.join(','));
-    }
-
     // راه‌اندازی پلاگین tagsinput برای فیلد DNS Servers
     $('#dns_servers').tagsInput({
         trimValue: true,
@@ -331,9 +234,7 @@ $(document).ready(function() {
             persistent_keepalive: $("#persistent_keepalive").val(),
             firewall_mark: $("#firewall_mark").val(),
             table: $("#table").val(),
-            config_file_path: $("#config_file_path").val(),
-            warp_enabled: $("#warpEnabled").is(":checked"),
-            warp_domains: $("#warpDomainsInput").val().split(",").filter(d => d.trim() !== "")
+            config_file_path: $("#config_file_path").val()
         };
 
         $.ajax({
