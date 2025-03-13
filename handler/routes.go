@@ -321,27 +321,48 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 // CreateUser to create a new user
 func CreateUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		username := c.FormValue("username")
-		password := c.FormValue("password")
-		role := c.FormValue("role")
+		var username, password, role string
+
+		// سعی می‌کنیم اول داده‌ها را از JSON بخوانیم
+		data := make(map[string]interface{})
+		if err := json.NewDecoder(c.Request().Body).Decode(&data); err == nil {
+			// اگر داده‌ها به صورت JSON ارسال شده‌اند
+			if u, ok := data["username"].(string); ok {
+				username = u
+			}
+			if p, ok := data["password"].(string); ok {
+				password = p
+			}
+			if r, ok := data["role"].(string); ok {
+				role = r
+			}
+		} else {
+			// اگر داده‌ها به صورت فرم ارسال شده‌اند
+			username = c.FormValue("username")
+			password = c.FormValue("password")
+			role = c.FormValue("role")
+		}
 
 		// اعتبارسنجی نام کاربری و رمز عبور
 		if username == "" || password == "" {
-			return c.JSON(http.StatusBadRequest, map[string]string{
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"success": false,
 				"error": "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
 			})
 		}
 
 		// اعتبارسنجی نام کاربری
 		if !usernameRegexp.MatchString(username) {
-			return c.JSON(http.StatusBadRequest, map[string]string{
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"success": false,
 				"error": "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
 			})
 		}
 
 		// اعتبارسنجی طول نام کاربری
 		if len(username) < 3 || len(username) > 32 {
-			return c.JSON(http.StatusBadRequest, map[string]string{
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"success": false,
 				"error": "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
 			})
 		}
@@ -349,7 +370,8 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		// بررسی وجود کاربر
 		_, err := db.GetUserByName(username)
 		if err == nil {
-			return c.JSON(http.StatusBadRequest, map[string]string{
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"success": false,
 				"error": "این نام کاربری قبلاً استفاده شده است",
 			})
 		}
@@ -374,7 +396,8 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		// هش کردن رمز عبور
 		hashedPassword, err := util.HashPassword(password)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
 				"error": "خطا در پردازش رمز عبور",
 			})
 		}
@@ -382,12 +405,14 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 
 		// ذخیره کاربر
 		if err := db.SaveUser(user); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"success": false,
 				"error": "خطا در ذخیره کاربر",
 			})
 		}
 
-		return c.JSON(http.StatusOK, map[string]string{
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true,
 			"message": "کاربر با موفقیت ایجاد شد",
 		})
 	}
