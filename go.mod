@@ -20,6 +20,7 @@ require (
 	//golang.zx2c4.com/wireguard v0.0.20200121 // indirect
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20210803171230-4253848d036c
 	gopkg.in/go-playground/validator.v9 v9.31.0
+	github.com/shirou/gopsutil/v3 v3.24.1
 )
 
 require (

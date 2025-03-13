@@ -289,6 +289,10 @@ func main() {
 	app.GET(util.BasePath+"/health", handler.Health())
 	app.GET(util.BasePath+"/favicon.ico", handler.Favicon())
 
+	// Add system monitoring routes
+	app.GET(util.BasePath+"/system-monitor", handler.SystemMonitorPage(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
+	app.GET(util.BasePath+"/api/system-metrics", handler.GetSystemMetrics(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
+
 	// Start the server
 	app.Start(util.BindAddress)
 }

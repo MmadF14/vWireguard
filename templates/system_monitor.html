@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitor</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .metric-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+        }
+        .status-tag {
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            display: inline-block;
+            margin: 2px;
+        }
+        .status-running { background: #e6f4ea; color: #137333; }
+        .status-version { background: #f3e8ff; color: #7e22ce; }
+        .metric-value { font-size: 24px; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto p-6">
+        <!-- System Resource Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="metric-card">
+                <canvas id="cpuChart" class="mb-2"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">CPU</div>
+                    <div class="metric-value cpu-usage">0%</div>
+                    <div class="text-sm text-gray-500 cores-info">6 Cores</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <canvas id="ramChart" class="mb-2"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">RAM</div>
+                    <div class="metric-value ram-usage">0 GB</div>
+                    <div class="text-sm text-gray-500 ram-total">Total: 0 GB</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <canvas id="swapChart" class="mb-2"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">Swap</div>
+                    <div class="metric-value swap-usage">0 MB</div>
+                    <div class="text-sm text-gray-500 swap-total">Total: 0 GB</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <canvas id="diskChart" class="mb-2"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">Disk</div>
+                    <div class="metric-value disk-usage">0 GB</div>
+                    <div class="text-sm text-gray-500 disk-total">Total: 0 GB</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info & Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="metric-card">
+                <h3 class="text-lg font-semibold mb-3">System Status</h3>
+                <div class="mb-4">
+                    <span class="status-tag status-version">v2.4.8</span>
+                    <span class="status-tag status-running">Running</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm text-gray-600">System Load</div>
+                        <div class="system-load">0 | 0 | 0</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Uptime</div>
+                        <div class="uptime">0h 0m</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3 class="text-lg font-semibold mb-3">Network</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm text-gray-600">Upload</div>
+                        <div class="upload-speed">0 KB/s</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Download</div>
+                        <div class="download-speed">0 KB/s</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total Out</div>
+                        <div class="total-out">0 MB</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total In</div>
+                        <div class="total-in">0 GB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to create circular charts
+        function createChart(elementId, value, color) {
+            const ctx = document.getElementById(elementId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [value, 100 - value],
+                        backgroundColor: [color, '#f3f4f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create initial charts
+        const cpuChart = createChart('cpuChart', 5.26, '#059669');
+        const ramChart = createChart('ramChart', 78.32, '#059669');
+        const swapChart = createChart('swapChart', 0.13, '#059669');
+        const diskChart = createChart('diskChart', 82.14, '#f97316');
+
+        // Function to update system metrics
+        function updateMetrics() {
+            fetch('/api/system-metrics')
+                .then(response => response.json())
+                .then(data => {
+                    // Update charts and values
+                    document.querySelector('.cpu-usage').textContent = data.cpu + '%';
+                    document.querySelector('.ram-usage').textContent = data.ram.used + ' GB';
+                    document.querySelector('.swap-usage').textContent = data.swap.used + ' MB';
+                    document.querySelector('.disk-usage').textContent = data.disk.used + ' GB';
+                    
+                    // Update system info
+                    document.querySelector('.system-load').textContent = data.systemLoad;
+                    document.querySelector('.uptime').textContent = data.uptime;
+                    
+                    // Update network info
+                    document.querySelector('.upload-speed').textContent = data.network.uploadSpeed + ' KB/s';
+                    document.querySelector('.download-speed').textContent = data.network.downloadSpeed + ' KB/s';
+                    document.querySelector('.total-out').textContent = data.network.totalOut + ' MB';
+                    document.querySelector('.total-in').textContent = data.network.totalIn + ' GB';
+                });
+        }
+
+        // Update metrics every 2 seconds
+        setInterval(updateMetrics, 2000);
+    </script>
+</body>
+</html> 
