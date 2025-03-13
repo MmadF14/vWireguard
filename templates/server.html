@@ -53,6 +53,16 @@ Wireguard Server Settings
                                 <input type="text" class="form-control" id="post_down" name="post_down"
                                        placeholder="Post Down Script" value="{{ .serverInterface.PostDown }}">
                             </div>
+                            <div class="form-group">
+                                <label for="check_interval">Check Interval (minutes)</label>
+                                <select class="form-control" id="check_interval" name="check_interval">
+                                    <option value="1" {{if eq .serverInterface.CheckInterval 1}}selected{{end}}>1</option>
+                                    <option value="2" {{if eq .serverInterface.CheckInterval 2}}selected{{end}}>2</option>
+                                    <option value="3" {{if eq .serverInterface.CheckInterval 3}}selected{{end}}>3</option>
+                                    <option value="4" {{if eq .serverInterface.CheckInterval 4}}selected{{end}}>4</option>
+                                    <option value="5" {{if eq .serverInterface.CheckInterval 5}}selected{{end}}>5</option>
+                                </select>
+                            </div>
                         </div>
                         <!-- /.card-body -->
 
@@ -138,7 +148,8 @@ Wireguard Server Settings
             const post_up = $("#post_up").val();
             const pre_down = $("#pre_down").val();
             const post_down = $("#post_down").val();
-            const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down};
+            const check_interval = $("#check_interval").val();
+            const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": check_interval};
 
             $.ajax({
                 cache: false,

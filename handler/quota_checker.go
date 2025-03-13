@@ -26,33 +26,49 @@ const cooldownPeriod = 5 * time.Minute
 
 // StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
 func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
-	quotaCheckerTmplDir = tmplDir
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("Recovered from panic in quota checker: %v", r)
-				// Restart the goroutine after a short delay
-				time.Sleep(10 * time.Second)
-				StartQuotaChecker(db, tmplDir)
-			}
-		}()
+    quotaCheckerTmplDir = tmplDir
+    go func() {
+        defer func() {
+            if r := recover(); r != nil {
+                log.Printf("Recovered from panic in quota checker: %v", r)
+                time.Sleep(10 * time.Second)
+                StartQuotaChecker(db, tmplDir)
+            }
+        }()
 
-		// اولین بررسی را با تاخیر انجام می‌دهیم تا سیستم کاملاً بالا بیاید
-		time.Sleep(30 * time.Second)
+        // اولین بررسی را با تاخیر انجام می‌دهیم تا سیستم کاملاً بالا بیاید
+        time.Sleep(30 * time.Second)
 
-		for {
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						log.Printf("Recovered from panic in check cycle: %v", r)
-					}
-				}()
-				checkQuotasAndExpiration(db)
-			}()
-			// افزایش فاصله بین بررسی‌ها به 5 دقیقه
-			time.Sleep(5 * time.Minute)
-		}
-	}()
+        for {
+            func() {
+                defer func() {
+                    if r := recover(); r != nil {
+                        log.Printf("Recovered from panic in check cycle: %v", r)
+                    }
+                }()
+                checkQuotasAndExpiration(db)
+            }()
+
+            // --- تغییر اصلی در این بخش ---
+            // از GlobalSettings، فاصله بررسی (CheckInterval) را می‌گیریم
+            globalSettings, err := db.GetServer()
+            if err != nil {
+                log.Printf("Error retrieving global settings for check interval: %v", err)
+                // اگر خطا داشتیم، پیشفرض 5 دقیقه می‌خوابیم
+                time.Sleep(5 * time.Minute)
+                continue
+            }
+
+			interval := server.Interface.CheckInterval
+            // اطمینان از این که در بازه 1 تا 5 باشد
+            if interval < 1 || interval > 5 {
+                interval = 5
+            }
+
+            // حالا به جای 5 دقیقه، بر اساس interval می‌خوابیم
+            time.Sleep(time.Duration(interval) * time.Minute)
+        }
+    }()
 }
 
 // isInCooldown checks if a client is in cooldown period
