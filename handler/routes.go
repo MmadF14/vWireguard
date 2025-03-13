@@ -325,9 +325,24 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		password := c.FormValue("password")
 		role := c.FormValue("role")
 
+		// اعتبارسنجی نام کاربری و رمز عبور
 		if username == "" || password == "" {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"error": "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
+			})
+		}
+
+		// اعتبارسنجی نام کاربری
+		if !usernameRegexp.MatchString(username) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
+			})
+		}
+
+		// اعتبارسنجی طول نام کاربری
+		if len(username) < 3 || len(username) > 32 {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
 			})
 		}
 
@@ -339,10 +354,21 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		// تعیین نقش کاربر
+		var userRole model.UserRole
+		switch role {
+		case "admin":
+			userRole = model.RoleAdmin
+		case "manager":
+			userRole = model.RoleManager
+		default:
+			userRole = model.RoleUser
+		}
+
 		// ایجاد کاربر جدید
 		user := model.User{
 			Username: username,
-			Role:     model.UserRole(role),
+			Role:     userRole,
 		}
 
 		// هش کردن رمز عبور
