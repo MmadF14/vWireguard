@@ -120,7 +120,7 @@ func Login(db store.IStore) echo.HandlerFunc {
 			}
 			passwordCorrect = match
 		} else {
-			passwordCorrect = subtle.ConstantTimeCompare([]byte(password), []byte(dbuser.Password)) == 1
+			passwordCorrect = subtle.ConstantTimeCompare([]byte(password), []byte(dbuser.PasswordHash)) == 1
 		}
 
 		if userCorrect && passwordCorrect {
@@ -215,8 +215,7 @@ func Logout() echo.HandlerFunc {
 // LoadProfile to load user information
 func LoadProfile() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		db := store.GetDB()
-		user, _ := db.GetUserByName(currentUser(c))
+		user, _ := store.GetStore().GetUserByName(currentUser(c))
 		return c.Render(http.StatusOK, "profile.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "profile", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
 		})
@@ -226,8 +225,7 @@ func LoadProfile() echo.HandlerFunc {
 // UsersSettings handler
 func UsersSettings() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		db := store.GetDB()
-		user, _ := db.GetUserByName(currentUser(c))
+		user, _ := store.GetStore().GetUserByName(currentUser(c))
 		return c.Render(http.StatusOK, "users_settings.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "users-settings", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
 		})
