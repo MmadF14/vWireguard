@@ -297,7 +297,7 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 		}
 
 		if previousUsername != currentUser(c) {
-			user.Admin = isAdmin(c)
+			user.Role = model.RoleUser
 		}
 
 		user.Role = role
@@ -311,7 +311,7 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 		log.Infof("Updated user information successfully")
 
 		if previousUsername == currentUser(c) {
-			setUser(c, user.Username, user.Admin, util.GetDBUserCRC32(user))
+			setUser(c, user.Username, user.Role == model.RoleAdmin, util.GetDBUserCRC32(user))
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated user information successfully"})
