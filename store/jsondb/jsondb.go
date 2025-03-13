@@ -136,7 +136,7 @@ func (o *JsonDB) Init() error {
 	if err != nil || len(results) < 1 {
 		user := new(model.User)
 		user.Username = util.LookupEnvOrString(util.UsernameEnvVar, util.DefaultUsername)
-		user.Admin = util.DefaultIsAdmin
+		user.Role = model.RoleAdmin
 		user.PasswordHash = util.LookupEnvOrString(util.PasswordHashEnvVar, "")
 		if user.PasswordHash == "" {
 			user.PasswordHash = util.LookupEnvOrFile(util.PasswordHashFileEnvVar, "")
