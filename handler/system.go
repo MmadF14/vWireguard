@@ -1,12 +1,12 @@
 package handler
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime"
 	"time"
 
+	"github.com/MmadF14/vwireguard/model"
 	"github.com/labstack/echo/v4"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -17,8 +17,8 @@ import (
 
 type SystemMetrics struct {
 	CPU struct {
-		Usage  float64 `json:"usage"`
-		Cores  int     `json:"cores"`
+		Usage float64 `json:"usage"`
+		Cores int     `json:"cores"`
 	} `json:"cpu"`
 	RAM struct {
 		Total uint64  `json:"total"`
@@ -38,15 +38,15 @@ type SystemMetrics struct {
 	Network struct {
 		UploadSpeed   float64 `json:"uploadSpeed"`
 		DownloadSpeed float64 `json:"downloadSpeed"`
-		TotalOut     uint64  `json:"totalOut"`
-		TotalIn      uint64  `json:"totalIn"`
+		TotalOut      uint64  `json:"totalOut"`
+		TotalIn       uint64  `json:"totalIn"`
 	} `json:"network"`
-	SystemLoad string    `json:"systemLoad"`
-	Uptime     string    `json:"uptime"`
+	SystemLoad string `json:"systemLoad"`
+	Uptime     string `json:"uptime"`
 }
 
 var (
-	lastNetStats    []net.IOCountersStat
+	lastNetStats     []net.IOCountersStat
 	lastNetStatsTime time.Time
 )
 
@@ -91,10 +91,10 @@ func GetSystemMetrics() echo.HandlerFunc {
 				bytesSentDiff := float64(netStats[0].BytesSent - lastNetStats[0].BytesSent)
 				bytesRecvDiff := float64(netStats[0].BytesRecv - lastNetStats[0].BytesRecv)
 
-				metrics.Network.UploadSpeed = bytesSentDiff / timeDiff / 1024 // KB/s
+				metrics.Network.UploadSpeed = bytesSentDiff / timeDiff / 1024   // KB/s
 				metrics.Network.DownloadSpeed = bytesRecvDiff / timeDiff / 1024 // KB/s
 			}
-			metrics.Network.TotalOut = netStats[0].BytesSent / 1024 / 1024 // MB
+			metrics.Network.TotalOut = netStats[0].BytesSent / 1024 / 1024       // MB
 			metrics.Network.TotalIn = netStats[0].BytesRecv / 1024 / 1024 / 1024 // GB
 			lastNetStats = netStats
 			lastNetStatsTime = currentTime
@@ -121,10 +121,10 @@ func SystemMonitorPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "system_monitor.html", map[string]interface{}{
 			"baseData": model.BaseData{
-				Active: "system-monitor",
+				Active:      "system-monitor",
 				CurrentUser: currentUser(c),
-				Admin: isAdmin(c),
+				Admin:       isAdmin(c),
 			},
 		})
 	}
-} 
+}
