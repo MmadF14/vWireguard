@@ -213,9 +213,9 @@ func Logout() echo.HandlerFunc {
 }
 
 // LoadProfile to load user information
-func LoadProfile() echo.HandlerFunc {
+func LoadProfile(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		user, _ := store.GetStore().GetUserByName(currentUser(c))
+		user, _ := db.GetUserByName(currentUser(c))
 		return c.Render(http.StatusOK, "profile.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "profile", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
 		})
@@ -223,9 +223,9 @@ func LoadProfile() echo.HandlerFunc {
 }
 
 // UsersSettings handler
-func UsersSettings() echo.HandlerFunc {
+func UsersSettings(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		user, _ := store.GetStore().GetUserByName(currentUser(c))
+		user, _ := db.GetUserByName(currentUser(c))
 		return c.Render(http.StatusOK, "users_settings.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "users-settings", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
 		})
