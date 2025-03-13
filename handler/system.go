@@ -6,15 +6,19 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/MmadF14/vwireguard/model"
 	"github.com/labstack/echo/v4"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/host"
+	"github.com/shirou/gopsutil/v3/load" // اضافه شد
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
+
+	// مسیر درست پکیج model را بنویسید:
+	"github.com/MmadF14/vwireguard/model"
 )
 
+// ساختار مربوط به پاسخ JSON
 type SystemMetrics struct {
 	CPU struct {
 		Usage float64 `json:"usage"`
@@ -50,7 +54,7 @@ var (
 	lastNetStatsTime time.Time
 )
 
-// GetSystemMetrics returns current system metrics
+// متد Handler که JSON سیستم را برمی‌گرداند
 func GetSystemMetrics() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		metrics := SystemMetrics{}
@@ -62,7 +66,7 @@ func GetSystemMetrics() echo.HandlerFunc {
 		}
 		metrics.CPU.Cores = runtime.NumCPU()
 
-		// Memory
+		// RAM
 		if vmstat, err := mem.VirtualMemory(); err == nil {
 			metrics.RAM.Total = vmstat.Total
 			metrics.RAM.Used = vmstat.Used
@@ -86,23 +90,27 @@ func GetSystemMetrics() echo.HandlerFunc {
 		// Network
 		if netStats, err := net.IOCounters(false); err == nil && len(netStats) > 0 {
 			currentTime := time.Now()
-			if !lastNetStatsTime.IsZero() {
+			if !lastNetStatsTime.IsZero() && len(lastNetStats) > 0 {
 				timeDiff := currentTime.Sub(lastNetStatsTime).Seconds()
 				bytesSentDiff := float64(netStats[0].BytesSent - lastNetStats[0].BytesSent)
 				bytesRecvDiff := float64(netStats[0].BytesRecv - lastNetStats[0].BytesRecv)
 
-				metrics.Network.UploadSpeed = bytesSentDiff / timeDiff / 1024   // KB/s
-				metrics.Network.DownloadSpeed = bytesRecvDiff / timeDiff / 1024 // KB/s
+				if timeDiff > 0 {
+					metrics.Network.UploadSpeed = bytesSentDiff / timeDiff / 1024   // KB/s
+					metrics.Network.DownloadSpeed = bytesRecvDiff / timeDiff / 1024 // KB/s
+				}
 			}
-			metrics.Network.TotalOut = netStats[0].BytesSent / 1024 / 1024       // MB
-			metrics.Network.TotalIn = netStats[0].BytesRecv / 1024 / 1024 / 1024 // GB
+			metrics.Network.TotalOut = netStats[0].BytesSent / 1024 / 1024 // MB
+			metrics.Network.TotalIn = netStats[0].BytesRecv / 1024 / 1024  // MB
+
 			lastNetStats = netStats
 			lastNetStatsTime = currentTime
 		}
 
 		// System Load
-		if loadavg, err := host.LoadAvg(); err == nil {
-			metrics.SystemLoad = fmt.Sprintf("%.2f | %.2f | %.2f", loadavg.Load1, loadavg.Load5, loadavg.Load15)
+		if loadavg, err := load.Avg(); err == nil {
+			metrics.SystemLoad = fmt.Sprintf("%.2f | %.2f | %.2f",
+				loadavg.Load1, loadavg.Load5, loadavg.Load15)
 		}
 
 		// Uptime
@@ -116,14 +124,15 @@ func GetSystemMetrics() echo.HandlerFunc {
 	}
 }
 
-// SystemMonitorPage handler for system monitoring page
+// صفحه‌ی مانیتورینگ سیستم
 func SystemMonitorPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// اگر از BaseData در پکیج model استفاده می‌کنید:
 		return c.Render(http.StatusOK, "system_monitor.html", map[string]interface{}{
 			"baseData": model.BaseData{
 				Active:      "system-monitor",
-				CurrentUser: currentUser(c),
-				Admin:       isAdmin(c),
+				CurrentUser: currentUser(c), // تابعی که باید قبلاً تعریف کرده باشید
+				Admin:       isAdmin(c),     // تابعی که باید قبلاً تعریف کرده باشید
 			},
 		})
 	}
