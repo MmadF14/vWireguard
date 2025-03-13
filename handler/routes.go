@@ -21,7 +21,6 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/rs/xid"
 	"github.com/skip2/go-qrcode"
-	"golang.org/x/crypto/bcrypt"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
