@@ -333,15 +333,15 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		}
 
 		// بررسی وجود کاربر
-		existingUser, err := db.GetUserByName(username)
-		if err == nil && existingUser != nil {
+		_, err := db.GetUserByName(username)
+		if err == nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"error": "این نام کاربری قبلاً استفاده شده است",
 			})
 		}
 
 		// ایجاد کاربر جدید
-		user := &model.User{
+		user := model.User{
 			Username: username,
 			Role:     model.UserRole(role),
 		}
