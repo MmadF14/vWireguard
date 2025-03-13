@@ -195,7 +195,6 @@ func (o *JsonDB) GetUsers() ([]model.User, error) {
 	}
 	for _, i := range results {
 		user := model.User{}
-
 		if err := json.Unmarshal(i, &user); err != nil {
 			return users, fmt.Errorf("cannot decode user json structure: %v", err)
 		}
@@ -207,28 +206,41 @@ func (o *JsonDB) GetUsers() ([]model.User, error) {
 // GetUserByName func to get single user from the database
 func (o *JsonDB) GetUserByName(username string) (model.User, error) {
 	user := model.User{}
-
 	if err := o.conn.Read("users", username, &user); err != nil {
 		return user, err
 	}
-
 	return user, nil
 }
 
 // SaveUser func to save user in the database
 func (o *JsonDB) SaveUser(user model.User) error {
+	// بررسی وجود کاربر با نام مشابه
+	if _, err := o.GetUserByName(user.Username); err == nil {
+		return fmt.Errorf("user with username %s already exists", user.Username)
+	}
+
 	userPath := path.Join(path.Join(o.dbPath, "users"), user.Username+".json")
 	output := o.conn.Write("users", user.Username, user)
+	if output != nil {
+		return output
+	}
+
 	err := util.ManagePerms(userPath)
 	if err != nil {
 		return err
 	}
+
 	util.DBUsersToCRC32[user.Username] = util.GetDBUserCRC32(user)
-	return output
+	return nil
 }
 
 // DeleteUser func to remove user from the database
 func (o *JsonDB) DeleteUser(username string) error {
+	// بررسی وجود کاربر قبل از حذف
+	if _, err := o.GetUserByName(username); err != nil {
+		return fmt.Errorf("user with username %s does not exist", username)
+	}
+
 	delete(util.DBUsersToCRC32, username)
 	return o.conn.Delete("users", username)
 }

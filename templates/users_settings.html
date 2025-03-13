@@ -3,6 +3,30 @@ Users Settings
 {{end}}
 
 {{define "top_css"}}
+<style>
+    .loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.6;
+    }
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
 {{end}}
 
 {{define "username"}}
@@ -46,18 +70,17 @@ Users Settings
                                placeholder="Leave empty to keep the password unchanged">
                     </div>
                     <div class="form-group">
-                        <div class="icheck-primary d-inline">
-                            <input type="checkbox" id="_admin">
-                            <label for="_admin">
-                                Admin
-                            </label>
-                        </div>
+                        <label for="_user_role" class="control-label">Role</label>
+                        <select class="form-control" id="_user_role" name="_user_role">
+                            <option value="user">User</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
                     </div>
-
                 </div>
                 <div class="modal-footer justify-content-between">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Save</button>
+                    <button type="submit" class="btn btn-success" id="btn_save">Save</button>
                 </div>
             </form>
         </div>
@@ -106,6 +129,35 @@ Users Settings
                 const responseJson = jQuery.parseJSON(jqXHR.responseText);
                 toastr.error(responseJson['message']);
             }
+        });
+    }
+
+    function renderUserList(users) {
+        const usersList = $('#users-list');
+        usersList.empty();
+
+        users.forEach(user => {
+            const userCard = `
+                <div class="col-md-4" id="user_${user.username}">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">${user.username}</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modal_edit_user" data-username="${user.username}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modal_remove_user" data-username="${user.username}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Role:</strong> ${user.role}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            usersList.append(userCard);
         });
     }
 </script>
@@ -179,7 +231,7 @@ Users Settings
                         modal.find("#_previous_user_name").val(user.username);
                         modal.find("#_user_password").val("");
                         modal.find("#_user_password").prop("placeholder", "Leave empty to keep the password unchanged")
-                        modal.find("#_admin").prop("checked", user.admin);
+                        modal.find("#_user_role").val(user.role);
                     },
                     error: function (jqXHR, exception) {
                         const responseJson = jQuery.parseJSON(jqXHR.responseText);
@@ -192,7 +244,7 @@ Users Settings
                 modal.find("#_previous_user_name").val("");
                 modal.find("#_user_password").val("");
                 modal.find("#_user_password").prop("placeholder", "")
-                modal.find("#_admin").prop("checked", false);
+                modal.find("#_user_role").val("user");
             }
         });
     });
@@ -201,16 +253,18 @@ Users Settings
         const username = $("#_user_name").val();
         const previous_username = $("#_previous_user_name").val();
         const password = $("#_user_password").val();
-        let admin = false;
-        if ($("#_admin").is(':checked')) {
-            admin = true;
-        }
+        const role = $("#_user_role").val();
         const data = {
             "username": username,
             "password": password,
             "previous_username": previous_username,
-            "admin": admin
+            "role": role
         };
+
+        // اضافه کردن نشانگر loading
+        const form = $("#frm_edit_user");
+        form.addClass('loading');
+        $("#btn_save").prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
         if (previous_username !== "") {
             $.ajax({
@@ -221,10 +275,15 @@ Users Settings
                 contentType: "application/json",
                 data: JSON.stringify(data),
                 success: function (data) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
+                    $("#modal_edit_user").modal('hide');
                     toastr.success("Updated user information successfully");
                     location.reload();
                 },
                 error: function (jqXHR, exception) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
@@ -238,43 +297,51 @@ Users Settings
                 contentType: "application/json",
                 data: JSON.stringify(data),
                 success: function (data) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
+                    $("#modal_edit_user").modal('hide');
                     toastr.success("Created user successfully");
                     location.reload();
                 },
                 error: function (jqXHR, exception) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
-
         }
     }
 
+    // فرم validation
     $(document).ready(function () {
         $.validator.setDefaults({
-            submitHandler: function (form) {
+            submitHandler: function () {
                 updateUserInfo();
             }
         });
-        // Edit user form validation
         $("#frm_edit_user").validate({
             rules: {
                 _user_name: {
-                    required: true
+                    required: true,
+                    minlength: 3,
+                    maxlength: 32
                 },
                 _user_password: {
-                    required: function () {
-                        return $("#_previous_user_name").val() === "";
-                    }
-                },
+                    minlength: 6,
+                    maxlength: 32
+                }
             },
             messages: {
                 _user_name: {
-                    required: "Please enter a username"
+                    required: "لطفا نام کاربری را وارد کنید",
+                    minlength: "نام کاربری باید حداقل 3 کاراکتر باشد",
+                    maxlength: "نام کاربری نمی‌تواند بیشتر از 32 کاراکتر باشد"
                 },
                 _user_password: {
-                    required: "Please input a password"
-                },
+                    minlength: "رمز عبور باید حداقل 6 کاراکتر باشد",
+                    maxlength: "رمز عبور نمی‌تواند بیشتر از 32 کاراکتر باشد"
+                }
             },
             errorElement: 'span',
             errorPlacement: function (error, element) {
@@ -288,7 +355,6 @@ Users Settings
                 $(element).removeClass('is-invalid');
             }
         });
-        //
     });
 </script>
 {{end}}

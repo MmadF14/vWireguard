@@ -31,7 +31,7 @@ import (
 	"github.com/MmadF14/vwireguard/util"
 )
 
-var usernameRegexp = regexp.MustCompile("^\\w[\\w\\-.]*$")
+var usernameRegexp = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9]$")
 
 // Route represents an internal API route
 type Route struct {
@@ -243,18 +243,29 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 		username := data["username"].(string)
 		password := data["password"].(string)
 		previousUsername := data["previous_username"].(string)
-		admin := data["admin"].(bool)
+		role := model.UserRole(data["role"].(string))
+
+		// اعتبارسنجی نام کاربری
+		if !usernameRegexp.MatchString(username) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد"})
+		}
+
+		// اعتبارسنجی طول نام کاربری
+		if len(username) < 3 || len(username) > 32 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید بین 3 تا 32 کاراکتر باشد"})
+		}
+
+		// اعتبارسنجی نقش
+		if role != model.RoleAdmin && role != model.RoleManager && role != model.RoleUser {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نقش کاربر نامعتبر است"})
+		}
 
 		if !isAdmin(c) && (previousUsername != currentUser(c)) {
-			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Manager cannot access other user data"})
+			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "مدیر نمی‌تواند اطلاعات کاربران دیگر را تغییر دهد"})
 		}
 
 		if !isAdmin(c) {
-			admin = false
-		}
-
-		if !usernameRegexp.MatchString(previousUsername) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid username"})
+			role = model.RoleUser
 		}
 
 		user, err := db.GetUserByName(previousUsername)
@@ -284,8 +295,10 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 		}
 
 		if previousUsername != currentUser(c) {
-			user.Admin = admin
+			user.Admin = isAdmin(c)
 		}
+
+		user.Role = role
 
 		if err := db.DeleteUser(previousUsername); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
@@ -303,7 +316,7 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// CreateUser to create new user
+// CreateUser to create a new user
 func CreateUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		data := make(map[string]interface{})
@@ -313,22 +326,28 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
 		}
 
-		var user model.User
 		username := data["username"].(string)
 		password := data["password"].(string)
-		admin := data["admin"].(bool)
+		role := model.UserRole(data["role"].(string))
 
-		if username == "" || !usernameRegexp.MatchString(username) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid username"})
-		} else {
-			user.Username = username
+		// اعتبارسنجی نام کاربری
+		if !usernameRegexp.MatchString(username) {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد"})
 		}
 
-		{
-			_, err := db.GetUserByName(username)
-			if err == nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "This username is taken"})
-			}
+		// اعتبارسنجی طول نام کاربری
+		if len(username) < 3 || len(username) > 32 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید بین 3 تا 32 کاراکتر باشد"})
+		}
+
+		// اعتبارسنجی نقش
+		if role != model.RoleAdmin && role != model.RoleManager && role != model.RoleUser {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نقش کاربر نامعتبر است"})
+		}
+
+		user, err := db.GetUserByName(username)
+		if err == nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "This username is taken"})
 		}
 
 		hash, err := util.HashPassword(password)
@@ -337,7 +356,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		}
 		user.PasswordHash = hash
 
-		user.Admin = admin
+		user.Role = role
 
 		if err := db.SaveUser(user); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
