@@ -49,27 +49,26 @@ func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
                 checkQuotasAndExpiration(db)
             }()
 
-            // --- تغییر اصلی در این بخش ---
-            // از GlobalSettings، فاصله بررسی (CheckInterval) را می‌گیریم
-            globalSettings, err := db.GetServer()
+            // از Server Interface بخوانیم
+            server, err := db.GetServer()
             if err != nil {
-                log.Printf("Error retrieving global settings for check interval: %v", err)
-                // اگر خطا داشتیم، پیشفرض 5 دقیقه می‌خوابیم
+                log.Printf("Error retrieving server config for check interval: %v", err)
+                // پیشفرض 5 دقیقه
                 time.Sleep(5 * time.Minute)
                 continue
             }
 
-			interval := server.Interface.CheckInterval
-            // اطمینان از این که در بازه 1 تا 5 باشد
+            interval := server.Interface.CheckInterval
+            // اگر خارج از 1..5 بود، 5 بگذاریم
             if interval < 1 || interval > 5 {
                 interval = 5
             }
 
-            // حالا به جای 5 دقیقه، بر اساس interval می‌خوابیم
             time.Sleep(time.Duration(interval) * time.Minute)
         }
     }()
 }
+
 
 // isInCooldown checks if a client is in cooldown period
 func isInCooldown(clientID string) bool {
