@@ -144,7 +144,7 @@ func Login(db store.IStore) echo.HandlerFunc {
 			now := time.Now().UTC().Unix()
 			sess.Values["username"] = dbuser.Username
 			sess.Values["user_hash"] = util.GetDBUserCRC32(dbuser)
-			sess.Values["admin"] = dbuser.Admin
+			sess.Values["admin"] = dbuser.Role == model.RoleAdmin
 			sess.Values["session_token"] = tokenUID
 			sess.Values["max_age"] = ageMax
 			sess.Values["created_at"] = now
@@ -215,8 +215,9 @@ func Logout() echo.HandlerFunc {
 // LoadProfile to load user information
 func LoadProfile() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		user, _ := store.GetStore().GetUserByName(currentUser(c))
 		return c.Render(http.StatusOK, "profile.html", map[string]interface{}{
-			"baseData": model.BaseData{Active: "profile", CurrentUser: currentUser(c), Admin: isAdmin(c)},
+			"baseData": model.BaseData{Active: "profile", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
 		})
 	}
 }
@@ -224,8 +225,9 @@ func LoadProfile() echo.HandlerFunc {
 // UsersSettings handler
 func UsersSettings() echo.HandlerFunc {
 	return func(c echo.Context) error {
+		user, _ := store.GetStore().GetUserByName(currentUser(c))
 		return c.Render(http.StatusOK, "users_settings.html", map[string]interface{}{
-			"baseData": model.BaseData{Active: "users-settings", CurrentUser: currentUser(c), Admin: isAdmin(c)},
+			"baseData": model.BaseData{Active: "users-settings", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
 		})
 	}
 }
