@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"github.com/rs/xid"
 	"github.com/skip2/go-qrcode"
+	"golang.org/x/crypto/bcrypt"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
@@ -29,7 +30,6 @@ import (
 	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/telegram"
 	"github.com/MmadF14/vwireguard/util"
-	"github.com/labstack/echo/v4/middleware/bcrypt"
 )
 
 var usernameRegexp = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9]$")
@@ -343,17 +343,17 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		// ایجاد کاربر جدید
 		user := &model.User{
 			Username: username,
-			Role:     role,
+			Role:     model.UserRole(role),
 		}
 
 		// هش کردن رمز عبور
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		hashedPassword, err := util.HashPassword(password)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "خطا در پردازش رمز عبور",
 			})
 		}
-		user.PasswordHash = string(hashedPassword)
+		user.PasswordHash = hashedPassword
 
 		// ذخیره کاربر
 		if err := db.SaveUser(user); err != nil {
