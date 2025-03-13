@@ -29,6 +29,7 @@ import (
 	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/telegram"
 	"github.com/MmadF14/vwireguard/util"
+	"github.com/labstack/echo/v4/middleware/bcrypt"
 )
 
 var usernameRegexp = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9]$")
@@ -321,51 +322,49 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 // CreateUser to create a new user
 func CreateUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		data := make(map[string]interface{})
-		err := json.NewDecoder(c.Request().Body).Decode(&data)
+		username := c.FormValue("username")
+		password := c.FormValue("password")
+		role := c.FormValue("role")
 
+		if username == "" || password == "" {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
+			})
+		}
+
+		// بررسی وجود کاربر
+		existingUser, err := db.GetUserByName(username)
+		if err == nil && existingUser != nil {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"error": "این نام کاربری قبلاً استفاده شده است",
+			})
+		}
+
+		// ایجاد کاربر جدید
+		user := &model.User{
+			Username: username,
+			Role:     role,
+		}
+
+		// هش کردن رمز عبور
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 		if err != nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "خطا در پردازش رمز عبور",
+			})
 		}
+		user.PasswordHash = string(hashedPassword)
 
-		username := data["username"].(string)
-		password := data["password"].(string)
-		role := model.UserRole(data["role"].(string))
-
-		// اعتبارسنجی نام کاربری
-		if !usernameRegexp.MatchString(username) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد"})
-		}
-
-		// اعتبارسنجی طول نام کاربری
-		if len(username) < 3 || len(username) > 32 {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید بین 3 تا 32 کاراکتر باشد"})
-		}
-
-		// اعتبارسنجی نقش
-		if role != model.RoleAdmin && role != model.RoleManager && role != model.RoleUser {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نقش کاربر نامعتبر است"})
-		}
-
-		user, err := db.GetUserByName(username)
-		if err == nil {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "This username is taken"})
-		}
-
-		hash, err := util.HashPassword(password)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
-		}
-		user.PasswordHash = hash
-
-		user.Role = role
-
+		// ذخیره کاربر
 		if err := db.SaveUser(user); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "خطا در ذخیره کاربر",
+			})
 		}
-		log.Infof("Created user successfully")
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Created user successfully"})
+		return c.JSON(http.StatusOK, map[string]string{
+			"message": "کاربر با موفقیت ایجاد شد",
+		})
 	}
 }
 
