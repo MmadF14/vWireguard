@@ -156,7 +156,7 @@
         // تابع به‌روزرسانی داده‌ها
         function updateMetrics() {
             // مسیر را با توجه به Handler خود اصلاح کنید
-            fetch('{{.baseData.BasePath}}/api/system-metrics')
+            fetch('{{.basePath}}/api/system-metrics')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not OK');
