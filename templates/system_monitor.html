@@ -3,7 +3,6 @@ System Monitor
 {{end}}
 
 {{define "top_css"}}
-<!-- در صورت تمایل می‌توانید لینک‌های CSS دیگر را هم اضافه کنید -->
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <style>
     .metric-card {
@@ -51,8 +50,7 @@ System Monitor
             <canvas id="cpuChart" class="mb-2" style="height:180px;"></canvas>
             <div class="text-center">
                 <div class="text-gray-600">CPU</div>
-                <div class="metric-value cpu-usage">0%</div>
-                <div class="text-sm text-gray-500 cores-info">0 Cores</div>
+                <div class="metric-value cpu-usage">0%</                <div class="text-sm text-gray-500 cores-info">0 Cores</div>
             </div>
         </div>
         <div class="metric-card">
@@ -86,7 +84,6 @@ System Monitor
         <div class="metric-card">
             <h3 class="text-lg font-semibold mb-3">System Status</h3>
             <div class="mb-4">
-                <!-- نمونه تگ برای نشان دادن ورژن یا وضعیت -->
                 <span class="status-tag status-version">v0.0.1</span>
                 <span class="status-tag status-running">Running</span>
             </div>
@@ -130,7 +127,7 @@ System Monitor
 {{define "bottom_js"}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // تابع ایجاد چارت دایره‌ای
+    // ساخت چارت دایره‌ای
     function createChart(elementId, initialValue, color) {
         const ctx = document.getElementById(elementId).getContext('2d');
         return new Chart(ctx, {
@@ -147,101 +144,78 @@ System Monitor
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        display: false
-                    }
+                    legend: { display: false }
                 }
             }
         });
     }
 
-    // ساخت چارت‌ها
+    // چارت‌ها
     const cpuChart  = createChart('cpuChart',  0, '#059669');
     const ramChart  = createChart('ramChart',  0, '#059669');
     const swapChart = createChart('swapChart', 0, '#059669');
     const diskChart = createChart('diskChart', 0, '#f97316');
 
-    // تابع به‌روزرسانی داده‌ها
+    // تابع به‌روزرسانی
     function updateMetrics() {
-        // مسیر را با توجه به Handler خود اصلاح کنید
         fetch('{{.baseData.BasePath}}/api/system-metrics')
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not OK');
-                }
+                if (!response.ok) throw new Error('Network response was not OK');
                 return response.json();
             })
             .then(data => {
-                // data باید ساختاری شبیه به:
-                // {
-                //   "cpu": {
-                //       "usage": 15.2,
-                //       "cores": 4
-                //   },
-                //   "ram": {
-                //       "total": 8192,
-                //       "used": 4096,
-                //       "usage": 50.0
-                //   },
-                //   "swap": {...},
-                //   "disk": {...},
-                //   "network": {...},
-                //   "systemLoad": "0.25 | 0.50 | 0.40",
-                //   "uptime": "2h 14m"
-                // }
-
                 // CPU
-                const cpuUsagePercent = data.cpu.usage || 0;
-                cpuChart.data.datasets[0].data = [cpuUsagePercent, 100 - cpuUsagePercent];
+                const cpuUsage = data.cpu.usage || 0;
+                cpuChart.data.datasets[0].data = [cpuUsage, 100 - cpuUsage];
                 cpuChart.update();
-                document.querySelector('.cpu-usage').textContent = cpuUsagePercent.toFixed(1) + '%';
+                document.querySelector('.cpu-usage').textContent = cpuUsage.toFixed(1) + '%';
                 document.querySelector('.cores-info').textContent = (data.cpu.cores || 0) + ' Cores';
 
                 // RAM
-                const ramUsedGB = (data.ram.used / (1024*1024*1024)).toFixed(2);
-                const ramTotalGB = (data.ram.total / (1024*1024*1024)).toFixed(2);
-                const ramUsagePercent = data.ram.usage || 0;
-                ramChart.data.datasets[0].data = [ramUsagePercent, 100 - ramUsagePercent];
+                const ramUsedGBNum  = data.ram.used  / (1024*1024*1024);
+                const ramTotalGBNum = data.ram.total / (1024*1024*1024);
+                const ramUsage = data.ram.usage || 0;
+                ramChart.data.datasets[0].data = [ramUsage, 100 - ramUsage];
                 ramChart.update();
-                document.querySelector('.ram-usage').textContent = ramUsedGB + ' GB';
-                document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB + ' GB';
+                document.querySelector('.ram-usage').textContent = ramUsedGBNum.toFixed(2) + ' GB';
+                document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGBNum.toFixed(2) + ' GB';
 
                 // Swap
-                const swapUsedMB = (data.swap.used / (1024*1024)).toFixed(2);
-                const swapTotalMB = (data.swap.total / (1024*1024)).toFixed(2);
-                const swapUsagePercent = data.swap.usage || 0;
-                swapChart.data.datasets[0].data = [swapUsagePercent, 100 - swapUsagePercent];
+                const swapUsedMBNum  = data.swap.used  / (1024*1024);
+                const swapTotalMBNum = data.swap.total / (1024*1024);
+                const swapUsage = data.swap.usage || 0;
+                swapChart.data.datasets[0].data = [swapUsage, 100 - swapUsage];
                 swapChart.update();
-                document.querySelector('.swap-usage').textContent = swapUsedMB + ' MB';
-                document.querySelector('.swap-total').textContent = 'Total: ' + (swapTotalMB / 1024).toFixed(2) + ' GB';
+                document.querySelector('.swap-usage').textContent = swapUsedMBNum.toFixed(2) + ' MB';
+                // تبدیل کل Swap به GB (ابتدا از بایت به MB، سپس تقسیم بر 1024)
+                const swapTotalGB = swapTotalMBNum / 1024;
+                document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(2) + ' GB';
 
                 // Disk
-                const diskUsedGB = (data.disk.used / (1024*1024*1024)).toFixed(2);
-                const diskTotalGB = (data.disk.total / (1024*1024*1024)).toFixed(2);
-                const diskUsagePercent = data.disk.usage || 0;
-                diskChart.data.datasets[0].data = [diskUsagePercent, 100 - diskUsagePercent];
+                const diskUsedGBNum  = data.disk.used  / (1024*1024*1024);
+                const diskTotalGBNum = data.disk.total / (1024*1024*1024);
+                const diskUsage = data.disk.usage || 0;
+                diskChart.data.datasets[0].data = [diskUsage, 100 - diskUsage];
                 diskChart.update();
-                document.querySelector('.disk-usage').textContent = diskUsedGB + ' GB';
-                document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB + ' GB';
+                document.querySelector('.disk-usage').textContent = diskUsedGBNum.toFixed(2) + ' GB';
+                document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGBNum.toFixed(2) + ' GB';
 
                 // System Load & Uptime
                 document.querySelector('.system-load').textContent = data.systemLoad || '0.00 | 0.00 | 0.00';
                 document.querySelector('.uptime').textContent = data.uptime || '0h 0m';
 
                 // Network
-                document.querySelector('.upload-speed').textContent    = (data.network.uploadSpeed   || 0).toFixed(1) + ' KB/s';
-                document.querySelector('.download-speed').textContent  = (data.network.downloadSpeed || 0).toFixed(1) + ' KB/s';
-                document.querySelector('.total-out').textContent       = (data.network.totalOut      || 0) + ' MB';
-                document.querySelector('.total-in').textContent        = (data.network.totalIn       || 0) + ' GB';
+                document.querySelector('.upload-speed').textContent   = ((data.network.uploadSpeed   || 0).toFixed(1)) + ' KB/s';
+                document.querySelector('.download-speed').textContent = ((data.network.downloadSpeed || 0).toFixed(1)) + ' KB/s';
+                document.querySelector('.total-out').textContent      = (data.network.totalOut || 0) + ' MB';
+                document.querySelector('.total-in').textContent       = (data.network.totalIn  || 0) + ' GB';
             })
             .catch(err => {
                 console.error('Error fetching system metrics:', err);
             });
     }
 
-    // هر 3 ثانیه یک‌بار متریک‌ها را آپدیت کن
     setInterval(updateMetrics, 3000);
-    // یک‌بار هم بلافاصله صدا بزن
     updateMetrics();
 </script>
 {{end}}
