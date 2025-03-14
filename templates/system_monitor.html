@@ -1,221 +1,223 @@
-{{define "title"}}
-System Monitor
-{{end}}
+{{define "system_monitor.html"}}
+    {{define "title"}}
+        System Monitor
+    {{end}}
 
-{{define "top_css"}}
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-<style>
-    .metric-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        margin-bottom: 15px;
-    }
-    .status-tag {
-        padding: 4px 12px;
-        border-radius: 15px;
-        font-size: 14px;
-        display: inline-block;
-        margin: 2px;
-    }
-    .status-running {
-        background: #e6f4ea;
-        color: #137333;
-    }
-    .status-version {
-        background: #f3e8ff;
-        color: #7e22ce;
-    }
-    .metric-value {
-        font-size: 24px;
-        font-weight: 600;
-    }
-</style>
-{{end}}
-
-{{define "username"}}
-{{.username}}
-{{end}}
-
-{{define "page_title"}}
-System Monitor
-{{end}}
-
-{{define "page_content"}}
-<div class="container mx-auto p-6">
-    <!-- System Resource Metrics -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div class="metric-card">
-            <canvas id="cpuChart" class="mb-2" style="height:180px;"></canvas>
-            <div class="text-center">
-                <div class="text-gray-600">CPU</div>
-                <div class="metric-value cpu-usage">0%</                <div class="text-sm text-gray-500 cores-info">0 Cores</div>
-            </div>
-        </div>
-        <div class="metric-card">
-            <canvas id="ramChart" class="mb-2" style="height:180px;"></canvas>
-            <div class="text-center">
-                <div class="text-gray-600">RAM</div>
-                <div class="metric-value ram-usage">0 GB</div>
-                <div class="text-sm text-gray-500 ram-total">Total: 0 GB</div>
-            </div>
-        </div>
-        <div class="metric-card">
-            <canvas id="swapChart" class="mb-2" style="height:180px;"></canvas>
-            <div class="text-center">
-                <div class="text-gray-600">Swap</div>
-                <div class="metric-value swap-usage">0 MB</div>
-                <div class="text-sm text-gray-500 swap-total">Total: 0 GB</div>
-            </div>
-        </div>
-        <div class="metric-card">
-            <canvas id="diskChart" class="mb-2" style="height:180px;"></canvas>
-            <div class="text-center">
-                <div class="text-gray-600">Disk</div>
-                <div class="metric-value disk-usage">0 GB</div>
-                <div class="text-sm text-gray-500 disk-total">Total: 0 GB</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- System Info & Status -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="metric-card">
-            <h3 class="text-lg font-semibold mb-3">System Status</h3>
-            <div class="mb-4">
-                <span class="status-tag status-version">v0.0.1</span>
-                <span class="status-tag status-running">Running</span>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <div class="text-sm text-gray-600">System Load</div>
-                    <div class="system-load">0.00 | 0.00 | 0.00</div>
-                </div>
-                <div>
-                    <div class="text-sm text-gray-600">Uptime</div>
-                    <div class="uptime">0h 0m</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="metric-card">
-            <h3 class="text-lg font-semibold mb-3">Network</h3>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <div class="text-sm text-gray-600">Upload</div>
-                    <div class="upload-speed">0 KB/s</div>
-                </div>
-                <div>
-                    <div class="text-sm text-gray-600">Download</div>
-                    <div class="download-speed">0 KB/s</div>
-                </div>
-                <div>
-                    <div class="text-sm text-gray-600">Total Out</div>
-                    <div class="total-out">0 MB</div>
-                </div>
-                <div>
-                    <div class="text-sm text-gray-600">Total In</div>
-                    <div class="total-in">0 GB</div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{{end}}
-
-{{define "bottom_js"}}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // ساخت چارت دایره‌ای
-    function createChart(elementId, initialValue, color) {
-        const ctx = document.getElementById(elementId).getContext('2d');
-        return new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [initialValue, 100 - initialValue],
-                    backgroundColor: [color, '#f3f4f6'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                cutout: '80%',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                }
+    {{define "top_css"}}
+        <!-- استایل‌های اضافی شما -->
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <style>
+            .metric-card {
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                margin-bottom: 15px;
             }
-        });
-    }
+            .status-tag {
+                padding: 4px 12px;
+                border-radius: 15px;
+                font-size: 14px;
+                display: inline-block;
+                margin: 2px;
+            }
+            .status-running {
+                background: #e6f4ea;
+                color: #137333;
+            }
+            .status-version {
+                background: #f3e8ff;
+                color: #7e22ce;
+            }
+            .metric-value {
+                font-size: 24px;
+                font-weight: 600;
+            }
+        </style>
+    {{end}}
 
-    // چارت‌ها
-    const cpuChart  = createChart('cpuChart',  0, '#059669');
-    const ramChart  = createChart('ramChart',  0, '#059669');
-    const swapChart = createChart('swapChart', 0, '#059669');
-    const diskChart = createChart('diskChart', 0, '#f97316');
+    {{define "page_content"}}
+    <div class="container mx-auto p-6">
+        <!-- System Resource Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="metric-card">
+                <canvas id="cpuChart" class="mb-2" style="height:180px;"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">CPU</div>
+                    <div class="metric-value cpu-usage">0%</div>
+                    <div class="text-sm text-gray-500 cores-info">0 Cores</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <canvas id="ramChart" class="mb-2" style="height:180px;"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">RAM</div>
+                    <div class="metric-value ram-usage">0 GB</div>
+                    <div class="text-sm text-gray-500 ram-total">Total: 0 GB</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <canvas id="swapChart" class="mb-2" style="height:180px;"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">Swap</div>
+                    <div class="metric-value swap-usage">0 MB</div>
+                    <div class="text-sm text-gray-500 swap-total">Total: 0 GB</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <canvas id="diskChart" class="mb-2" style="height:180px;"></canvas>
+                <div class="text-center">
+                    <div class="text-gray-600">Disk</div>
+                    <div class="metric-value disk-usage">0 GB</div>
+                    <div class="text-sm text-gray-500 disk-total">Total: 0 GB</div>
+                </div>
+            </div>
+        </div>
 
-    // تابع به‌روزرسانی
-    function updateMetrics() {
-        fetch('{{.baseData.BasePath}}/api/system-metrics')
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not OK');
-                return response.json();
-            })
-            .then(data => {
-                // CPU
-                const cpuUsage = data.cpu.usage || 0;
-                cpuChart.data.datasets[0].data = [cpuUsage, 100 - cpuUsage];
-                cpuChart.update();
-                document.querySelector('.cpu-usage').textContent = cpuUsage.toFixed(1) + '%';
-                document.querySelector('.cores-info').textContent = (data.cpu.cores || 0) + ' Cores';
+        <!-- System Info & Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="metric-card">
+                <h3 class="text-lg font-semibold mb-3">System Status</h3>
+                <div class="mb-4">
+                    <span class="status-tag status-version">v0.0.1</span>
+                    <span class="status-tag status-running">Running</span>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm text-gray-600">System Load</div>
+                        <div class="system-load">0.00 | 0.00 | 0.00</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Uptime</div>
+                        <div class="uptime">0h 0m</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <h3 class="text-lg font-semibold mb-3">Network</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <div class="text-sm text-gray-600">Upload</div>
+                        <div class="upload-speed">0 KB/s</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Download</div>
+                        <div class="download-speed">0 KB/s</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total Out</div>
+                        <div class="total-out">0 MB</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Total In</div>
+                        <div class="total-in">0 GB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
 
-                // RAM
-                const ramUsedGBNum  = data.ram.used  / (1024*1024*1024);
-                const ramTotalGBNum = data.ram.total / (1024*1024*1024);
-                const ramUsage = data.ram.usage || 0;
-                ramChart.data.datasets[0].data = [ramUsage, 100 - ramUsage];
-                ramChart.update();
-                document.querySelector('.ram-usage').textContent = ramUsedGBNum.toFixed(2) + ' GB';
-                document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGBNum.toFixed(2) + ' GB';
-
-                // Swap
-                const swapUsedMBNum  = data.swap.used  / (1024*1024);
-                const swapTotalMBNum = data.swap.total / (1024*1024);
-                const swapUsage = data.swap.usage || 0;
-                swapChart.data.datasets[0].data = [swapUsage, 100 - swapUsage];
-                swapChart.update();
-                document.querySelector('.swap-usage').textContent = swapUsedMBNum.toFixed(2) + ' MB';
-                // تبدیل کل Swap به GB (ابتدا از بایت به MB، سپس تقسیم بر 1024)
-                const swapTotalGB = swapTotalMBNum / 1024;
-                document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(2) + ' GB';
-
-                // Disk
-                const diskUsedGBNum  = data.disk.used  / (1024*1024*1024);
-                const diskTotalGBNum = data.disk.total / (1024*1024*1024);
-                const diskUsage = data.disk.usage || 0;
-                diskChart.data.datasets[0].data = [diskUsage, 100 - diskUsage];
-                diskChart.update();
-                document.querySelector('.disk-usage').textContent = diskUsedGBNum.toFixed(2) + ' GB';
-                document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGBNum.toFixed(2) + ' GB';
-
-                // System Load & Uptime
-                document.querySelector('.system-load').textContent = data.systemLoad || '0.00 | 0.00 | 0.00';
-                document.querySelector('.uptime').textContent = data.uptime || '0h 0m';
-
-                // Network
-                document.querySelector('.upload-speed').textContent   = ((data.network.uploadSpeed   || 0).toFixed(1)) + ' KB/s';
-                document.querySelector('.download-speed').textContent = ((data.network.downloadSpeed || 0).toFixed(1)) + ' KB/s';
-                document.querySelector('.total-out').textContent      = (data.network.totalOut || 0) + ' MB';
-                document.querySelector('.total-in').textContent       = (data.network.totalIn  || 0) + ' GB';
-            })
-            .catch(err => {
-                console.error('Error fetching system metrics:', err);
+    {{define "bottom_js"}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // تابع ایجاد چارت دایره‌ای
+        function createChart(elementId, initialValue, color) {
+            const ctx = document.getElementById(elementId).getContext('2d');
+            return new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [initialValue, 100 - initialValue],
+                        backgroundColor: [color, '#f3f4f6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
             });
-    }
+        }
 
-    setInterval(updateMetrics, 3000);
-    updateMetrics();
-</script>
+        // ساخت چارت‌ها
+        const cpuChart  = createChart('cpuChart',  0, '#059669');
+        const ramChart  = createChart('ramChart',  0, '#059669');
+        const swapChart = createChart('swapChart', 0, '#059669');
+        const diskChart = createChart('diskChart', 0, '#f97316');
+
+        // تابع به‌روزرسانی داده‌ها
+        function updateMetrics() {
+            // مسیر را با توجه به Handler خود اصلاح کنید
+            fetch('{{.baseData.BasePath}}/api/system-metrics')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not OK');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // CPU
+                    const cpuUsagePercent = data.cpu.usage || 0;
+                    cpuChart.data.datasets[0].data = [cpuUsagePercent, 100 - cpuUsagePercent];
+                    cpuChart.update();
+                    document.querySelector('.cpu-usage').textContent = cpuUsagePercent.toFixed(1) + '%';
+                    document.querySelector('.cores-info').textContent = (data.cpu.cores || 0) + ' Cores';
+
+                    // RAM
+                    const ramUsedGB = (data.ram.used / (1024*1024*1024)).toFixed(2);
+                    const ramTotalGB = (data.ram.total / (1024*1024*1024)).toFixed(2);
+                    const ramUsagePercent = data.ram.usage || 0;
+                    ramChart.data.datasets[0].data = [ramUsagePercent, 100 - ramUsagePercent];
+                    ramChart.update();
+                    document.querySelector('.ram-usage').textContent = ramUsedGB + ' GB';
+                    document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB + ' GB';
+
+                    // Swap
+                    const swapUsedMB = (data.swap.used / (1024*1024)).toFixed(2);
+                    const swapTotalMB = (data.swap.total / (1024*1024)).toFixed(2);
+                    const swapUsagePercent = data.swap.usage || 0;
+                    swapChart.data.datasets[0].data = [swapUsagePercent, 100 - swapUsagePercent];
+                    swapChart.update();
+                    document.querySelector('.swap-usage').textContent = swapUsedMB + ' MB';
+                    // نمایش GB برای total swap
+                    document.querySelector('.swap-total').textContent = 'Total: ' + (swapTotalMB / 1024).toFixed(2) + ' GB';
+
+                    // Disk
+                    const diskUsedGB = (data.disk.used / (1024*1024*1024)).toFixed(2);
+                    const diskTotalGB = (data.disk.total / (1024*1024*1024)).toFixed(2);
+                    const diskUsagePercent = data.disk.usage || 0;
+                    diskChart.data.datasets[0].data = [diskUsagePercent, 100 - diskUsagePercent];
+                    diskChart.update();
+                    document.querySelector('.disk-usage').textContent = diskUsedGB + ' GB';
+                    document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB + ' GB';
+
+                    // System Load & Uptime
+                    document.querySelector('.system-load').textContent = data.systemLoad || '0.00 | 0.00 | 0.00';
+                    document.querySelector('.uptime').textContent = data.uptime || '0h 0m';
+
+                    // Network
+                    document.querySelector('.upload-speed').textContent    = (data.network.uploadSpeed   || 0).toFixed(1) + ' KB/s';
+                    document.querySelector('.download-speed').textContent  = (data.network.downloadSpeed || 0).toFixed(1) + ' KB/s';
+                    document.querySelector('.total-out').textContent       = (data.network.totalOut      || 0) + ' MB';
+                    document.querySelector('.total-in').textContent        = (data.network.totalIn       || 0) + ' MB';
+                })
+                .catch(err => {
+                    console.error('Error fetching system metrics:', err);
+                });
+        }
+
+        // هر 3 ثانیه یک‌بار متریک‌ها را آپدیت کن
+        setInterval(updateMetrics, 3000);
+        // یک‌بار هم بلافاصله صدا بزن
+        updateMetrics();
+    </script>
+    {{end}}
 {{end}}
