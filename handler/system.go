@@ -14,21 +14,21 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/net"
 
-	// توجه کنید مسیر زیر را مطابق با مسیر درست پکیج model در پروژه‌تان تغییر دهید:
+	// مسیر را متناسب با پروژه‌تان اصلاح کنید
 	"github.com/MmadF14/vwireguard/model"
 )
 
-// ساختار پاسخ JSON برای ارسال اطلاعات سیستمی به فرانت‌اند
+// ساختار پاسخ JSON برای متریک‌های سیستمی
 type SystemMetrics struct {
 	CPU struct {
-		Usage float64 `json:"usage"` // درصد مصرف CPU
-		Cores int     `json:"cores"` // تعداد هسته‌های CPU
+		Usage float64 `json:"usage"`
+		Cores int     `json:"cores"`
 	} `json:"cpu"`
 
 	RAM struct {
-		Total uint64  `json:"total"` // کل حافظه RAM (بایت)
-		Used  uint64  `json:"used"`  // میزان استفاده شده (بایت)
-		Usage float64 `json:"usage"` // درصد مصرف RAM
+		Total uint64  `json:"total"`
+		Used  uint64  `json:"used"`
+		Usage float64 `json:"usage"`
 	} `json:"ram"`
 
 	Swap struct {
@@ -44,23 +44,23 @@ type SystemMetrics struct {
 	} `json:"disk"`
 
 	Network struct {
-		UploadSpeed   float64 `json:"uploadSpeed"`   // سرعت آپلود بر حسب KB/s
-		DownloadSpeed float64 `json:"downloadSpeed"` // سرعت دانلود بر حسب KB/s
-		TotalOut      uint64  `json:"totalOut"`      // حجم کل ارسال‌شده (MB)
-		TotalIn       uint64  `json:"totalIn"`       // حجم کل دریافت‌شده (MB)
+		UploadSpeed   float64 `json:"uploadSpeed"`   // KB/s
+		DownloadSpeed float64 `json:"downloadSpeed"` // KB/s
+		TotalOut      uint64  `json:"totalOut"`      // MB
+		TotalIn       uint64  `json:"totalIn"`       // MB
 	} `json:"network"`
 
-	SystemLoad string `json:"systemLoad"` // مثلاً "0.12 | 0.25 | 0.30"
-	Uptime     string `json:"uptime"`     // مثلاً "5h 32m"
+	SystemLoad string `json:"systemLoad"`
+	Uptime     string `json:"uptime"`
 }
 
-// برای نگهداری آمار شبکه در فراخوانی‌های متوالی
+// متغیرهای سراسری برای محاسبهٔ سرعت شبکه در فراخوانی‌های متوالی
 var (
 	lastNetStats     []net.IOCountersStat
 	lastNetStatsTime time.Time
 )
 
-// GetSystemMetrics یک هندلر Echo است که اطلاعات سیستمی را در قالب JSON برمی‌گرداند
+// هندلری که اطلاعات سیستمی را در قالب JSON برمی‌گرداند
 func GetSystemMetrics() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		metrics := SystemMetrics{}
@@ -96,19 +96,18 @@ func GetSystemMetrics() echo.HandlerFunc {
 		// Network
 		if netStats, err := net.IOCounters(false); err == nil && len(netStats) > 0 {
 			currentTime := time.Now()
-			// اگر قبلاً اطلاعاتی ذخیره شده باشد، سرعت آپلود/دانلود را حساب می‌کنیم
 			if !lastNetStatsTime.IsZero() && len(lastNetStats) > 0 {
 				timeDiff := currentTime.Sub(lastNetStatsTime).Seconds()
 				bytesSentDiff := float64(netStats[0].BytesSent - lastNetStats[0].BytesSent)
 				bytesRecvDiff := float64(netStats[0].BytesRecv - lastNetStats[0].BytesRecv)
 
 				if timeDiff > 0 {
-					// تبدیل بایت بر ثانیه به کیلوبایت بر ثانیه
+					// تبدیل به کیلوبایت بر ثانیه
 					metrics.Network.UploadSpeed = bytesSentDiff / timeDiff / 1024
 					metrics.Network.DownloadSpeed = bytesRecvDiff / timeDiff / 1024
 				}
 			}
-			// تبدیل بایت به مگابایت
+			// تبدیل به مگابایت
 			metrics.Network.TotalOut = netStats[0].BytesSent / 1024 / 1024
 			metrics.Network.TotalIn = netStats[0].BytesRecv / 1024 / 1024
 
@@ -116,7 +115,7 @@ func GetSystemMetrics() echo.HandlerFunc {
 			lastNetStatsTime = currentTime
 		}
 
-		// System Load
+		// LoadAvg
 		if loadavg, err := load.Avg(); err == nil {
 			metrics.SystemLoad = fmt.Sprintf("%.2f | %.2f | %.2f",
 				loadavg.Load1, loadavg.Load5, loadavg.Load15)
@@ -133,16 +132,23 @@ func GetSystemMetrics() echo.HandlerFunc {
 	}
 }
 
-// SystemMonitorPage یک هندلر برای رندر صفحهٔ مانیتورینگ است
+// هندلری برای رندر صفحهٔ مانیتورینگ سیستم
 func SystemMonitorPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// توجه: اگر از BaseData استفاده می‌کنید، ساختار دلخواهتان را پر کنید
-		return c.Render(http.StatusOK, "system_monitor.html", map[string]interface{}{
+		// اگر از ساختار BaseData استفاده می‌کنید، بر اساس نیاز خود اصلاح کنید
+		data := map[string]interface{}{
 			"baseData": model.BaseData{
 				Active:      "system-monitor",
-				CurrentUser: currentUser(c), // بسته به پیاده‌سازی‌تان
-				Admin:       isAdmin(c),     // بسته به پیاده‌سازی‌تان
+				CurrentUser: currentUser(c), // اگر در پروژه‌تان پیاده‌سازی شده
+				Admin:       isAdmin(c),     // اگر در پروژه‌تان پیاده‌سازی شده
 			},
-		})
+		}
+
+		// حالا سعی می‌کنیم فایل تمپلیت را رندر کنیم
+		if err := c.Render(http.StatusOK, "system_monitor.html", data); err != nil {
+			c.Logger().Error("Error rendering system_monitor.html:", err)
+			return c.String(http.StatusInternalServerError, "Error rendering system_monitor.html")
+		}
+		return nil
 	}
 }
