@@ -96,39 +96,48 @@
             <!-- Brand Logo -->
             <a href="{{.basePath}}" class="brand-link">
                 <div class="brand-wrapper">
-                    <i class="nav-icon fas fa-shield-alt brand-icon"></i>
-                    <span class="brand-text font-weight-bold">&nbsp;vWireguard</span>
+                    <div class="brand-icon-wrapper">
+                        <i class="nav-icon fas fa-shield-alt brand-icon"></i>
+                    </div>
+                    <span class="brand-text font-weight-bold">vWireguard</span>
                 </div>
             </a>
 
             <!-- Sidebar -->
             <div class="sidebar">
                 <!-- Sidebar user (optional) -->
-                <div class="user-panel mt-3 pb-3 mb-3">
+                <div class="user-panel">
                     <div class="user-info">
                         <div class="user-avatar">
-                            <i class="nav-icon fas fa-user-circle"></i>
+                            <i class="nav-icon fas fa-user-shield"></i>
+                            <div class="user-status"></div>
                         </div>
                         <div class="user-details">
                             {{if .baseData.CurrentUser}}
                             {{if .baseData.Admin}}
-                            <a href="{{.basePath}}/profile" class="user-name">Administrator</a>
-                            <span class="user-role">{{.baseData.CurrentUser}}</span>
+                            <div class="admin-badge">
+                                <span class="admin-title">Administrator</span>
+                                <span class="admin-name">{{.baseData.CurrentUser}}</span>
+                            </div>
                             {{else}}
-                            <a href="{{.basePath}}/profile" class="user-name">Manager</a>
-                            <span class="user-role">{{.baseData.CurrentUser}}</span>
+                            <div class="manager-badge">
+                                <span class="manager-title">Manager</span>
+                                <span class="manager-name">{{.baseData.CurrentUser}}</span>
+                            </div>
                             {{end}}
                             {{else}}
-                            <a href="#" class="user-name">Administrator</a>
+                            <div class="admin-badge">
+                                <span class="admin-title">Administrator</span>
+                            </div>
                             {{end}}
                         </div>
                     </div>
                 </div>
 
                 <!-- Sidebar Menu -->
-                <nav class="mt-2 sidebar-nav">
+                <nav class="sidebar-nav">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                        <li class="nav-header">MAIN</li>
+                        <li class="nav-header"><span class="header-icon">⚡</span>MAIN</li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/system-monitor" class="nav-link {{if eq .baseData.Active "system-monitor"}}active{{end}}">
                                 <i class="nav-icon fas fa-chart-line"></i>
@@ -150,7 +159,7 @@
                             </a>
                         </li>
 
-                        <li class="nav-header">SETTINGS</li>
+                        <li class="nav-header"><span class="header-icon">⚙️</span>SETTINGS</li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/global-settings" class="nav-link {{if eq .baseData.Active "global-settings" }}active{{end}}">
                                 <i class="nav-icon fas fa-cog"></i>
@@ -167,7 +176,7 @@
                         {{end}}
                         {{end}}
 
-                        <li class="nav-header">UTILITIES</li>
+                        <li class="nav-header"><span class="header-icon">🔧</span>UTILITIES</li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/status" class="nav-link {{if eq .baseData.Active "status" }}active{{end}}">
                                 <i class="nav-icon fas fa-signal"></i>
@@ -418,45 +427,74 @@
 <style>
 /* Modern Sidebar Styling */
 .main-sidebar {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    background: linear-gradient(165deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
+    box-shadow: 0 0 25px rgba(0,0,0,0.3);
     border-right: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.main-sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.1) 0%, transparent 60%);
+    pointer-events: none;
 }
 
 /* Brand Section */
 .brand-link {
     border-bottom: none !important;
-    padding: 1.5rem 1rem;
-    background: rgba(0,0,0,0.1);
+    padding: 1.25rem 1rem;
+    background: rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
 }
 
 .brand-wrapper {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.brand-icon-wrapper {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: 0 0 15px rgba(100,181,246,0.3);
 }
 
 .brand-icon {
-    font-size: 1.75rem;
-    color: #64b5f6;
-    filter: drop-shadow(0 0 8px rgba(100,181,246,0.4));
+    font-size: 1.5rem;
+    color: #90caf9;
+    filter: drop-shadow(0 0 10px rgba(144,202,249,0.5));
 }
 
 .brand-text {
     color: #fff;
-    font-size: 1.4rem;
-    font-weight: 600;
+    font-size: 1.5rem;
+    font-weight: 700;
     letter-spacing: 1px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    background: linear-gradient(to right, #fff, #90caf9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 /* User Panel */
 .user-panel {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.07);
     margin: 1rem;
-    border-radius: 12px;
-    padding: 1rem;
+    border-radius: 16px;
+    padding: 1.25rem;
     border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    backdrop-filter: blur(10px);
 }
 
 .user-info {
@@ -466,73 +504,105 @@
 }
 
 .user-avatar {
-    background: rgba(255,255,255,0.1);
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
+    background: linear-gradient(135deg, #2196f3, #1976d2);
+    border-radius: 14px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 10px rgba(25,118,210,0.3);
 }
 
 .user-avatar i {
     font-size: 1.5rem;
-    color: #90caf9;
+    color: #fff;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.user-status {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4caf50;
+    border: 2px solid #1976d2;
+    box-shadow: 0 0 8px rgba(76,175,80,0.5);
 }
 
 .user-details {
+    flex: 1;
+}
+
+.admin-badge, .manager-badge {
+    background: rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
     display: flex;
     flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid rgba(255,255,255,0.15);
 }
 
-.user-name {
-    color: #fff;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-}
-
-.user-role {
+.admin-title, .manager-title {
     color: #90caf9;
-    font-size: 0.85rem;
-    opacity: 0.9;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.admin-name, .manager-name {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 /* Navigation */
 .sidebar-nav {
     padding: 0 1rem;
+    margin-top: 1rem;
 }
 
 .nav-header {
-    color: #64b5f6;
+    color: #90caf9;
     font-size: 0.8rem;
     font-weight: 700;
     letter-spacing: 2px;
-    padding: 1.5rem 1rem 0.75rem;
-    opacity: 0.9;
+    padding: 1.25rem 1rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-icon {
+    font-size: 1rem;
 }
 
 .nav-sidebar .nav-item > .nav-link {
-    margin-bottom: 0.4rem;
-    border-radius: 10px;
+    margin-bottom: 0.5rem;
+    border-radius: 12px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 0.75rem 1rem;
+    padding: 0.875rem 1rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .nav-sidebar .nav-item > .nav-link:hover {
     background: rgba(255,255,255,0.1);
     transform: translateX(5px) scale(1.02);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-color: rgba(255,255,255,0.2);
 }
 
 .nav-sidebar .nav-item > .nav-link.active {
     background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
-    box-shadow: 0 4px 15px rgba(33,150,243,0.3);
+    box-shadow: 0 4px 15px rgba(33,150,243,0.4);
     transform: translateX(5px);
-}
-
-.nav-sidebar .nav-item > .nav-link:not(.active) {
-    background: rgba(255,255,255,0.05);
+    border: none;
 }
 
 .nav-icon {
@@ -542,6 +612,7 @@
     text-align: center;
     margin-right: 0.75rem;
     transition: all 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
 
 .nav-link:hover .nav-icon {
@@ -551,22 +622,35 @@
 
 .nav-link.active .nav-icon {
     color: #fff;
+    filter: drop-shadow(0 2px 4px rgba(255,255,255,0.2));
 }
 
 .nav-link p {
     font-weight: 500;
     font-size: 0.95rem;
     letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.9);
+}
+
+.nav-link.active p {
+    color: #fff;
+    font-weight: 600;
 }
 
 /* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes fadeInUp {
+    from { 
+        opacity: 0; 
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0);
+    }
 }
 
 .sidebar .nav-item {
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeInUp 0.5s ease-out forwards;
     opacity: 0;
 }
 
@@ -578,13 +662,26 @@
 .sidebar .nav-item:nth-child(6) { animation-delay: 0.6s; }
 .sidebar .nav-item:nth-child(7) { animation-delay: 0.7s; }
 
-/* Dark Mode Enhancement */
-[class*="sidebar-dark"] {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+/* Hover Effects */
+.nav-link {
+    position: relative;
+    overflow: hidden;
 }
 
-[class*="sidebar-dark"] .nav-sidebar > .nav-item > .nav-link.active {
-    box-shadow: 0 4px 15px rgba(33,150,243,0.3);
+.nav-link::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: rgba(255,255,255,0.2);
+    transition: width 0.3s ease;
+    transform: translateY(-50%);
+}
+
+.nav-link:hover::after {
+    width: 100%;
 }
 
 /* Scrollbar Styling */
@@ -603,5 +700,14 @@
 
 .sidebar::-webkit-scrollbar-thumb:hover {
     background: rgba(255,255,255,0.3);
+}
+
+/* Dark Mode Enhancement */
+[class*="sidebar-dark"] {
+    background: linear-gradient(165deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
+}
+
+[class*="sidebar-dark"] .nav-sidebar > .nav-item > .nav-link.active {
+    box-shadow: 0 4px 15px rgba(33,150,243,0.4);
 }
 </style>
