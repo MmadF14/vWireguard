@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/MmadF14/vwireguard/store"
@@ -213,14 +214,20 @@ func main() {
 	app := router.New(tmplDir, extraData, util.SessionSecret)
 
 	// Serve static files from prepared assets with proper MIME types
-	app.StaticFS(util.BasePath+"/assets", http.FS(preparedAssets))
+	app.Static(util.BasePath+"/assets", "assets")
 	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if c.Path() == util.BasePath+"/assets/*" {
-				path := c.Param("*")
-				if path != "" && (path[len(path)-3:] == ".js") {
+			if strings.HasPrefix(c.Path(), util.BasePath+"/assets/") {
+				if strings.HasSuffix(c.Path(), ".js") {
 					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
 				}
+				// Get the requested file path
+				path := strings.TrimPrefix(c.Path(), util.BasePath+"/assets/")
+				content, ok := preparedAssets.files[path]
+				if !ok {
+					return echo.NotFoundHandler(c)
+				}
+				return c.Blob(http.StatusOK, c.Response().Header().Get(echo.HeaderContentType), content)
 			}
 			return next(c)
 		}
