@@ -191,7 +191,7 @@ func main() {
 	
 	// strip the "assets/" prefix from the embedded directory and prepare assets
 	assetsDir, _ := fs.Sub(fs.FS(embeddedAssets), "assets")
-	preparedAssets := prepareAssets(assetsDir)
+	preparedAssets := prepareAssets(assetsDir).(*preparedFS)
 
 	// Initialize the quota checker
 	handler.StartQuotaChecker(db, tmplDir)
@@ -218,15 +218,39 @@ func main() {
 	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if strings.HasPrefix(c.Path(), util.BasePath+"/assets/") {
-				if strings.HasSuffix(c.Path(), ".js") {
-					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
-				}
-				// Get the requested file path
 				path := strings.TrimPrefix(c.Path(), util.BasePath+"/assets/")
+				
+				// Get the file content
 				content, ok := preparedAssets.files[path]
 				if !ok {
 					return echo.NotFoundHandler(c)
 				}
+
+				// Set appropriate content type
+				if strings.HasSuffix(path, ".js") {
+					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
+				} else if strings.HasSuffix(path, ".css") {
+					c.Response().Header().Set(echo.HeaderContentType, "text/css")
+				} else if strings.HasSuffix(path, ".html") {
+					c.Response().Header().Set(echo.HeaderContentType, "text/html")
+				} else if strings.HasSuffix(path, ".json") {
+					c.Response().Header().Set(echo.HeaderContentType, "application/json")
+				} else if strings.HasSuffix(path, ".png") {
+					c.Response().Header().Set(echo.HeaderContentType, "image/png")
+				} else if strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".jpeg") {
+					c.Response().Header().Set(echo.HeaderContentType, "image/jpeg")
+				} else if strings.HasSuffix(path, ".svg") {
+					c.Response().Header().Set(echo.HeaderContentType, "image/svg+xml")
+				} else if strings.HasSuffix(path, ".woff2") {
+					c.Response().Header().Set(echo.HeaderContentType, "font/woff2")
+				} else if strings.HasSuffix(path, ".woff") {
+					c.Response().Header().Set(echo.HeaderContentType, "font/woff")
+				} else if strings.HasSuffix(path, ".ttf") {
+					c.Response().Header().Set(echo.HeaderContentType, "font/ttf")
+				} else {
+					c.Response().Header().Set(echo.HeaderContentType, "application/octet-stream")
+				}
+
 				return c.Blob(http.StatusOK, c.Response().Header().Get(echo.HeaderContentType), content)
 			}
 			return next(c)
