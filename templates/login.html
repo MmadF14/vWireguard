@@ -19,28 +19,223 @@
     <!-- Theme style -->
     <link rel="stylesheet" href="{{.basePath}}/static/dist/css/adminlte.min.css">
     <!-- Google Font: Source Sans Pro -->
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #1976d2;
+            --primary-light: #2196f3;
+            --primary-dark: #0d47a1;
+            --text-color: #2c3e50;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --input-bg: #ffffff;
+            --input-border: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        [data-theme="dark"] {
+            --text-color: #ecf0f1;
+            --bg-color: #1a1a1a;
+            --card-bg: #2c2c2c;
+            --input-bg: #3c3c3c;
+            --input-border: #4c4c4c;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            background-image: 
+                radial-gradient(circle at 100% 0%, rgba(25,118,210,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 0% 100%, rgba(13,71,161,0.1) 0%, transparent 50%);
+        }
+
+        .login-box {
+            width: 400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .login-logo {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .login-logo a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: var(--primary-color);
+            font-size: 2rem;
+            font-weight: 700;
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+
+        .login-logo i {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px var(--shadow-color);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .login-card-body {
+            padding: 2rem;
+        }
+
+        .login-box-msg {
+            color: var(--text-color);
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            height: 48px;
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(25,118,210,0.25);
+        }
+
+        .input-group-text {
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+            color: var(--text-color);
+        }
+
+        .input-group .form-control {
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(25,118,210,0.4);
+        }
+
+        .icheck-primary {
+            margin-top: 0.5rem;
+        }
+
+        #message {
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        #message p {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin: 0;
+        }
+
+        #message p[style*="color:green"] {
+            background: rgba(76,175,80,0.1);
+            color: #4caf50 !important;
+        }
+
+        #message p[style*="color:#ff0000"] {
+            background: rgba(244,67,54,0.1);
+            color: #f44336 !important;
+        }
+
+        /* Theme Toggle Button */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--input-border);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        .theme-toggle i {
+            font-size: 1.25rem;
+            color: var(--text-color);
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 
-<body class="hold-transition login-page">
+<body class="login-page">
+    <button class="theme-toggle" id="theme-toggle">
+        <i class="fas fa-moon"></i>
+    </button>
+
     <div class="login-box">
         <div class="login-logo">
-            <a href="https://github.com/MmadF14/vwireguard">vWireguard</a>
+            <a href="https://github.com/MmadF14/vwireguard">
+                <i class="fas fa-shield-alt"></i>
+                vWireguard
+            </a>
         </div>
-        <!-- /.login-logo -->
         <div class="card">
             <div class="card-body login-card-body">
                 <p class="login-box-msg">Sign in to start your session</p>
                 <form action="" method="post">
-                    <div class="input-group mb-3">
+                    <div class="input-group">
                         <input id="username" type="text" class="form-control" placeholder="Username">
                         <div class="input-group-append">
                             <div class="input-group-text">
-                                <span class="fas fa-envelope"></span>
+                                <span class="fas fa-user"></span>
                             </div>
                         </div>
                     </div>
-                    <div class="input-group mb-3">
+                    <div class="input-group">
                         <input id="password" type="password" class="form-control" placeholder="Password">
                         <div class="input-group-append">
                             <div class="input-group-text">
@@ -57,74 +252,91 @@
                                 </label>
                             </div>
                         </div>
-                        <!-- /.col -->
                         <div class="col-4">
                             <button id="btn_login" type="submit" class="btn btn-primary btn-block">Sign In</button>
                         </div>
-                        <!-- /.col -->
                     </div>
                 </form>
-                <div class="text-center mb-3">
+                <div class="text-center">
                     <p id="message"></p>
                 </div>
             </div>
-            <!-- /.login-card-body -->
         </div>
     </div>
-    <!-- /.login-box -->
-    <!-- jQuery -->
+
     <script src="{{.basePath}}/static/plugins/jquery/jquery.min.js"></script>
-    <!-- Bootstrap 4 -->
     <script src="{{.basePath}}/static/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <!-- AdminLTE App -->
     <script src="{{.basePath}}/static/dist/js/adminlte.min.js"></script>
 
-</body>
-<script>
-    function redirectNext() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const nextURL = urlParams.get('next');
-        if (nextURL && /(?:^\/[a-zA-Z_])|(?:^\/$)/.test(nextURL.trim())) {
-            window.location.href = nextURL;
-        } else {
-            window.location.href = '/{{.basePath}}';
-        } 
-    }
-</script>
-<script>
-    $(document).ready(function () {
-        $('form').on('submit', function(e) {
-            e.preventDefault();
-            $("#btn_login").trigger('click');
+    <script>
+        // Theme Toggle Functionality
+        const themeToggle = document.getElementById('theme-toggle');
+        const icon = themeToggle.querySelector('i');
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
         });
+        
+        function updateThemeIcon(theme) {
+            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+        }
 
-        $("#btn_login").click(function () {
-            const username = $("#username").val();
-            const password = $("#password").val();
-            let rememberMe = false;
-            if ($("#remember").is(':checked')){
-                rememberMe = true;
-            }
-            const data = {"username": username, "password": password, "rememberMe": rememberMe}
+        // Redirect Function
+        function redirectNext() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const nextURL = urlParams.get('next');
+            if (nextURL && /(?:^\/[a-zA-Z_])|(?:^\/$)/.test(nextURL.trim())) {
+                window.location.href = nextURL;
+            } else {
+                window.location.href = '/{{.basePath}}';
+            } 
+        }
 
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/login',
-                dataType: 'json',
-                contentType: "application/json",
-                data: JSON.stringify(data),
-                success: function(data) {
-                    document.getElementById("message").innerHTML = `<p style="color:green">${data['message']}</p>`;
-                    // redirect after logging in successfully
-                    redirectNext();
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    document.getElementById("message").innerHTML = `<p style="color:#ff0000">${responseJson['message']}</p>`;
+        // Login Form Handling
+        $(document).ready(function () {
+            $('form').on('submit', function(e) {
+                e.preventDefault();
+                $("#btn_login").trigger('click');
+            });
+
+            $("#btn_login").click(function () {
+                const username = $("#username").val();
+                const password = $("#password").val();
+                let rememberMe = $("#remember").is(':checked');
+                const data = {
+                    "username": username,
+                    "password": password,
+                    "rememberMe": rememberMe
                 }
+
+                $.ajax({
+                    cache: false,
+                    method: 'POST',
+                    url: '{{.basePath}}/login',
+                    dataType: 'json',
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function(data) {
+                        document.getElementById("message").innerHTML = `<p style="color:green">${data['message']}</p>`;
+                        redirectNext();
+                    },
+                    error: function(jqXHR, exception) {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        document.getElementById("message").innerHTML = `<p style="color:#ff0000">${responseJson['message']}</p>`;
+                    }
+                });
             });
         });
-    });
-</script>
+    </script>
+</body>
 </html>
