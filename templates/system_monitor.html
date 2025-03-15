@@ -7,6 +7,10 @@
     body {
         overflow-y: auto;
         height: 100vh;
+        background-color: #f3f4f6;
+    }
+    .dark body {
+        background-color: #111827;
     }
     .content {
         min-height: calc(100vh - 64px);
@@ -14,28 +18,62 @@
     }
     .metric-card {
         background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         margin-bottom: 15px;
         height: 100%;
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
     .dark .metric-card {
         background: #1f2937;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     }
     .status-tag {
-        padding: 4px 12px;
-        border-radius: 15px;
+        padding: 6px 14px;
+        border-radius: 20px;
         font-size: 14px;
         display: inline-block;
         margin: 2px;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
-    .status-running { background: #e6f4ea; color: #137333; }
-    .status-version { background: #f3e8ff; color: #7e22ce; }
-    .dark .status-running { background: #064e3b; color: #6ee7b7; }
-    .dark .status-version { background: #581c87; color: #d8b4fe; }
-    .metric-value { font-size: 24px; font-weight: 600; }
+    .status-running { 
+        background: #ecfdf5; 
+        color: #047857;
+        border: 1px solid #059669;
+    }
+    .status-version { 
+        background: #f5f3ff; 
+        color: #6d28d9;
+        border: 1px solid #7c3aed;
+    }
+    .dark .status-running { 
+        background: #064e3b; 
+        color: #6ee7b7;
+        border: 1px solid #34d399;
+    }
+    .dark .status-version { 
+        background: #4c1d95; 
+        color: #ddd6fe;
+        border: 1px solid #8b5cf6;
+    }
+    .metric-value { 
+        font-size: 28px; 
+        font-weight: 600;
+        background: linear-gradient(45deg, #059669, #10b981);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .dark .metric-value {
+        background: linear-gradient(45deg, #34d399, #6ee7b7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
     .chart-container {
         position: relative;
         height: 200px;
@@ -44,6 +82,78 @@
     .dark .text-gray-600 { color: #d1d5db; }
     .dark .text-gray-500 { color: #9ca3af; }
     .dark .text-gray-700 { color: #e5e7eb; }
+    
+    .backup-restore-section {
+        background: linear-gradient(135deg, #f0fdf4 0%, #f0f9ff 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .dark .backup-restore-section {
+        background: linear-gradient(135deg, #064e3b 0%, #075985 100%);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .action-button {
+        @apply font-bold py-3 px-6 rounded-lg w-full transition-all duration-300 ease-in-out;
+        position: relative;
+        overflow: hidden;
+    }
+    .action-button::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 100%);
+        transform: translateX(-100%);
+        transition: transform 0.6s ease;
+    }
+    .action-button:hover::after {
+        transform: translateX(0);
+    }
+    
+    .backup-button {
+        background: linear-gradient(45deg, #059669, #10b981);
+        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
+    }
+    .backup-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px -1px rgba(5, 150, 105, 0.3);
+    }
+    
+    .restore-button {
+        background: linear-gradient(45deg, #d97706, #f59e0b);
+        box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);
+    }
+    .restore-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px -1px rgba(217, 119, 6, 0.3);
+    }
+    
+    .file-input-wrapper {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    
+    .custom-file-input {
+        @apply block w-full text-sm text-gray-500 dark:text-gray-400;
+        border: 2px dashed #d1d5db;
+        border-radius: 12px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    .dark .custom-file-input {
+        border-color: #374151;
+    }
+    .custom-file-input:hover {
+        border-color: #059669;
+    }
+    .dark .custom-file-input:hover {
+        border-color: #34d399;
+    }
 </style>
 {{end}}
 
@@ -142,39 +252,45 @@
         </div>
 
         <!-- Backup & Restore -->
-        <div class="grid grid-cols-1">
-            <div class="metric-card">
-                <h3 class="text-lg font-semibold mb-3 dark:text-white">Backup & Restore</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h4 class="text-md font-medium mb-2 dark:text-gray-300">System Backup</h4>
-                        <button onclick="backupSystem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded w-full transition duration-150 ease-in-out transform hover:scale-[1.02]">
-                            Download Backup
-                        </button>
-                    </div>
-                    <div>
-                        <h4 class="text-md font-medium mb-2 dark:text-gray-300">System Restore</h4>
-                        <form id="restoreForm" class="space-y-3">
-                            <div class="flex flex-col">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                    Select backup file:
-                                </label>
-                                <input type="file" name="backup" accept=".zip" class="block w-full text-sm text-gray-500 dark:text-gray-400
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-md file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-green-50 file:text-green-700
-                                    dark:file:bg-green-900 dark:file:text-green-300
-                                    hover:file:bg-green-100 dark:hover:file:bg-green-800
-                                    transition-all duration-150" required>
-                            </div>
-                            <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded w-full transition duration-150 ease-in-out transform hover:scale-[1.02]">
-                                Restore from Backup
+        <div class="grid grid-cols-1 gap-6">
+            <div class="backup-restore-section">
+                <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">System Backup & Restore</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="flex flex-col">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Create Backup</h4>
+                            <p class="text-gray-600 dark:text-gray-300 mb-6">Download a complete backup of your system configuration and database.</p>
+                            <button onclick="backupSystem()" class="action-button backup-button text-white">
+                                <span class="flex items-center justify-center">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Download Backup
+                                </span>
                             </button>
-                        </form>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col">
+                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Restore System</h4>
+                            <form id="restoreForm" class="space-y-4">
+                                <div class="file-input-wrapper">
+                                    <input type="file" name="backup" accept=".zip" class="custom-file-input" required>
+                                </div>
+                                <button type="submit" class="action-button restore-button text-white">
+                                    <span class="flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Restore System
+                                    </span>
+                                </button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-                <div id="restoreMessage" class="text-sm mt-4 hidden"></div>
+                <div id="restoreMessage" class="text-sm mt-4 hidden text-center font-medium"></div>
             </div>
         </div>
     </div>
