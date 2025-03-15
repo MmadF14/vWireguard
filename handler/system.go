@@ -16,6 +16,7 @@ import (
 
 	// مسیر را متناسب با پروژه‌تان اصلاح کنید
 	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/util"
 )
 
 // ساختار پاسخ JSON برای متریک‌های سیستمی
@@ -135,12 +136,13 @@ func GetSystemMetrics() echo.HandlerFunc {
 // هندلری برای رندر صفحهٔ مانیتورینگ سیستم
 func SystemMonitorPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// اگر از ساختار BaseData استفاده می‌کنید، بر اساس نیاز خود اصلاح کنید
+		// اطلاعات پایه برای تمپلیت
 		data := map[string]interface{}{
 			"baseData": model.BaseData{
 				Active:      "system-monitor",
-				CurrentUser: currentUser(c), // اگر در پروژه‌تان پیاده‌سازی شده
-				Admin:       isAdmin(c),     // اگر در پروژه‌تان پیاده‌سازی شده
+				CurrentUser: currentUser(c),
+				Admin:      isAdmin(c),
+				BasePath:   util.BasePath,
 			},
 		}
 

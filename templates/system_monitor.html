@@ -70,7 +70,7 @@
             <div class="metric-card">
                 <h3 class="text-lg font-semibold mb-3">System Status</h3>
                 <div class="mb-4">
-                    <span class="status-tag status-version">v{{.baseData.appVersion}}</span>
+                    <span class="status-tag status-version">vWireguard</span>
                     <span class="status-tag status-running">Running</span>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
@@ -156,7 +156,7 @@
 
     // Function to update system metrics
     function updateMetrics() {
-        fetch(basePath + '/api/system-metrics')
+        fetch('{{.baseData.BasePath}}/api/system-metrics')
             .then(response => response.json())
             .then(data => {
                 // Update CPU
