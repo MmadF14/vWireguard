@@ -131,21 +131,21 @@
 
             <!-- Backup & Restore -->
             <div class="metric-card">
-                <h3 class="text-lg font-semibold mb-3">پشتیبان‌گیری و بازیابی</h3>
+                <h3 class="text-lg font-semibold mb-3">Backup & Restore</h3>
                 <div class="flex flex-col space-y-4">
                     <div>
                         <button onclick="backupSystem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full">
-                            دانلود نسخه پشتیبان
+                            Download Backup
                         </button>
                     </div>
                     <div>
                         <form id="restoreForm" class="flex flex-col space-y-2">
                             <label class="block">
-                                <span class="text-gray-700">انتخاب فایل پشتیبان:</span>
+                                <span class="text-gray-700">Select backup file:</span>
                                 <input type="file" name="backup" accept=".zip" class="mt-1 block w-full" required>
                             </label>
                             <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
-                                بازیابی از نسخه پشتیبان
+                                Restore from Backup
                             </button>
                         </form>
                     </div>
@@ -368,7 +368,7 @@
         const formData = new FormData(e.target);
         const submitButton = e.target.querySelector('button[type="submit"]');
         submitButton.disabled = true;
-        submitButton.textContent = 'در حال بازیابی...';
+        submitButton.textContent = 'Restoring...';
         
         try {
             const response = await fetch('{{.baseData.BasePath}}/api/restore', {
@@ -379,17 +379,17 @@
             const result = await response.json();
             
             if (!response.ok) {
-                throw new Error(result.error || 'خطا در بازیابی فایل پشتیبان');
+                throw new Error(result.error || 'Error restoring backup file');
             }
             
-            showRestoreMessage(result.message || 'بازیابی با موفقیت انجام شد');
+            showRestoreMessage(result.message || 'Restore completed successfully');
             e.target.reset();
         } catch (error) {
             console.error('Error during restore:', error);
             showRestoreMessage(error.message, true);
         } finally {
             submitButton.disabled = false;
-            submitButton.textContent = 'بازیابی از نسخه پشتیبان';
+            submitButton.textContent = 'Restore from Backup';
         }
     });
 </script>

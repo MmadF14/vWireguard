@@ -169,7 +169,7 @@ func BackupSystem() echo.HandlerFunc {
 		tempDir, err := os.MkdirTemp("", "wg-backup-*")
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در ایجاد دایرکتوری موقت: " + err.Error(),
+				"error": "Error creating temporary directory: " + err.Error(),
 			})
 		}
 		defer os.RemoveAll(tempDir)
@@ -179,7 +179,7 @@ func BackupSystem() echo.HandlerFunc {
 		zipFile, err := os.Create(zipPath)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در ایجاد فایل زیپ: " + err.Error(),
+				"error": "Error creating zip file: " + err.Error(),
 			})
 		}
 		defer zipFile.Close()
@@ -192,19 +192,19 @@ func BackupSystem() echo.HandlerFunc {
 		wgConfig, err := os.ReadFile("/etc/wireguard/wg0.conf")
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در خواندن فایل پیکربندی WireGuard: " + err.Error(),
+				"error": "Error reading WireGuard configuration: " + err.Error(),
 			})
 		}
 
 		wgWriter, err := zipWriter.Create("wg0.conf")
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در افزودن فایل پیکربندی به زیپ: " + err.Error(),
+				"error": "Error adding configuration file to zip: " + err.Error(),
 			})
 		}
 		if _, err := wgWriter.Write(wgConfig); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در نوشتن فایل پیکربندی: " + err.Error(),
+				"error": "Error writing configuration file: " + err.Error(),
 			})
 		}
 
@@ -243,7 +243,7 @@ func BackupSystem() echo.HandlerFunc {
 
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در افزودن فایل‌های دیتابیس به زیپ: " + err.Error(),
+				"error": "Error adding database files to zip: " + err.Error(),
 			})
 		}
 
@@ -254,7 +254,7 @@ func BackupSystem() echo.HandlerFunc {
 		zipContent, err := os.ReadFile(zipPath)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در خواندن فایل زیپ: " + err.Error(),
+				"error": "Error reading zip file: " + err.Error(),
 			})
 		}
 
@@ -273,7 +273,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		file, err := c.FormFile("backup")
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "فایل بکاپ یافت نشد: " + err.Error(),
+				"error": "Backup file not found: " + err.Error(),
 			})
 		}
 
@@ -281,7 +281,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		tempDir, err := os.MkdirTemp("", "wg-restore-*")
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در ایجاد دایرکتوری موقت: " + err.Error(),
+				"error": "Error creating temporary directory: " + err.Error(),
 			})
 		}
 		defer os.RemoveAll(tempDir)
@@ -290,7 +290,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		src, err := file.Open()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در باز کردن فایل بکاپ: " + err.Error(),
+				"error": "Error opening backup file: " + err.Error(),
 			})
 		}
 		defer src.Close()
@@ -300,7 +300,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		dst, err := os.Create(zipPath)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در ذخیره فایل بکاپ: " + err.Error(),
+				"error": "Error saving backup file: " + err.Error(),
 			})
 		}
 		defer dst.Close()
@@ -308,7 +308,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		// Copy the uploaded file to the temporary directory
 		if _, err = io.Copy(dst, src); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در کپی فایل بکاپ: " + err.Error(),
+				"error": "Error copying backup file: " + err.Error(),
 			})
 		}
 
@@ -316,7 +316,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		reader, err := zip.OpenReader(zipPath)
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "خطا در باز کردن فایل زیپ: " + err.Error(),
+				"error": "Error opening zip file: " + err.Error(),
 			})
 		}
 		defer reader.Close()
@@ -335,7 +335,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 
 		if !hasWgConfig || !hasDbFiles {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"error": "فایل بکاپ معتبر نیست",
+				"error": "Invalid backup file",
 			})
 		}
 
@@ -343,7 +343,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		tempDbDir := filepath.Join(tempDir, "db")
 		if err := os.MkdirAll(tempDbDir, 0755); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در ایجاد دایرکتوری موقت دیتابیس: " + err.Error(),
+				"error": "Error creating temporary database directory: " + err.Error(),
 			})
 		}
 
@@ -353,7 +353,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 			rc, err := file.Open()
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]string{
-					"error": "خطا در باز کردن فایل از زیپ: " + err.Error(),
+					"error": "Error opening file from zip: " + err.Error(),
 				})
 			}
 
@@ -363,14 +363,14 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 				rc.Close()
 				if err != nil {
 					return c.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "خطا در خواندن فایل پیکربندی: " + err.Error(),
+						"error": "Error reading configuration file: " + err.Error(),
 					})
 				}
 
 				// Write to WireGuard config file
 				if err := os.WriteFile("/etc/wireguard/wg0.conf", wgConfig, 0600); err != nil {
 					return c.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "خطا در نوشتن فایل پیکربندی: " + err.Error(),
+						"error": "Error writing configuration file: " + err.Error(),
 					})
 				}
 			} else if strings.HasPrefix(file.Name, "db/") {
@@ -380,7 +380,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 				if err != nil {
 					rc.Close()
 					return c.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "خطا در ایجاد فایل دیتابیس: " + err.Error(),
+						"error": "Error creating database file: " + err.Error(),
 					})
 				}
 
@@ -388,7 +388,7 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 					rc.Close()
 					outFile.Close()
 					return c.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "خطا در نوشتن فایل دیتابیس: " + err.Error(),
+						"error": "Error writing database file: " + err.Error(),
 					})
 				}
 				outFile.Close()
@@ -399,13 +399,13 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		// Copy restored database files to the actual database directory
 		if err := os.RemoveAll("./db"); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در پاک کردن دیتابیس قدیمی: " + err.Error(),
+				"error": "Error removing old database: " + err.Error(),
 			})
 		}
 
 		if err := os.Rename(tempDbDir, "./db"); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در جایگزینی دیتابیس: " + err.Error(),
+				"error": "Error replacing database: " + err.Error(),
 			})
 		}
 
@@ -416,12 +416,12 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		}
 		if err := exec.Command("wg-quick", "up", "wg0").Run(); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "خطا در راه‌اندازی مجدد WireGuard: " + err.Error(),
+				"error": "Error restarting WireGuard: " + err.Error(),
 			})
 		}
 
 		return c.JSON(http.StatusOK, map[string]string{
-			"message": "بازیابی با موفقیت انجام شد",
+			"message": "Restore completed successfully",
 		})
 	}
 }
