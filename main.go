@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha512"
 	"embed"
 	"flag"
@@ -184,9 +185,12 @@ func main() {
 	extraData["basePath"] = util.BasePath
 	extraData["loginDisabled"] = flagDisableLogin
 
-	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name (e.g.
-	// "base.html" instead of "templates/base.html")
+	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name
 	tmplDir, _ := fs.Sub(fs.FS(embeddedTemplates), "templates")
+	
+	// strip the "assets/" prefix from the embedded directory and prepare assets
+	assetsDir, _ := fs.Sub(fs.FS(embeddedAssets), "assets")
+	preparedAssets := prepareAssets(assetsDir)
 
 	// Initialize the quota checker
 	handler.StartQuotaChecker(db, tmplDir)
@@ -207,6 +211,20 @@ func main() {
 
 	// register routes
 	app := router.New(tmplDir, extraData, util.SessionSecret)
+
+	// Serve static files from prepared assets with proper MIME types
+	app.Static(util.BasePath+"/assets", http.FS(preparedAssets))
+	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if c.Path() == util.BasePath+"/assets/*" {
+				path := c.Param("*")
+				if path != "" && (path[len(path)-3:] == ".js") {
+					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
+				}
+			}
+			return next(c)
+		}
+	})
 
 	app.GET(util.BasePath, handler.WireGuardClients(db), handler.ValidSession, handler.RefreshSession)
 
@@ -265,20 +283,6 @@ func main() {
 	app.DELETE(util.BasePath+"/wake_on_lan_host/:mac_address", handler.DeleteWakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.PUT(util.BasePath+"/wake_on_lan_host/:mac_address", handler.WakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/terminate-client", handler.TerminateClient(db, tmplDir), handler.ValidSession, handler.ContentTypeJson)
-
-	// strip the "assets/" prefix from the embedded directory so files can be called directly without the "assets/"
-	// prefix
-	assetsDir, _ := fs.Sub(fs.FS(embeddedAssets), "assets")
-	assetHandler := http.FileServer(http.FS(assetsDir))
-	// serves other static files
-	app.GET(util.BasePath+"/static/*", echo.WrapHandler(http.StripPrefix(util.BasePath+"/static/", assetHandler)))
-
-	initDeps := telegram.TgBotInitDependencies{
-		DB:                             db,
-		SendRequestedConfigsToTelegram: util.SendRequestedConfigsToTelegram,
-	}
-
-	initTelegram(initDeps)
 
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {
@@ -342,3 +346,65 @@ func initTelegram(initDeps telegram.TgBotInitDependencies) {
 		}
 	}()
 }
+
+func prepareAssets(fsys fs.FS) fs.FS {
+	// Create a new in-memory filesystem
+	memFS := make(map[string][]byte)
+
+	// Walk through all files in the assets directory
+	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			// Read file content
+			content, err := fs.ReadFile(fsys, path)
+			if err != nil {
+				return err
+			}
+			// Store in memory
+			memFS[path] = content
+		}
+		return nil
+	})
+
+	// Return a new filesystem implementation that serves from memory
+	return &preparedFS{files: memFS}
+}
+
+// preparedFS implements fs.FS
+type preparedFS struct {
+	files map[string][]byte
+}
+
+func (p *preparedFS) Open(name string) (fs.File, error) {
+	if content, ok := p.files[name]; ok {
+		return &preparedFile{
+			Reader: bytes.NewReader(content),
+			name:   name,
+		}, nil
+	}
+	return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+}
+
+// preparedFile implements fs.File
+type preparedFile struct {
+	*bytes.Reader
+	name string
+}
+
+func (f *preparedFile) Close() error               { return nil }
+func (f *preparedFile) Stat() (fs.FileInfo, error) { return &preparedFileInfo{f.name, int64(f.Len())}, nil }
+
+// preparedFileInfo implements fs.FileInfo
+type preparedFileInfo struct {
+	name string
+	size int64
+}
+
+func (fi *preparedFileInfo) Name() string       { return fi.name }
+func (fi *preparedFileInfo) Size() int64        { return fi.size }
+func (fi *preparedFileInfo) Mode() fs.FileMode  { return 0444 }
+func (fi *preparedFileInfo) ModTime() time.Time { return time.Time{} }
+func (fi *preparedFileInfo) IsDir() bool        { return false }
+func (fi *preparedFileInfo) Sys() interface{}   { return nil }
