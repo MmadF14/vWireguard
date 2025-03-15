@@ -138,7 +138,10 @@
     }
     
     .custom-file-input {
-        @apply block w-full text-sm text-gray-500 dark:text-gray-400;
+        @apply block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 
+               file:rounded-full file:border-0 file:text-sm file:font-semibold
+               file:bg-green-50 file:text-green-700 hover:file:bg-green-100
+               dark:file:bg-green-900 dark:file:text-green-100 dark:hover:file:bg-green-800;
         border: 2px dashed #d1d5db;
         border-radius: 12px;
         padding: 1rem;
@@ -153,6 +156,14 @@
     }
     .dark .custom-file-input:hover {
         border-color: #34d399;
+    }
+
+    #restoreMessage.error {
+        @apply bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100;
+    }
+
+    #restoreMessage.success {
+        @apply bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100;
     }
 </style>
 {{end}}
@@ -274,9 +285,11 @@
                     <div class="flex flex-col">
                         <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
                             <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Restore System</h4>
+                            <p class="text-gray-600 dark:text-gray-300 mb-6">Select a backup file to restore your system configuration and database.</p>
                             <form id="restoreForm" class="space-y-4">
                                 <div class="file-input-wrapper">
-                                    <input type="file" name="backup" accept=".zip" class="custom-file-input" required>
+                                    <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose backup file:</label>
+                                    <input type="file" id="backupFile" name="backup" accept=".zip" class="custom-file-input" required>
                                 </div>
                                 <button type="submit" class="action-button restore-button text-white">
                                     <span class="flex items-center justify-center">
@@ -290,7 +303,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="restoreMessage" class="text-sm mt-4 hidden text-center font-medium"></div>
+                <div id="restoreMessage" class="mt-4 text-center py-2 px-4 rounded-lg font-medium hidden"></div>
             </div>
         </div>
     </div>
@@ -494,10 +507,13 @@
     function showRestoreMessage(message, isError = false) {
         const messageDiv = document.getElementById('restoreMessage');
         messageDiv.textContent = message;
-        messageDiv.className = `text-sm mt-2 ${isError ? 'text-red-600' : 'text-green-600'}`;
-        messageDiv.classList.remove('hidden');
+        messageDiv.classList.remove('hidden', 'error', 'success');
+        messageDiv.classList.add(isError ? 'error' : 'success');
+        
+        // Auto hide after 5 seconds
         setTimeout(() => {
             messageDiv.classList.add('hidden');
+            messageDiv.classList.remove('error', 'success');
         }, 5000);
     }
 
@@ -507,8 +523,18 @@
         
         const formData = new FormData(e.target);
         const submitButton = e.target.querySelector('button[type="submit"]');
+        const originalButtonContent = submitButton.innerHTML;
+        
         submitButton.disabled = true;
-        submitButton.textContent = 'Restoring...';
+        submitButton.innerHTML = `
+            <span class="flex items-center justify-center">
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Restoring...
+            </span>
+        `;
         
         try {
             const response = await fetch('{{.baseData.BasePath}}/api/restore', {
@@ -529,7 +555,7 @@
             showRestoreMessage(error.message, true);
         } finally {
             submitButton.disabled = false;
-            submitButton.textContent = 'Restore from Backup';
+            submitButton.innerHTML = originalButtonContent;
         }
     });
 </script>
