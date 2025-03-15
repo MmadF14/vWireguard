@@ -95,7 +95,7 @@
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="{{.basePath}}" class="brand-link">
-                <span class="brand-text">&nbsp; WIREGUARD UI</span>
+                <span class="brand-text font-weight-bold">&nbsp; vWireguard</span>
             </a>
 
             <!-- Sidebar -->
@@ -103,24 +103,20 @@
                 <!-- Sidebar user (optional) -->
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <i class="nav-icon fas fa-2x fa-user"></i>
+                        <i class="nav-icon fas fa-2x fa-user-circle"></i>
                     </div>
                     <div class="info">
                         {{if .baseData.CurrentUser}}
-
                         {{if .baseData.Admin}}
                         <a href="{{.basePath}}/profile" class="d-block">Administrator: {{.baseData.CurrentUser}}</a>
                         {{else}}
                         <a href="{{.basePath}}/profile" class="d-block">Manager: {{.baseData.CurrentUser}}</a>
                         {{end}}
-
                         {{else}}
                         <a href="#" class="d-block">Administrator</a>
                         {{end}}
                     </div>
                 </div>
-
-
 
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
@@ -135,9 +131,7 @@
                         <li class="nav-item">
                             <a href="{{.basePath}}/" class="nav-link {{if eq .baseData.Active ""}}active{{end}}">
                                 <i class="nav-icon fas fa-user-secret"></i>
-                                <p>
-                                    Wireguard Clients
-                                </p>
+                                <p>Wireguard Clients</p>
                             </a>
                         </li>
 
@@ -145,29 +139,22 @@
                         <li class="nav-item">
                             <a href="{{.basePath}}/wg-server" class="nav-link {{if eq .baseData.Active "wg-server" }}active{{end}}">
                                 <i class="nav-icon fas fa-server"></i>
-                                <p>
-                                    Wireguard Server
-                                </p>
+                                <p>Wireguard Server</p>
                             </a>
                         </li>
-
 
                         <li class="nav-header">SETTINGS</li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/global-settings" class="nav-link {{if eq .baseData.Active "global-settings" }}active{{end}}">
                                 <i class="nav-icon fas fa-cog"></i>
-                                <p>
-                                    Global Settings
-                                </p>
+                                <p>Global Settings</p>
                             </a>
                         </li>
                         {{if not .loginDisabled}}
                         <li class="nav-item">
                             <a href="{{.basePath}}/users-settings" class="nav-link {{if eq .baseData.Active "users-settings" }}active{{end}}">
-                            <i class="nav-icon fas fa-cog"></i>
-                            <p>
-                                Users Settings
-                            </p>
+                                <i class="nav-icon fas fa-users-cog"></i>
+                                <p>Users Settings</p>
                             </a>
                         </li>
                         {{end}}
@@ -177,26 +164,7 @@
                         <li class="nav-item">
                             <a href="{{.basePath}}/status" class="nav-link {{if eq .baseData.Active "status" }}active{{end}}">
                                 <i class="nav-icon fas fa-signal"></i>
-                                <p>
-                                    Status
-                                </p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/wake_on_lan_hosts" class="nav-link {{if eq .baseData.Active "wake_on_lan_hosts" }}active{{end}}">
-                                <i class="nav-icon fas  fa-solid fa-power-off"></i>
-                                <p>
-                                    WoL Hosts
-                                </p>
-                            </a>
-                        </li>
-                        <li class="nav-header">ABOUT</li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/about" class="nav-link {{if eq .baseData.Active "about" }}active{{end}}">
-                            <i class="nav-icon fas  fa-solid fa-id-card"></i>
-                            <p>
-                                About
-                            </p>
+                                <p>Status</p>
                             </a>
                         </li>
                     </ul>
@@ -439,3 +407,66 @@
 
 </html>
 {{end}}
+
+<style>
+.main-sidebar {
+    background: linear-gradient(180deg, #1a237e 0%, #0d47a1 100%);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+}
+
+.nav-sidebar .nav-item > .nav-link {
+    margin-bottom: 0.2rem;
+    border-radius: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.nav-sidebar .nav-item > .nav-link:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateX(5px);
+}
+
+.nav-sidebar .nav-item > .nav-link.active {
+    background: linear-gradient(45deg, #2196f3, #1976d2);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.nav-header {
+    color: #90caf9;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-top: 1rem;
+}
+
+.brand-link {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 1rem;
+}
+
+.brand-text {
+    color: #fff;
+    font-size: 1.25rem;
+    letter-spacing: 1px;
+}
+
+.user-panel {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.user-panel .info a {
+    color: #fff;
+    font-weight: 500;
+}
+
+.nav-icon {
+    color: #90caf9;
+}
+
+.nav-link.active .nav-icon {
+    color: #fff;
+}
+
+.nav-link p {
+    font-weight: 500;
+}
+</style>
