@@ -28,7 +28,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
     <!-- Google Font: Source Sans Pro and Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- START: On page css -->
     {{template "top_css" .}}
@@ -74,18 +74,16 @@
             <!-- Right navbar links -->
             <div class="navbar-nav ml-auto">
                 <button style="margin-left: 0.5em;" type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                    data-target="#modal_new_client"><i class="nav-icon fas fa-plus"></i> New
-                    Client</button>
+                    data-target="#modal_new_client"><i class="nav-icon fas fa-plus"></i> <span data-translate="New Client">New Client</span></button>
                 <button id="apply-config-button" style="margin-left: 0.5em; display: none;" type="button" class="btn btn-outline-danger btn-sm" data-toggle="modal"
-                    data-target="#modal_apply_config"><i class="nav-icon fas fa-check"></i> Apply
-                    Config</button>
+                    data-target="#modal_apply_config"><i class="nav-icon fas fa-check"></i> <span data-translate="Apply Config">Apply Config</span></button>
                 <!-- Dark Mode Toggle -->
                 <button id="theme-toggle" style="margin-left: 0.5em;" type="button" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-moon"></i>
                 </button>
                 {{if .baseData.CurrentUser}}
                 <button onclick="location.href='{{.basePath}}/logout';" style="margin-left: 0.5em;" type="button"
-                    class="btn btn-outline-danger btn-sm"><i class="nav-icon fas fa-sign-out-alt"></i> Logout</button>
+                    class="btn btn-outline-danger btn-sm"><i class="nav-icon fas fa-sign-out-alt"></i> <span data-translate="Logout">Logout</span></button>
                 {{end}}
             </div>
         </nav>
@@ -116,18 +114,18 @@
                             {{if .baseData.CurrentUser}}
                             {{if .baseData.Admin}}
                             <div class="admin-badge">
-                                <span class="admin-title">Administrator</span>
+                                <span class="admin-title" data-translate="Administrator">Administrator</span>
                                 <span class="admin-name">{{.baseData.CurrentUser}}</span>
                             </div>
                             {{else}}
                             <div class="manager-badge">
-                                <span class="manager-title">Manager</span>
+                                <span class="manager-title" data-translate="Manager">Manager</span>
                                 <span class="manager-name">{{.baseData.CurrentUser}}</span>
                             </div>
                             {{end}}
                             {{else}}
                             <div class="admin-badge">
-                                <span class="admin-title">Administrator</span>
+                                <span class="admin-title" data-translate="Administrator">Administrator</span>
                             </div>
                             {{end}}
                         </div>
@@ -137,17 +135,17 @@
                 <!-- Sidebar Menu -->
                 <nav class="sidebar-nav">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                        <li class="nav-header"><span class="header-icon">⚡</span>MAIN</li>
+                        <li class="nav-header"><span class="header-icon">⚡</span><span data-translate="MAIN">MAIN</span></li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/system-monitor" class="nav-link {{if eq .baseData.Active "system-monitor"}}active{{end}}">
                                 <i class="nav-icon fas fa-chart-line"></i>
-                                <p>System Monitor</p>
+                                <p data-translate="System Monitor">System Monitor</p>
                             </a>
                         </li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/" class="nav-link {{if eq .baseData.Active ""}}active{{end}}">
                                 <i class="nav-icon fas fa-user-secret"></i>
-                                <p>Wireguard Clients</p>
+                                <p data-translate="Wireguard Clients">Wireguard Clients</p>
                             </a>
                         </li>
 
@@ -155,32 +153,32 @@
                         <li class="nav-item">
                             <a href="{{.basePath}}/wg-server" class="nav-link {{if eq .baseData.Active "wg-server" }}active{{end}}">
                                 <i class="nav-icon fas fa-server"></i>
-                                <p>Wireguard Server</p>
+                                <p data-translate="Wireguard Server">Wireguard Server</p>
                             </a>
                         </li>
 
-                        <li class="nav-header"><span class="header-icon">⚙️</span>SETTINGS</li>
+                        <li class="nav-header"><span class="header-icon">⚙️</span><span data-translate="SETTINGS">SETTINGS</span></li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/global-settings" class="nav-link {{if eq .baseData.Active "global-settings" }}active{{end}}">
                                 <i class="nav-icon fas fa-cog"></i>
-                                <p>Global Settings</p>
+                                <p data-translate="Global Settings">Global Settings</p>
                             </a>
                         </li>
                         {{if not .loginDisabled}}
                         <li class="nav-item">
                             <a href="{{.basePath}}/users-settings" class="nav-link {{if eq .baseData.Active "users-settings" }}active{{end}}">
                                 <i class="nav-icon fas fa-users-cog"></i>
-                                <p>Users Settings</p>
+                                <p data-translate="Users Settings">Users Settings</p>
                             </a>
                         </li>
                         {{end}}
                         {{end}}
 
-                        <li class="nav-header"><span class="header-icon">🔧</span>UTILITIES</li>
+                        <li class="nav-header"><span class="header-icon">🔧</span><span data-translate="UTILITIES">UTILITIES</span></li>
                         <li class="nav-item">
                             <a href="{{.basePath}}/status" class="nav-link {{if eq .baseData.Active "status" }}active{{end}}">
                                 <i class="nav-icon fas fa-signal"></i>
-                                <p>Status</p>
+                                <p data-translate="Status">Status</p>
                             </a>
                         </li>
                     </ul>
@@ -419,6 +417,8 @@
     <!-- START: On page js -->
     {{template "bottom_js" .}}
     <!-- END: On page js -->
+    <script src="{{.basePath}}/static/dist/js/translations.js"></script>
+    <script src="{{.basePath}}/static/dist/js/language.js"></script>
 </body>
 
 </html>

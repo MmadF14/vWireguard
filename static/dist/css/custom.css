@@ -1021,4 +1021,175 @@ body {
     [data-theme="dark"] .navbar {
         border-bottom: none;
     }
+}
+
+/* RTL Support */
+.rtl {
+    direction: rtl;
+    text-align: right;
+}
+
+.rtl .nav-sidebar {
+    padding-right: 0;
+}
+
+.rtl .nav-sidebar .nav-link > .right,
+.rtl .nav-sidebar .nav-link > p > .right {
+    right: auto;
+    left: 1rem;
+}
+
+.rtl .nav-sidebar .nav-link > .right:nth-child(2),
+.rtl .nav-sidebar .nav-link > p > .right:nth-child(2) {
+    right: auto;
+    left: 2.2rem;
+}
+
+.rtl .nav-sidebar .nav-item > .nav-link {
+    margin-right: 0;
+    margin-left: 0.5rem;
+}
+
+.rtl .nav-sidebar > .nav-item .nav-icon {
+    margin-right: 0;
+    margin-left: 0.8rem;
+}
+
+.rtl .content-wrapper {
+    margin-left: 0 !important;
+    margin-right: 250px;
+}
+
+.rtl .main-header {
+    margin-left: 0 !important;
+    margin-right: 250px;
+}
+
+@media (max-width: 991.98px) {
+    .rtl .content-wrapper,
+    .rtl .main-header {
+        margin-right: 0;
+    }
+}
+
+.rtl .mr-auto {
+    margin-right: 0 !important;
+    margin-left: auto !important;
+}
+
+.rtl .ml-auto {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+}
+
+/* Language Toggle Button */
+.language-toggle {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1050;
+    background: var(--card-bg, #ffffff);
+    border: 2px solid var(--input-border, #e0e0e0);
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-color, #2c3e50);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px var(--shadow-color, rgba(0, 0, 0, 0.1));
+}
+
+.language-toggle:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--shadow-color, rgba(0, 0, 0, 0.15));
+}
+
+.rtl .language-toggle {
+    left: auto;
+    right: 20px;
+}
+
+/* RTL Input Groups */
+.rtl .input-group > .form-control:not(:last-child) {
+    border-radius: 0 12px 12px 0;
+    border-right: 2px solid var(--input-border);
+    border-left: none;
+}
+
+.rtl .input-group-append {
+    margin-right: -2px;
+    margin-left: 0;
+}
+
+.rtl .input-group > .input-group-append > .input-group-text {
+    border-radius: 12px 0 0 12px;
+    border-right: none;
+    border-left: 2px solid var(--input-border);
+}
+
+/* RTL Card and Form Elements */
+.rtl .card-header > .card-tools {
+    right: auto;
+    left: 1rem;
+}
+
+.rtl .close {
+    float: left;
+}
+
+.rtl .modal-header .close {
+    margin: -1rem auto -1rem -1rem;
+}
+
+.rtl .custom-control {
+    padding-right: 1.5rem;
+    padding-left: 0;
+}
+
+.rtl .custom-control-label::before,
+.rtl .custom-control-label::after {
+    right: -1.5rem;
+    left: auto;
+}
+
+/* RTL Dropdown Menus */
+.rtl .dropdown-menu {
+    text-align: right;
+}
+
+.rtl .dropdown-item {
+    text-align: right;
+}
+
+/* RTL Tables */
+.rtl .table th,
+.rtl .table td {
+    text-align: right;
+}
+
+/* RTL List Groups */
+.rtl .list-group {
+    padding-right: 0;
+}
+
+/* RTL Alerts */
+.rtl .alert-dismissible {
+    padding-right: 1.25rem;
+    padding-left: 4rem;
+}
+
+.rtl .alert-dismissible .close {
+    right: auto;
+    left: 0;
+}
+
+/* Font Adjustments for Persian */
+[lang="fa"] {
+    font-family: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;
+}
+
+[lang="fa"] * {
+    letter-spacing: 0 !important;
 } 

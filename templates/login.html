@@ -19,7 +19,8 @@
     <!-- Theme style -->
     <link rel="stylesheet" href="{{.basePath}}/static/dist/css/adminlte.min.css">
     <!-- Google Font: Source Sans Pro -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
     <style>
         :root {
             --primary-color: #1976d2;
@@ -31,19 +32,15 @@
             --input-bg: #ffffff;
             --input-border: #e0e0e0;
             --shadow-color: rgba(0, 0, 0, 0.1);
-            --checkbox-bg: #ffffff;
-            --checkbox-border: #d1d5db;
         }
 
         [data-theme="dark"] {
-            --text-color: #e0e0e0;
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --input-bg: #2d2d2d;
-            --input-border: #404040;
-            --shadow-color: rgba(0, 0, 0, 0.5);
-            --checkbox-bg: #2d2d2d;
-            --checkbox-border: #404040;
+            --text-color: #ecf0f1;
+            --bg-color: #1a1a1a;
+            --card-bg: #2c2c2c;
+            --input-bg: #3c3c3c;
+            --input-border: #4c4c4c;
+            --shadow-color: rgba(0, 0, 0, 0.3);
         }
 
         body {
@@ -57,8 +54,8 @@
             justify-content: center;
             margin: 0;
             background-image: 
-                radial-gradient(circle at 100% 0%, rgba(25,118,210,0.15) 0%, transparent 50%),
-                radial-gradient(circle at 0% 100%, rgba(13,71,161,0.15) 0%, transparent 50%);
+                radial-gradient(circle at 100% 0%, rgba(25,118,210,0.1) 0%, transparent 50%),
+                radial-gradient(circle at 0% 100%, rgba(13,71,161,0.1) 0%, transparent 50%);
         }
 
         .login-box {
@@ -108,14 +105,12 @@
             color: var(--text-color);
             font-size: 1.1rem;
             font-weight: 500;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             text-align: center;
-            opacity: 0.9;
         }
 
         .input-group {
             margin-bottom: 1.5rem;
-            position: relative;
         }
 
         .form-control {
@@ -127,12 +122,11 @@
             font-size: 1rem;
             color: var(--text-color);
             transition: all 0.3s ease;
-            width: 100%;
         }
 
         .form-control:focus {
-            border-color: var(--primary-light);
-            box-shadow: 0 0 0 0.2rem rgba(33,150,243,0.25);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(25,118,210,0.25);
         }
 
         .input-group-text {
@@ -141,7 +135,6 @@
             border-left: none;
             border-radius: 0 12px 12px 0;
             color: var(--text-color);
-            opacity: 0.8;
         }
 
         .input-group .form-control {
@@ -156,9 +149,6 @@
             padding: 0.75rem 1.5rem;
             font-weight: 600;
             transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 0.9rem;
         }
 
         .btn-primary:hover {
@@ -169,17 +159,6 @@
 
         .icheck-primary {
             margin-top: 0.5rem;
-        }
-
-        .icheck-primary label {
-            color: var(--text-color);
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-
-        .icheck-primary input[type="checkbox"] {
-            background-color: var(--checkbox-bg);
-            border-color: var(--checkbox-border);
         }
 
         #message {
@@ -219,12 +198,10 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px var(--shadow-color);
-            z-index: 1000;
         }
 
         .theme-toggle:hover {
             transform: scale(1.1);
-            border-color: var(--primary-light);
         }
 
         .theme-toggle i {
@@ -232,15 +209,11 @@
             color: var(--text-color);
             transition: all 0.3s ease;
         }
-
-        [data-theme="dark"] .theme-toggle i {
-            color: #ffd700;
-        }
     </style>
 </head>
 
 <body class="login-page">
-    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+    <button class="theme-toggle" id="theme-toggle">
         <i class="fas fa-moon"></i>
     </button>
 
@@ -253,10 +226,10 @@
         </div>
         <div class="card">
             <div class="card-body login-card-body">
-                <p class="login-box-msg">ورود به پنل مدیریت</p>
+                <p class="login-box-msg" data-translate="Sign in to start your session">Sign in to start your session</p>
                 <form action="" method="post">
                     <div class="input-group">
-                        <input id="username" type="text" class="form-control" placeholder="نام کاربری">
+                        <input id="username" type="text" class="form-control" data-translate="Username" placeholder="Username">
                         <div class="input-group-append">
                             <div class="input-group-text">
                                 <span class="fas fa-user"></span>
@@ -264,7 +237,7 @@
                         </div>
                     </div>
                     <div class="input-group">
-                        <input id="password" type="password" class="form-control" placeholder="رمز عبور">
+                        <input id="password" type="password" class="form-control" data-translate="Password" placeholder="Password">
                         <div class="input-group-append">
                             <div class="input-group-text">
                                 <span class="fas fa-lock"></span>
@@ -275,13 +248,13 @@
                         <div class="col-8">
                             <div class="icheck-primary">
                                 <input type="checkbox" id="remember">
-                                <label for="remember">
-                                    مرا به خاطر بسپار
+                                <label for="remember" data-translate="Remember Me">
+                                    Remember Me
                                 </label>
                             </div>
                         </div>
                         <div class="col-4">
-                            <button id="btn_login" type="submit" class="btn btn-primary btn-block">ورود</button>
+                            <button id="btn_login" type="submit" class="btn btn-primary btn-block" data-translate="Sign In">Sign In</button>
                         </div>
                     </div>
                 </form>
@@ -295,6 +268,8 @@
     <script src="{{.basePath}}/static/plugins/jquery/jquery.min.js"></script>
     <script src="{{.basePath}}/static/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="{{.basePath}}/static/dist/js/adminlte.min.js"></script>
+    <script src="{{.basePath}}/static/dist/js/translations.js"></script>
+    <script src="{{.basePath}}/static/dist/js/language.js"></script>
 
     <script>
         // Theme Toggle Functionality
