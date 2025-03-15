@@ -108,11 +108,12 @@
 
     .file-input-wrapper {
         margin-top: 1.5rem;
+        position: relative;
     }
 
     .custom-file-input {
         width: 100%;
-        padding: 0.75rem;
+        padding: 1rem;
         border: 2px dashed #d1d5db;
         border-radius: 0.5rem;
         font-size: 0.875rem;
@@ -122,18 +123,35 @@
         transition: all 0.2s ease;
     }
 
+    .custom-file-input::file-selector-button {
+        font-weight: 500;
+        color: white;
+        background: #059669;
+        padding: 0.5em 1em;
+        border: none;
+        border-radius: 0.5rem;
+        margin-right: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .custom-file-input:hover::file-selector-button {
+        background: #047857;
+    }
+
     .dark .custom-file-input {
         border-color: #4b5563;
-        background: #374151;
+        background: #1f2937;
         color: #d1d5db;
     }
 
-    .custom-file-input:hover {
-        border-color: #059669;
+    .dark .custom-file-input::file-selector-button {
+        background: #059669;
+        color: white;
     }
 
-    .dark .custom-file-input:hover {
-        border-color: #34d399;
+    .dark .custom-file-input:hover::file-selector-button {
+        background: #047857;
     }
 
     .action-button {
@@ -311,6 +329,7 @@
                         <p class="text-gray-600 dark:text-gray-300">Select a backup file to restore your system configuration and database.</p>
                         <form id="restoreForm">
                             <div class="file-input-wrapper">
+                                <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose backup file:</label>
                                 <input type="file" id="backupFile" name="backup" accept=".zip" class="custom-file-input" required>
                             </div>
                             <button type="submit" class="action-button restore-button">
