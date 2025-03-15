@@ -39,29 +39,39 @@ class LanguageManager {
                 element.textContent = this.translate(key);
             }
         });
-
-        // Update language toggle button text
-        const langToggle = document.getElementById('language-toggle');
-        if (langToggle) {
-            langToggle.textContent = this.currentLang === 'fa' ? 'English' : 'فارسی';
-        }
     }
 
     setupLanguageToggle() {
+        // Remove existing language toggle if any
+        const existingToggle = document.getElementById('language-toggle');
+        if (existingToggle) {
+            existingToggle.remove();
+        }
+
+        // Create new language toggle button
         const langToggle = document.createElement('button');
         langToggle.id = 'language-toggle';
         langToggle.className = 'language-toggle';
-        langToggle.textContent = this.currentLang === 'fa' ? 'English' : 'فارسی';
+        langToggle.innerHTML = `
+            <span>${this.currentLang === 'fa' ? 'English' : 'فارسی'}</span>
+            <i class="fas ${this.currentLang === 'fa' ? 'fa-language' : 'fa-language'}"></i>
+        `;
         
+        // Add click event
         langToggle.addEventListener('click', () => {
             this.currentLang = this.currentLang === 'fa' ? 'en' : 'fa';
             localStorage.setItem('language', this.currentLang);
-            this.init();
             window.location.reload();
         });
 
-        // Add the button to the page if it doesn't exist
-        if (!document.getElementById('language-toggle')) {
+        // Add to navbar if exists, otherwise add to body
+        const navbar = document.querySelector('.navbar-nav.ml-auto');
+        if (navbar) {
+            const li = document.createElement('li');
+            li.className = 'nav-item';
+            li.appendChild(langToggle);
+            navbar.insertBefore(li, navbar.firstChild);
+        } else {
             document.body.appendChild(langToggle);
         }
     }
