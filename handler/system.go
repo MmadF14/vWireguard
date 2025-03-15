@@ -425,36 +425,3 @@ func RestoreSystem(db store.IStore) echo.HandlerFunc {
 		})
 	}
 }
-
-// SystemInfo represents basic system information
-type SystemInfo struct {
-	OS           string `json:"os"`
-	Kernel       string `json:"kernel"`
-	Architecture string `json:"architecture"`
-	Hostname     string `json:"hostname"`
-}
-
-// GetSystemInfo returns basic system information
-func GetSystemInfo() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		info := SystemInfo{}
-
-		// Get hostname
-		hostname, err := os.Hostname()
-		if err == nil {
-			info.Hostname = hostname
-		}
-
-		// Get OS information
-		hostInfo, err := host.Info()
-		if err == nil {
-			info.OS = hostInfo.Platform + " " + hostInfo.PlatformVersion
-			info.Kernel = hostInfo.KernelVersion
-		}
-
-		// Get architecture
-		info.Architecture = runtime.GOARCH
-
-		return c.JSON(http.StatusOK, info)
-	}
-}
