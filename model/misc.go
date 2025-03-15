@@ -11,7 +11,7 @@ type BaseData struct {
 	Active      string
 	CurrentUser string
 	Admin       bool
-	basePath    string
+	BasePath    string
 }
 
 // ClientServerHashes struct, to save hashes to detect changes

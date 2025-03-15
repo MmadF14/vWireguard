@@ -142,7 +142,7 @@ func SystemMonitorPage() echo.HandlerFunc {
 				Active:      "system-monitor",
 				CurrentUser: currentUser(c),
 				Admin:      isAdmin(c),
-				basePath:   util.BasePath,
+				BasePath:   util.BasePath,
 			},
 		}
 
