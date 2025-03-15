@@ -213,7 +213,7 @@ func main() {
 	app := router.New(tmplDir, extraData, util.SessionSecret)
 
 	// Serve static files from prepared assets with proper MIME types
-	app.Static(util.BasePath+"/assets", http.FS(preparedAssets))
+	app.StaticFS(util.BasePath+"/assets", http.FS(preparedAssets))
 	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if c.Path() == util.BasePath+"/assets/*" {
