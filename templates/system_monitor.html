@@ -13,12 +13,30 @@
         overflow-y: auto;
     }
     .metric-card {
-        background: white;
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         margin-bottom: 15px;
         height: 100%;
+    }
+    /* Light theme */
+    :root {
+        --bg-card: white;
+        --text-primary: #1a202c;
+        --text-secondary: #4a5568;
+        --border-color: #e2e8f0;
+    }
+    /* Dark theme */
+    .dark {
+        --bg-card: #1f2937;
+        --text-primary: #f3f4f6;
+        --text-secondary: #9ca3af;
+        --border-color: #374151;
+    }
+    .metric-card {
+        background: var(--bg-card);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
     }
     .status-tag {
         padding: 4px 12px;
@@ -27,6 +45,8 @@
         display: inline-block;
         margin: 2px;
     }
+    .dark .status-running { background: #064e3b; color: #6ee7b7; }
+    .dark .status-version { background: #5b21b6; color: #e9d5ff; }
     .status-running { background: #e6f4ea; color: #137333; }
     .status-version { background: #f3e8ff; color: #7e22ce; }
     .metric-value { font-size: 24px; font-weight: 600; }
@@ -35,13 +55,24 @@
         height: 200px;
         width: 100%;
     }
+    .dark .text-gray-600 { color: #9ca3af; }
+    .dark .text-gray-500 { color: #6b7280; }
+    .dark input[type="file"] {
+        background: #374151;
+        color: #f3f4f6;
+        border-color: #4b5563;
+    }
+    .dark input[type="file"]::-webkit-file-upload-button {
+        background: #4b5563;
+        color: #f3f4f6;
+    }
 </style>
 {{end}}
 
 {{define "page_title"}}System Monitor{{end}}
 
 {{define "page_content"}}
-<div class="content">
+<div class="content dark:bg-gray-900">
     <div class="container mx-auto p-6">
         <!-- System Resource Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -88,7 +119,7 @@
         </div>
 
         <!-- System Info & Status -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="metric-card">
                 <h3 class="text-lg font-semibold mb-3">System Status</h3>
                 <div class="mb-4">
@@ -129,22 +160,45 @@
                 </div>
             </div>
 
+            <!-- System Information Box -->
+            <div class="metric-card">
+                <h3 class="text-lg font-semibold mb-3">System Information</h3>
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <div class="text-sm text-gray-600">Operating System</div>
+                        <div class="os-info">Linux</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Kernel Version</div>
+                        <div class="kernel-version">5.x.x</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Architecture</div>
+                        <div class="arch-info">x86_64</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-600">Hostname</div>
+                        <div class="hostname-info">server</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Backup & Restore -->
             <div class="metric-card">
                 <h3 class="text-lg font-semibold mb-3">Backup & Restore</h3>
                 <div class="flex flex-col space-y-4">
                     <div>
-                        <button onclick="backupSystem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full">
+                        <button onclick="backupSystem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full dark:bg-green-700 dark:hover:bg-green-800">
                             Download Backup
                         </button>
                     </div>
                     <div>
                         <form id="restoreForm" class="flex flex-col space-y-2">
                             <label class="block">
-                                <span class="text-gray-700">Select backup file:</span>
-                                <input type="file" name="backup" accept=".zip" class="mt-1 block w-full" required>
+                                <span class="text-gray-700 dark:text-gray-300">Select backup file:</span>
+                                <input type="file" name="backup" accept=".zip" class="mt-1 block w-full dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600" required>
                             </label>
-                            <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                            <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded dark:bg-yellow-700 dark:hover:bg-yellow-800">
                                 Restore from Backup
                             </button>
                         </form>
@@ -390,6 +444,41 @@
         } finally {
             submitButton.disabled = false;
             submitButton.textContent = 'Restore from Backup';
+        }
+    });
+
+    // Function to update system information
+    async function updateSystemInfo() {
+        try {
+            const response = await fetch('{{.baseData.BasePath}}/api/system-info');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            const data = await response.json();
+
+            document.querySelector('.os-info').textContent = data.os || 'Unknown';
+            document.querySelector('.kernel-version').textContent = data.kernel || 'Unknown';
+            document.querySelector('.arch-info').textContent = data.architecture || 'Unknown';
+            document.querySelector('.hostname-info').textContent = data.hostname || 'Unknown';
+        } catch (error) {
+            console.error('Error fetching system information:', error);
+        }
+    }
+
+    // Initial system info update
+    updateSystemInfo();
+
+    // Check for dark mode preference
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+    }
+
+    // Listen for dark mode changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (e.matches) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
         }
     });
 </script>
