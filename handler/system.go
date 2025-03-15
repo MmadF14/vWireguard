@@ -144,6 +144,7 @@ func SystemMonitorPage() echo.HandlerFunc {
 				Admin:      isAdmin(c),
 				BasePath:   util.BasePath,
 			},
+			"basePath": util.BasePath,
 		}
 
 		// حالا سعی می‌کنیم فایل تمپلیت را رندر کنیم
