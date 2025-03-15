@@ -128,6 +128,30 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Backup & Restore -->
+            <div class="metric-card">
+                <h3 class="text-lg font-semibold mb-3">پشتیبان‌گیری و بازیابی</h3>
+                <div class="flex flex-col space-y-4">
+                    <div>
+                        <button onclick="backupSystem()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded w-full">
+                            دانلود نسخه پشتیبان
+                        </button>
+                    </div>
+                    <div>
+                        <form id="restoreForm" class="flex flex-col space-y-2">
+                            <label class="block">
+                                <span class="text-gray-700">انتخاب فایل پشتیبان:</span>
+                                <input type="file" name="backup" accept=".zip" class="mt-1 block w-full" required>
+                            </label>
+                            <button type="submit" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                                بازیابی از نسخه پشتیبان
+                            </button>
+                        </form>
+                    </div>
+                    <div id="restoreMessage" class="text-sm mt-2 hidden"></div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -144,12 +168,8 @@
 
     // Function to create circular charts
     function createChart(elementId, value, color) {
-        if (charts[elementId]) {
-            charts[elementId].destroy();
-        }
-
         const ctx = document.getElementById(elementId + 'Chart').getContext('2d');
-        charts[elementId] = new Chart(ctx, {
+        return new Chart(ctx, {
             type: 'doughnut',
             data: {
                 datasets: [{
@@ -163,7 +183,8 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: {
-                    duration: 500
+                    duration: 750,
+                    easing: 'easeInOutQuart'
                 },
                 plugins: {
                     legend: {
@@ -172,14 +193,21 @@
                 }
             }
         });
-        return charts[elementId];
+    }
+
+    // Function to update chart data smoothly
+    function updateChartData(chart, value) {
+        if (chart && chart.data && chart.data.datasets) {
+            chart.data.datasets[0].data = [value, 100 - value];
+            chart.update('none'); // Update without animation
+        }
     }
 
     // Create initial charts
-    createChart('cpu', 0, '#059669');
-    createChart('ram', 0, '#059669');
-    createChart('swap', 0, '#059669');
-    createChart('disk', 0, '#f97316');
+    charts.cpu = createChart('cpu', 0, '#059669');
+    charts.ram = createChart('ram', 0, '#059669');
+    charts.swap = createChart('swap', 0, '#059669');
+    charts.disk = createChart('disk', 0, '#f97316');
 
     // Function to format bytes to human readable format
     function formatBytes(bytes, decimals = 2) {
@@ -192,6 +220,37 @@
     }
 
     let updateInProgress = false;
+    let lastData = null;
+
+    // Function to smoothly update text content
+    function smoothUpdateText(selector, newValue, suffix = '') {
+        const element = document.querySelector(selector);
+        const currentValue = parseFloat(element.textContent);
+        const targetValue = parseFloat(newValue);
+        
+        if (isNaN(currentValue) || isNaN(targetValue)) {
+            element.textContent = newValue + suffix;
+            return;
+        }
+
+        const duration = 500; // Duration in milliseconds
+        const fps = 30;
+        const steps = duration / (1000 / fps);
+        const increment = (targetValue - currentValue) / steps;
+        let currentStep = 0;
+
+        const animate = () => {
+            currentStep++;
+            const value = currentValue + (increment * currentStep);
+            element.textContent = value.toFixed(1) + suffix;
+
+            if (currentStep < steps) {
+                requestAnimationFrame(animate);
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
 
     // Function to update system metrics
     async function updateMetrics() {
@@ -206,40 +265,42 @@
             const data = await response.json();
 
             // Update CPU
-            document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
+            smoothUpdateText('.cpu-usage', data.cpu.usage, '%');
             document.querySelector('.cores-info').textContent = data.cpu.cores + ' Cores';
-            createChart('cpu', data.cpu.usage, '#059669');
+            updateChartData(charts.cpu, data.cpu.usage);
 
             // Update RAM
             const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
             const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
-            document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' GB';
+            smoothUpdateText('.ram-usage', ramUsedGB, ' GB');
             document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB.toFixed(1) + ' GB';
-            createChart('ram', data.ram.usage, '#059669');
+            updateChartData(charts.ram, data.ram.usage);
 
             // Update Swap
             const swapUsedMB = data.swap.used / (1024 * 1024);
             const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
-            document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' MB';
+            smoothUpdateText('.swap-usage', swapUsedMB, ' MB');
             document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(1) + ' GB';
-            createChart('swap', data.swap.usage, '#059669');
+            updateChartData(charts.swap, data.swap.usage);
 
             // Update Disk
             const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
             const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
-            document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' GB';
+            smoothUpdateText('.disk-usage', diskUsedGB, ' GB');
             document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB.toFixed(1) + ' GB';
-            createChart('disk', data.disk.usage, '#f97316');
+            updateChartData(charts.disk, data.disk.usage);
             
             // Update system info
             document.querySelector('.system-load').textContent = data.systemLoad;
             document.querySelector('.uptime').textContent = data.uptime;
             
             // Update network info
-            document.querySelector('.upload-speed').textContent = data.network.uploadSpeed.toFixed(1) + ' KB/s';
-            document.querySelector('.download-speed').textContent = data.network.downloadSpeed.toFixed(1) + ' KB/s';
+            smoothUpdateText('.upload-speed', data.network.uploadSpeed, ' KB/s');
+            smoothUpdateText('.download-speed', data.network.downloadSpeed, ' KB/s');
             document.querySelector('.total-out').textContent = formatBytes(data.network.totalOut * 1024 * 1024);
             document.querySelector('.total-in').textContent = formatBytes(data.network.totalIn * 1024 * 1024);
+
+            lastData = data;
         } catch (error) {
             console.error('Error fetching system metrics:', error);
         } finally {
@@ -256,6 +317,80 @@
     // Cleanup on page unload
     window.addEventListener('unload', () => {
         clearInterval(updateInterval);
+    });
+
+    // Function to handle system backup
+    async function backupSystem() {
+        try {
+            const response = await fetch('{{.baseData.BasePath}}/api/backup');
+            if (!response.ok) {
+                throw new Error('خطا در دریافت فایل پشتیبان');
+            }
+            
+            // Get the filename from the Content-Disposition header
+            const contentDisposition = response.headers.get('Content-Disposition');
+            const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+            const filename = filenameMatch ? filenameMatch[1] : 'wireguard-backup.zip';
+            
+            // Create a blob from the response
+            const blob = await response.blob();
+            
+            // Create a temporary link and trigger download
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error('Error during backup:', error);
+            alert('خطا در پشتیبان‌گیری: ' + error.message);
+        }
+    }
+
+    // Function to show restore message
+    function showRestoreMessage(message, isError = false) {
+        const messageDiv = document.getElementById('restoreMessage');
+        messageDiv.textContent = message;
+        messageDiv.className = `text-sm mt-2 ${isError ? 'text-red-600' : 'text-green-600'}`;
+        messageDiv.classList.remove('hidden');
+        setTimeout(() => {
+            messageDiv.classList.add('hidden');
+        }, 5000);
+    }
+
+    // Handle restore form submission
+    document.getElementById('restoreForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.textContent = 'در حال بازیابی...';
+        
+        try {
+            const response = await fetch('{{.baseData.BasePath}}/api/restore', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || 'خطا در بازیابی فایل پشتیبان');
+            }
+            
+            showRestoreMessage(result.message || 'بازیابی با موفقیت انجام شد');
+            e.target.reset();
+        } catch (error) {
+            console.error('Error during restore:', error);
+            showRestoreMessage(error.message, true);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.textContent = 'بازیابی از نسخه پشتیبان';
+        }
     });
 </script>
 {{end}}

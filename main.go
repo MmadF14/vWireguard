@@ -292,6 +292,8 @@ func main() {
 	// Add system monitoring routes
 	app.GET(util.BasePath+"/system-monitor", handler.SystemMonitorPage(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/system-metrics", handler.GetSystemMetrics(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
+	app.GET(util.BasePath+"/api/backup", handler.BackupSystem(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/restore", handler.RestoreSystem(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 
 	// Start the server
 	app.Start(util.BindAddress)
