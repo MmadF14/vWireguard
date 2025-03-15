@@ -95,31 +95,38 @@
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="{{.basePath}}" class="brand-link">
-                <span class="brand-text font-weight-bold">&nbsp; vWireguard</span>
+                <div class="brand-wrapper">
+                    <i class="nav-icon fas fa-shield-alt brand-icon"></i>
+                    <span class="brand-text font-weight-bold">&nbsp;vWireguard</span>
+                </div>
             </a>
 
             <!-- Sidebar -->
             <div class="sidebar">
                 <!-- Sidebar user (optional) -->
-                <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-                    <div class="image">
-                        <i class="nav-icon fas fa-2x fa-user-circle"></i>
-                    </div>
-                    <div class="info">
-                        {{if .baseData.CurrentUser}}
-                        {{if .baseData.Admin}}
-                        <a href="{{.basePath}}/profile" class="d-block">Administrator: {{.baseData.CurrentUser}}</a>
-                        {{else}}
-                        <a href="{{.basePath}}/profile" class="d-block">Manager: {{.baseData.CurrentUser}}</a>
-                        {{end}}
-                        {{else}}
-                        <a href="#" class="d-block">Administrator</a>
-                        {{end}}
+                <div class="user-panel mt-3 pb-3 mb-3">
+                    <div class="user-info">
+                        <div class="user-avatar">
+                            <i class="nav-icon fas fa-user-circle"></i>
+                        </div>
+                        <div class="user-details">
+                            {{if .baseData.CurrentUser}}
+                            {{if .baseData.Admin}}
+                            <a href="{{.basePath}}/profile" class="user-name">Administrator</a>
+                            <span class="user-role">{{.baseData.CurrentUser}}</span>
+                            {{else}}
+                            <a href="{{.basePath}}/profile" class="user-name">Manager</a>
+                            <span class="user-role">{{.baseData.CurrentUser}}</span>
+                            {{end}}
+                            {{else}}
+                            <a href="#" class="user-name">Administrator</a>
+                            {{end}}
+                        </div>
                     </div>
                 </div>
 
                 <!-- Sidebar Menu -->
-                <nav class="mt-2">
+                <nav class="mt-2 sidebar-nav">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                         <li class="nav-header">MAIN</li>
                         <li class="nav-item">
@@ -409,57 +416,137 @@
 {{end}}
 
 <style>
+/* Modern Sidebar Styling */
 .main-sidebar {
-    background: linear-gradient(180deg, #1a237e 0%, #0d47a1 100%);
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    border-right: none;
 }
 
-.nav-sidebar .nav-item > .nav-link {
-    margin-bottom: 0.2rem;
-    border-radius: 0.5rem;
-    transition: all 0.3s ease;
-}
-
-.nav-sidebar .nav-item > .nav-link:hover {
-    background: rgba(255,255,255,0.1);
-    transform: translateX(5px);
-}
-
-.nav-sidebar .nav-item > .nav-link.active {
-    background: linear-gradient(45deg, #2196f3, #1976d2);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.nav-header {
-    color: #90caf9;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    margin-top: 1rem;
-}
-
+/* Brand Section */
 .brand-link {
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding: 1rem;
+    border-bottom: none !important;
+    padding: 1.5rem 1rem;
+    background: rgba(0,0,0,0.1);
+}
+
+.brand-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.brand-icon {
+    font-size: 1.75rem;
+    color: #64b5f6;
+    filter: drop-shadow(0 0 8px rgba(100,181,246,0.4));
 }
 
 .brand-text {
     color: #fff;
-    font-size: 1.25rem;
+    font-size: 1.4rem;
+    font-weight: 600;
     letter-spacing: 1px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
+/* User Panel */
 .user-panel {
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    margin: 1rem;
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
-.user-panel .info a {
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-avatar i {
+    font-size: 1.5rem;
+    color: #90caf9;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
     color: #fff;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.user-role {
+    color: #90caf9;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+/* Navigation */
+.sidebar-nav {
+    padding: 0 1rem;
+}
+
+.nav-header {
+    color: #64b5f6;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 1.5rem 1rem 0.75rem;
+    opacity: 0.9;
+}
+
+.nav-sidebar .nav-item > .nav-link {
+    margin-bottom: 0.4rem;
+    border-radius: 10px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 0.75rem 1rem;
+}
+
+.nav-sidebar .nav-item > .nav-link:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateX(5px) scale(1.02);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.nav-sidebar .nav-item > .nav-link.active {
+    background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
+    box-shadow: 0 4px 15px rgba(33,150,243,0.3);
+    transform: translateX(5px);
+}
+
+.nav-sidebar .nav-item > .nav-link:not(.active) {
+    background: rgba(255,255,255,0.05);
 }
 
 .nav-icon {
     color: #90caf9;
+    font-size: 1.2rem;
+    width: 1.5rem;
+    text-align: center;
+    margin-right: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover .nav-icon {
+    transform: scale(1.1);
+    color: #64b5f6;
 }
 
 .nav-link.active .nav-icon {
@@ -468,5 +555,53 @@
 
 .nav-link p {
     font-weight: 500;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sidebar .nav-item {
+    animation: fadeIn 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.sidebar .nav-item:nth-child(1) { animation-delay: 0.1s; }
+.sidebar .nav-item:nth-child(2) { animation-delay: 0.2s; }
+.sidebar .nav-item:nth-child(3) { animation-delay: 0.3s; }
+.sidebar .nav-item:nth-child(4) { animation-delay: 0.4s; }
+.sidebar .nav-item:nth-child(5) { animation-delay: 0.5s; }
+.sidebar .nav-item:nth-child(6) { animation-delay: 0.6s; }
+.sidebar .nav-item:nth-child(7) { animation-delay: 0.7s; }
+
+/* Dark Mode Enhancement */
+[class*="sidebar-dark"] {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+}
+
+[class*="sidebar-dark"] .nav-sidebar > .nav-item > .nav-link.active {
+    box-shadow: 0 4px 15px rgba(33,150,243,0.3);
+}
+
+/* Scrollbar Styling */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.3);
 }
 </style>
