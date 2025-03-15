@@ -94,68 +94,43 @@
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     }
     
-    .action-button {
-        @apply font-bold py-3 px-6 rounded-lg w-full transition-all duration-300 ease-in-out;
-        position: relative;
-        overflow: hidden;
-    }
-    .action-button::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(45deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 100%);
-        transform: translateX(-100%);
-        transition: transform 0.6s ease;
-    }
-    .action-button:hover::after {
-        transform: translateX(0);
-    }
-    
-    .backup-button {
-        background: linear-gradient(45deg, #059669, #10b981);
-        box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.2);
-    }
-    .backup-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 8px -1px rgba(5, 150, 105, 0.3);
-    }
-    
-    .restore-button {
-        background: linear-gradient(45deg, #d97706, #f59e0b);
-        box-shadow: 0 4px 6px -1px rgba(217, 119, 6, 0.2);
-    }
-    .restore-button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 8px -1px rgba(217, 119, 6, 0.3);
-    }
-    
     .file-input-wrapper {
         position: relative;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 1rem;
+        padding: 1rem;
     }
     
     .custom-file-input {
-        @apply block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 
-               file:rounded-full file:border-0 file:text-sm file:font-semibold
-               file:bg-green-50 file:text-green-700 hover:file:bg-green-100
-               dark:file:bg-green-900 dark:file:text-green-100 dark:hover:file:bg-green-800;
+        @apply block w-full text-sm text-gray-500 dark:text-gray-400 
+               file:mr-4 file:py-3 file:px-6
+               file:rounded-xl file:border-0 
+               file:text-sm file:font-semibold
+               file:bg-green-50 file:text-green-700 
+               hover:file:bg-green-100
+               dark:file:bg-green-900 dark:file:text-green-100 
+               dark:hover:file:bg-green-800;
         border: 2px dashed #d1d5db;
-        border-radius: 12px;
-        padding: 1rem;
+        border-radius: 1rem;
+        padding: 1.5rem;
         transition: all 0.3s ease;
         cursor: pointer;
+        background: rgba(255, 255, 255, 0.02);
     }
+    
     .dark .custom-file-input {
         border-color: #374151;
     }
+    
     .custom-file-input:hover {
         border-color: #059669;
+        background: rgba(255, 255, 255, 0.05);
     }
+    
     .dark .custom-file-input:hover {
         border-color: #34d399;
+        background: rgba(255, 255, 255, 0.02);
     }
 
     #restoreMessage.error {
@@ -164,6 +139,30 @@
 
     #restoreMessage.success {
         @apply bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100;
+    }
+
+    .backup-card, .restore-card {
+        @apply bg-white dark:bg-gray-800 rounded-xl p-8 shadow-lg;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-actions {
+        margin-top: auto;
+        padding-top: 1.5rem;
+    }
+
+    .action-button {
+        @apply font-bold py-4 px-6 rounded-xl w-full transition-all duration-300 ease-in-out;
+        position: relative;
+        overflow: hidden;
     }
 </style>
 {{end}}
@@ -268,38 +267,46 @@
                 <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">System Backup & Restore</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="flex flex-col">
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-                            <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Create Backup</h4>
-                            <p class="text-gray-600 dark:text-gray-300 mb-6">Download a complete backup of your system configuration and database.</p>
-                            <button onclick="backupSystem()" class="action-button backup-button text-white">
-                                <span class="flex items-center justify-center">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                                    </svg>
-                                    Download Backup
-                                </span>
-                            </button>
+                        <div class="backup-card">
+                            <div class="card-content">
+                                <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Create Backup</h4>
+                                <p class="text-gray-600 dark:text-gray-300">Download a complete backup of your system configuration and database.</p>
+                            </div>
+                            <div class="card-actions">
+                                <button onclick="backupSystem()" class="action-button backup-button text-white">
+                                    <span class="flex items-center justify-center">
+                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download Backup
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
                     <div class="flex flex-col">
-                        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-                            <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Restore System</h4>
-                            <p class="text-gray-600 dark:text-gray-300 mb-6">Select a backup file to restore your system configuration and database.</p>
-                            <form id="restoreForm" class="space-y-4">
-                                <div class="file-input-wrapper">
-                                    <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose backup file:</label>
-                                    <input type="file" id="backupFile" name="backup" accept=".zip" class="custom-file-input" required>
-                                </div>
-                                <button type="submit" class="action-button restore-button text-white">
-                                    <span class="flex items-center justify-center">
-                                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                        </svg>
-                                        Restore System
-                                    </span>
-                                </button>
-                            </form>
+                        <div class="restore-card">
+                            <div class="card-content">
+                                <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Restore Backup</h4>
+                                <p class="text-gray-600 dark:text-gray-300 mb-6">Select a backup file to restore your system configuration and database.</p>
+                                <form id="restoreForm" class="space-y-4">
+                                    <div class="file-input-wrapper">
+                                        <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose backup file:</label>
+                                        <input type="file" id="backupFile" name="backup" accept=".zip" class="custom-file-input" required>
+                                    </div>
+                                    <div class="card-actions">
+                                        <button type="submit" class="action-button restore-button text-white">
+                                            <span class="flex items-center justify-center">
+                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                                </svg>
+                                                Restore Backup
+                                            </span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
