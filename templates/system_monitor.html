@@ -1,31 +1,33 @@
-{{define "system_monitor.html"}}
-    {{define "title"}}System Monitor{{end}}
+{{define "title"}}System Monitor{{end}}
 
-    {{define "head"}}
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        .metric-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            margin-bottom: 15px;
-        }
-        .status-tag {
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 14px;
-            display: inline-block;
-            margin: 2px;
-        }
-        .status-running { background: #e6f4ea; color: #137333; }
-        .status-version { background: #f3e8ff; color: #7e22ce; }
-        .metric-value { font-size: 24px; font-weight: 600; }
-    </style>
-    {{end}}
+{{define "top_css"}}
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 15px;
+    }
+    .status-tag {
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 14px;
+        display: inline-block;
+        margin: 2px;
+    }
+    .status-running { background: #e6f4ea; color: #137333; }
+    .status-version { background: #f3e8ff; color: #7e22ce; }
+    .metric-value { font-size: 24px; font-weight: 600; }
+</style>
+{{end}}
 
-    {{define "content"}}
+{{define "page_title"}}System Monitor{{end}}
+
+{{define "page_content"}}
+<section class="content">
     <div class="container mx-auto p-6">
         <!-- System Resource Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -106,103 +108,105 @@
             </div>
         </div>
     </div>
+</section>
+{{end}}
 
-    <script>
-        // Function to create circular charts
-        function createChart(elementId, value, color) {
-            const ctx = document.getElementById(elementId).getContext('2d');
-            return new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    datasets: [{
-                        data: [value, 100 - value],
-                        backgroundColor: [color, '#f3f4f6'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    cutout: '80%',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+{{define "bottom_js"}}
+<script>
+    // Function to create circular charts
+    function createChart(elementId, value, color) {
+        const ctx = document.getElementById(elementId).getContext('2d');
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [value, 100 - value],
+                    backgroundColor: [color, '#f3f4f6'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                cutout: '80%',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
                     }
                 }
+            }
+        });
+    }
+
+    // Create initial charts
+    const cpuChart = createChart('cpuChart', 0, '#059669');
+    const ramChart = createChart('ramChart', 0, '#059669');
+    const swapChart = createChart('swapChart', 0, '#059669');
+    const diskChart = createChart('diskChart', 0, '#f97316');
+
+    // Function to format bytes to human readable format
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    // Function to update system metrics
+    function updateMetrics() {
+        fetch(basePath + '/api/system-metrics')
+            .then(response => response.json())
+            .then(data => {
+                // Update CPU
+                document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
+                document.querySelector('.cores-info').textContent = data.cpu.cores + ' Cores';
+                cpuChart.data.datasets[0].data = [data.cpu.usage, 100 - data.cpu.usage];
+                cpuChart.update();
+
+                // Update RAM
+                const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
+                const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
+                document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' GB';
+                document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB.toFixed(1) + ' GB';
+                ramChart.data.datasets[0].data = [data.ram.usage, 100 - data.ram.usage];
+                ramChart.update();
+
+                // Update Swap
+                const swapUsedMB = data.swap.used / (1024 * 1024);
+                const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
+                document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' MB';
+                document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(1) + ' GB';
+                swapChart.data.datasets[0].data = [data.swap.usage, 100 - data.swap.usage];
+                swapChart.update();
+
+                // Update Disk
+                const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
+                const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
+                document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' GB';
+                document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB.toFixed(1) + ' GB';
+                diskChart.data.datasets[0].data = [data.disk.usage, 100 - data.disk.usage];
+                diskChart.update();
+                
+                // Update system info
+                document.querySelector('.system-load').textContent = data.systemLoad;
+                document.querySelector('.uptime').textContent = data.uptime;
+                
+                // Update network info
+                document.querySelector('.upload-speed').textContent = data.network.uploadSpeed.toFixed(1) + ' KB/s';
+                document.querySelector('.download-speed').textContent = data.network.downloadSpeed.toFixed(1) + ' KB/s';
+                document.querySelector('.total-out').textContent = data.network.totalOut + ' MB';
+                document.querySelector('.total-in').textContent = data.network.totalIn + ' GB';
+            })
+            .catch(error => {
+                console.error('Error fetching system metrics:', error);
             });
-        }
+    }
 
-        // Create initial charts
-        const cpuChart = createChart('cpuChart', 0, '#059669');
-        const ramChart = createChart('ramChart', 0, '#059669');
-        const swapChart = createChart('swapChart', 0, '#059669');
-        const diskChart = createChart('diskChart', 0, '#f97316');
-
-        // Function to format bytes to human readable format
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-        }
-
-        // Function to update system metrics
-        function updateMetrics() {
-            fetch('{{.baseData.basePath}}/api/system-metrics')
-                .then(response => response.json())
-                .then(data => {
-                    // Update CPU
-                    document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
-                    document.querySelector('.cores-info').textContent = data.cpu.cores + ' Cores';
-                    cpuChart.data.datasets[0].data = [data.cpu.usage, 100 - data.cpu.usage];
-                    cpuChart.update();
-
-                    // Update RAM
-                    const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
-                    const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
-                    document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' GB';
-                    document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB.toFixed(1) + ' GB';
-                    ramChart.data.datasets[0].data = [data.ram.usage, 100 - data.ram.usage];
-                    ramChart.update();
-
-                    // Update Swap
-                    const swapUsedMB = data.swap.used / (1024 * 1024);
-                    const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
-                    document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' MB';
-                    document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(1) + ' GB';
-                    swapChart.data.datasets[0].data = [data.swap.usage, 100 - data.swap.usage];
-                    swapChart.update();
-
-                    // Update Disk
-                    const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
-                    const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
-                    document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' GB';
-                    document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB.toFixed(1) + ' GB';
-                    diskChart.data.datasets[0].data = [data.disk.usage, 100 - data.disk.usage];
-                    diskChart.update();
-                    
-                    // Update system info
-                    document.querySelector('.system-load').textContent = data.systemLoad;
-                    document.querySelector('.uptime').textContent = data.uptime;
-                    
-                    // Update network info
-                    document.querySelector('.upload-speed').textContent = data.network.uploadSpeed.toFixed(1) + ' KB/s';
-                    document.querySelector('.download-speed').textContent = data.network.downloadSpeed.toFixed(1) + ' KB/s';
-                    document.querySelector('.total-out').textContent = data.network.totalOut + ' MB';
-                    document.querySelector('.total-in').textContent = data.network.totalIn + ' GB';
-                })
-                .catch(error => {
-                    console.error('Error fetching system metrics:', error);
-                });
-        }
-
-        // Update metrics every 2 seconds
-        setInterval(updateMetrics, 2000);
-        // Initial update
-        updateMetrics();
-    </script>
-    {{end}}
+    // Update metrics every 2 seconds
+    setInterval(updateMetrics, 2000);
+    // Initial update
+    updateMetrics();
+</script>
 {{end}}
