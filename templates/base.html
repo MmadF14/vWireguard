@@ -457,29 +457,34 @@
 .brand-wrapper {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
     position: relative;
     z-index: 1;
+    padding: 0.25rem;
 }
 
 .brand-icon-wrapper {
     background: rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 0.5rem;
+    border-radius: 10px;
+    padding: 0.4rem;
     box-shadow: 0 0 15px rgba(100,181,246,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 35px;
 }
 
 .brand-icon {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #90caf9;
     filter: drop-shadow(0 0 10px rgba(144,202,249,0.5));
 }
 
 .brand-text {
     color: #fff;
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
     text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     background: linear-gradient(to right, #fff, #90caf9);
     -webkit-background-clip: text;
@@ -505,9 +510,9 @@
 
 .user-avatar {
     background: linear-gradient(135deg, #2196f3, #1976d2);
-    border-radius: 14px;
-    width: 48px;
-    height: 48px;
+    border-radius: 12px;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -516,7 +521,7 @@
 }
 
 .user-avatar i {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     color: #fff;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
@@ -540,24 +545,24 @@
 .admin-badge, .manager-badge {
     background: rgba(255,255,255,0.1);
     border-radius: 8px;
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.6rem;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
     border: 1px solid rgba(255,255,255,0.15);
 }
 
 .admin-title, .manager-title {
     color: #90caf9;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     font-weight: 600;
 }
 
 .admin-name, .manager-name {
     color: #fff;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
 }
 
@@ -569,26 +574,28 @@
 
 .nav-header {
     color: #90caf9;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 2px;
-    padding: 1.25rem 1rem 0.75rem;
+    letter-spacing: 1.5px;
+    padding: 1.25rem 1rem 0.5rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
 }
 
 .header-icon {
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .nav-sidebar .nav-item > .nav-link {
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.4rem;
     border-radius: 12px;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 0.875rem 1rem;
+    padding: 0.7rem 1rem;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
 }
 
 .nav-sidebar .nav-item > .nav-link:hover {
@@ -607,10 +614,10 @@
 
 .nav-icon {
     color: #90caf9;
-    font-size: 1.2rem;
-    width: 1.5rem;
+    font-size: 1.1rem;
+    width: 20px;
     text-align: center;
-    margin-right: 0.75rem;
+    margin-right: 0.8rem;
     transition: all 0.3s ease;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
@@ -627,9 +634,11 @@
 
 .nav-link p {
     font-weight: 500;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+    letter-spacing: 0.3px;
     color: rgba(255,255,255,0.9);
+    margin: 0;
+    line-height: 1.2;
 }
 
 .nav-link.active p {
