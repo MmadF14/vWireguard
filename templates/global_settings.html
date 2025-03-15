@@ -18,6 +18,31 @@ Global Settings
     <div class="container-fluid">
         <!-- <h5 class="mt-4 mb-2">Global Settings</h5> -->
         <div class="row">
+            <!-- Language Settings Card -->
+            <div class="col-md-6">
+                <div class="card card-primary">
+                    <div class="card-header">
+                        <h3 class="card-title">Language Settings</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>Select Language / انتخاب زبان</label>
+                            <div class="d-flex align-items-center mt-2">
+                                <button type="button" class="btn btn-outline-primary btn-lg w-100" id="language-toggle">
+                                    <i class="fas fa-language mr-2"></i>
+                                    <span>English / فارسی</span>
+                                </button>
+                            </div>
+                            <small class="form-text text-muted mt-2">
+                                Click the button above to switch between English and Persian
+                                <br>
+                                برای تغییر زبان بین فارسی و انگلیسی، روی دکمه بالا کلیک کنید
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- left column -->
             <div class="col-md-6">
                 <div class="card card-success">
@@ -278,6 +303,35 @@ $(document).ready(function() {
             $("#modal_endpoint_address_suggestion").modal('hide');
         }
     });
+
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4'
+    });
+});
+</script>
+
+<!-- Language Scripts -->
+<script src="{{.basePath}}/static/dist/js/translations.js"></script>
+<script src="{{.basePath}}/static/dist/js/language.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const langToggle = document.getElementById('language-toggle');
+    const currentLang = localStorage.getItem('language') || 'en';
+    
+    // Update button text based on current language
+    updateButtonText();
+    
+    langToggle.addEventListener('click', function() {
+        const newLang = currentLang === 'fa' ? 'en' : 'fa';
+        localStorage.setItem('language', newLang);
+        window.location.reload();
+    });
+    
+    function updateButtonText() {
+        const span = langToggle.querySelector('span');
+        span.textContent = currentLang === 'fa' ? 'English' : 'فارسی';
+    }
 });
 </script>
 {{end}}
