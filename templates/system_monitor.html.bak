@@ -113,8 +113,6 @@
 
 {{define "bottom_js"}}
 <script>
-    let metricsInterval = null;
-
     // Function to create circular charts
     function createChart(elementId, value, color) {
         const ctx = document.getElementById(elementId).getContext('2d');
@@ -131,7 +129,6 @@
                 cutout: '80%',
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: false,
                 plugins: {
                     legend: {
                         display: false
@@ -147,92 +144,69 @@
     const swapChart = createChart('swapChart', 0, '#059669');
     const diskChart = createChart('diskChart', 0, '#f97316');
 
+    // Function to format bytes to human readable format
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
     // Function to update system metrics
-    async function updateMetrics() {
-        try {
-            const response = await fetch('{{.baseData.BasePath}}/api/system-metrics');
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
+    function updateMetrics() {
+        fetch('{{.baseData.BasePath}}/api/system-metrics')
+            .then(response => response.json())
+            .then(data => {
+                // Update CPU
+                document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
+                document.querySelector('.cores-info').textContent = data.cpu.cores + ' Cores';
+                cpuChart.data.datasets[0].data = [data.cpu.usage, 100 - data.cpu.usage];
+                cpuChart.update();
 
-            // Update CPU
-            document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
-            document.querySelector('.cores-info').textContent = data.cpu.cores + ' Cores';
-            cpuChart.data.datasets[0].data = [data.cpu.usage, 100 - data.cpu.usage];
-            cpuChart.update('none');
+                // Update RAM
+                const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
+                const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
+                document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' GB';
+                document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB.toFixed(1) + ' GB';
+                ramChart.data.datasets[0].data = [data.ram.usage, 100 - data.ram.usage];
+                ramChart.update();
 
-            // Update RAM
-            const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
-            const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
-            document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' GB';
-            document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB.toFixed(1) + ' GB';
-            ramChart.data.datasets[0].data = [data.ram.usage, 100 - data.ram.usage];
-            ramChart.update('none');
+                // Update Swap
+                const swapUsedMB = data.swap.used / (1024 * 1024);
+                const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
+                document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' MB';
+                document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(1) + ' GB';
+                swapChart.data.datasets[0].data = [data.swap.usage, 100 - data.swap.usage];
+                swapChart.update();
 
-            // Update Swap
-            const swapUsedMB = data.swap.used / (1024 * 1024);
-            const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
-            document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' MB';
-            document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(1) + ' GB';
-            swapChart.data.datasets[0].data = [data.swap.usage, 100 - data.swap.usage];
-            swapChart.update('none');
-
-            // Update Disk
-            const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
-            const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
-            document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' GB';
-            document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB.toFixed(1) + ' GB';
-            diskChart.data.datasets[0].data = [data.disk.usage, 100 - data.disk.usage];
-            diskChart.update('none');
-            
-            // Update system info
-            document.querySelector('.system-load').textContent = data.systemLoad;
-            document.querySelector('.uptime').textContent = data.uptime;
-            
-            // Update network info
-            document.querySelector('.upload-speed').textContent = data.network.uploadSpeed.toFixed(1) + ' KB/s';
-            document.querySelector('.download-speed').textContent = data.network.downloadSpeed.toFixed(1) + ' KB/s';
-            document.querySelector('.total-out').textContent = data.network.totalOut + ' MB';
-            document.querySelector('.total-in').textContent = data.network.totalIn + ' GB';
-        } catch (error) {
-            console.error('Error fetching system metrics:', error);
-            // در صورت خطا، اینتروال را متوقف می‌کنیم
-            if (metricsInterval) {
-                clearInterval(metricsInterval);
-                metricsInterval = null;
-            }
-        }
+                // Update Disk
+                const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
+                const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
+                document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' GB';
+                document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB.toFixed(1) + ' GB';
+                diskChart.data.datasets[0].data = [data.disk.usage, 100 - data.disk.usage];
+                diskChart.update();
+                
+                // Update system info
+                document.querySelector('.system-load').textContent = data.systemLoad;
+                document.querySelector('.uptime').textContent = data.uptime;
+                
+                // Update network info
+                document.querySelector('.upload-speed').textContent = data.network.uploadSpeed.toFixed(1) + ' KB/s';
+                document.querySelector('.download-speed').textContent = data.network.downloadSpeed.toFixed(1) + ' KB/s';
+                document.querySelector('.total-out').textContent = data.network.totalOut + ' MB';
+                document.querySelector('.total-in').textContent = data.network.totalIn + ' GB';
+            })
+            .catch(error => {
+                console.error('Error fetching system metrics:', error);
+            });
     }
 
-    // Start updates only if not already started
-    function startMetricsUpdate() {
-        if (!metricsInterval) {
-            // Initial update
-            updateMetrics();
-            // Update metrics every 2 seconds
-            metricsInterval = setInterval(updateMetrics, 2000);
-        }
-    }
-
-    // Stop updates
-    function stopMetricsUpdate() {
-        if (metricsInterval) {
-            clearInterval(metricsInterval);
-            metricsInterval = null;
-        }
-    }
-
-    // Start updates when the page loads
-    document.addEventListener('DOMContentLoaded', startMetricsUpdate);
-
-    // Cleanup when the page is hidden or unloaded
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) {
-            stopMetricsUpdate();
-        } else {
-            startMetricsUpdate();
-        }
-    });
-
-    window.addEventListener('unload', stopMetricsUpdate);
+    // Update metrics every 2 seconds
+    setInterval(updateMetrics, 2000);
+    // Initial update
+    updateMetrics();
 </script>
 {{end}}
