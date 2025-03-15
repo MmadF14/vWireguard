@@ -13,7 +13,7 @@ require (
 	github.com/sabhiram/go-wol v0.0.0-20211224004021-c83b0c2f887d
 	github.com/sdomino/scribble v0.0.0-20230717151034-b95d4df19aa8
 	github.com/sendgrid/sendgrid-go v3.14.0+incompatible
-	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v3 v3.24.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/tklauser/go-sysconf v0.3.12
 	github.com/xhit/go-simple-mail/v2 v2.16.0
