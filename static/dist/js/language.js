@@ -33,10 +33,39 @@ class LanguageManager {
         // Translate all elements with data-translate attribute
         document.querySelectorAll('[data-translate]').forEach(element => {
             const key = element.getAttribute('data-translate');
+            const translation = this.translate(key);
+            
             if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                element.placeholder = this.translate(key);
+                // For input elements, update both placeholder and value if it matches the key
+                if (element.placeholder === key) {
+                    element.placeholder = translation;
+                }
+                if (element.value === key) {
+                    element.value = translation;
+                }
             } else {
-                element.textContent = this.translate(key);
+                element.textContent = translation;
+            }
+
+            // Update title attribute if it exists and matches the key
+            if (element.title === key) {
+                element.title = translation;
+            }
+        });
+
+        // Translate placeholders that match translation keys
+        document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(element => {
+            const placeholder = element.getAttribute('placeholder');
+            if (this.translations[this.currentLang][placeholder]) {
+                element.placeholder = this.translate(placeholder);
+            }
+        });
+
+        // Translate titles that match translation keys
+        document.querySelectorAll('[title]').forEach(element => {
+            const title = element.getAttribute('title');
+            if (this.translations[this.currentLang][title]) {
+                element.title = this.translate(title);
             }
         });
     }

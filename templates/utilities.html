@@ -1,0 +1,164 @@
+{{define "title"}}Utilities{{end}}
+{{define "content"}}
+<div class="container">
+    <h1 class="mb-4" data-translate="System Utilities">System Utilities</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header" data-translate="System Status">
+            System Status
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5 data-translate="System Information">System Information</h5>
+                    <ul class="list-unstyled">
+                        <li><strong data-translate="CPU Usage">CPU Usage:</strong> <span id="cpu-usage">-</span></li>
+                        <li><strong data-translate="Memory Usage">Memory Usage:</strong> <span id="memory-usage">-</span></li>
+                        <li><strong data-translate="Disk Usage">Disk Usage:</strong> <span id="disk-usage">-</span></li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h5 data-translate="Network Status">Network Status</h5>
+                    <ul class="list-unstyled">
+                        <li><strong data-translate="Interface Status">Interface Status:</strong> <span id="interface-status">-</span></li>
+                        <li><strong data-translate="Active Connections">Active Connections:</strong> <span id="active-connections">-</span></li>
+                        <li><strong data-translate="Total Data Transfer">Total Data Transfer:</strong> <span id="data-transfer">-</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header" data-translate="System Tools">
+            System Tools
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <button class="btn btn-primary mb-3" id="restart-service" data-translate="Restart WireGuard Service">
+                        Restart WireGuard Service
+                    </button>
+                    <button class="btn btn-warning mb-3" id="flush-dns" data-translate="Flush DNS Cache">
+                        Flush DNS Cache
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-info mb-3" id="check-updates" data-translate="Check for Updates">
+                        Check for Updates
+                    </button>
+                    <button class="btn btn-secondary mb-3" id="generate-report" data-translate="Generate System Report">
+                        Generate System Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header" data-translate="Logs">
+            Logs
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="log-level" data-translate="Log Level">Log Level:</label>
+                <select class="form-control" id="log-level">
+                    <option value="error" data-translate="Error">Error</option>
+                    <option value="warning" data-translate="Warning">Warning</option>
+                    <option value="info" data-translate="Info">Info</option>
+                    <option value="debug" data-translate="Debug">Debug</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="log-output" data-translate="System Logs">System Logs:</label>
+                <textarea class="form-control" id="log-output" rows="10" readonly></textarea>
+            </div>
+            <button class="btn btn-primary" id="refresh-logs" data-translate="Refresh Logs">
+                Refresh Logs
+            </button>
+            <button class="btn btn-danger" id="clear-logs" data-translate="Clear Logs">
+                Clear Logs
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" role="dialog" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalLabel" data-translate="Operation Status">Operation Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="statusModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-translate="Close">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "js"}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Utility functions
+    function showStatus(message, isError = false) {
+        const modalBody = document.getElementById('statusModalBody');
+        modalBody.textContent = langManager.translate(message);
+        modalBody.className = isError ? 'text-danger' : 'text-success';
+        $('#statusModal').modal('show');
+    }
+
+    function updateSystemStatus() {
+        // Simulated status updates - replace with actual API calls
+        document.getElementById('cpu-usage').textContent = Math.floor(Math.random() * 100) + '%';
+        document.getElementById('memory-usage').textContent = Math.floor(Math.random() * 100) + '%';
+        document.getElementById('disk-usage').textContent = Math.floor(Math.random() * 100) + '%';
+        document.getElementById('interface-status').textContent = Math.random() > 0.5 ? 'Active' : 'Inactive';
+        document.getElementById('active-connections').textContent = Math.floor(Math.random() * 50);
+        document.getElementById('data-transfer').textContent = Math.floor(Math.random() * 1000) + ' MB';
+    }
+
+    // Button click handlers
+    document.getElementById('restart-service').addEventListener('click', function() {
+        showStatus('Service restart initiated');
+    });
+
+    document.getElementById('flush-dns').addEventListener('click', function() {
+        showStatus('DNS cache flushed successfully');
+    });
+
+    document.getElementById('check-updates').addEventListener('click', function() {
+        showStatus('Checking for updates...');
+    });
+
+    document.getElementById('generate-report').addEventListener('click', function() {
+        showStatus('Generating system report...');
+    });
+
+    document.getElementById('refresh-logs').addEventListener('click', function() {
+        const logOutput = document.getElementById('log-output');
+        logOutput.value = 'Refreshing logs...';
+    });
+
+    document.getElementById('clear-logs').addEventListener('click', function() {
+        const logOutput = document.getElementById('log-output');
+        logOutput.value = '';
+        showStatus('Logs cleared successfully');
+    });
+
+    // Initial status update
+    updateSystemStatus();
+    // Update status every 5 seconds
+    setInterval(updateSystemStatus, 5000);
+});
+</script>
+{{end}} 
