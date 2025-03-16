@@ -5,7 +5,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>{{template "title" .}}</title>
+    <title>vWireguard</title>
     <!-- Tell the browser to be responsive to screen width -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- Favicon -->
@@ -28,14 +28,14 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
     <!-- Google Font: Source Sans Pro and Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Vazirmatn:wght@400;500;600&display=swap" rel="stylesheet">
 
     <!-- START: On page css -->
     {{template "top_css" .}}
     <!-- END: On page css -->
 </head>
 
-<body class="hold-transition sidebar-mini">
+<body class="hold-transition sidebar-mini layout-fixed">
     <!-- Site wrapper -->
     <div class="wrapper">
         <!-- Navbar -->
@@ -85,6 +85,12 @@
                 <button onclick="location.href='{{.basePath}}/logout';" style="margin-left: 0.5em;" type="button"
                     class="btn btn-outline-danger btn-sm"><i class="nav-icon fas fa-sign-out-alt"></i> <span data-translate="Logout">Logout</span></button>
                 {{end}}
+                <li class="nav-item">
+                    <button class="nav-link btn btn-link language-toggle">
+                        <span class="lang-text"></span>
+                        <i class="fas"></i>
+                    </button>
+                </li>
             </div>
         </nav>
         <!-- /.navbar -->
