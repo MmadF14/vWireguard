@@ -226,14 +226,14 @@ $(document).ready(function() {
         },
         messages: {
             mtu: {
-                digits: "MTU must be an integer",
-                range: "MTU must be in range 68..65535"
+                digits: translations[langManager.currentLang].msg_mtu_digits || "MTU must be an integer",
+                range: translations[langManager.currentLang].msg_mtu_range || "MTU must be in range 68..65535"
             },
             persistent_keepalive: {
-                digits: "Persistent keepalive must be an integer"
+                digits: translations[langManager.currentLang].msg_keepalive_digits || "Persistent keepalive must be an integer"
             },
             config_file_path: {
-                required: "Please enter WireGuard config file path"
+                required: translations[langManager.currentLang].msg_config_required || "Please enter WireGuard config file path"
             }
         },
         errorElement: "div",
@@ -245,12 +245,10 @@ $(document).ready(function() {
             $(element).removeClass('is-invalid');
         },
         submitHandler: function(form) {
-            // اگر اعتبارسنجی درست بود، این تابع فراخوانی می‌شود
             submitGlobalSettings();
         }
     });
 
-    // تابع ارسال تنظیمات گلوبال به سرور
     function submitGlobalSettings() {
         const formData = {
             endpoint_address: $("#endpoint_address").val(),
@@ -269,15 +267,14 @@ $(document).ready(function() {
             data: JSON.stringify(formData),
             success: function(response) {
                 if(response.success) {
-                    toastr.success('Settings saved successfully');
-                    // اگر نیاز به رفرش صفحه دارید: location.reload();
+                    toastr.success(translations[langManager.currentLang].msg_success || 'Settings saved successfully');
                 } else {
-                    toastr.error(response.message || 'Unknown error');
+                    toastr.error(response.message || translations[langManager.currentLang].msg_error || 'Unknown error');
                 }
             },
             error: function(xhr) {
                 const errorMsg = xhr.responseJSON?.message || xhr.statusText;
-                toastr.error(`Error: ${errorMsg}`);
+                toastr.error(`${translations[langManager.currentLang].msg_error || 'Error'}: ${errorMsg}`);
                 console.error('Full error:', xhr);
             }
         });
@@ -290,7 +287,6 @@ $(document).ready(function() {
             data.forEach(function(ip) {
                 $('#ip_suggestion').append(new Option(ip.ip_address, ip.ip_address));
             });
-            // وقتی لیست پر شد، اگر آیتمی باشد دکمه فعال می‌شود
             $("#btn_use_ip").prop('disabled', data.length === 0);
         });
     });
@@ -308,30 +304,6 @@ $(document).ready(function() {
     $('.select2').select2({
         theme: 'bootstrap4'
     });
-});
-</script>
-
-<!-- Language Scripts -->
-<script src="{{.basePath}}/assets/dist/js/translations.js"></script>
-<script src="{{.basePath}}/assets/dist/js/language.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const langToggle = document.getElementById('language-toggle');
-    const currentLang = localStorage.getItem('language') || 'en';
-    
-    // Update button text based on current language
-    updateButtonText();
-    
-    langToggle.addEventListener('click', function() {
-        const newLang = currentLang === 'fa' ? 'en' : 'fa';
-        localStorage.setItem('language', newLang);
-        window.location.reload();
-    });
-    
-    function updateButtonText() {
-        const span = langToggle.querySelector('span');
-        span.textContent = currentLang === 'fa' ? 'English' : 'فارسی';
-    }
 });
 </script>
 {{end}}

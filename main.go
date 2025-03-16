@@ -9,7 +9,6 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -215,50 +214,20 @@ func main() {
 	app := router.New(tmplDir, extraData, util.SessionSecret)
 
 	// Serve static files from prepared assets with proper MIME types
+	app.Static(util.BasePath+"/assets", "assets")
 	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if strings.HasPrefix(c.Path(), util.BasePath+"/assets/") {
-				path := strings.TrimPrefix(c.Path(), util.BasePath+"/assets/")
-				
-				// Set content type based on file extension
-				ext := filepath.Ext(path)
-				var contentType string
-				switch strings.ToLower(ext) {
-				case ".js":
-					contentType = "application/javascript"
-				case ".css":
-					contentType = "text/css"
-				case ".json":
-					contentType = "application/json"
-				case ".png":
-					contentType = "image/png"
-				case ".jpg", ".jpeg":
-					contentType = "image/jpeg"
-				case ".gif":
-					contentType = "image/gif"
-				case ".svg":
-					contentType = "image/svg+xml"
-				case ".woff":
-					contentType = "application/font-woff"
-				case ".woff2":
-					contentType = "application/font-woff2"
-				case ".ttf":
-					contentType = "application/x-font-ttf"
-				case ".eot":
-					contentType = "application/vnd.ms-fontobject"
-				default:
-					contentType = "application/octet-stream"
+				if strings.HasSuffix(c.Path(), ".js") {
+					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
 				}
-				
-				// Get file content from prepared assets
+				// Get the requested file path
+				path := strings.TrimPrefix(c.Path(), util.BasePath+"/assets/")
 				content, ok := preparedAssets.files[path]
 				if !ok {
 					return echo.NotFoundHandler(c)
 				}
-
-				// Set content type and serve file
-				c.Response().Header().Set(echo.HeaderContentType, contentType)
-				return c.Blob(http.StatusOK, contentType, content)
+				return c.Blob(http.StatusOK, c.Response().Header().Get(echo.HeaderContentType), content)
 			}
 			return next(c)
 		}
@@ -385,8 +354,7 @@ func initTelegram(initDeps telegram.TgBotInitDependencies) {
 	}()
 }
 
-// prepareAssets prepares the assets for serving
-func prepareAssets(fsys fs.FS) *preparedFS {
+func prepareAssets(fsys fs.FS) fs.FS {
 	// Create a new in-memory filesystem
 	memFS := make(map[string][]byte)
 
