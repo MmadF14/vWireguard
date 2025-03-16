@@ -6,6 +6,7 @@ import (
 	"embed"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
@@ -191,7 +192,6 @@ func main() {
 	
 	// strip the "assets/" prefix from the embedded directory and prepare assets
 	assetsDir, _ := fs.Sub(fs.FS(embeddedAssets), "assets")
-	preparedAssets := prepareAssets(assetsDir)
 
 	// Initialize the quota checker
 	handler.StartQuotaChecker(db, tmplDir)
@@ -223,10 +223,17 @@ func main() {
 				}
 				// Get the requested file path
 				path := strings.TrimPrefix(c.Path(), util.BasePath+"/assets/")
-				content, ok := preparedAssets.files[path]
-				if !ok {
+				file, err := assetsDir.Open(path)
+				if err != nil {
 					return echo.NotFoundHandler(c)
 				}
+				defer file.Close()
+				
+				content, err := io.ReadAll(file)
+				if err != nil {
+					return err
+				}
+				
 				return c.Blob(http.StatusOK, c.Response().Header().Get(echo.HeaderContentType), content)
 			}
 			return next(c)
@@ -353,65 +360,3 @@ func initTelegram(initDeps telegram.TgBotInitDependencies) {
 		}
 	}()
 }
-
-func prepareAssets(fsys fs.FS) fs.FS {
-	// Create a new in-memory filesystem
-	memFS := make(map[string][]byte)
-
-	// Walk through all files in the assets directory
-	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			// Read file content
-			content, err := fs.ReadFile(fsys, path)
-			if err != nil {
-				return err
-			}
-			// Store in memory
-			memFS[path] = content
-		}
-		return nil
-	})
-
-	// Return a new filesystem implementation that serves from memory
-	return &preparedFS{files: memFS}
-}
-
-// preparedFS implements fs.FS
-type preparedFS struct {
-	files map[string][]byte
-}
-
-func (p *preparedFS) Open(name string) (fs.File, error) {
-	if content, ok := p.files[name]; ok {
-		return &preparedFile{
-			Reader: bytes.NewReader(content),
-			name:   name,
-		}, nil
-	}
-	return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
-}
-
-// preparedFile implements fs.File
-type preparedFile struct {
-	*bytes.Reader
-	name string
-}
-
-func (f *preparedFile) Close() error               { return nil }
-func (f *preparedFile) Stat() (fs.FileInfo, error) { return &preparedFileInfo{f.name, int64(f.Len())}, nil }
-
-// preparedFileInfo implements fs.FileInfo
-type preparedFileInfo struct {
-	name string
-	size int64
-}
-
-func (fi *preparedFileInfo) Name() string       { return fi.name }
-func (fi *preparedFileInfo) Size() int64        { return fi.size }
-func (fi *preparedFileInfo) Mode() fs.FileMode  { return 0444 }
-func (fi *preparedFileInfo) ModTime() time.Time { return time.Time{} }
-func (fi *preparedFileInfo) IsDir() bool        { return false }
-func (fi *preparedFileInfo) Sys() interface{}   { return nil }
