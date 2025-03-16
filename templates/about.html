@@ -1,5 +1,5 @@
 {{ define "title"}}
-About
+<span data-translate="About">About</span>
 {{ end }}
 
 {{ define "top_css"}}
@@ -10,7 +10,7 @@ About
 {{ end }}
 
 {{ define "page_title"}}
-About
+<span data-translate="About">About</span>
 {{ end }}
 
 {{ define "page_content"}}
@@ -22,34 +22,34 @@ About
             <div class="col-md-6">
                 <div class="card card-success">
                     <div class="card-header">
-                        <h3 class="card-title">About vWireguard</h3>
+                        <h3 class="card-title" data-translate="About vWireguard">About vWireguard</h3>
                     </div>
                     <!-- /.card-header -->
                     <div class="card-body">
                         <div class="form-group">
-                            <label for="version" class="control-label">Current version</label>
+                            <label for="version" class="control-label" data-translate="Current version">Current version</label>
                             <input type="text" class="form-control" id="version" value="{{ .appVersion }}" readonly>
                         </div>
 {{ if .gitCommit }}
                         <div class="form-group">
-                            <label for="version" class="control-label">git commit hash</label>
+                            <label for="version" class="control-label" data-translate="git commit hash">git commit hash</label>
                             <input type="text" class="form-control" id="version" value="{{ .gitCommit }}" readonly>
                         </div>
 {{ end }}
                         <div class="form-group">
-                            <label for="currentReleaseDate" class="control-label">Current version release date</label>
+                            <label for="currentReleaseDate" class="control-label" data-translate="Current version release date">Current version release date</label>
                             <input type="text" class="form-control" id="currentReleaseDate" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="latestRelease" class="control-label">Latest release</label>
+                            <label for="latestRelease" class="control-label" data-translate="Latest release">Latest release</label>
                             <input type="text" class="form-control" id="latestRelease" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="latestReleaseDate" class="control-label">Latest release date</label>
+                            <label for="latestReleaseDate" class="control-label" data-translate="Latest release date">Latest release date</label>
                             <input type="text" class="form-control" id="latestReleaseDate" readonly>
                         </div>
                         <div class="form-group">
-                            <label for="author" class="control-label">Author</label>
+                            <label for="author" class="control-label" data-translate="Author">Author</label>
                             <div id="author">
                                 <a id="authorLink">
                                     <img id="authorImage"
@@ -58,13 +58,13 @@ About
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="contributors" class="control-label">Contributors</label>
+                            <label for="contributors" class="control-label" data-translate="Contributors">Contributors</label>
                             <div id="contributors"></div>
                         </div>
-                        <strong>Copyright &copy;
+                        <strong><span data-translate="Copyright">Copyright</span> &copy;
                             <script>document.write(new Date().getFullYear())</script>
                             <a href="https://github.com/MmadF14/vwireguard">vWireguard</a>.
-                        </strong> All rights reserved.
+                        </strong> <span data-translate="All rights reserved">All rights reserved</span>.
 
                     </div>
                 </div>
@@ -91,7 +91,7 @@ About
 
             },
             error: function (jqXHR, exception) {
-                $("#currentReleaseDate").attr("value", "Could not find this version on GitHub.com");
+                $("#currentReleaseDate").attr("value", window.langManager.translate("Could not find this version on GitHub.com"));
             }
         });
 
@@ -112,9 +112,9 @@ About
 
             },
             error: function (jqXHR, exception) {
-                $("#latestRelease").attr("value", "Could not connect to GitHub.com");
-                $("#latestReleaseDate").attr("value", "Could not connect to GitHub.com");
-                $("#author").attr("value", "Could not connect to GitHub.com");
+                $("#latestRelease").attr("value", window.langManager.translate("Could not connect to GitHub.com"));
+                $("#latestReleaseDate").attr("value", window.langManager.translate("Could not connect to GitHub.com"));
+                $("#author").attr("value", window.langManager.translate("Could not connect to GitHub.com"));
             }
         });
 
@@ -129,14 +129,14 @@ About
                     "<img src=\"" + contributor.avatar_url + "\" style=\"width: 50px; height: 50px; border-radius: 50%; border: 1px solid #000; margin: 5px;\"/></a>"));
             },
             error: function (jqXHR, exception) {
-                $("#contributors").html("<p>Could not connect to GitHub.com</p>");
+                $("#contributors").html("<p>" + window.langManager.translate("Could not connect to GitHub.com") + "</p>");
             }
         });
     });
 
     $(document).ajaxStop(function () {
         if (Date.parse($("#currentReleaseDate").val()) < Date.parse($("#latestReleaseDate").val())) {
-            $("#currentReleaseDate").after("<p style=\"color:red\">Current version is out of date</p>")
+            $("#currentReleaseDate").after("<p style=\"color:red\">" + window.langManager.translate("Current version is out of date") + "</p>")
         }
     });
 
