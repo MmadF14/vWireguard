@@ -231,7 +231,33 @@ const translations = {
         "Inactive": "Inactive",
         "Suspended": "Suspended",
         "Reset Password": "Reset Password",
-        "Confirm Password": "Confirm Password"
+        "Confirm Password": "Confirm Password",
+
+        // System Monitor Additional
+        "Disk": "Disk",
+        "Swap": "Swap",
+        "RAM": "RAM",
+        "Cores": "Cores",
+        "Total In": "Total In",
+        "Total Out": "Total Out",
+        "Uptime": "Uptime",
+        "System Load": "System Load",
+        "+Wireguard": "+Wireguard",
+        "GB": "GB",
+        "MB": "MB",
+        "KB/s": "KB/s",
+
+        // System Backup & Restore
+        "System Backup & Restore": "System Backup & Restore",
+        "Restore Backup": "Restore Backup",
+        "Create Backup": "Create Backup",
+        "Select a backup file to restore your system configuration and database": "Select a backup file to restore your system configuration and database",
+        "Download a complete backup of your system configuration and database": "Download a complete backup of your system configuration and database",
+        "Choose backup file": "Choose backup file",
+        "Download Backup": "Download Backup",
+
+        // Persistent Keepalive Help
+        "keepalive_help": "By default, WireGuard peers remain silent while they do not need to communicate, so peers located behind a NAT and/or firewall may be unreachable from other peers until they reach out to other peers themselves. Adding PersistentKeepalive can ensure that the connection remains open."
     },
     fa: {
         // Navigation
@@ -465,6 +491,32 @@ const translations = {
         "Inactive": "غیرفعال",
         "Suspended": "معلق",
         "Reset Password": "بازنشانی رمز عبور",
-        "Confirm Password": "تأیید رمز عبور"
+        "Confirm Password": "تأیید رمز عبور",
+
+        // System Monitor Additional
+        "Disk": "دیسک",
+        "Swap": "سواپ",
+        "RAM": "رم",
+        "Cores": "هسته",
+        "Total In": "ورودی کل",
+        "Total Out": "خروجی کل",
+        "Uptime": "زمان کارکرد",
+        "System Load": "بار سیستم",
+        "+Wireguard": "+وایرگارد",
+        "GB": "گیگابایت",
+        "MB": "مگابایت",
+        "KB/s": "کیلوبایت/ثانیه",
+
+        // System Backup & Restore
+        "System Backup & Restore": "پشتیبان‌گیری و بازیابی سیستم",
+        "Restore Backup": "بازیابی پشتیبان",
+        "Create Backup": "ایجاد پشتیبان",
+        "Select a backup file to restore your system configuration and database": "یک فایل پشتیبان را برای بازیابی پیکربندی و پایگاه داده سیستم انتخاب کنید",
+        "Download a complete backup of your system configuration and database": "یک نسخه پشتیبان کامل از پیکربندی و پایگاه داده سیستم خود دانلود کنید",
+        "Choose backup file": "انتخاب فایل پشتیبان",
+        "Download Backup": "دانلود پشتیبان",
+
+        // Persistent Keepalive Help
+        "keepalive_help": "به طور پیش‌فرض، همتایان وایرگارد در زمانی که نیازی به ارتباط ندارند ساکت می‌مانند، بنابراین همتایانی که پشت NAT و/یا فایروال قرار دارند ممکن است تا زمانی که خودشان با همتایان دیگر ارتباط برقرار نکنند، از دسترس خارج باشند. افزودن PersistentKeepalive می‌تواند اطمینان دهد که ارتباط باز می‌ماند."
     }
 }; 
