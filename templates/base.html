@@ -180,6 +180,12 @@
 
                         <li class="nav-header"><span class="header-icon">🔧</span><span data-translate="UTILITIES">UTILITIES</span></li>
                         <li class="nav-item">
+                            <a href="{{.basePath}}/utilities" class="nav-link {{if eq .baseData.Active "utilities" }}active{{end}}">
+                                <i class="nav-icon fas fa-tools"></i>
+                                <p data-translate="System Utilities">System Utilities</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{.basePath}}/status" class="nav-link {{if eq .baseData.Active "status" }}active{{end}}">
                                 <i class="nav-icon fas fa-signal"></i>
                                 <p data-translate="Status">Status</p>
