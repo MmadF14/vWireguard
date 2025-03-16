@@ -214,7 +214,7 @@
 </style>
 {{end}}
 
-{{define "page_title"}}System Monitor{{end}}
+{{define "page_title"}}<span data-translate="System Monitor">System Monitor</span>{{end}}
 
 {{define "page_content"}}
 <div class="content">
@@ -267,18 +267,18 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <!-- System Status Card -->
             <div class="metric-card">
-                <h3 class="text-lg font-semibold mb-3 dark:text-white">System Status</h3>
+                <h3 class="text-lg font-semibold mb-3 dark:text-white" data-translate="System Status">System Status</h3>
                 <div class="mb-4">
                     <span class="status-tag status-version">vWireguard</span>
-                    <span class="status-tag status-running">Running</span>
+                    <span class="status-tag status-running" data-translate="Running">Running</span>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <div class="text-sm text-gray-600">System Load</div>
+                        <div class="text-sm text-gray-600" data-translate="System Load">System Load</div>
                         <div class="system-load dark:text-white">0 | 0 | 0</div>
                     </div>
                     <div>
-                        <div class="text-sm text-gray-600">Uptime</div>
+                        <div class="text-sm text-gray-600" data-translate="Uptime">Uptime</div>
                         <div class="uptime dark:text-white">0h 0m</div>
                     </div>
                 </div>
@@ -286,22 +286,22 @@
             
             <!-- Network Card -->
             <div class="metric-card">
-                <h3 class="text-lg font-semibold mb-3 dark:text-white">Network</h3>
+                <h3 class="text-lg font-semibold mb-3 dark:text-white" data-translate="Network">Network</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <div class="text-sm text-gray-600">Upload</div>
+                        <div class="text-sm text-gray-600" data-translate="Upload">Upload</div>
                         <div class="upload-speed dark:text-white">0 KB/s</div>
                     </div>
                     <div>
-                        <div class="text-sm text-gray-600">Download</div>
+                        <div class="text-sm text-gray-600" data-translate="Download">Download</div>
                         <div class="download-speed dark:text-white">0 KB/s</div>
                     </div>
                     <div>
-                        <div class="text-sm text-gray-600">Total Out</div>
+                        <div class="text-sm text-gray-600" data-translate="Total Out">Total Out</div>
                         <div class="total-out dark:text-white">0 MB</div>
                     </div>
                     <div>
-                        <div class="text-sm text-gray-600">Total In</div>
+                        <div class="text-sm text-gray-600" data-translate="Total In">Total In</div>
                         <div class="total-in dark:text-white">0 GB</div>
                     </div>
                 </div>
@@ -311,32 +311,35 @@
         <!-- Backup & Restore -->
         <div class="grid grid-cols-1 gap-6">
             <div class="backup-restore-section">
-                <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">System Backup & Restore</h3>
+                <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white" data-translate="System Backup & Restore">System Backup & Restore</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div class="backup-card">
-                        <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Create Backup</h4>
-                        <p class="text-gray-600 dark:text-gray-300 mb-6">Download a complete backup of your system configuration and database.</p>
+                        <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white" data-translate="Create Backup">Create Backup</h4>
+                        <p class="text-gray-600 dark:text-gray-300 mb-6" data-translate="Download a complete backup of your system configuration and database.">Download a complete backup of your system configuration and database.</p>
                         <button onclick="backupSystem()" class="action-button backup-button">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
-                            Download Backup
+                            <span data-translate="Download Backup">Download Backup</span>
                         </button>
                     </div>
                     
                     <div class="restore-card">
-                        <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Restore Backup</h4>
-                        <p class="text-gray-600 dark:text-gray-300">Select a backup file to restore your system configuration and database.</p>
+                        <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white" data-translate="Restore Backup">Restore Backup</h4>
+                        <p class="text-gray-600 dark:text-gray-300" data-translate="Select a backup file to restore your system configuration and database.">Select a backup file to restore your system configuration and database.</p>
                         <form id="restoreForm">
                             <div class="file-input-wrapper">
-                                <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose backup file:</label>
+                                <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Choose backup file:">Choose backup file:</label>
                                 <input type="file" id="backupFile" name="backup" accept=".zip" class="custom-file-input" required>
                             </div>
                             <button type="submit" class="action-button restore-button">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                </svg>
-                                Restore Backup
+                                <span class="flex items-center justify-center">
+                                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span data-translate="Restoring...">Restoring...</span>
+                                </span>
                             </button>
                         </form>
                     </div>
@@ -413,36 +416,6 @@
     let updateInProgress = false;
     let lastData = null;
 
-    // Function to smoothly update text content
-    function smoothUpdateText(selector, newValue, suffix = '') {
-        const element = document.querySelector(selector);
-        const currentValue = parseFloat(element.textContent);
-        const targetValue = parseFloat(newValue);
-        
-        if (isNaN(currentValue) || isNaN(targetValue)) {
-            element.textContent = newValue + suffix;
-            return;
-        }
-
-        const duration = 500; // Duration in milliseconds
-        const fps = 30;
-        const steps = duration / (1000 / fps);
-        const increment = (targetValue - currentValue) / steps;
-        let currentStep = 0;
-
-        const animate = () => {
-            currentStep++;
-            const value = currentValue + (increment * currentStep);
-            element.textContent = value.toFixed(1) + suffix;
-
-            if (currentStep < steps) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }
-
     // Function to update system metrics
     async function updateMetrics() {
         if (updateInProgress) return;
@@ -456,42 +429,43 @@
             const data = await response.json();
 
             // Update CPU
-            smoothUpdateText('.cpu-usage', data.cpu.usage, '%');
-            document.querySelector('.cores-info').textContent = data.cpu.cores + ' Cores';
-            updateChartData(charts.cpu, data.cpu.usage);
+            document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
+            document.querySelector('.cores-info').innerHTML = `<span data-translate="Cores">Cores</span>: ${data.cpu.cores}`;
 
             // Update RAM
             const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
             const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
-            smoothUpdateText('.ram-usage', ramUsedGB, ' GB');
-            document.querySelector('.ram-total').textContent = 'Total: ' + ramTotalGB.toFixed(1) + ' GB';
-            updateChartData(charts.ram, data.ram.usage);
+            document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' ' + window.langManager.translate('GB');
+            document.querySelector('.ram-total').innerHTML = `<span data-translate="Total">Total</span>: ${ramTotalGB.toFixed(1)} <span data-translate="GB">GB</span>`;
 
             // Update Swap
             const swapUsedMB = data.swap.used / (1024 * 1024);
             const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
-            smoothUpdateText('.swap-usage', swapUsedMB, ' MB');
-            document.querySelector('.swap-total').textContent = 'Total: ' + swapTotalGB.toFixed(1) + ' GB';
-            updateChartData(charts.swap, data.swap.usage);
+            document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' ' + window.langManager.translate('MB');
+            document.querySelector('.swap-total').innerHTML = `<span data-translate="Total">Total</span>: ${swapTotalGB.toFixed(1)} <span data-translate="MB">MB</span>`;
 
             // Update Disk
             const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
             const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
-            smoothUpdateText('.disk-usage', diskUsedGB, ' GB');
-            document.querySelector('.disk-total').textContent = 'Total: ' + diskTotalGB.toFixed(1) + ' GB';
-            updateChartData(charts.disk, data.disk.usage);
+            document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' ' + window.langManager.translate('GB');
+            document.querySelector('.disk-total').innerHTML = `<span data-translate="Total">Total</span>: ${diskTotalGB.toFixed(1)} <span data-translate="GB">GB</span>`;
             
             // Update system info
             document.querySelector('.system-load').textContent = data.systemLoad;
             document.querySelector('.uptime').textContent = data.uptime;
             
             // Update network info
-            smoothUpdateText('.upload-speed', data.network.uploadSpeed, ' KB/s');
-            smoothUpdateText('.download-speed', data.network.downloadSpeed, ' KB/s');
-            document.querySelector('.total-out').textContent = formatBytes(data.network.totalOut * 1024 * 1024);
-            document.querySelector('.total-in').textContent = formatBytes(data.network.totalIn * 1024 * 1024);
+            document.querySelector('.upload-speed').innerHTML = `${data.network.uploadSpeed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
+            document.querySelector('.download-speed').innerHTML = `${data.network.downloadSpeed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
+            document.querySelector('.total-out').innerHTML = `${formatBytes(data.network.totalOut * 1024 * 1024)} <span data-translate="MB">MB</span>`;
+            document.querySelector('.total-in').innerHTML = `${formatBytes(data.network.totalIn * 1024 * 1024)} <span data-translate="GB">GB</span>`;
 
             lastData = data;
+
+            // Translate all elements after updating
+            if (window.langManager) {
+                window.langManager.translatePage();
+            }
         } catch (error) {
             console.error('Error fetching system metrics:', error);
         } finally {
@@ -544,11 +518,10 @@
     // Function to show restore message
     function showRestoreMessage(message, isError = false) {
         const messageDiv = document.getElementById('restoreMessage');
-        messageDiv.textContent = message;
+        messageDiv.textContent = window.langManager.translate(message);
         messageDiv.classList.remove('hidden', 'error', 'success');
         messageDiv.classList.add(isError ? 'error' : 'success');
         
-        // Auto hide after 5 seconds
         setTimeout(() => {
             messageDiv.classList.add('hidden');
             messageDiv.classList.remove('error', 'success');
@@ -596,38 +569,5 @@
             submitButton.innerHTML = originalButtonContent;
         }
     });
-
-    function updateMetrics(data) {
-        // CPU
-        document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
-        document.querySelector('.cores-info').innerHTML = `<span data-translate="Cores">Cores</span> ${data.cpu.cores}`;
-
-        // RAM
-        document.querySelector('.ram-usage').textContent = (data.memory.used / 1024).toFixed(1) + ' ' + window.langManager.translate('GB');
-        document.querySelector('.ram-total').innerHTML = `<span data-translate="Total">Total</span>: ${(data.memory.total / 1024).toFixed(1)} <span data-translate="GB">GB</span>`;
-
-        // Swap
-        document.querySelector('.swap-usage').textContent = (data.swap.used).toFixed(1) + ' ' + window.langManager.translate('MB');
-        document.querySelector('.swap-total').innerHTML = `<span data-translate="Total">Total</span>: ${(data.swap.total).toFixed(1)} <span data-translate="MB">MB</span>`;
-
-        // Disk
-        document.querySelector('.disk-usage').textContent = (data.disk.used / 1024).toFixed(1) + ' ' + window.langManager.translate('GB');
-        document.querySelector('.disk-total').innerHTML = `<span data-translate="Total">Total</span>: ${(data.disk.total / 1024).toFixed(1)} <span data-translate="GB">GB</span>`;
-
-        // Network
-        document.querySelector('.download-speed').innerHTML = `${data.network.download_speed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
-        document.querySelector('.upload-speed').innerHTML = `${data.network.upload_speed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
-        document.querySelector('.total-download').textContent = (data.network.total_download / 1024).toFixed(1);
-        document.querySelector('.total-upload').textContent = (data.network.total_upload / 1024).toFixed(1);
-
-        // System Status
-        document.querySelector('.uptime').textContent = `${data.uptime.hours}h ${data.uptime.minutes}m`;
-        document.querySelector('.system-load').textContent = `${data.load[0].toFixed(2)} | ${data.load[1].toFixed(2)} | ${data.load[2].toFixed(2)}`;
-
-        // Translate all elements after updating
-        if (window.langManager) {
-            window.langManager.translatePage();
-        }
-    }
 </script>
 {{end}}
