@@ -271,10 +271,17 @@
     <script src="{{.basePath}}/static/plugins/jquery/jquery.min.js"></script>
     <script src="{{.basePath}}/static/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="{{.basePath}}/static/dist/js/adminlte.min.js"></script>
-    <script src="{{.basePath}}/assets/dist/js/translations.js"></script>
-    <script src="{{.basePath}}/assets/dist/js/language.js"></script>
+    <script src="{{.basePath}}/static/dist/js/translations.js"></script>
+    <script src="{{.basePath}}/static/dist/js/language.js"></script>
 
     <script>
+        // Initialize language manager before using translations
+        let langManager;
+        document.addEventListener('DOMContentLoaded', () => {
+            langManager = new LanguageManager();
+            langManager.init();
+        });
+
         // Theme Toggle Functionality
         const themeToggle = document.querySelector('.theme-toggle');
         const icon = themeToggle.querySelector('i');
@@ -316,16 +323,17 @@
                 $.ajax({
                     url: '{{.basePath}}/login',
                     type: 'POST',
+                    contentType: 'application/x-www-form-urlencoded',
                     data: $(this).serialize(),
                     success: function(response) {
                         if (response.success) {
                             window.location.href = '{{.basePath}}/';
                         } else {
-                            $('#errorMessage').text(window.langManager.translate('login_error')).show();
+                            $('#errorMessage').text(langManager.translate('login_error')).show();
                         }
                     },
                     error: function() {
-                        $('#errorMessage').text(window.langManager.translate('login_error_server')).show();
+                        $('#errorMessage').text(langManager.translate('login_error_server')).show();
                     }
                 });
             });
