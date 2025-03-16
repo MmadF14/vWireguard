@@ -19,31 +19,45 @@ class LanguageManager {
         if (this.currentLang === 'fa') {
             document.body.classList.add('rtl');
             document.body.classList.remove('ltr');
+            // Add Vazirmatn font for Persian
+            document.body.style.fontFamily = 'Vazirmatn, system-ui, -apple-system, sans-serif';
         } else {
             document.body.classList.add('ltr');
             document.body.classList.remove('rtl');
+            // Reset to default font
+            document.body.style.fontFamily = 'Inter, system-ui, -apple-system, sans-serif';
         }
     }
 
     translate(key) {
+        if (!key) return '';
         return this.translations[this.currentLang][key] || key;
     }
 
     translatePage() {
-        // Translate all elements with data-translate attribute
+        // First, translate all elements with data-translate attribute
         document.querySelectorAll('[data-translate]').forEach(element => {
             const key = element.getAttribute('data-translate');
+            if (!key) return;
+            
             const translation = this.translate(key);
             
             if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-                // For input elements, update both placeholder and value if it matches the key
+                // For input elements, update placeholder and value if they match the key
                 if (element.placeholder === key) {
                     element.placeholder = translation;
                 }
                 if (element.value === key) {
                     element.value = translation;
                 }
+            } else if (element.tagName === 'OPTION') {
+                // For select options, update both text and value if they match
+                element.textContent = translation;
+                if (element.value === key) {
+                    element.value = translation;
+                }
             } else {
+                // For other elements, update text content
                 element.textContent = translation;
             }
 
@@ -53,21 +67,49 @@ class LanguageManager {
             }
         });
 
-        // Translate placeholders that match translation keys
+        // Then translate all placeholders that match translation keys
         document.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(element => {
             const placeholder = element.getAttribute('placeholder');
-            if (this.translations[this.currentLang][placeholder]) {
+            if (placeholder && this.translations[this.currentLang][placeholder]) {
                 element.placeholder = this.translate(placeholder);
             }
         });
 
-        // Translate titles that match translation keys
+        // Translate all titles that match translation keys
         document.querySelectorAll('[title]').forEach(element => {
             const title = element.getAttribute('title');
-            if (this.translations[this.currentLang][title]) {
+            if (title && this.translations[this.currentLang][title]) {
                 element.title = this.translate(title);
             }
         });
+
+        // Translate validation messages
+        if (window.jQuery && jQuery.validator) {
+            jQuery.extend(jQuery.validator.messages, {
+                required: this.translate('This field is required'),
+                email: this.translate('Please enter a valid email address'),
+                number: this.translate('Please enter a valid number'),
+                digits: this.translate('Please enter only digits'),
+                equalTo: this.translate('Please enter the same value again'),
+                maxlength: jQuery.validator.format(this.translate('Please enter no more than {0} characters')),
+                minlength: jQuery.validator.format(this.translate('Please enter at least {0} characters')),
+                range: jQuery.validator.format(this.translate('Please enter a value between {0} and {1}'))
+            });
+        }
+
+        // Translate Select2 placeholders if Select2 is present
+        if (window.jQuery && jQuery.fn.select2) {
+            document.querySelectorAll('select').forEach(select => {
+                const $select = jQuery(select);
+                if ($select.data('select2')) {
+                    const placeholder = $select.data('placeholder');
+                    if (placeholder && this.translations[this.currentLang][placeholder]) {
+                        $select.data('placeholder', this.translate(placeholder));
+                        $select.select2(); // Reinitialize to update placeholder
+                    }
+                }
+            });
+        }
     }
 
     setupLanguageToggle() {
@@ -80,10 +122,10 @@ class LanguageManager {
         // Create new language toggle button
         const langToggle = document.createElement('button');
         langToggle.id = 'language-toggle';
-        langToggle.className = 'language-toggle';
+        langToggle.className = 'language-toggle btn btn-outline-light btn-sm';
         langToggle.innerHTML = `
             <span>${this.currentLang === 'fa' ? 'English' : 'فارسی'}</span>
-            <i class="fas ${this.currentLang === 'fa' ? 'fa-language' : 'fa-language'}"></i>
+            <i class="fas fa-language ml-1"></i>
         `;
         
         // Add click event
