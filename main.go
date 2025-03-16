@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha512"
 	"embed"
 	"flag"
