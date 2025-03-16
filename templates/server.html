@@ -1,5 +1,5 @@
 {{define "title"}}
-Wireguard Server
+<span data-translate="Wireguard Server">Wireguard Server</span>
 {{end}}
 
 {{define "top_css"}}
@@ -10,7 +10,7 @@ Wireguard Server
 {{end}}
 
 {{define "page_title"}}
-Wireguard Server Settings
+<span data-translate="Wireguard Server Settings">Wireguard Server Settings</span>
 {{end}}
 
 {{define "page_content"}}
@@ -22,39 +22,39 @@ Wireguard Server Settings
             <div class="col-md-6">
                 <div class="card card-success">
                     <div class="card-header">
-                        <h3 class="card-title">Interface</h3>
+                        <h3 class="card-title" data-translate="Interface">Interface</h3>
                     </div>
                     <!-- /.card-header -->
                     <!-- form start -->
                     <form role="form" id="frm_server_interface" name="frm_server_interface">
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="addresses" class="control-label">Server Interface Addresses</label>
+                                <label for="addresses" class="control-label" data-translate="Server Interface Addresses">Server Interface Addresses</label>
                                 <input type="text" data-role="tagsinput" class="form-control" id="addresses" value="">
                             </div>
                             <div class="form-group">
-                                <label for="listen_port">Listen Port</label>
+                                <label for="listen_port" data-translate="Listen Port">Listen Port</label>
                                 <input type="text" class="form-control" id="listen_port" name="listen_port"
                                     placeholder="Listen Port" value="{{ .serverInterface.ListenPort }}">
                             </div>
                             <div class="form-group">
-                                <label for="post_up">Post Up Script</label>
+                                <label for="post_up" data-translate="Post Up Script">Post Up Script</label>
                                 <input type="text" class="form-control" id="post_up" name="post_up"
                                        placeholder="Post Up Script" value="{{ .serverInterface.PostUp }}">
                             </div>
                             <div class="form-group">
-                                <label for="pre_down">Pre Down Script</label>
+                                <label for="pre_down" data-translate="Pre Down Script">Pre Down Script</label>
                                 <input type="text" class="form-control" id="pre_down" name="pre_down"
                                        placeholder="Pre Down Script" value="{{ .serverInterface.PreDown }}">
                             </div>
 
                             <div class="form-group">
-                                <label for="post_down">Post Down Script</label>
+                                <label for="post_down" data-translate="Post Down Script">Post Down Script</label>
                                 <input type="text" class="form-control" id="post_down" name="post_down"
                                        placeholder="Post Down Script" value="{{ .serverInterface.PostDown }}">
                             </div>
                             <div class="form-group">
-                                <label for="check_interval">Check Interval (minutes)</label>
+                                <label for="check_interval" data-translate="Check Interval (minutes)">Check Interval (minutes)</label>
                                 <select class="form-control" id="check_interval" name="check_interval">
                                     <option value="1" {{if eq .serverInterface.CheckInterval 1}}selected{{end}}>1</option>
                                     <option value="2" {{if eq .serverInterface.CheckInterval 2}}selected{{end}}>2</option>
@@ -67,7 +67,7 @@ Wireguard Server Settings
                         <!-- /.card-body -->
 
                         <div class="card-footer">
-                            <button type="submit" class="btn btn-success">Save</button>
+                            <button type="submit" class="btn btn-success" data-translate="Save">Save</button>
                         </div>
                     </form>
                 </div>
@@ -77,25 +77,25 @@ Wireguard Server Settings
             <div class="col-md-6">
                 <div class="card card-danger">
                     <div class="card-header">
-                        <h3 class="card-title">Key Pair</h3>
+                        <h3 class="card-title" data-translate="Key Pair">Key Pair</h3>
                     </div>
                     <!-- /.card-header -->
                     <!-- form start -->
                     <form role="form">
                         <div class="card-body">
                             <div class="form-group">
-                                <label for="private_key">Private Key</label>
+                                <label for="private_key" data-translate="Private Key">Private Key</label>
                                 <div class="input-group input-group">
                                     <input type="password" class="form-control" id="private_key" placeholder="Private Key"
                                         value="{{ .serverKeyPair.PrivateKey }}" disabled>
                                     <span class="input-group-append">
                                         <button type="button" class="btn btn-danger btn-flat"
-                                            id="btn_show_private_key">Show</button>
+                                            id="btn_show_private_key" data-translate="Show">Show</button>
                                     </span>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="public_key">Public Key</label>
+                                <label for="public_key" data-translate="Public Key">Public Key</label>
                                 <input type="text" class="form-control" id="public_key" placeholder="Public Key"
                                     value="{{ .serverKeyPair.PublicKey }}" disabled>
                             </div>
@@ -104,7 +104,7 @@ Wireguard Server Settings
 
                         <div class="card-footer">
                             <button type="button" class="btn btn-danger" data-toggle="modal"
-                                data-target="#modal_keypair_confirmation">Generate</button>
+                                data-target="#modal_keypair_confirmation" data-translate="Generate">Generate</button>
                         </div>
                     </form>
                 </div>
@@ -119,18 +119,18 @@ Wireguard Server Settings
     <div class="modal-dialog">
         <div class="modal-content bg-warning">
             <div class="modal-header">
-                <h4 class="modal-title">KeyPair Generation</h4>
+                <h4 class="modal-title" data-translate="KeyPair Generation">KeyPair Generation</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p>Are you sure to generate a new key pair for the Wireguard server?<br/>
+                <p data-translate="keypair_generation_warning">Are you sure to generate a new key pair for the Wireguard server?<br/>
                 The existing Client's peer public key need to be updated to keep the connection working.</p>
             </div>
             <div class="modal-footer justify-content-between">
-                <button type="button" class="btn btn-outline-dark" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-outline-dark" id="btn_generate_confirm">Generate</button>
+                <button type="button" class="btn btn-outline-dark" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_generate_confirm" data-translate="Generate">Generate</button>
             </div>
         </div>
         <!-- /.modal-content -->
@@ -160,11 +160,11 @@ Wireguard Server Settings
                 data: JSON.stringify(data),
                 success: function(data) {
                     $("#modal_new_client").modal('hide');
-                    toastr.success('Updated Wireguard server interface addresses successfully');
+                    toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
                 },
                 error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
+                    toastr.error(window.langManager.translate(responseJson['message']));
                 }
             });
         }
@@ -175,7 +175,7 @@ Wireguard Server Settings
             'width': '100%',
             // 'height': '75%',
             'interactive': true,
-            'defaultText': 'Add More',
+            'defaultText': window.langManager.translate('Add More'),
             'removeWithBackspace': true,
             'minChars': 0,
             'minInputWidth': '100%',
@@ -205,9 +205,9 @@ Wireguard Server Settings
                 },
                 messages: {
                     listen_port: {
-                        required: "Please enter a port",
-                        digits: "Port must be an integer",
-                        range: "Port must be in range 1..65535"
+                        required: window.langManager.translate("Please enter a port"),
+                        digits: window.langManager.translate("Port must be an integer"),
+                        range: window.langManager.translate("Port must be in range 1..65535")
                     }
                 },
                 errorElement: 'span',
@@ -235,14 +235,14 @@ Wireguard Server Settings
                     contentType: "application/json",
                     success: function(data) {
                         $("#modal_keypair_confirmation").modal('hide');
-                        toastr.success('Generate new key pair successfully');
+                        toastr.success(window.langManager.translate('Generate new key pair successfully'));
                         // update the UI
                         $("#private_key").val(data['private_key']);
                         $("#public_key").val(data['public_key']);
                     },
                     error: function(jqXHR, exception) {
                         const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        toastr.error(responseJson['message']);
+                        toastr.error(window.langManager.translate(responseJson['message']));
                     }
                 });
             });
