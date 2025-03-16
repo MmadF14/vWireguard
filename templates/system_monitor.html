@@ -226,9 +226,9 @@
                     <canvas id="cpuChart"></canvas>
                 </div>
                 <div class="text-center mt-4">
-                    <div class="text-gray-600">CPU</div>
+                    <div class="text-gray-600" data-translate="CPU">CPU</div>
                     <div class="metric-value cpu-usage">0%</div>
-                    <div class="text-sm text-gray-500 cores-info">6 Cores</div>
+                    <div class="text-sm text-gray-500 cores-info"><span data-translate="Cores">Cores</span> 6</div>
                 </div>
             </div>
             <div class="metric-card">
@@ -236,9 +236,9 @@
                     <canvas id="ramChart"></canvas>
                 </div>
                 <div class="text-center mt-4">
-                    <div class="text-gray-600">RAM</div>
+                    <div class="text-gray-600" data-translate="RAM">RAM</div>
                     <div class="metric-value ram-usage">0 GB</div>
-                    <div class="text-sm text-gray-500 ram-total">Total: 0 GB</div>
+                    <div class="text-sm text-gray-500 ram-total"><span data-translate="Total">Total</span>: 0 <span data-translate="GB">GB</span></div>
                 </div>
             </div>
             <div class="metric-card">
@@ -246,9 +246,9 @@
                     <canvas id="swapChart"></canvas>
                 </div>
                 <div class="text-center mt-4">
-                    <div class="text-gray-600">Swap</div>
+                    <div class="text-gray-600" data-translate="Swap">Swap</div>
                     <div class="metric-value swap-usage">0 MB</div>
-                    <div class="text-sm text-gray-500 swap-total">Total: 0 GB</div>
+                    <div class="text-sm text-gray-500 swap-total"><span data-translate="Total">Total</span>: 0 <span data-translate="MB">MB</span></div>
                 </div>
             </div>
             <div class="metric-card">
@@ -256,9 +256,9 @@
                     <canvas id="diskChart"></canvas>
                 </div>
                 <div class="text-center mt-4">
-                    <div class="text-gray-600">Disk</div>
+                    <div class="text-gray-600" data-translate="Disk">Disk</div>
                     <div class="metric-value disk-usage">0 GB</div>
-                    <div class="text-sm text-gray-500 disk-total">Total: 0 GB</div>
+                    <div class="text-sm text-gray-500 disk-total"><span data-translate="Total">Total</span>: 0 <span data-translate="GB">GB</span></div>
                 </div>
             </div>
         </div>
@@ -596,5 +596,38 @@
             submitButton.innerHTML = originalButtonContent;
         }
     });
+
+    function updateMetrics(data) {
+        // CPU
+        document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
+        document.querySelector('.cores-info').innerHTML = `<span data-translate="Cores">Cores</span> ${data.cpu.cores}`;
+
+        // RAM
+        document.querySelector('.ram-usage').textContent = (data.memory.used / 1024).toFixed(1) + ' ' + window.langManager.translate('GB');
+        document.querySelector('.ram-total').innerHTML = `<span data-translate="Total">Total</span>: ${(data.memory.total / 1024).toFixed(1)} <span data-translate="GB">GB</span>`;
+
+        // Swap
+        document.querySelector('.swap-usage').textContent = (data.swap.used).toFixed(1) + ' ' + window.langManager.translate('MB');
+        document.querySelector('.swap-total').innerHTML = `<span data-translate="Total">Total</span>: ${(data.swap.total).toFixed(1)} <span data-translate="MB">MB</span>`;
+
+        // Disk
+        document.querySelector('.disk-usage').textContent = (data.disk.used / 1024).toFixed(1) + ' ' + window.langManager.translate('GB');
+        document.querySelector('.disk-total').innerHTML = `<span data-translate="Total">Total</span>: ${(data.disk.total / 1024).toFixed(1)} <span data-translate="GB">GB</span>`;
+
+        // Network
+        document.querySelector('.download-speed').innerHTML = `${data.network.download_speed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
+        document.querySelector('.upload-speed').innerHTML = `${data.network.upload_speed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
+        document.querySelector('.total-download').textContent = (data.network.total_download / 1024).toFixed(1);
+        document.querySelector('.total-upload').textContent = (data.network.total_upload / 1024).toFixed(1);
+
+        // System Status
+        document.querySelector('.uptime').textContent = `${data.uptime.hours}h ${data.uptime.minutes}m`;
+        document.querySelector('.system-load').textContent = `${data.load[0].toFixed(2)} | ${data.load[1].toFixed(2)} | ${data.load[2].toFixed(2)}`;
+
+        // Translate all elements after updating
+        if (window.langManager) {
+            window.langManager.translatePage();
+        }
+    }
 </script>
 {{end}}
