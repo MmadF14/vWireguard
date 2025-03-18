@@ -16,39 +16,6 @@
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
-        <!-- Social Links Card -->
-        <div class="card mb-4">
-            <div class="card-header">
-                <h3 class="card-title" data-translate="Social Links">Social Links</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="github-link" data-translate="GitHub Repository">GitHub Repository:</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="github-link" name="github-link" value="{{ .baseData.GitHubLink }}">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" type="button" id="save-github" data-translate="Save">Save</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="telegram-link" data-translate="Telegram Channel">Telegram Channel:</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="telegram-link" name="telegram-link" value="{{ .baseData.TelegramLink }}">
-                                <div class="input-group-append">
-                                    <button class="btn btn-primary" type="button" id="save-telegram" data-translate="Save">Save</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <div class="card mb-4">
             <div class="card-header">
                 <h3 class="card-title" data-translate="System Tools">System Tools</h3>
@@ -138,66 +105,135 @@ $(document).ready(function() {
         $('#statusModal').modal('show');
     }
 
-    // Social Links handlers
-    $('#save-github').click(function() {
-        const githubLink = $('#github-link').val();
-        $.ajax({
-            url: util.basePath + '/api/settings/github-link',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ link: githubLink }),
-            success: function() {
-                showStatus('GitHub link saved successfully');
-            },
-            error: function() {
-                showStatus('Failed to save GitHub link', true);
-            }
-        });
-    });
+    function showError(message) {
+        showStatus(message, true);
+    }
 
-    $('#save-telegram').click(function() {
-        const telegramLink = $('#telegram-link').val();
-        $.ajax({
-            url: util.basePath + '/api/settings/telegram-link',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ link: telegramLink }),
-            success: function() {
-                showStatus('Telegram link saved successfully');
-            },
-            error: function() {
-                showStatus('Failed to save Telegram link', true);
-            }
-        });
-    });
+    function showSuccess(message) {
+        showStatus(message, false);
+    }
+
+    function refreshLogs() {
+        const level = $('#log-level').val();
+        $.get(window.basePath + '/api/utilities/logs?level=' + level)
+            .done(function(response) {
+                if (response.success) {
+                    $('#log-output').val(response.message);
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function() {
+                showError('Failed to refresh logs');
+            });
+    }
 
     // Button click handlers
     $('#restart-service').click(function() {
-        showStatus('Service restart initiated');
+        $.post(window.basePath + '/api/utilities/restart-service')
+            .done(function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function() {
+                showError('Failed to restart service');
+            });
     });
 
     $('#flush-dns').click(function() {
-        showStatus('DNS cache flushed successfully');
+        $.post(window.basePath + '/api/utilities/flush-dns')
+            .done(function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function() {
+                showError('Failed to flush DNS cache');
+            });
     });
 
     $('#check-updates').click(function() {
-        showStatus('Checking for updates...');
+        $.post(window.basePath + '/api/utilities/check-updates')
+            .done(function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function() {
+                showError('Failed to check for updates');
+            });
     });
 
     $('#generate-report').click(function() {
-        showStatus('Generating system report...');
+        $.post(window.basePath + '/api/utilities/generate-report')
+            .done(function(response) {
+                if (response.success) {
+                    // Create a formatted report
+                    const report = response.message;
+                    let formattedReport = '';
+                    
+                    if (report.uptime) {
+                        formattedReport += 'System Uptime:\n' + report.uptime + '\n\n';
+                    }
+                    if (report.memory) {
+                        formattedReport += 'Memory Usage:\n' + report.memory + '\n\n';
+                    }
+                    if (report.disk) {
+                        formattedReport += 'Disk Usage:\n' + report.disk + '\n\n';
+                    }
+                    if (report.wireguard_status) {
+                        formattedReport += 'WireGuard Status:\n' + report.wireguard_status + '\n\n';
+                    }
+                    if (report.system_logs) {
+                        formattedReport += 'Recent System Logs:\n' + report.system_logs;
+                    }
+
+                    // Show report in a modal
+                    const modalBody = document.getElementById('statusModalBody');
+                    modalBody.innerHTML = '<pre>' + formattedReport + '</pre>';
+                    modalBody.className = '';
+                    $('#statusModal').modal('show');
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function() {
+                showError('Failed to generate system report');
+            });
     });
 
     $('#refresh-logs').click(function() {
-        const logOutput = document.getElementById('log-output');
-        logOutput.value = 'Refreshing logs...';
+        refreshLogs();
     });
 
     $('#clear-logs').click(function() {
-        const logOutput = document.getElementById('log-output');
-        logOutput.value = '';
-        showStatus('Logs cleared successfully');
+        if (confirm(window.langManager.translate('Are you sure you want to clear all logs?'))) {
+            $.post(window.basePath + '/api/utilities/clear-logs')
+                .done(function(response) {
+                    if (response.success) {
+                        showSuccess(response.message);
+                        refreshLogs();
+                    } else {
+                        showError(response.message);
+                    }
+                })
+                .fail(function() {
+                    showError('Failed to clear logs');
+                });
+        }
     });
+
+    // Initial logs refresh
+    refreshLogs();
+    // Refresh logs every 30 seconds
+    setInterval(refreshLogs, 30000);
 });
 </script>
 {{end}} 
