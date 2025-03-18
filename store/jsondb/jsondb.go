@@ -3,13 +3,10 @@ package jsondb
 import (
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/sdomino/scribble"
@@ -17,329 +14,269 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/MmadF14/vwireguard/model"
-	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/util"
 )
 
-type JSONDB struct {
-	path string
-	mu   sync.RWMutex
+type JsonDB struct {
+	conn   *scribble.Driver
+	dbPath string
 }
 
-func New(path string) (*JSONDB, error) {
-	return &JSONDB{
-		path: path,
-	}, nil
-}
-
-func (db *JSONDB) Init() error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	// Create database directory if it doesn't exist
-	if err := os.MkdirAll(db.path, 0755); err != nil {
-		return err
+// New returns a new pointer JsonDB
+func New(dbPath string) (*JsonDB, error) {
+	conn, err := scribble.New(dbPath, nil)
+	if err != nil {
+		return nil, err
 	}
+	ans := JsonDB{
+		conn:   conn,
+		dbPath: dbPath,
+	}
+	return &ans, nil
+}
 
-	// Initialize default server if not exists
-	serverPath := filepath.Join(db.path, "server.json")
+func (o *JsonDB) Init() error {
+	var clientPath = path.Join(o.dbPath, "clients")
+	var serverPath = path.Join(o.dbPath, "server")
+	var userPath = path.Join(o.dbPath, "users")
+	var wakeOnLanHostsPath = path.Join(o.dbPath, "wake_on_lan_hosts")
+	var serverInterfacePath = path.Join(serverPath, "interfaces.json")
+	var serverKeyPairPath = path.Join(serverPath, "keypair.json")
+	var globalSettingPath = path.Join(serverPath, "global_settings.json")
+	var hashesPath = path.Join(serverPath, "hashes.json")
+
+	// create directories if they do not exist
+	if _, err := os.Stat(clientPath); os.IsNotExist(err) {
+		os.MkdirAll(clientPath, os.ModePerm)
+	}
 	if _, err := os.Stat(serverPath); os.IsNotExist(err) {
-		server := &model.Server{
-			Interface: model.ServerInterface{
-				Addresses: []string{"10.252.1.0/24"},
-				ListenPort: 51820,
-			},
-			KeyPair: model.ServerKeypair{
-				PrivateKey: "",
-				PublicKey:  "",
-			},
-		}
-		if err := db.saveJSON(serverPath, server); err != nil {
+		os.MkdirAll(serverPath, os.ModePerm)
+	}
+	if _, err := os.Stat(userPath); os.IsNotExist(err) {
+		os.MkdirAll(userPath, os.ModePerm)
+	}
+	if _, err := os.Stat(wakeOnLanHostsPath); os.IsNotExist(err) {
+		os.MkdirAll(wakeOnLanHostsPath, os.ModePerm)
+	}
+
+	// server's interface
+	if _, err := os.Stat(serverInterfacePath); os.IsNotExist(err) {
+		serverInterface := new(model.ServerInterface)
+		serverInterface.Addresses = util.LookupEnvOrStrings(util.ServerAddressesEnvVar, []string{util.DefaultServerAddress})
+		serverInterface.ListenPort = util.LookupEnvOrInt(util.ServerListenPortEnvVar, util.DefaultServerPort)
+		serverInterface.PostUp = util.LookupEnvOrString(util.ServerPostUpScriptEnvVar, "")
+		serverInterface.PostDown = util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, "")
+		serverInterface.UpdatedAt = time.Now().UTC()
+		o.conn.Write("server", "interfaces", serverInterface)
+		err := util.ManagePerms(serverInterfacePath)
+		if err != nil {
 			return err
 		}
 	}
 
-	// Initialize default admin user if not exists
-	usersPath := filepath.Join(db.path, "users.json")
-	if _, err := os.Stat(usersPath); os.IsNotExist(err) {
-		users := []model.User{
-			{
-				ID:       1,
-				Username: "admin",
-				Password: "admin", // This should be hashed in production
-				Role:     model.RoleAdmin,
-			},
+	// server's key pair
+	if _, err := os.Stat(serverKeyPairPath); os.IsNotExist(err) {
+		key, err := wgtypes.GeneratePrivateKey()
+		if err != nil {
+			return scribble.ErrMissingCollection
 		}
-		if err := db.saveJSON(usersPath, users); err != nil {
+		serverKeyPair := new(model.ServerKeypair)
+		serverKeyPair.PrivateKey = key.String()
+		serverKeyPair.PublicKey = key.PublicKey().String()
+		serverKeyPair.UpdatedAt = time.Now().UTC()
+		o.conn.Write("server", "keypair", serverKeyPair)
+		err = util.ManagePerms(serverKeyPairPath)
+		if err != nil {
 			return err
+		}
+	}
+
+	// global settings
+	if _, err := os.Stat(globalSettingPath); os.IsNotExist(err) {
+		endpointAddress := util.LookupEnvOrString(util.EndpointAddressEnvVar, "")
+		if endpointAddress == "" {
+			// automatically find an external IP address
+			publicInterface, err := util.GetPublicIP()
+			if err != nil {
+				return err
+			}
+			endpointAddress = publicInterface.IPAddress
+		}
+
+		globalSetting := new(model.GlobalSetting)
+		globalSetting.EndpointAddress = endpointAddress
+		globalSetting.DNSServers = util.LookupEnvOrStrings(util.DNSEnvVar, []string{util.DefaultDNS})
+		globalSetting.MTU = util.LookupEnvOrInt(util.MTUEnvVar, util.DefaultMTU)
+		globalSetting.PersistentKeepalive = util.LookupEnvOrInt(util.PersistentKeepaliveEnvVar, util.DefaultPersistentKeepalive)
+		globalSetting.FirewallMark = util.LookupEnvOrString(util.FirewallMarkEnvVar, util.DefaultFirewallMark)
+		globalSetting.Table = util.LookupEnvOrString(util.TableEnvVar, util.DefaultTable)
+		globalSetting.ConfigFilePath = util.LookupEnvOrString(util.ConfigFilePathEnvVar, util.DefaultConfigFilePath)
+		globalSetting.UpdatedAt = time.Now().UTC()
+		o.conn.Write("server", "global_settings", globalSetting)
+		err := util.ManagePerms(globalSettingPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	// hashes
+	if _, err := os.Stat(hashesPath); os.IsNotExist(err) {
+		clientServerHashes := new(model.ClientServerHashes)
+		clientServerHashes.Client = "none"
+		clientServerHashes.Server = "none"
+		o.conn.Write("server", "hashes", clientServerHashes)
+		err := util.ManagePerms(hashesPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	// user info
+	results, err := o.conn.ReadAll("users")
+	if err != nil || len(results) < 1 {
+		user := new(model.User)
+		user.Username = util.LookupEnvOrString(util.UsernameEnvVar, util.DefaultUsername)
+		user.Role = model.RoleAdmin
+		user.PasswordHash = util.LookupEnvOrString(util.PasswordHashEnvVar, "")
+		if user.PasswordHash == "" {
+			user.PasswordHash = util.LookupEnvOrFile(util.PasswordHashFileEnvVar, "")
+			if user.PasswordHash == "" {
+				plaintext := util.LookupEnvOrString(util.PasswordEnvVar, util.DefaultPassword)
+				if plaintext == util.DefaultPassword {
+					plaintext = util.LookupEnvOrFile(util.PasswordFileEnvVar, util.DefaultPassword)
+				}
+				hash, err := util.HashPassword(plaintext)
+				if err != nil {
+					return err
+				}
+				user.PasswordHash = hash
+			}
+		}
+
+		o.conn.Write("users", user.Username, user)
+		results, _ = o.conn.ReadAll("users")
+		err = util.ManagePerms(path.Join(path.Join(o.dbPath, "users"), user.Username+".json"))
+		if err != nil {
+			return err
+		}
+	}
+
+	// init cache
+	for _, i := range results {
+		user := model.User{}
+
+		if err := json.Unmarshal([]byte(i), &user); err == nil {
+			util.DBUsersToCRC32[user.Username] = util.GetDBUserCRC32(user)
+		}
+	}
+
+	clients, err := o.GetClients(false)
+	if err != nil {
+		return nil
+	}
+	for _, cl := range clients {
+		client := cl.Client
+		if client.Enabled && len(client.TgUserid) > 0 {
+			if userid, err := strconv.ParseInt(client.TgUserid, 10, 64); err == nil {
+				util.UpdateTgToClientID(userid, client.ID)
+			}
 		}
 	}
 
 	return nil
 }
 
-func (db *JSONDB) Close() error {
+// GetUsers func to get all users from the database
+func (o *JsonDB) GetUsers() ([]model.User, error) {
+	var users []model.User
+	results, err := o.conn.ReadAll("users")
+	if err != nil {
+		return users, err
+	}
+	for _, i := range results {
+		user := model.User{}
+		if err := json.Unmarshal(i, &user); err != nil {
+			return users, fmt.Errorf("cannot decode user json structure: %v", err)
+		}
+		users = append(users, user)
+	}
+	return users, err
+}
+
+// GetUserByName func to get single user from the database
+func (o *JsonDB) GetUserByName(username string) (model.User, error) {
+	user := model.User{}
+	if err := o.conn.Read("users", username, &user); err != nil {
+		return user, err
+	}
+	return user, nil
+}
+
+// SaveUser func to save user in the database
+func (o *JsonDB) SaveUser(user model.User) error {
+	// بررسی وجود کاربر با نام مشابه
+	if _, err := o.GetUserByName(user.Username); err == nil {
+		return fmt.Errorf("user with username %s already exists", user.Username)
+	}
+
+	userPath := path.Join(path.Join(o.dbPath, "users"), user.Username+".json")
+	output := o.conn.Write("users", user.Username, user)
+	if output != nil {
+		return output
+	}
+
+	err := util.ManagePerms(userPath)
+	if err != nil {
+		return err
+	}
+
+	util.DBUsersToCRC32[user.Username] = util.GetDBUserCRC32(user)
 	return nil
 }
 
-// User operations
-func (db *JSONDB) GetUserByName(username string) (*model.User, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	usersPath := filepath.Join(db.path, "users.json")
-	var users []model.User
-	if err := db.loadJSON(usersPath, &users); err != nil {
-		return nil, err
+// DeleteUser func to remove user from the database
+func (o *JsonDB) DeleteUser(username string) error {
+	// بررسی وجود کاربر قبل از حذف
+	if _, err := o.GetUserByName(username); err != nil {
+		return fmt.Errorf("user with username %s does not exist", username)
 	}
 
-	for _, user := range users {
-		if user.Username == username {
-			return &user, nil
-		}
-	}
-	return nil, errors.New("user not found")
+	delete(util.DBUsersToCRC32, username)
+	return o.conn.Delete("users", username)
 }
 
-func (db *JSONDB) GetUserByID(id int) (*model.User, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	usersPath := filepath.Join(db.path, "users.json")
-	var users []model.User
-	if err := db.loadJSON(usersPath, &users); err != nil {
-		return nil, err
-	}
-
-	for _, user := range users {
-		if user.ID == id {
-			return &user, nil
-		}
-	}
-	return nil, errors.New("user not found")
-}
-
-func (db *JSONDB) CreateUser(user *model.User) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	usersPath := filepath.Join(db.path, "users.json")
-	var users []model.User
-	if err := db.loadJSON(usersPath, &users); err != nil {
-		return err
-	}
-
-	users = append(users, *user)
-	return db.saveJSON(usersPath, users)
-}
-
-func (db *JSONDB) UpdateUser(user *model.User) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	usersPath := filepath.Join(db.path, "users.json")
-	var users []model.User
-	if err := db.loadJSON(usersPath, &users); err != nil {
-		return err
-	}
-
-	for i, u := range users {
-		if u.ID == user.ID {
-			users[i] = *user
-			return db.saveJSON(usersPath, users)
-		}
-	}
-	return errors.New("user not found")
-}
-
-func (db *JSONDB) DeleteUser(id int) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	usersPath := filepath.Join(db.path, "users.json")
-	var users []model.User
-	if err := db.loadJSON(usersPath, &users); err != nil {
-		return err
-	}
-
-	for i, user := range users {
-		if user.ID == id {
-			users = append(users[:i], users[i+1:]...)
-			return db.saveJSON(usersPath, users)
-		}
-	}
-	return errors.New("user not found")
-}
-
-func (db *JSONDB) GetUsers() ([]model.User, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	usersPath := filepath.Join(db.path, "users.json")
-	var users []model.User
-	if err := db.loadJSON(usersPath, &users); err != nil {
-		return nil, err
-	}
-	return users, nil
-}
-
-// Client operations
-func (db *JSONDB) GetClientByID(id int) (*model.Client, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	clientsPath := filepath.Join(db.path, "clients.json")
-	var clients []model.Client
-	if err := db.loadJSON(clientsPath, &clients); err != nil {
-		return nil, err
-	}
-
-	for _, client := range clients {
-		if client.ID == id {
-			return &client, nil
-		}
-	}
-	return nil, errors.New("client not found")
-}
-
-func (db *JSONDB) GetClientByName(name string) (*model.Client, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	clientsPath := filepath.Join(db.path, "clients.json")
-	var clients []model.Client
-	if err := db.loadJSON(clientsPath, &clients); err != nil {
-		return nil, err
-	}
-
-	for _, client := range clients {
-		if client.Name == name {
-			return &client, nil
-		}
-	}
-	return nil, errors.New("client not found")
-}
-
-func (db *JSONDB) CreateClient(client *model.Client) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	clientsPath := filepath.Join(db.path, "clients.json")
-	var clients []model.Client
-	if err := db.loadJSON(clientsPath, &clients); err != nil {
-		return err
-	}
-
-	clients = append(clients, *client)
-	return db.saveJSON(clientsPath, clients)
-}
-
-func (db *JSONDB) UpdateClient(client *model.Client) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	clientsPath := filepath.Join(db.path, "clients.json")
-	var clients []model.Client
-	if err := db.loadJSON(clientsPath, &clients); err != nil {
-		return err
-	}
-
-	for i, c := range clients {
-		if c.ID == client.ID {
-			clients[i] = *client
-			return db.saveJSON(clientsPath, clients)
-		}
-	}
-	return errors.New("client not found")
-}
-
-func (db *JSONDB) DeleteClient(id int) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	clientsPath := filepath.Join(db.path, "clients.json")
-	var clients []model.Client
-	if err := db.loadJSON(clientsPath, &clients); err != nil {
-		return err
-	}
-
-	for i, client := range clients {
-		if client.ID == id {
-			clients = append(clients[:i], clients[i+1:]...)
-			return db.saveJSON(clientsPath, clients)
-		}
-	}
-	return errors.New("client not found")
-}
-
-func (db *JSONDB) GetClients() ([]model.Client, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	clientsPath := filepath.Join(db.path, "clients.json")
-	var clients []model.Client
-	if err := db.loadJSON(clientsPath, &clients); err != nil {
-		return nil, err
-	}
-	return clients, nil
-}
-
-// Server operations
-func (db *JSONDB) GetServer() (*model.Server, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
-
-	serverPath := filepath.Join(db.path, "server.json")
-	var server model.Server
-	if err := db.loadJSON(serverPath, &server); err != nil {
-		return nil, err
-	}
-	return &server, nil
-}
-
-func (db *JSONDB) UpdateServer(server *model.Server) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-
-	serverPath := filepath.Join(db.path, "server.json")
-	return db.saveJSON(serverPath, server)
-}
-
-// Helper functions
-func (db *JSONDB) loadJSON(path string, v interface{}) error {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(data, v)
-}
-
-func (db *JSONDB) saveJSON(path string, v interface{}) error {
-	data, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0644)
-}
-
-func (o *JSONDB) GetGlobalSettings() (model.GlobalSetting, error) {
+// GetGlobalSettings func to query global settings from the database
+func (o *JsonDB) GetGlobalSettings() (model.GlobalSetting, error) {
 	settings := model.GlobalSetting{}
-	return settings, o.loadJSON(filepath.Join(o.path, "server.json"), &settings)
+	return settings, o.conn.Read("server", "global_settings", &settings)
 }
 
-func (o *JSONDB) GetServer() (model.Server, error) {
+// GetServer func to query Server settings from the database
+func (o *JsonDB) GetServer() (model.Server, error) {
 	server := model.Server{}
-	if err := o.loadJSON(filepath.Join(o.path, "server.json"), &server); err != nil {
+	// read server interface information
+	serverInterface := model.ServerInterface{}
+	if err := o.conn.Read("server", "interfaces", &serverInterface); err != nil {
 		return server, err
 	}
+
+	// read server key pair information
+	serverKeyPair := model.ServerKeypair{}
+	if err := o.conn.Read("server", "keypair", &serverKeyPair); err != nil {
+		return server, err
+	}
+
+	// create Server object and return
+	server.Interface = &serverInterface
+	server.KeyPair = &serverKeyPair
 	return server, nil
 }
 
-func (o *JSONDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
+func (o *JsonDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 	var clients []model.ClientData
 
 	// read all client json files in "clients" directory
-	records, err := o.loadJSON(filepath.Join(o.path, "clients.json"), &clients)
+	records, err := o.conn.ReadAll("clients")
 	if err != nil {
 		return clients, err
 	}
@@ -375,12 +312,12 @@ func (o *JSONDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 	return clients, nil
 }
 
-func (o *JSONDB) GetClientByID(clientID string, qrCodeSettings model.QRCodeSettings) (model.ClientData, error) {
+func (o *JsonDB) GetClientByID(clientID string, qrCodeSettings model.QRCodeSettings) (model.ClientData, error) {
 	client := model.Client{}
 	clientData := model.ClientData{}
 
 	// read client information
-	if err := o.loadJSON(filepath.Join(o.path, "clients.json"), &client); err != nil {
+	if err := o.conn.Read("clients", clientID, &client); err != nil {
 		return clientData, err
 	}
 
@@ -409,9 +346,9 @@ func (o *JSONDB) GetClientByID(clientID string, qrCodeSettings model.QRCodeSetti
 	return clientData, nil
 }
 
-func (o *JSONDB) SaveClient(client model.Client) error {
-	clientPath := filepath.Join(o.path, "clients.json")
-	output := o.saveJSON(clientPath, client)
+func (o *JsonDB) SaveClient(client model.Client) error {
+	clientPath := path.Join(path.Join(o.dbPath, "clients"), client.ID+".json")
+	output := o.conn.Write("clients", client.ID, client)
 	if output == nil {
 		if client.Enabled && len(client.TgUserid) > 0 {
 			if userid, err := strconv.ParseInt(client.TgUserid, 10, 64); err == nil {
@@ -423,16 +360,21 @@ func (o *JSONDB) SaveClient(client model.Client) error {
 	} else {
 		util.RemoveTgToClientID(client.ID)
 	}
-	err := o.saveJSON(clientPath, client)
+	err := util.ManagePerms(clientPath)
 	if err != nil {
 		return err
 	}
 	return output
 }
 
-func (o *JSONDB) SaveServerInterface(serverInterface model.ServerInterface) error {
-	serverInterfacePath := filepath.Join(o.path, "server.json")
-	output := o.saveJSON(serverInterfacePath, serverInterface)
+func (o *JsonDB) DeleteClient(clientID string) error {
+	util.RemoveTgToClientID(clientID)
+	return o.conn.Delete("clients", clientID)
+}
+
+func (o *JsonDB) SaveServerInterface(serverInterface model.ServerInterface) error {
+	serverInterfacePath := path.Join(path.Join(o.dbPath, "server"), "interfaces.json")
+	output := o.conn.Write("server", "interfaces", serverInterface)
 	err := util.ManagePerms(serverInterfacePath)
 	if err != nil {
 		return err
@@ -440,9 +382,9 @@ func (o *JSONDB) SaveServerInterface(serverInterface model.ServerInterface) erro
 	return output
 }
 
-func (o *JSONDB) SaveServerKeyPair(serverKeyPair model.ServerKeypair) error {
-	serverKeyPairPath := filepath.Join(o.path, "server.json")
-	output := o.saveJSON(serverKeyPairPath, serverKeyPair)
+func (o *JsonDB) SaveServerKeyPair(serverKeyPair model.ServerKeypair) error {
+	serverKeyPairPath := path.Join(path.Join(o.dbPath, "server"), "keypair.json")
+	output := o.conn.Write("server", "keypair", serverKeyPair)
 	err := util.ManagePerms(serverKeyPairPath)
 	if err != nil {
 		return err
@@ -450,9 +392,9 @@ func (o *JSONDB) SaveServerKeyPair(serverKeyPair model.ServerKeypair) error {
 	return output
 }
 
-func (o *JSONDB) SaveGlobalSettings(globalSettings model.GlobalSetting) error {
-	globalSettingsPath := filepath.Join(o.path, "server.json")
-	output := o.saveJSON(globalSettingsPath, globalSettings)
+func (o *JsonDB) SaveGlobalSettings(globalSettings model.GlobalSetting) error {
+	globalSettingsPath := path.Join(path.Join(o.dbPath, "server"), "global_settings.json")
+	output := o.conn.Write("server", "global_settings", globalSettings)
 	err := util.ManagePerms(globalSettingsPath)
 	if err != nil {
 		return err
@@ -460,18 +402,18 @@ func (o *JSONDB) SaveGlobalSettings(globalSettings model.GlobalSetting) error {
 	return output
 }
 
-func (o *JSONDB) GetPath() string {
-	return o.path
+func (o *JsonDB) GetPath() string {
+	return o.dbPath
 }
 
-func (o *JSONDB) GetHashes() (model.ClientServerHashes, error) {
+func (o *JsonDB) GetHashes() (model.ClientServerHashes, error) {
 	hashes := model.ClientServerHashes{}
-	return hashes, o.loadJSON(filepath.Join(o.path, "server.json"), &hashes)
+	return hashes, o.conn.Read("server", "hashes", &hashes)
 }
 
-func (o *JSONDB) SaveHashes(hashes model.ClientServerHashes) error {
-	hashesPath := filepath.Join(o.path, "server.json")
-	output := o.saveJSON(hashesPath, hashes)
+func (o *JsonDB) SaveHashes(hashes model.ClientServerHashes) error {
+	hashesPath := path.Join(path.Join(o.dbPath, "server"), "hashes.json")
+	output := o.conn.Write("server", "hashes", hashes)
 	err := util.ManagePerms(hashesPath)
 	if err != nil {
 		return err

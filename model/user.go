@@ -1,17 +1,17 @@
 package model
 
-// User represents a system user
-type User struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
-	Password string `json:"password"` // This should be hashed in production
-	Role     Role   `json:"role"`
-}
-
-// Role represents a user's role in the system
-type Role string
+// UserRole تعریف نوع نقش کاربر
+type UserRole string
 
 const (
-	RoleAdmin  Role = "admin"
-	RoleUser   Role = "user"
+	RoleAdmin    UserRole = "admin"
+	RoleManager  UserRole = "manager"
+	RoleUser     UserRole = "user"
 )
+
+// User model
+type User struct {
+	Username     string   `json:"username"`
+	PasswordHash string   `json:"password_hash"`
+	Role         UserRole `json:"role"`
+}
