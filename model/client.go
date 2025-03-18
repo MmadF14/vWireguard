@@ -4,34 +4,26 @@ import (
 	"time"
 )
 
-// Client model
+// Client represents a WireGuard client configuration
 type Client struct {
-	ID              string    `json:"id"`
-	PrivateKey      string    `json:"private_key"`
-	PublicKey       string    `json:"public_key"`
-	PresharedKey    string    `json:"preshared_key"`
-	Name            string    `json:"name"`
-	TgUserid        string    `json:"telegram_userid"`
-	Email           string    `json:"email"`
-	SubnetRanges    []string  `json:"subnet_ranges,omitempty"`
-	AllocatedIPs    []string  `json:"allocated_ips"`
-	AllowedIPs      []string  `json:"allowed_ips"`
-	ExtraAllowedIPs []string  `json:"extra_allowed_ips"`
-	Endpoint        string    `json:"endpoint"`
-	AdditionalNotes string    `json:"additional_notes"`
-	UseServerDNS    bool      `json:"use_server_dns"`
-	Enabled         bool      `json:"enabled"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
-	Quota           int64     `json:"quota,omitempty"`
-	UsedQuota       int64     `json:"used_quota,omitempty"`
-	Expiration      time.Time `json:"expiration,omitempty"`
+	ID            int      `json:"id"`
+	Name          string   `json:"name"`
+	Email         string   `json:"email"`
+	PrivateKey    string   `json:"private_key"`
+	PublicKey     string   `json:"public_key"`
+	Address       string   `json:"address"`
+	AllowedIPs    []string `json:"allowed_ips"`
+	ExtraAllowedIPs []string `json:"extra_allowed_ips"`
+	UseServerDNS  bool     `json:"use_server_dns"`
+	Enabled       bool     `json:"enabled"`
+	TgUserid      string   `json:"tg_userid"`
 }
 
-// ClientData includes the Client and extra data
+// ClientData represents client data with additional information
 type ClientData struct {
-	Client *Client
-	QRCode string
+	Client     Client
+	QRCode     string
+	ConfigFile string
 }
 
 type QRCodeSettings struct {
