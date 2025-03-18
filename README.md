@@ -1,246 +1,227 @@
-![](https://github.com/MmadF14/vwireguard/workflows/vWireguard%20build%20release/badge.svg)
-
 # vWireguard
 
-A web user interface to manage your WireGuard setup.
+<div align="center">
+  <img src="assets/images/vwireguard-logo.png" alt="vWireguard Logo" width="200"/>
+  <br>
+  <strong>A modern web interface for managing WireGuard VPN</strong>
+  <br>
+  <br>
+  <img src="https://img.shields.io/github/v/release/MmadF14/vWireguard?include_prereleases&sort=semver" alt="Release">
+  <img src="https://img.shields.io/github/license/MmadF14/vWireguard" alt="License">
+  <img src="https://img.shields.io/github/last-commit/MmadF14/vWireguard" alt="Last Commit">
+  <img src="https://img.shields.io/github/issues/MmadF14/vWireguard" alt="Issues">
+  <img src="https://img.shields.io/github/pull-requests/MmadF14/vWireguard" alt="Pull Requests">
+</div>
 
-## Features
+<div align="center">
+  <h3>
+    <a href="#english">English</a> |
+    <a href="#فارسی">فارسی</a>
+  </h3>
+</div>
 
-- Friendly UI
-- Authentication
-- Manage extra client information (name, email, etc.)
-- Retrieve client config using QR code / file / email / Telegram
+---
 
-![vWireguard 0.3.7](https://user-images.githubusercontent.com/37958026/177041280-e3e7ca16-d4cf-4e95-9920-68af15e780dd.png)
+<div id="english">
 
-## Run vWireguard
+## English
 
-> ⚠️The default username and password are `admin`. Please change it to secure your setup.
+### Overview
+vWireguard is a modern, user-friendly web interface for managing WireGuard VPN servers. It provides a comprehensive set of features for managing VPN clients, server configuration, and system monitoring.
 
-### Using binary file
+### Features
+- 🔒 Secure client management
+- 📊 Real-time system monitoring
+- 🔄 Automatic configuration generation
+- 📧 Email and Telegram integration
+- 👥 Multi-user support with role-based access
+- 🌐 Multi-language support (English & Persian)
+- 📱 Responsive design
+- 🔍 System utilities and tools
+- 📝 Comprehensive logging system
 
-Download the binary file from the release page and run it directly on the host machine
+### Screenshots
+<div align="center">
+  <img src="assets/images/dashboard.png" alt="Dashboard" width="400"/>
+  <br>
+  <em>Dashboard Overview</em>
+</div>
 
-```
+<div align="center">
+  <img src="assets/images/client-management.png" alt="Client Management" width="400"/>
+  <br>
+  <em>Client Management Interface</em>
+</div>
+
+<div align="center">
+  <img src="assets/images/system-monitor.png" alt="System Monitor" width="400"/>
+  <br>
+  <em>System Monitoring Dashboard</em>
+</div>
+
+### Installation
+
+#### Prerequisites
+- Go 1.16 or higher
+- WireGuard installed on your system
+- Root/sudo access for system operations
+
+#### Quick Start
+```bash
+# Clone the repository
+git clone https://github.com/MmadF14/vWireguard.git
+cd vWireguard
+
+# Build the application
+go build
+
+# Run the application
 ./vWireguard
 ```
 
-### Using docker compose
-
-The [examples/docker-compose](examples/docker-compose) folder contains example docker-compose files.
-Choose the example which fits you the most, adjust the configuration for your needs, then run it like below:
-
-```
-docker-compose up
-```
-
-## Environment Variables
-
-| Variable                      | Description                                                                                                                                                                                                                                                                         | Default                            |
-|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
-| `BASE_PATH`                   | Set this variable if you run vWireguard under a subpath of your reverse proxy virtual host (e.g. /wireguard)                                                                                                                                                                      | N/A                                |
-| `BIND_ADDRESS`                | The addresses that can access to the web interface and the port, use unix:///abspath/to/file.socket for unix domain socket.                                                                                                                                                         | 0.0.0.0:80                         |
-| `SESSION_SECRET`              | The secret key used to encrypt the session cookies. Set this to a random value                                                                                                                                                                                                      | N/A                                |
-| `SESSION_SECRET_FILE`         | Optional filepath for the secret key used to encrypt the session cookies. Leave `SESSION_SECRET` blank to take effect                                                                                                                                                               | N/A                                |
-| `SESSION_MAX_DURATION`        | Max time in days a remembered session is refreshed and valid. Non-refreshed session is valid for 7 days max, regardless of this setting.                                                                                                                                            | 90                                 |
-| `SUBNET_RANGES`               | The list of address subdivision ranges. Format: `SR Name:10.0.1.0/24; SR2:10.0.2.0/24,10.0.3.0/24` Each CIDR must be inside one of the server interfaces.                                                                                                                           | N/A                                |
-| `WGUI_USERNAME`               | The username for the login page. Used for db initialization only                                                                                                                                                                                                                    | `admin`                            |
-| `WGUI_PASSWORD`               | The password for the user on the login page. Will be hashed automatically. Used for db initialization only                                                                                                                                                                          | `admin`                            |
-| `WGUI_PASSWORD_FILE`          | Optional filepath for the user login password. Will be hashed automatically. Used for db initialization only. Leave `WGUI_PASSWORD` blank to take effect                                                                                                                            | N/A                                |
-| `WGUI_PASSWORD_HASH`          | The password hash for the user on the login page. (alternative to `WGUI_PASSWORD`). Used for db initialization only                                                                                                                                                                 | N/A                                |
-| `WGUI_PASSWORD_HASH_FILE`     | Optional filepath for the user login password hash. (alternative to `WGUI_PASSWORD_FILE`). Used for db initialization only. Leave `WGUI_PASSWORD_HASH` blank to take effect                                                                                                         | N/A                                |
-| `WGUI_ENDPOINT_ADDRESS`       | The default endpoint address used in global settings where clients should connect to. The endpoint can contain a port as well, useful when you are listening internally on the `WGUI_SERVER_LISTEN_PORT` port, but you forward on another port (ex 9000). Ex: myvpn.dyndns.com:9000 | Resolved to your public ip address |
-| `WGUI_FAVICON_FILE_PATH`      | The file path used as website favicon                                                                                                                                                                                                                                               | Embedded WireGuard logo            |
-| `WGUI_DNS`                    | The default DNS servers (comma-separated-list) used in the global settings                                                                                                                                                                                                          | `1.1.1.1`                          |
-| `WGUI_MTU`                    | The default MTU used in global settings                                                                                                                                                                                                                                             | `1450`                             |
-| `WGUI_PERSISTENT_KEEPALIVE`   | The default persistent keepalive for WireGuard in global settings                                                                                                                                                                                                                   | `15`                               |
-| `WGUI_FIREWALL_MARK`          | The default WireGuard firewall mark                                                                                                                                                                                                                                                 | `0xca6c`  (51820)                  |
-| `WGUI_TABLE`                  | The default WireGuard table value settings                                                                                                                                                                                                                                          | `auto`                             |
-| `WGUI_CONFIG_FILE_PATH`       | The default WireGuard config file path used in global settings                                                                                                                                                                                                                      | `/etc/wireguard/wg0.conf`          |
-| `WGUI_LOG_LEVEL`              | The default log level. Possible values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`                                                                                                                                                                                                     | `INFO`                             |
-| `WG_CONF_TEMPLATE`            | The custom `wg.conf` config file template. Please refer to our [default template](https://github.com/MmadF14/vwireguard/blob/master/templates/wg.conf)                                                                                                                        | N/A                                |
-| `EMAIL_FROM_ADDRESS`          | The sender email address                                                                                                                                                                                                                                                            | N/A                                |
-| `EMAIL_FROM_NAME`             | The sender name                                                                                                                                                                                                                                                                     | `WireGuard UI`                     |
-| `SENDGRID_API_KEY`            | The SendGrid api key                                                                                                                                                                                                                                                                | N/A                                |
-| `SENDGRID_API_KEY_FILE`       | Optional filepath for the SendGrid api key. Leave `SENDGRID_API_KEY` blank to take effect                                                                                                                                                                                           | N/A                                |
-| `SMTP_HOSTNAME`               | The SMTP IP address or hostname                                                                                                                                                                                                                                                     | `127.0.0.1`                        |
-| `SMTP_PORT`                   | The SMTP port                                                                                                                                                                                                                                                                       | `25`                               |
-| `SMTP_USERNAME`               | The SMTP username                                                                                                                                                                                                                                                                   | N/A                                |
-| `SMTP_PASSWORD`               | The SMTP user password                                                                                                                                                                                                                                                              | N/A                                |
-| `SMTP_PASSWORD_FILE`          | Optional filepath for the SMTP user password. Leave `SMTP_PASSWORD` blank to take effect                                                                                                                                                                                            | N/A                                |
-| `SMTP_AUTH_TYPE`              | The SMTP authentication type. Possible values: `PLAIN`, `LOGIN`, `NONE`                                                                                                                                                                                                             | `NONE`                             |
-| `SMTP_ENCRYPTION`             | The encryption method. Possible values: `NONE`, `SSL`, `SSLTLS`, `TLS`, `STARTTLS`                                                                                                                                                                                                  | `STARTTLS`                         |
-| `SMTP_HELO`                   | Hostname to use for the HELO message. smtp-relay.gmail.com needs this set to anything but `localhost`                                                                                                                                                                               | `localhost`                        |
-| `TELEGRAM_TOKEN`              | Telegram bot token for distributing configs to clients                                                                                                                                                                                                                              | N/A                                |
-| `TELEGRAM_ALLOW_CONF_REQUEST` | Allow users to get configs from the bot by sending a message                                                                                                                                                                                                                        | `false`                            |
-| `TELEGRAM_FLOOD_WAIT`         | Time in minutes before the next conf request is processed                                                                                                                                                                                                                           | `60`                               |
-
-### Defaults for server configuration
-
-These environment variables are used to control the default server settings used when initializing the database.
-
-| Variable                          | Description                                                                                   | Default         |
-|-----------------------------------|-----------------------------------------------------------------------------------------------|-----------------|
-| `WGUI_SERVER_INTERFACE_ADDRESSES` | The default interface addresses (comma-separated-list) for the WireGuard server configuration | `10.252.1.0/24` |
-| `WGUI_SERVER_LISTEN_PORT`         | The default server listen port                                                                | `51820`         |
-| `WGUI_SERVER_POST_UP_SCRIPT`      | The default server post-up script                                                             | N/A             |
-| `WGUI_SERVER_POST_DOWN_SCRIPT`    | The default server post-down script                                                           | N/A             |
-
-### Defaults for new clients
-
-These environment variables are used to set the defaults used in `New Client` dialog.
-
-| Variable                                    | Description                                                                                     | Default     |
-|---------------------------------------------|-------------------------------------------------------------------------------------------------|-------------|
-| `WGUI_DEFAULT_CLIENT_ALLOWED_IPS`           | Comma-separated-list of CIDRs for the `Allowed IPs` field. (default )                           | `0.0.0.0/0` |
-| `WGUI_DEFAULT_CLIENT_EXTRA_ALLOWED_IPS`     | Comma-separated-list of CIDRs for the `Extra Allowed IPs` field. (default empty)                | N/A         |
-| `WGUI_DEFAULT_CLIENT_USE_SERVER_DNS`        | Boolean value [`0`, `f`, `F`, `false`, `False`, `FALSE`, `1`, `t`, `T`, `true`, `True`, `TRUE`] | `true`      |
-| `WGUI_DEFAULT_CLIENT_ENABLE_AFTER_CREATION` | Boolean value [`0`, `f`, `F`, `false`, `False`, `FALSE`, `1`, `t`, `T`, `true`, `True`, `TRUE`] | `true`      |
-
-### Docker only
-
-These environment variables only apply to the docker container.
-
-| Variable              | Description                                                   | Default |
-|-----------------------|---------------------------------------------------------------|---------|
-| `WGUI_MANAGE_START`   | Start/stop WireGuard when the container is started/stopped    | `false` |
-| `WGUI_MANAGE_RESTART` | Auto restart WireGuard when we Apply Config changes in the UI | `false` |
-
-## Auto restart WireGuard daemon
-
-vWireguard only takes care of configuration generation. You can use systemd to watch for the changes and restart the
-service. Following is an example:
-
-### Using systemd
-
-Create `/etc/systemd/system/wgui.service`
+#### Configuration
+The application can be configured using environment variables or command-line flags:
 
 ```bash
-cd /etc/systemd/system/
-cat << EOF > wgui.service
-[Unit]
-Description=Restart WireGuard
-After=network.target
+# Basic configuration
+./vWireguard --bind-address=0.0.0.0:5000 --disable-login=false
 
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/systemctl restart wg-quick@wg0.service
+# With email configuration
+./vWireguard --email-from=admin@example.com --smtp-hostname=smtp.example.com
 
-[Install]
-RequiredBy=wgui.path
-EOF
+# With Telegram integration
+./vWireguard --telegram-token=YOUR_BOT_TOKEN
 ```
 
-Create `/etc/systemd/system/wgui.path`
+### Usage
+1. Access the web interface at `http://your-server:5000`
+2. Log in with your credentials (default: admin/admin)
+3. Start managing your WireGuard VPN
+
+### API Documentation
+The application provides a RESTful API for programmatic access:
 
 ```bash
-cd /etc/systemd/system/
-cat << EOF > wgui.path
-[Unit]
-Description=Watch /etc/wireguard/wg0.conf for changes
+# Get all clients
+GET /api/clients
 
-[Path]
-PathModified=/etc/wireguard/wg0.conf
+# Create a new client
+POST /new-client
 
-[Install]
-WantedBy=multi-user.target
-EOF
+# Update client status
+POST /client/set-status
+
+# Get system metrics
+GET /api/system-metrics
 ```
 
-Apply it
+### Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-```sh
-systemctl enable wgui.{path,service}
-systemctl start wgui.{path,service}
+### License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+</div>
+
+---
+
+<div id="فارسی">
+
+## فارسی
+
+### معرفی
+vWireguard یک رابط کاربری وب مدرن و کاربرپسند برای مدیریت سرورهای WireGuard VPN است. این برنامه مجموعه‌ای جامع از ویژگی‌ها را برای مدیریت کلاینت‌های VPN، پیکربندی سرور و نظارت بر سیستم ارائه می‌دهد.
+
+### ویژگی‌ها
+- 🔒 مدیریت امن کلاینت‌ها
+- 📊 نظارت بر سیستم در زمان واقعی
+- 🔄 تولید خودکار پیکربندی
+- 📧 یکپارچه‌سازی ایمیل و تلگرام
+- 👥 پشتیبانی از چند کاربر با دسترسی مبتنی بر نقش
+- 🌐 پشتیبانی از چند زبان (انگلیسی و فارسی)
+- 📱 طراحی واکنش‌گرا
+- 🔍 ابزارها و امکانات سیستم
+- 📝 سیستم ثبت رویداد جامع
+
+### تصاویر
+<div align="center">
+  <img src="assets/images/dashboard.png" alt="داشبورد" width="400"/>
+  <br>
+  <em>نمای کلی داشبورد</em>
+</div>
+
+<div align="center">
+  <img src="assets/images/client-management.png" alt="مدیریت کلاینت" width="400"/>
+  <br>
+  <em>رابط مدیریت کلاینت</em>
+</div>
+
+<div align="center">
+  <img src="assets/images/system-monitor.png" alt="نظارت بر سیستم" width="400"/>
+  <br>
+  <em>داشبورد نظارت بر سیستم</em>
+</div>
+
+### نصب
+
+#### پیش‌نیازها
+- Go 1.16 یا بالاتر
+- WireGuard نصب شده روی سیستم
+- دسترسی root/sudo برای عملیات سیستم
+
+#### شروع سریع
+```bash
+# کلون کردن مخزن
+git clone https://github.com/MmadF14/vWireguard.git
+cd vWireguard
+
+# ساخت برنامه
+go build
+
+# اجرای برنامه
+./vWireguard
 ```
 
-### Using openrc
+#### پیکربندی
+برنامه را می‌توان با استفاده از متغیرهای محیطی یا پرچم‌های خط فرمان پیکربندی کرد:
 
-Create `/usr/local/bin/wgui` file and make it executable
+```bash
+# پیکربندی پایه
+./vWireguard --bind-address=0.0.0.0:5000 --disable-login=false
 
-```sh
-cd /usr/local/bin/
-cat << EOF > wgui
-#!/bin/sh
-wg-quick down wg0
-wg-quick up wg0
-EOF
-chmod +x wgui
+# با پیکربندی ایمیل
+./vWireguard --email-from=admin@example.com --smtp-hostname=smtp.example.com
+
+# با یکپارچه‌سازی تلگرام
+./vWireguard --telegram-token=YOUR_BOT_TOKEN
 ```
 
-Create `/etc/init.d/wgui` file and make it executable
+### استفاده
+1. به رابط وب در آدرس `http://your-server:5000` دسترسی پیدا کنید
+2. با اطلاعات ورود خود وارد شوید (پیش‌فرض: admin/admin)
+3. شروع به مدیریت VPN WireGuard خود کنید
 
-```sh
-cd /etc/init.d/
-cat << EOF > wgui
-#!/sbin/openrc-run
+### مستندات API
+برنامه یک API RESTful برای دسترسی برنامه‌نویسی ارائه می‌دهد:
 
-command=/sbin/inotifyd
-command_args="/usr/local/bin/wgui /etc/wireguard/wg0.conf:w"
-pidfile=/run/${RC_SVCNAME}.pid
-command_background=yes
-EOF
-chmod +x wgui
+```bash
+# دریافت تمام کلاینت‌ها
+GET /api/clients
+
+# ایجاد کلاینت جدید
+POST /new-client
+
+# به‌روزرسانی وضعیت کلاینت
+POST /client/set-status
+
+# دریافت معیارهای سیستم
+GET /api/system-metrics
 ```
 
-Apply it
+### مشارکت
+مشارکت‌ها مورد استقبال قرار می‌گیرند! لطفاً آزادانه یک Pull Request ارسال کنید.
 
-```sh
-rc-service wgui start
-rc-update add wgui default
-```
+### مجوز
+این پروژه تحت مجوز MIT است - برای جزئیات به فایل [LICENSE](LICENSE) مراجعه کنید.
 
-### Using Docker
-
-Set `WGUI_MANAGE_RESTART=true` to manage Wireguard interface restarts.
-Using `WGUI_MANAGE_START=true` can also replace the function of `wg-quick@wg0` service, to start Wireguard at boot, by
-running the container with `restart: unless-stopped`. These settings can also pick up changes to Wireguard Config File
-Path, after restarting the container. Please make sure you have `--cap-add=NET_ADMIN` in your container config to make
-this feature work.
-
-## Build
-
-### Build docker image
-
-Go to the project root directory and run the following command:
-
-```sh
-docker build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD) -t vWireguard .
-```
-
-or
-
-```sh
-docker compose build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD)
-```
-
-:information_source: A container image is available on [Docker Hub](https://hub.docker.com/r/MmadF14/vWireguard)
-which you can pull and use
-
-```
-docker pull MmadF14/vWireguard
-````
-
-### Build binary file
-
-Prepare the assets directory
-
-```sh
-./prepare_assets.sh
-```
-
-Then build your executable
-
-```sh
-go build -o vWireguard
-```
-
-## License
-
-MIT. See [LICENSE](https://github.com/MmadF14/vwireguard/blob/master/LICENSE).
-
-## Support
-
-If you like the project and want to support it, you can *buy me a coffee* ☕
-
-<a href="https://www.buymeacoffee.com/khanhngo" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+</div>
