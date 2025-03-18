@@ -721,6 +721,12 @@ const translations = {
         "All rights reserved": "تمامی حقوق محفوظ است",
         "Could not find this version on GitHub.com": "این نسخه در گیت‌هاب یافت نشد",
         "Could not connect to GitHub.com": "اتصال به گیت‌هاب امکان‌پذیر نیست",
-        "Current version is out of date": "نسخه فعلی قدیمی است"
+        "Current version is out of date": "نسخه فعلی قدیمی است",
+        "System Monitor Additional": "اطلاعات اضافی سیستم",
+        "Disk": "دیسک",
+        "Swap": "فضای مبادله",
+        "RAM": "حافظه",
+        "System Load": "بار سیستم",
+        "+Wireguard": "+وایرگارد"
     }
 }; 

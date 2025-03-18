@@ -25,15 +25,6 @@ Download the binary file from the release page and run it directly on the host m
 ./vWireguard
 ```
 
-### Using docker compose
-
-The [examples/docker-compose](examples/docker-compose) folder contains example docker-compose files.
-Choose the example which fits you the most, adjust the configuration for your needs, then run it like below:
-
-```
-docker-compose up
-```
-
 ## Environment Variables
 
 | Variable                      | Description                                                                                                                                                                                                                                                                         | Default                            |
@@ -58,7 +49,7 @@ docker-compose up
 | `WGUI_TABLE`                  | The default WireGuard table value settings                                                                                                                                                                                                                                          | `auto`                             |
 | `WGUI_CONFIG_FILE_PATH`       | The default WireGuard config file path used in global settings                                                                                                                                                                                                                      | `/etc/wireguard/wg0.conf`          |
 | `WGUI_LOG_LEVEL`              | The default log level. Possible values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`                                                                                                                                                                                                     | `INFO`                             |
-| `WG_CONF_TEMPLATE`            | The custom `wg.conf` config file template. Please refer to our [default template](https://github.com/MmadF14/vwireguard/blob/master/templates/wg.conf)                                                                                                                        | N/A                                |
+| `WG_CONF_TEMPLATE`            | The custom `wg.conf` config file template. Please refer to our [default template](https://github.com/MmadF14/vWireguard/blob/master/templates/wg.conf)                                                                                                                        | N/A                                |
 | `EMAIL_FROM_ADDRESS`          | The sender email address                                                                                                                                                                                                                                                            | N/A                                |
 | `EMAIL_FROM_NAME`             | The sender name                                                                                                                                                                                                                                                                     | `WireGuard UI`                     |
 | `SENDGRID_API_KEY`            | The SendGrid api key                                                                                                                                                                                                                                                                | N/A                                |
@@ -96,15 +87,6 @@ These environment variables are used to set the defaults used in `New Client` di
 | `WGUI_DEFAULT_CLIENT_EXTRA_ALLOWED_IPS`     | Comma-separated-list of CIDRs for the `Extra Allowed IPs` field. (default empty)                | N/A         |
 | `WGUI_DEFAULT_CLIENT_USE_SERVER_DNS`        | Boolean value [`0`, `f`, `F`, `false`, `False`, `FALSE`, `1`, `t`, `T`, `true`, `True`, `TRUE`] | `true`      |
 | `WGUI_DEFAULT_CLIENT_ENABLE_AFTER_CREATION` | Boolean value [`0`, `f`, `F`, `false`, `False`, `FALSE`, `1`, `t`, `T`, `true`, `True`, `TRUE`] | `true`      |
-
-### Docker only
-
-These environment variables only apply to the docker container.
-
-| Variable              | Description                                                   | Default |
-|-----------------------|---------------------------------------------------------------|---------|
-| `WGUI_MANAGE_START`   | Start/stop WireGuard when the container is started/stopped    | `false` |
-| `WGUI_MANAGE_RESTART` | Auto restart WireGuard when we Apply Config changes in the UI | `false` |
 
 ## Auto restart WireGuard daemon
 
@@ -190,36 +172,7 @@ rc-service wgui start
 rc-update add wgui default
 ```
 
-### Using Docker
-
-Set `WGUI_MANAGE_RESTART=true` to manage Wireguard interface restarts.
-Using `WGUI_MANAGE_START=true` can also replace the function of `wg-quick@wg0` service, to start Wireguard at boot, by
-running the container with `restart: unless-stopped`. These settings can also pick up changes to Wireguard Config File
-Path, after restarting the container. Please make sure you have `--cap-add=NET_ADMIN` in your container config to make
-this feature work.
-
 ## Build
-
-### Build docker image
-
-Go to the project root directory and run the following command:
-
-```sh
-docker build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD) -t vWireguard .
-```
-
-or
-
-```sh
-docker compose build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD)
-```
-
-:information_source: A container image is available on [Docker Hub](https://hub.docker.com/r/MmadF14/vWireguard)
-which you can pull and use
-
-```
-docker pull MmadF14/vWireguard
-````
 
 ### Build binary file
 

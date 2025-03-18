@@ -16,27 +16,34 @@
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
+        <!-- Social Links Card -->
         <div class="card mb-4">
             <div class="card-header">
-                <h3 class="card-title" data-translate="System Status">System Status</h3>
+                <h3 class="card-title" data-translate="Social Links">Social Links</h3>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <h5 data-translate="System Information">System Information</h5>
-                        <ul class="list-unstyled">
-                            <li><strong data-translate="CPU Usage">CPU Usage:</strong> <span id="cpu-usage">-</span></li>
-                            <li><strong data-translate="Memory Usage">Memory Usage:</strong> <span id="memory-usage">-</span></li>
-                            <li><strong data-translate="Disk Usage">Disk Usage:</strong> <span id="disk-usage">-</span></li>
-                        </ul>
+                        <div class="form-group">
+                            <label for="github-link" data-translate="GitHub Repository">GitHub Repository:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="github-link" name="github-link" value="{{ .baseData.GitHubLink }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="save-github" data-translate="Save">Save</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <h5 data-translate="Network Status">Network Status</h5>
-                        <ul class="list-unstyled">
-                            <li><strong data-translate="Interface Status">Interface Status:</strong> <span id="interface-status">-</span></li>
-                            <li><strong data-translate="Active Connections">Active Connections:</strong> <span id="active-connections">-</span></li>
-                            <li><strong data-translate="Total Data Transfer">Total Data Transfer:</strong> <span id="data-transfer">-</span></li>
-                        </ul>
+                        <div class="form-group">
+                            <label for="telegram-link" data-translate="Telegram Channel">Telegram Channel:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="telegram-link" name="telegram-link" value="{{ .baseData.TelegramLink }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="save-telegram" data-translate="Save">Save</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -131,15 +138,38 @@ $(document).ready(function() {
         $('#statusModal').modal('show');
     }
 
-    function updateSystemStatus() {
-        // Simulated status updates - replace with actual API calls
-        document.getElementById('cpu-usage').textContent = Math.floor(Math.random() * 100) + '%';
-        document.getElementById('memory-usage').textContent = Math.floor(Math.random() * 100) + '%';
-        document.getElementById('disk-usage').textContent = Math.floor(Math.random() * 100) + '%';
-        document.getElementById('interface-status').textContent = Math.random() > 0.5 ? 'Active' : 'Inactive';
-        document.getElementById('active-connections').textContent = Math.floor(Math.random() * 50);
-        document.getElementById('data-transfer').textContent = Math.floor(Math.random() * 1000) + ' MB';
-    }
+    // Social Links handlers
+    $('#save-github').click(function() {
+        const githubLink = $('#github-link').val();
+        $.ajax({
+            url: util.basePath + '/api/settings/github-link',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ link: githubLink }),
+            success: function() {
+                showStatus('GitHub link saved successfully');
+            },
+            error: function() {
+                showStatus('Failed to save GitHub link', true);
+            }
+        });
+    });
+
+    $('#save-telegram').click(function() {
+        const telegramLink = $('#telegram-link').val();
+        $.ajax({
+            url: util.basePath + '/api/settings/telegram-link',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ link: telegramLink }),
+            success: function() {
+                showStatus('Telegram link saved successfully');
+            },
+            error: function() {
+                showStatus('Failed to save Telegram link', true);
+            }
+        });
+    });
 
     // Button click handlers
     $('#restart-service').click(function() {
@@ -168,11 +198,6 @@ $(document).ready(function() {
         logOutput.value = '';
         showStatus('Logs cleared successfully');
     });
-
-    // Initial status update
-    updateSystemStatus();
-    // Update status every 5 seconds
-    setInterval(updateSystemStatus, 5000);
 });
 </script>
 {{end}} 
