@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"os/exec"
-	"time"
 
 	"github.com/MmadF14/vwireguard/model"
 	"github.com/MmadF14/vwireguard/store"
