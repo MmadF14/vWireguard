@@ -1193,15 +1193,28 @@ func WireGuardServerKeyPair(db store.IStore) echo.HandlerFunc {
 // GlobalSettings handler
 func GlobalSettings(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		globalSettings, err := db.GetGlobalSettings()
+		settings, err := db.GetGlobalSettings()
 		if err != nil {
-			log.Error("Cannot get global settings: ", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get settings"})
 		}
 
-		return c.Render(http.StatusOK, "global_settings.html", map[string]interface{}{
-			"baseData":       model.BaseData{Active: "global-settings", CurrentUser: currentUser(c), Admin: isAdmin(c)},
-			"globalSettings": globalSettings,
-		})
+		return c.JSON(http.StatusOK, settings)
+	}
+}
+
+// SaveGlobalSettings handler
+func SaveGlobalSettings(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var settings model.GlobalSetting
+		if err := c.Bind(&settings); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request"})
+		}
+
+		if err := db.SaveGlobalSettings(settings); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot save settings"})
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Settings saved successfully"})
 	}
 }
 
