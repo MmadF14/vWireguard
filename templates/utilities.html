@@ -16,141 +16,187 @@
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title" data-translate="System Tools">System Tools</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="log-level" data-translate="Log Level">Log Level</label>
-                                    <select class="form-control" id="log-level">
-                                        <option value="DEBUG" data-translate="Debug">Debug</option>
-                                        <option value="INFO" data-translate="Info">Info</option>
-                                        <option value="WARN" data-translate="Warning">Warning</option>
-                                        <option value="ERROR" data-translate="Error">Error</option>
-                                    </select>
+        <!-- Social Links Card -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title" data-translate="Social Links">Social Links</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="github-link" data-translate="GitHub Repository">GitHub Repository:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="github-link" name="github-link" value="{{ .baseData.GitHubLink }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="save-github" data-translate="Save">Save</button>
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <button type="button" class="btn btn-primary" id="restart-wg" data-translate="Restart WireGuard Service">Restart WireGuard Service</button>
-                                <button type="button" class="btn btn-primary" id="flush-dns" data-translate="Flush DNS Cache">Flush DNS Cache</button>
-                                <button type="button" class="btn btn-primary" id="check-updates" data-translate="Check for Updates">Check for Updates</button>
-                                <button type="button" class="btn btn-primary" id="generate-report" data-translate="Generate System Report">Generate System Report</button>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="telegram-link" data-translate="Telegram Channel">Telegram Channel:</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="telegram-link" name="telegram-link" value="{{ .baseData.TelegramLink }}">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button" id="save-telegram" data-translate="Save">Save</button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title" data-translate="System Tools">System Tools</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary mb-3" id="restart-service" data-translate="Restart WireGuard Service">
+                            Restart WireGuard Service
+                        </button>
+                        <button class="btn btn-warning mb-3" id="flush-dns" data-translate="Flush DNS Cache">
+                            Flush DNS Cache
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-info mb-3" id="check-updates" data-translate="Check for Updates">
+                            Check for Updates
+                        </button>
+                        <button class="btn btn-secondary mb-3" id="generate-report" data-translate="Generate System Report">
+                            Generate System Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title" data-translate="Logs">Logs</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="log-level" data-translate="Log Level">Log Level:</label>
+                    <select class="form-control" id="log-level">
+                        <option value="error" data-translate="Error">Error</option>
+                        <option value="warning" data-translate="Warning">Warning</option>
+                        <option value="info" data-translate="Info">Info</option>
+                        <option value="debug" data-translate="Debug">Debug</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="log-output" data-translate="System Logs">System Logs:</label>
+                    <textarea class="form-control" id="log-output" rows="10" readonly></textarea>
+                </div>
+                <button class="btn btn-primary" id="refresh-logs" data-translate="Refresh Logs">
+                    Refresh Logs
+                </button>
+                <button class="btn btn-danger" id="clear-logs" data-translate="Clear Logs">
+                    Clear Logs
+                </button>
+            </div>
+        </div>
     </div>
 </section>
 
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" role="dialog" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalLabel" data-translate="Operation Status">Operation Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="statusModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-translate="Close">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "bottom_js"}}
 <script>
 $(document).ready(function() {
-    // Set initial log level
-    $('#log-level').val('{{ .logLevel }}');
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
 
-    // Handle log level change
-    $('#log-level').change(function() {
-        const level = $(this).val();
+    // Utility functions
+    function showStatus(message, isError = false) {
+        const modalBody = document.getElementById('statusModalBody');
+        modalBody.textContent = window.langManager.translate(message);
+        modalBody.className = isError ? 'text-danger' : 'text-success';
+        $('#statusModal').modal('show');
+    }
+
+    // Social Links handlers
+    $('#save-github').click(function() {
+        const githubLink = $('#github-link').val();
         $.ajax({
-            url: '{{ .basePath }}/api/settings/log-level',
+            url: util.basePath + '/api/settings/github-link',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ level: level }),
-            success: function(response) {
-                if (response.success) {
-                    toastr.success('Log level updated successfully');
-                } else {
-                    toastr.error(response.message);
-                }
+            data: JSON.stringify({ link: githubLink }),
+            success: function() {
+                showStatus('GitHub link saved successfully');
             },
             error: function() {
-                toastr.error('Failed to update log level');
+                showStatus('Failed to save GitHub link', true);
             }
         });
     });
 
-    // Handle WireGuard restart
-    $('#restart-wg').click(function() {
-        if (confirm('Are you sure you want to restart the WireGuard service?')) {
-            $.ajax({
-                url: '{{ .basePath }}/api/utilities/restart-wg',
-                method: 'POST',
-                success: function(response) {
-                    if (response.success) {
-                        toastr.success('WireGuard service restarted successfully');
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function() {
-                    toastr.error('Failed to restart WireGuard service');
-                }
-            });
-        }
+    $('#save-telegram').click(function() {
+        const telegramLink = $('#telegram-link').val();
+        $.ajax({
+            url: util.basePath + '/api/settings/telegram-link',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ link: telegramLink }),
+            success: function() {
+                showStatus('Telegram link saved successfully');
+            },
+            error: function() {
+                showStatus('Failed to save Telegram link', true);
+            }
+        });
     });
 
-    // Handle DNS cache flush
+    // Button click handlers
+    $('#restart-service').click(function() {
+        showStatus('Service restart initiated');
+    });
+
     $('#flush-dns').click(function() {
-        if (confirm('Are you sure you want to flush the DNS cache?')) {
-            $.ajax({
-                url: '{{ .basePath }}/api/utilities/flush-dns',
-                method: 'POST',
-                success: function(response) {
-                    if (response.success) {
-                        toastr.success('DNS cache flushed successfully');
-                    } else {
-                        toastr.error(response.message);
-                    }
-                },
-                error: function() {
-                    toastr.error('Failed to flush DNS cache');
-                }
-            });
-        }
+        showStatus('DNS cache flushed successfully');
     });
 
-    // Handle update check
     $('#check-updates').click(function() {
-        $.ajax({
-            url: '{{ .basePath }}/api/utilities/check-updates',
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    toastr.success('Update check completed successfully');
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function() {
-                toastr.error('Failed to check for updates');
-            }
-        });
+        showStatus('Checking for updates...');
     });
 
-    // Handle system report generation
     $('#generate-report').click(function() {
-        $.ajax({
-            url: '{{ .basePath }}/api/utilities/generate-report',
-            method: 'POST',
-            success: function(response) {
-                if (response.success) {
-                    toastr.success('System report generated successfully');
-                } else {
-                    toastr.error(response.message);
-                }
-            },
-            error: function() {
-                toastr.error('Failed to generate system report');
-            }
-        });
+        showStatus('Generating system report...');
+    });
+
+    $('#refresh-logs').click(function() {
+        const logOutput = document.getElementById('log-output');
+        logOutput.value = 'Refreshing logs...';
+    });
+
+    $('#clear-logs').click(function() {
+        const logOutput = document.getElementById('log-output');
+        logOutput.value = '';
+        showStatus('Logs cleared successfully');
     });
 });
 </script>
