@@ -17,64 +17,40 @@
 
 ### English
 <div align="center">
-  <h3>Dashboard | داشبورد</h3>
+  <h3>Dashboard</h3>
   <img src="assets/images/dashboard.png" alt="Dashboard" width="800"/>
   <p><em>Main dashboard showing system overview and statistics</em></p>
 </div>
 
 <div align="center">
-  <h3>Client Management | مدیریت کلاینت‌ها</h3>
+  <h3>Client Management</h3>
   <img src="assets/images/client-management.png" alt="Client Management" width="800"/>
   <p><em>Client management interface with connection status and configuration options</em></p>
 </div>
 
 <div align="center">
-  <h3>System Monitor | نظارت بر سیستم</h3>
+  <h3>System Monitor</h3>
   <img src="assets/images/system-monitor.png" alt="System Monitor" width="800"/>
   <p><em>Real-time system monitoring with resource usage graphs</em></p>
 </div>
 
-<div align="center">
-  <h3>Wake-on-LAN | روشن‌سازی از راه دور</h3>
-  <img src="assets/images/wol.png" alt="Wake-on-LAN" width="800"/>
-  <p><em>Wake-on-LAN interface for remote device management</em></p>
-</div>
-
-<div align="center">
-  <h3>Utilities | ابزارها</h3>
-  <img src="assets/images/utilities.png" alt="Utilities" width="800"/>
-  <p><em>System utilities and maintenance tools</em></p>
-</div>
-
 ### فارسی
 <div dir="rtl" align="center">
-  <h3>داشبورد | Dashboard</h3>
+  <h3>داشبورد</h3>
   <img src="assets/images/dashboard.png" alt="داشبورد" width="800"/>
   <p><em>داشبورد اصلی با نمایش کلی سیستم و آمار</em></p>
 </div>
 
 <div dir="rtl" align="center">
-  <h3>مدیریت کلاینت‌ها | Client Management</h3>
+  <h3>مدیریت کلاینت‌ها</h3>
   <img src="assets/images/client-management.png" alt="مدیریت کلاینت" width="800"/>
   <p><em>رابط مدیریت کلاینت با وضعیت اتصال و گزینه‌های پیکربندی</em></p>
 </div>
 
 <div dir="rtl" align="center">
-  <h3>نظارت بر سیستم | System Monitor</h3>
+  <h3>نظارت بر سیستم</h3>
   <img src="assets/images/system-monitor.png" alt="نظارت بر سیستم" width="800"/>
   <p><em>نظارت بر سیستم در زمان واقعی با نمودارهای مصرف منابع</em></p>
-</div>
-
-<div dir="rtl" align="center">
-  <h3>روشن‌سازی از راه دور | Wake-on-LAN</h3>
-  <img src="assets/images/wol.png" alt="روشن‌سازی از راه دور" width="800"/>
-  <p><em>رابط روشن‌سازی از راه دور برای مدیریت دستگاه‌ها</em></p>
-</div>
-
-<div dir="rtl" align="center">
-  <h3>ابزارها | Utilities</h3>
-  <img src="assets/images/utilities.png" alt="ابزارها" width="800"/>
-  <p><em>ابزارهای سیستم و نگهداری</em></p>
 </div>
 
 ## 🌟 Features | ویژگی‌ها
