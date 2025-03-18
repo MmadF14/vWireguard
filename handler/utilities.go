@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 	"os/exec"
 
@@ -127,7 +128,13 @@ func GenerateSystemReport(db store.IStore) echo.HandlerFunc {
 			report["system_logs"] = string(logs)
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, report})
+		// Convert report to JSON string
+		reportJSON, err := json.MarshalIndent(report, "", "  ")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate system report"})
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, string(reportJSON)})
 	}
 }
 
