@@ -107,7 +107,7 @@ systemctl start vwireguard
 # Check if service is running
 if systemctl is-active --quiet vwireguard; then
     echo -e "${GREEN}vWireguard is running!${NC}"
-    echo -e "${GREEN}You can access the panel at: http://YOUR_IP:8080${NC}"
+    echo -e "${GREEN}You can access the panel at: http://YOUR_IP:5000${NC}"
     echo -e "${GREEN}Default credentials:${NC}"
     echo -e "${GREEN}Username: admin${NC}"
     echo -e "${GREEN}Password: admin${NC}"
@@ -119,10 +119,10 @@ fi
 # Setup firewall rules
 echo -e "${YELLOW}Setting up firewall rules...${NC}"
 if command -v ufw &> /dev/null; then
-    ufw allow 8080/tcp
+    ufw allow 5000/tcp
     ufw allow 51820/udp
 elif command -v firewall-cmd &> /dev/null; then
-    firewall-cmd --permanent --add-port=8080/tcp
+    firewall-cmd --permanent --add-port=5000/tcp
     firewall-cmd --permanent --add-port=51820/udp
     firewall-cmd --reload
 fi

@@ -64,7 +64,7 @@ go build
 
 ## 📋 Prerequisites
 
-- Go 1.16 or higher
+- Go 1.21 or higher
 - WireGuard installed on the server
 - Linux-based system (Ubuntu recommended)
 - Root privileges for system operations
@@ -78,7 +78,7 @@ wg-quick up wg0
 
 2. Access the web interface:
 ```
-http://localhost:8080
+http://localhost:5000
 ```
 
 3. Default credentials:

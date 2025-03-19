@@ -76,15 +76,61 @@ uninstall_panel() {
 
 reset_credentials() {
     echo -e "${YELLOW}Resetting credentials...${NC}"
-    # Add your reset credentials logic here
-    echo -e "${GREEN}Credentials have been reset to default${NC}"
+    if [ ! -f "/etc/vwireguard/config.toml" ]; then
+        echo -e "${RED}Config file not found${NC}"
+        return
+    }
+    
+    # Stop the service
+    systemctl stop vwireguard
+    
+    # Reset credentials in config file
+    sed -i 's/username = .*/username = "admin"/' /etc/vwireguard/config.toml
+    sed -i 's/password = .*/password = "admin"/' /etc/vwireguard/config.toml
+    
+    # Start the service
+    systemctl start vwireguard
+    
+    echo -e "${GREEN}Credentials have been reset to:${NC}"
+    echo -e "Username: admin"
+    echo -e "Password: admin"
 }
 
 change_port() {
     echo -e "${YELLOW}Enter new port number:${NC}"
     read -r new_port
-    # Add your port change logic here
+    
+    if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [ "$new_port" -lt 1 ] || [ "$new_port" -gt 65535 ]; then
+        echo -e "${RED}Invalid port number${NC}"
+        return
+    }
+    
+    if [ ! -f "/etc/vwireguard/config.toml" ]; then
+        echo -e "${RED}Config file not found${NC}"
+        return
+    }
+    
+    # Stop the service
+    systemctl stop vwireguard
+    
+    # Update port in config file
+    sed -i "s/listen_port = .*/listen_port = $new_port/" /etc/vwireguard/config.toml
+    
+    # Update firewall rules
+    if command -v ufw &> /dev/null; then
+        ufw delete allow 5000/tcp 2>/dev/null
+        ufw allow $new_port/tcp
+    elif command -v firewall-cmd &> /dev/null; then
+        firewall-cmd --permanent --remove-port=5000/tcp 2>/dev/null
+        firewall-cmd --permanent --add-port=$new_port/tcp
+        firewall-cmd --reload
+    fi
+    
+    # Start the service
+    systemctl start vwireguard
+    
     echo -e "${GREEN}Port has been changed to $new_port${NC}"
+    echo -e "${YELLOW}Please access the panel at: http://YOUR_IP:$new_port${NC}"
 }
 
 view_settings() {
