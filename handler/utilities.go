@@ -127,8 +127,12 @@ func GenerateSystemReport(db store.IStore) echo.HandlerFunc {
 			report["system_logs"] = string(logs)
 		}
 
+<<<<<<< HEAD
 		// Return the report directly without wrapping in jsonHTTPResponse
 		return c.JSON(http.StatusOK, report)
+=======
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, report})
+>>>>>>> parent of c0153b0 (Update utilities.go)
 	}
 }
 
