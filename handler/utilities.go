@@ -128,13 +128,13 @@ func GenerateSystemReport(db store.IStore) echo.HandlerFunc {
 			report["system_logs"] = string(logs)
 		}
 
-		// Convert report to JSON string
-		reportJSON, err := json.MarshalIndent(report, "", "  ")
+		// Convert report to JSON
+		jsonReport, err := json.Marshal(report)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate system report"})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate report"})
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, string(reportJSON)})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, string(jsonReport)})
 	}
 }
 
