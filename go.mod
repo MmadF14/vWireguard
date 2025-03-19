@@ -20,7 +20,7 @@ require (
 	golang.org/x/crypto v0.17.0
 	golang.org/x/mod v0.14.0
 	golang.org/x/sys v0.15.0
-	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20210803171230-4253848d036c
 	gopkg.in/go-playground/validator.v9 v9.31.0
 )
 
@@ -48,11 +48,6 @@ require (
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.zx2c4.com/wireguard v0.0.0-20230704135630-469159ecf7d1 // indirect
+	golang.zx2c4.com/wireguard v0.0.0-20210427022245-097af6e1351b // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-)
-
-replace (
-	golang.zx2c4.com/wireguard => golang.zx2c4.com/wireguard v0.0.0-20230704135630-469159ecf7d1
-	golang.zx2c4.com/wireguard/wgctrl => golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6
 )
