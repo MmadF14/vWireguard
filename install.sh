@@ -30,7 +30,7 @@ apt-get upgrade -y
 
 # Install required packages
 echo -e "${YELLOW}Installing required packages...${NC}"
-apt-get install -y wireguard wireguard-tools git curl wget
+apt-get install -y wireguard wireguard-tools git curl wget build-essential
 
 # Install latest Go version
 echo -e "${YELLOW}Installing latest Go version...${NC}"
@@ -68,6 +68,7 @@ EOL
 
 # Create directory for vWireguard
 echo -e "${YELLOW}Creating vWireguard directory...${NC}"
+rm -rf /opt/vwireguard
 mkdir -p /opt/vwireguard
 cd /opt/vwireguard
 
@@ -77,7 +78,6 @@ git clone https://github.com/MmadF14/vwireguard.git .
 
 # Build the application
 echo -e "${YELLOW}Building vWireguard...${NC}"
-cd /opt/vwireguard
 export GOPATH=/opt/vwireguard
 export PATH=$PATH:/usr/local/go/bin
 
@@ -133,12 +133,6 @@ echo -e "${YELLOW}Creating WireGuard service...${NC}"
 systemctl enable wg-quick@wg0
 systemctl start wg-quick@wg0
 
-# Enable and start vWireguard service
-echo -e "${YELLOW}Starting vWireguard service...${NC}"
-systemctl daemon-reload
-systemctl enable vwireguard
-systemctl start vwireguard
-
 # Create default admin user
 echo -e "${YELLOW}Creating default admin user...${NC}"
 cat > /opt/vwireguard/config.json << EOL
@@ -164,6 +158,17 @@ elif command -v firewall-cmd &> /dev/null; then
     firewall-cmd --permanent --add-port=51820/udp
     firewall-cmd --reload
 fi
+
+# Stop and disable existing service if it exists
+echo -e "${YELLOW}Stopping existing service...${NC}"
+systemctl stop vwireguard || true
+systemctl disable vwireguard || true
+
+# Enable and start vWireguard service
+echo -e "${YELLOW}Starting vWireguard service...${NC}"
+systemctl daemon-reload
+systemctl enable vwireguard
+systemctl start vwireguard
 
 # Check if service is running
 echo -e "${YELLOW}Checking service status...${NC}"
