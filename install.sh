@@ -77,9 +77,37 @@ git clone https://github.com/MmadF14/vwireguard.git .
 
 # Build the application
 echo -e "${YELLOW}Building vWireguard...${NC}"
+cd /opt/vwireguard
 export GOPATH=/opt/vwireguard
+export PATH=$PATH:/usr/local/go/bin
+
+# Check if Go is installed correctly
+if ! command -v go &> /dev/null; then
+    echo -e "${RED}Go is not installed correctly${NC}"
+    exit 1
+fi
+
+# Initialize Go module if not exists
+if [ ! -f "go.mod" ]; then
+    go mod init github.com/MmadF14/vwireguard
+fi
+
+# Download dependencies
+echo -e "${YELLOW}Downloading dependencies...${NC}"
 go mod tidy
+
+# Build the application
+echo -e "${YELLOW}Building vWireguard...${NC}"
 go build -o vwireguard
+
+# Check if build was successful
+if [ ! -f "vwireguard" ]; then
+    echo -e "${RED}Build failed!${NC}"
+    exit 1
+fi
+
+# Make the binary executable
+chmod +x vwireguard
 
 # Create systemd service
 echo -e "${YELLOW}Creating systemd service...${NC}"
