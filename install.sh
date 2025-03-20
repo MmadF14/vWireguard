@@ -20,101 +20,76 @@ echo -e "${NC}"
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
     echo -e "${RED}Please run as root${NC}"
-    exit
+    exit 1
 fi
 
-# Detect OS
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-else
-    echo -e "${RED}Cannot detect OS${NC}"
-    exit
-fi
+# Update system
+echo -e "${YELLOW}Updating system...${NC}"
+apt-get update
+apt-get upgrade -y
 
-echo -e "${GREEN}Installing on $OS $VER${NC}"
+# Install required packages
+echo -e "${YELLOW}Installing required packages...${NC}"
+apt-get install -y wireguard wireguard-tools golang-go git
 
-# Install dependencies
-echo -e "${YELLOW}Installing dependencies...${NC}"
-if [[ "$OS" == "Ubuntu" ]] || [[ "$OS" == "Debian" ]]; then
-    apt update
-    apt install -y curl wget unzip net-tools wireguard-tools
-elif [[ "$OS" == "CentOS" ]]; then
-    yum update -y
-    yum install -y curl wget unzip net-tools wireguard-tools
-else
-    echo -e "${RED}Unsupported OS${NC}"
-    exit
-fi
+# Create directory for vWireguard
+echo -e "${YELLOW}Creating vWireguard directory...${NC}"
+mkdir -p /opt/vwireguard
+cd /opt/vwireguard
 
-# Install Go if not installed
-if ! command -v go &> /dev/null; then
-    echo -e "${YELLOW}Installing Go...${NC}"
-    wget https://go.dev/dl/go1.21.6.linux-amd64.tar.gz
-    rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.6.linux-amd64.tar.gz
-    export PATH=$PATH:/usr/local/go/bin
-    rm go1.21.6.linux-amd64.tar.gz
-fi
+# Clone repository
+echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
+git clone https://github.com/MmadF14/vwireguard.git .
 
-# Get latest release version
-echo -e "${YELLOW}Getting latest version...${NC}"
-LATEST_VERSION=$(curl --silent "https://api.github.com/repos/MmadF14/vwireguard/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+# Build the application
+echo -e "${YELLOW}Building vWireguard...${NC}"
+go build -o vwireguard
 
-if [ -z "$LATEST_VERSION" ]; then
-    echo -e "${RED}Could not get latest version${NC}"
-    exit
-fi
-
-echo -e "${GREEN}Latest version: $LATEST_VERSION${NC}"
-
-# Download latest release
-echo -e "${YELLOW}Downloading vWireguard...${NC}"
-wget "https://github.com/MmadF14/vwireguard/releases/download/$LATEST_VERSION/vwireguard_${LATEST_VERSION}_linux_amd64.tar.gz"
-tar -xzf "vwireguard_${LATEST_VERSION}_linux_amd64.tar.gz"
-rm "vwireguard_${LATEST_VERSION}_linux_amd64.tar.gz"
-
-# Move binary to /usr/local/bin
-mv vwireguard /usr/local/bin/
-chmod +x /usr/local/bin/vwireguard
-
-# Create service file
-echo -e "${YELLOW}Creating service file...${NC}"
-cat > /etc/systemd/system/vwireguard.service << EOF
+# Create systemd service
+echo -e "${YELLOW}Creating systemd service...${NC}"
+cat > /etc/systemd/system/vwireguard.service << EOL
 [Unit]
-Description=vWireguard Panel
+Description=vWireguard Web Interface
 After=network.target
 
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/vwireguard
-Restart=on-failure
-RestartSec=5s
+WorkingDirectory=/opt/vwireguard
+ExecStart=/opt/vwireguard/vwireguard
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
-EOF
+EOL
 
-# Reload systemd
+# Enable and start service
+echo -e "${YELLOW}Starting vWireguard service...${NC}"
 systemctl daemon-reload
-
-# Start service
-echo -e "${YELLOW}Starting vWireguard...${NC}"
 systemctl enable vwireguard
 systemctl start vwireguard
 
-# Check if service is running
-if systemctl is-active --quiet vwireguard; then
-    echo -e "${GREEN}vWireguard is running!${NC}"
-    echo -e "${GREEN}You can access the panel at: http://YOUR_IP:5000${NC}"
-    echo -e "${GREEN}Default credentials:${NC}"
-    echo -e "${GREEN}Username: admin${NC}"
-    echo -e "${GREEN}Password: admin${NC}"
-else
-    echo -e "${RED}vWireguard failed to start${NC}"
-    echo -e "${RED}Please check logs with: journalctl -u vwireguard${NC}"
-fi
+# Create default admin user
+echo -e "${YELLOW}Creating default admin user...${NC}"
+cat > /opt/vwireguard/config.json << EOL
+{
+    "users": [
+        {
+            "username": "admin",
+            "password": "admin",
+            "role": "admin"
+        }
+    ]
+}
+EOL
+
+echo -e "${GREEN}Installation completed!${NC}"
+echo -e "${GREEN}Default credentials:${NC}"
+echo -e "${GREEN}Username: admin${NC}"
+echo -e "${GREEN}Password: admin${NC}"
+echo -e "${GREEN}Please change the default password after first login!${NC}"
+echo -e "${GREEN}Access the web interface at http://localhost:8080${NC}"
 
 # Setup firewall rules
 echo -e "${YELLOW}Setting up firewall rules...${NC}"
@@ -125,7 +100,4 @@ elif command -v firewall-cmd &> /dev/null; then
     firewall-cmd --permanent --add-port=5000/tcp
     firewall-cmd --permanent --add-port=51820/udp
     firewall-cmd --reload
-fi
-
-echo -e "${GREEN}Installation completed!${NC}"
-echo -e "${YELLOW}Please change your password after first login${NC}" 
+fi 

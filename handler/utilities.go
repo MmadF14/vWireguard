@@ -127,7 +127,6 @@ func GenerateSystemReport(db store.IStore) echo.HandlerFunc {
 			report["system_logs"] = string(logs)
 		}
 
-		// Return the report directly without wrapping in jsonHTTPResponse
 		return c.JSON(http.StatusOK, report)
 	}
 }

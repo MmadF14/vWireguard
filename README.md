@@ -1,10 +1,110 @@
 English | [فارسی](README.fa_IR.md)
 
-# vWireguard - WireGuard VPN Management System
+# vWireguard
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/MmadF14/vwireguard)](https://goreportcard.com/report/github.com/MmadF14/vwireguard)
-[![GoDoc](https://godoc.org/github.com/MmadF14/vwireguard?status.svg)](https://godoc.org/github.com/MmadF14/vwireguard)
-[![License](https://img.shields.io/github/license/MmadF14/vwireguard)](LICENSE)
+vWireguard is a web-based management interface for WireGuard VPN, providing an easy-to-use dashboard for managing your WireGuard server and clients.
+
+## Features
+
+- Web-based management interface
+- User authentication and authorization
+- Client management (add, edit, delete)
+- Server configuration management
+- Real-time monitoring
+- Wake-on-LAN support
+- System utilities and monitoring
+- Multi-language support (English and Persian)
+
+## Installation
+
+### Quick Install (Recommended)
+
+```bash
+# Download the installation script
+wget https://raw.githubusercontent.com/MmadF14/vwireguard/main/install.sh
+
+# Make it executable
+chmod +x install.sh
+
+# Run the installation script
+sudo ./install.sh
+```
+
+### Manual Installation
+
+1. Install required packages:
+```bash
+sudo apt-get update
+sudo apt-get install -y wireguard wireguard-tools golang-go git
+```
+
+2. Clone the repository:
+```bash
+sudo mkdir -p /opt/vwireguard
+cd /opt/vwireguard
+sudo git clone https://github.com/MmadF14/vwireguard.git .
+```
+
+3. Build the application:
+```bash
+sudo go build -o vwireguard
+```
+
+4. Create the systemd service:
+```bash
+sudo cat > /etc/systemd/system/vwireguard.service << EOL
+[Unit]
+Description=vWireguard Web Interface
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/vwireguard
+ExecStart=/opt/vwireguard/vwireguard
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOL
+```
+
+5. Enable and start the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable vwireguard
+sudo systemctl start vwireguard
+```
+
+## Default Credentials
+
+- Username: `admin`
+- Password: `admin`
+
+**Important**: Please change the default password after your first login!
+
+## Accessing the Web Interface
+
+After installation, you can access the web interface at:
+```
+http://YOUR_SERVER_IP:8080
+```
+
+## Security Considerations
+
+1. Change the default admin password immediately after installation
+2. Configure your firewall to only allow access from trusted IP addresses
+3. Use HTTPS in production environments
+4. Regularly update the system and application
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 📸 Screenshots
 
