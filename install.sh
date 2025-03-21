@@ -88,7 +88,9 @@ if ! command -v go &> /dev/null; then
 fi
 
 # Initialize Go module if not exists
+echo -e "${YELLOW}Checking for Go module...${NC}"
 if [ ! -f "go.mod" ]; then
+    echo -e "${YELLOW}Creating go.mod file...${NC}"
     go mod init github.com/MmadF14/vwireguard
 fi
 
