@@ -84,19 +84,28 @@ echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
 rm -rf /opt/vwireguard
 git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
 
-# Prepare assets
+# Check and prepare assets
 echo -e "${YELLOW}Preparing assets...${NC}"
 cd /opt/vwireguard
-if [ -f "prepare_assets" ]; then
-    chmod +x prepare_assets
-    if ./prepare_assets; then
+
+# Try to find prepare_assets in common locations
+ASSET_SCRIPT=$(find . -type f \( -name "prepare_assets" -o -name "prepare_assets.sh" \) | head -n 1)
+
+if [ -n "$ASSET_SCRIPT" ]; then
+    echo -e "${GREEN}Found asset script at: ${ASSET_SCRIPT}${NC}"
+    chmod +x "$ASSET_SCRIPT"
+    echo -e "${YELLOW}Executing asset preparation...${NC}"
+    if "$ASSET_SCRIPT"; then
         echo -e "${GREEN}Assets prepared successfully!${NC}"
     else
-        echo -e "${RED}Failed to prepare assets!${NC}"
+        echo -e "${RED}Failed to execute asset script!${NC}"
         exit 1
     fi
 else
-    echo -e "${RED}prepare_assets script not found!${NC}"
+    echo -e "${RED}No prepare_assets script found in repository!${NC}"
+    echo -e "${YELLOW}Searching in all directories...${NC}"
+    find . -type f -name "prepare_assets*"
+    echo -e "${RED}Please ensure prepare_assets exists in the repository${NC}"
     exit 1
 fi
 
