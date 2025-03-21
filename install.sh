@@ -35,12 +35,30 @@ echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
 # Install latest Go version
+# نصب آخرین نسخه Go
 echo -e "${YELLOW}Installing latest Go version...${NC}"
-GO_LATEST=$(curl -s https://go.dev/VERSION?m=text)
-wget https://go.dev/dl/${GO_LATEST}.linux-amd64.tar.gz
-rm -rf /usr/local/go && tar -C /usr/local -xzf ${GO_LATEST}.linux-amd64.tar.gz
+
+# دریافت نسخه آخر Go
+GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n 1)
+GO_TAR="${GO_VERSION}.linux-amd64.tar.gz"
+
+# دانلود و نصب Go
+wget "https://go.dev/dl/${GO_TAR}" -O /tmp/go.tar.gz
+rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz
+
+# تنظیم متغیر PATH برای Go
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
 export PATH=$PATH:/usr/local/go/bin
-rm ${GO_LATEST}.linux-amd64.tar.gz
+
+# بررسی نصب
+if go version; then
+    echo -e "${GREEN}Go installed successfully!${NC}"
+else
+    echo -e "${RED}Failed to install Go!${NC}"
+    exit 1
+fi
+
 
 # Enable IP forwarding
 echo -e "${YELLOW}Enabling IP forwarding...${NC}"
