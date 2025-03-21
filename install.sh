@@ -131,7 +131,7 @@ fi
 echo -e "${YELLOW}Building vWireguard...${NC}"
 export GOPATH=/go
 export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-go mod download
+go mod tidy
 go build -ldflags="-s -w" -o vwireguard
 
 # Verify build
