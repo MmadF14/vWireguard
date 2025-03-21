@@ -78,14 +78,8 @@ git clone https://github.com/MmadF14/vwireguard.git .
 
 # Build the application
 echo -e "${YELLOW}Building vWireguard...${NC}"
-export GOPATH=/opt/vwireguard
-export PATH=$PATH:/usr/local/go/bin
-
-# Check if Go is installed correctly
-if ! command -v go &> /dev/null; then
-    echo -e "${RED}Go is not installed correctly${NC}"
-    exit 1
-fi
+# Remove GOPATH to avoid conflicts
+# export GOPATH=/opt/vwireguard
 
 # Initialize Go module if not exists
 echo -e "${YELLOW}Checking for Go module...${NC}"
