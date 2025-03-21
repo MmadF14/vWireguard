@@ -147,18 +147,6 @@ cat > /opt/vwireguard/config.json << EOL
 }
 EOL
 
-# Setup firewall rules
-echo -e "${YELLOW}Setting up firewall rules...${NC}"
-if command -v ufw &> /dev/null; then
-    ufw allow 5000/tcp
-    ufw allow 51820/udp
-    ufw --force enable
-elif command -v firewall-cmd &> /dev/null; then
-    firewall-cmd --permanent --add-port=5000/tcp
-    firewall-cmd --permanent --add-port=51820/udp
-    firewall-cmd --reload
-fi
-
 # Stop and disable existing service if it exists
 echo -e "${YELLOW}Stopping existing service...${NC}"
 systemctl stop vwireguard || true
@@ -186,4 +174,5 @@ echo -e "${GREEN}Username: admin${NC}"
 echo -e "${GREEN}Password: admin${NC}"
 echo -e "${GREEN}Please change the default password after first login!${NC}"
 echo -e "${GREEN}Access the web interface at http://YOUR_SERVER_IP:5000${NC}"
-echo -e "${GREEN}WireGuard server is running on port 51820${NC}" 
+echo -e "${GREEN}WireGuard server is running on port 51820${NC}"
+echo -e "${YELLOW}Note: Please configure your firewall to allow ports 5000 (TCP) and 51820 (UDP)${NC}" 
