@@ -78,8 +78,17 @@ git clone https://github.com/MmadF14/vwireguard.git .
 
 # Build the application
 echo -e "${YELLOW}Building vWireguard...${NC}"
-# Remove GOPATH to avoid conflicts
-# export GOPATH=/opt/vwireguard
+
+# Prepare assets
+echo -e "${YELLOW}Preparing assets...${NC}"
+mkdir -p /opt/vwireguard/assets
+cp -r /opt/vwireguard/assets/* /opt/vwireguard/assets/
+
+# Ensure assets are in place
+if [ ! -d "/opt/vwireguard/assets" ]; then
+    echo -e "${RED}Assets directory is missing!${NC}"
+    exit 1
+fi
 
 # Initialize Go module if not exists
 echo -e "${YELLOW}Checking for Go module...${NC}"
