@@ -91,11 +91,6 @@ PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING 
 # Client configurations will be added here
 EOL
 
-# Setup firewall
-echo -e "${YELLOW}Configuring firewall...${NC}"
-ufw allow 5000/tcp
-ufw allow 51820/udp
-echo -e "y\n" | ufw enable
 
 # Clone repository
 echo -e "${YELLOW}Cloning vWireguard repository...${NC}"

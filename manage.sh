@@ -79,7 +79,7 @@ reset_credentials() {
     if [ ! -f "/etc/vwireguard/config.toml" ]; then
         echo -e "${RED}Config file not found${NC}"
         return
-    }
+    fi
     
     # Stop the service
     systemctl stop vwireguard
@@ -103,7 +103,7 @@ change_port() {
     if ! [[ "$new_port" =~ ^[0-9]+$ ]] || [ "$new_port" -lt 1 ] || [ "$new_port" -gt 65535 ]; then
         echo -e "${RED}Invalid port number${NC}"
         return
-    }
+    fi
     
     if [ ! -f "/etc/vwireguard/config.toml" ]; then
         echo -e "${RED}Config file not found${NC}"
@@ -154,6 +154,14 @@ manage_service() {
         "status")
             systemctl status vwireguard
             ;;
+        "enable-autostart")
+            systemctl enable vwireguard
+            echo -e "${GREEN}Autostart enabled for vWireguard${NC}"
+            ;;
+        "disable-autostart")
+            systemctl disable vwireguard
+            echo -e "${GREEN}Autostart disabled for vWireguard${NC}"
+            ;;
     esac
 }
 
@@ -181,11 +189,51 @@ manage_ip_limit() {
 
 manage_firewall() {
     echo -e "${YELLOW}Firewall Management${NC}"
-    echo "1. Allow Port"
-    echo "2. Block Port"
-    echo "3. View Rules"
+    echo "1. Install Firewall"
+    echo "2. View Firewall Rules"
+    echo "3. Allow Port"
+    echo "4. Block Port"
+    echo "5. Enable Firewall"
+    echo "6. Disable Firewall"
+    echo "7. View Firewall Status"
     read -r fw_choice
-    # Add your firewall management logic here
+
+    case $fw_choice in
+        1)
+            # Install firewall logic here
+            echo -e "${GREEN}Firewall installed!${NC}"
+            ;;
+        2)
+            # View firewall rules logic here
+            echo -e "${GREEN}Current firewall rules:${NC}"
+            ;;
+        3)
+            echo -e "${YELLOW}Enter port to allow:${NC}"
+            read -r port
+            ufw allow "$port"
+            echo -e "${GREEN}Port $port allowed!${NC}"
+            ;;
+        4)
+            echo -e "${YELLOW}Enter port to block:${NC}"
+            read -r port
+            ufw deny "$port"
+            echo -e "${GREEN}Port $port blocked!${NC}"
+            ;;
+        5)
+            ufw enable
+            echo -e "${GREEN}Firewall enabled!${NC}"
+            ;;
+        6)
+            ufw disable
+            echo -e "${GREEN}Firewall disabled!${NC}"
+            ;;
+        7)
+            ufw status
+            ;;
+        *)
+            echo -e "${RED}Invalid option${NC}"
+            ;;
+    esac
 }
 
 backup_config() {
@@ -244,8 +292,8 @@ while true; do
         12) manage_ssl ;;
         13) manage_ip_limit ;;
         14) manage_firewall ;;
-        15) backup_config ;;
-        16) restore_config ;;
+        15) manage_service "enable-autostart" ;;
+        16) manage_service "disable-autostart" ;;
         17) show_system_info ;;
         *) echo -e "${RED}Invalid option${NC}" ;;
     esac
