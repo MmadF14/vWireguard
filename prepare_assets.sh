@@ -6,7 +6,7 @@ DIR=$(dirname "$0")
 # install node modules
 YARN=yarn
 [ -x /usr/bin/lsb_release ] && [ -n "`lsb_release -i | grep Debian`" ] && YARN=yarnpkg
-$YARN install --pure-lockfile --production
+$YARN install
 
 # Create necessary directories
 mkdir -p "${DIR}/assets/dist/js" "${DIR}/assets/dist/css"

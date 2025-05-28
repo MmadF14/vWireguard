@@ -34,31 +34,32 @@ apt-get upgrade -y
 echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
-# Install latest Go version
-# نصب آخرین نسخه Go
-echo -e "${YELLOW}Installing latest Go version...${NC}"
+# Install Node.js and npm
+echo -e "${YELLOW}Installing Node.js and npm...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt-get install -y nodejs
 
-# دریافت نسخه آخر Go
+# Install yarn
+echo -e "${YELLOW}Installing yarn...${NC}"
+npm install -g yarn
+
+# Install latest Go version
+echo -e "${YELLOW}Installing latest Go version...${NC}"
 GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n 1)
 GO_TAR="${GO_VERSION}.linux-amd64.tar.gz"
-
-# دانلود و نصب Go
 wget "https://go.dev/dl/${GO_TAR}" -O /tmp/go.tar.gz
 rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz
-
-# تنظیم متغیر PATH برای Go
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
 echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
 export PATH=$PATH:/usr/local/go/bin
 
-# بررسی نصب
+# Verify Go installation
 if go version; then
     echo -e "${GREEN}Go installed successfully!${NC}"
 else
     echo -e "${RED}Failed to install Go!${NC}"
     exit 1
 fi
-
 
 # Enable IP forwarding
 echo -e "${YELLOW}Enabling IP forwarding...${NC}"
@@ -91,7 +92,6 @@ PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING 
 # Client configurations will be added here
 EOL
 
-
 # Clone repository
 echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
 rm -rf /opt/vwireguard
@@ -100,8 +100,6 @@ git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
 # Check and prepare assets
 echo -e "${YELLOW}Preparing assets...${NC}"
 cd /opt/vwireguard
-
-# Try to find prepare_assets in common locations
 ASSET_SCRIPT=$(find . -type f \( -name "prepare_assets" -o -name "prepare_assets.sh" \) | head -n 1)
 
 if [ -n "$ASSET_SCRIPT" ]; then
