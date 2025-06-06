@@ -1369,10 +1369,15 @@
                                     <a href="download?clientid=${client.id}" class="btn btn-outline-primary">DOWNLOAD</a>
                                     <button type="button" class="btn btn-outline-primary" data-toggle="modal"
                                         data-target="#modal_qr_client" data-clientid="${client.id}"
-                                        data-clientname="${client.name}" ${data.QRCode ? '' : ' disabled'}>QR CODE</button>
+                                        data-clientname="${client.name}" ${data.QRCode ? '' : ' disabled'}>QR CODE</button>`;
+
+                    // Add Email button if applicable
+                    if (client.email) {
+                        html += `
                                     <button type="button" class="btn btn-outline-primary" data-toggle="modal"
                                         data-target="#modal_email_client" data-clientid="${client.id}"
                                         data-clientname="${client.name}">EMAIL</button>`;
+                    }
                 
                     // Add Telegram button if applicable
                     if (client.telegram_userid) {
