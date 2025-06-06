@@ -347,7 +347,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if username == "" || password == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
+				"error":   "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
 			})
 		}
 
@@ -355,7 +355,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if !usernameRegexp.MatchString(username) {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
+				"error":   "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
 			})
 		}
 
@@ -363,7 +363,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if len(username) < 3 || len(username) > 32 {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
+				"error":   "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
 			})
 		}
 
@@ -372,7 +372,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if err == nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "این نام کاربری قبلاً استفاده شده است",
+				"error":   "این نام کاربری قبلاً استفاده شده است",
 			})
 		}
 
@@ -398,7 +398,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
-				"error": "خطا در پردازش رمز عبور",
+				"error":   "خطا در پردازش رمز عبور",
 			})
 		}
 		user.PasswordHash = hashedPassword
@@ -407,7 +407,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if err := db.SaveUser(user); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
-				"error": "خطا در ذخیره کاربر",
+				"error":   "خطا در ذخیره کاربر",
 			})
 		}
 
@@ -533,11 +533,11 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		if client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
-
-		// اعتبارسنجی تاریخ انقضا (اگر مقداردهی شده باشد و گذشته باشد)
-		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		if client.ExpirationDays < 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration days cannot be negative"})
 		}
+		client.Expiration = time.Time{}
+		client.FirstConnectedAt = time.Time{}
 
 		// Validate Telegram userid if provided
 		if client.TgUserid != "" {
@@ -834,14 +834,18 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 
 		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
 		client.Quota = _client.Quota
+		client.ExpirationDays = _client.ExpirationDays
 		client.Expiration = _client.Expiration
+		if !_client.FirstConnectedAt.IsZero() {
+			client.FirstConnectedAt = _client.FirstConnectedAt
+		}
 
 		// اعتبارسنجی Quota و Expiration
 		if client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
-		if !client.Expiration.IsZero() && client.Expiration.Before(time.Now()) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration must be in the future"})
+		if client.ExpirationDays < 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration days cannot be negative"})
 		}
 
 		// map other data
@@ -1385,7 +1389,6 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
-
 		globalSettings.UpdatedAt = time.Now().UTC()
 
 		// write config to the database
@@ -1619,4 +1622,3 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 func GetInternalRoutes() []Route {
 	return internalRoutes
 }
-

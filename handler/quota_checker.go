@@ -26,49 +26,48 @@ const cooldownPeriod = 5 * time.Minute
 
 // StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
 func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
-    quotaCheckerTmplDir = tmplDir
-    go func() {
-        defer func() {
-            if r := recover(); r != nil {
-                log.Printf("Recovered from panic in quota checker: %v", r)
-                time.Sleep(10 * time.Second)
-                StartQuotaChecker(db, tmplDir)
-            }
-        }()
+	quotaCheckerTmplDir = tmplDir
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("Recovered from panic in quota checker: %v", r)
+				time.Sleep(10 * time.Second)
+				StartQuotaChecker(db, tmplDir)
+			}
+		}()
 
-        // اولین بررسی را با تاخیر انجام می‌دهیم تا سیستم کاملاً بالا بیاید
-        time.Sleep(30 * time.Second)
+		// اولین بررسی را با تاخیر انجام می‌دهیم تا سیستم کاملاً بالا بیاید
+		time.Sleep(30 * time.Second)
 
-        for {
-            func() {
-                defer func() {
-                    if r := recover(); r != nil {
-                        log.Printf("Recovered from panic in check cycle: %v", r)
-                    }
-                }()
-                checkQuotasAndExpiration(db)
-            }()
+		for {
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Recovered from panic in check cycle: %v", r)
+					}
+				}()
+				checkQuotasAndExpiration(db)
+			}()
 
-            // از Server Interface بخوانیم
-            server, err := db.GetServer()
-            if err != nil {
-                log.Printf("Error retrieving server config for check interval: %v", err)
-                // پیشفرض 5 دقیقه
-                time.Sleep(5 * time.Minute)
-                continue
-            }
+			// از Server Interface بخوانیم
+			server, err := db.GetServer()
+			if err != nil {
+				log.Printf("Error retrieving server config for check interval: %v", err)
+				// پیشفرض 5 دقیقه
+				time.Sleep(5 * time.Minute)
+				continue
+			}
 
-            interval := server.Interface.CheckInterval
-            // اگر خارج از 1..5 بود، 5 بگذاریم
-            if interval < 1 || interval > 5 {
-                interval = 5
-            }
+			interval := server.Interface.CheckInterval
+			// اگر خارج از 1..5 بود، 5 بگذاریم
+			if interval < 1 || interval > 5 {
+				interval = 5
+			}
 
-            time.Sleep(time.Duration(interval) * time.Minute)
-        }
-    }()
+			time.Sleep(time.Duration(interval) * time.Minute)
+		}
+	}()
 }
-
 
 // isInCooldown checks if a client is in cooldown period
 func isInCooldown(clientID string) bool {
@@ -128,8 +127,14 @@ func checkQuotasAndExpiration(db store.IStore) {
 
 		// بروزرسانی مصرف کلاینت
 		if usage, ok := usageMap[client.PublicKey]; ok {
-			total := usage[0] + usage[1] // جمع ارسال و دریافت
+			total := usage.Rx + usage.Tx // جمع ارسال و دریافت
 			client.UsedQuota = int64(total)
+			if client.FirstConnectedAt.IsZero() && !usage.LastHandshake.IsZero() {
+				client.FirstConnectedAt = usage.LastHandshake
+				if client.ExpirationDays > 0 {
+					client.Expiration = client.FirstConnectedAt.Add(time.Duration(client.ExpirationDays) * 24 * time.Hour)
+				}
+			}
 			if err := db.SaveClient(*client); err != nil {
 				log.Printf("Error saving client %s usage data: %v", client.Name, err)
 				continue
@@ -141,6 +146,13 @@ func checkQuotasAndExpiration(db store.IStore) {
 		disableReason := ""
 
 		// بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
+		if client.ExpirationDays > 0 && !client.FirstConnectedAt.IsZero() && client.Expiration.IsZero() {
+			client.Expiration = client.FirstConnectedAt.Add(time.Duration(client.ExpirationDays) * 24 * time.Hour)
+			if err := db.SaveClient(*client); err != nil {
+				log.Printf("Error saving expiration for client %s: %v", client.Name, err)
+			}
+		}
+
 		if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
 			shouldDisable = true
 			disableReason = "expiration"
@@ -149,7 +161,7 @@ func checkQuotasAndExpiration(db store.IStore) {
 		// بررسی Quota
 		if client.Quota > 0 {
 			if usage, ok := usageMap[client.PublicKey]; ok {
-				total := usage[0] + usage[1]
+				total := usage.Rx + usage.Tx
 				if int64(total) > client.Quota {
 					shouldDisable = true
 					disableReason = "quota"
@@ -256,9 +268,15 @@ func applyWireGuardConfig(db store.IStore) error {
 }
 
 // getWireGuardUsage returns a map of public keys to their traffic usage [received, sent]
-func getWireGuardUsage() (map[string][2]uint64, error) {
+type peerUsage struct {
+	Rx            uint64
+	Tx            uint64
+	LastHandshake time.Time
+}
+
+func getWireGuardUsage() (map[string]peerUsage, error) {
 	log.Printf("Starting to get WireGuard usage")
-	usageMap := make(map[string][2]uint64)
+	usageMap := make(map[string]peerUsage)
 
 	wgClient, err := wgctrl.New()
 	if err != nil {
@@ -278,9 +296,10 @@ func getWireGuardUsage() (map[string][2]uint64, error) {
 	for _, dev := range devices {
 		log.Printf("Processing device: %s", dev.Name)
 		for _, peer := range dev.Peers {
-			usageMap[peer.PublicKey.String()] = [2]uint64{
-				uint64(peer.ReceiveBytes),
-				uint64(peer.TransmitBytes),
+			usageMap[peer.PublicKey.String()] = peerUsage{
+				Rx:            uint64(peer.ReceiveBytes),
+				Tx:            uint64(peer.TransmitBytes),
+				LastHandshake: peer.LastHandshakeTime,
 			}
 		}
 	}
