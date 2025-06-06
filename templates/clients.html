@@ -169,9 +169,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="_client_expiration" class="control-label" data-translate="Expiration Date">Expiration Date</label>
-                        <!-- از نوع datetime-local استفاده می‌کنیم تا کاربر بتواند تاریخ و ساعت انتخاب کند -->
-                        <input type="datetime-local" class="form-control" id="_client_expiration" name="_client_expiration" placeholder="e.g. 2025-12-31T23:59" />
+                        <label for="_client_expiration_days" class="control-label" data-translate="Expiration Days">Expiration Days</label>
+                        <input type="number" class="form-control" id="_client_expiration_days" name="_client_expiration_days" placeholder="e.g. 30" min="0" />
                     </div>
 
                     <div class="form-group">
@@ -925,17 +924,10 @@
                         // مقداردهی Quota
                         modal.find("#_client_quota").val(client.quota ? (client.quota / (1024 * 1024 * 1024)).toFixed(1) : "");     
                         // مقداردهی Expiration (تبدیل تاریخ UTC به فرمت datetime-local)
-                        if (client.expiration) {
-                            let dt = new Date(client.expiration); // مثلاً "2025-12-31T23:59:59Z"
-                            let year = dt.getFullYear();
-                            let month = String(dt.getMonth() + 1).padStart(2, '0');
-                            let day = String(dt.getDate()).padStart(2, '0');
-                            let hour = String(dt.getHours()).padStart(2, '0');
-                            let min = String(dt.getMinutes()).padStart(2, '0');
-                            let localDatetime = `${year}-${month}-${day}T${hour}:${min}`;
-                            modal.find("#_client_expiration").val(localDatetime);
+                        if (client.expiration_days) {
+                            modal.find("#_client_expiration_days").val(client.expiration_days);
                         } else {
-                            modal.find("#_client_expiration").val("");
+                            modal.find("#_client_expiration_days").val("");
                         }
 
                         // مقداردهی Subnet range
@@ -1075,12 +1067,9 @@
             const quotaGB = parseFloat($("#_client_quota").val()) || 0;
             const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
 
-            // اضافه کردن Expiration
-            let expirationValue = $("#_client_expiration").val();
-            let expirationIso = "";
-            if (expirationValue) {
-                expirationIso = new Date(expirationValue).toISOString();
-            }
+            // اضافه کردن Expiration Days
+            let expirationDaysValue = $("#_client_expiration_days").val();
+            let expirationDays = parseInt(expirationDaysValue) || 0;
 
             if ($("#_client_extra_allowed_ips").val() !== "") {
                 extra_allowed_ips = $("#_client_extra_allowed_ips").val().split(",");
@@ -1113,7 +1102,7 @@
                 "preshared_key": preshared_key,
                 "additional_notes": additional_notes,
                 "quota": quotaBytes,
-                "expiration": expirationIso
+                "expiration_days": expirationDays
             };
 
             $.ajax({
@@ -1469,20 +1458,40 @@
                     }
                     
                     // Show expiration if set
-                    if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
+                    if (client.expiration_days && client.expiration_days > 0) {
+                        if (client.first_connected_at && client.first_connected_at !== "0001-01-01T00:00:00Z") {
+                            const expirationDate = new Date(client.expiration);
+                            const now = new Date();
+                            const isExpired = expirationDate < now;
+
+                            const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+                            const expiryText = daysRemaining > 0 ?
+                                `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` :
+                                `Expired: ${formatDate(expirationDate)}`;
+
+                            html += `
+                                        <div class="client-expiry mt-2">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span class="${isExpired ? 'text-danger' : ''}">
+                                                ${expiryText}
+                                            </span>
+                                        </div>`;
+                        } else {
+                            html += `<div class="mt-2"><i class="fas fa-calendar-alt"></i> Expires ${client.expiration_days} days after first connection</div>`;
+                        }
+                    } else if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
                         const expirationDate = new Date(client.expiration);
                         const now = new Date();
                         const isExpired = expirationDate < now;
-                        
-                        // Calculate days remaining
+
                         const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
-                        const expiryText = daysRemaining > 0 ? 
-                            `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` : 
+                        const expiryText = daysRemaining > 0 ?
+                            `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` :
                             `Expired: ${formatDate(expirationDate)}`;
-                        
+
                         html += `
                                     <div class="client-expiry mt-2">
-                                        <i class="fas fa-calendar-alt"></i> 
+                                        <i class="fas fa-calendar-alt"></i>
                                         <span class="${isExpired ? 'text-danger' : ''}">
                                             ${expiryText}
                                         </span>
@@ -1609,7 +1618,7 @@
                 $("#client_telegram_userid").val('');
                 $("#additional_notes").val('');
                 $("#client_quota").val("");
-                $("#client_expiration").val("");
+                $("#client_expiration_days").val("");
                 
                 // تنظیم مقادیر پیش‌فرض
                 $("#use_server_dns").prop("checked", true);
@@ -1675,16 +1684,8 @@
                     const quotaGB = parseFloat($("#client_quota").val()) || 0;
                     const quotaBytes = quotaGB > 0 ? Math.floor(quotaGB * 1024 * 1024 * 1024) : 0;
 
-                    let expirationValue = $("#client_expiration").val();
-                    let expirationIso = "";
-                    if (expirationValue) {
-                        const expDate = new Date(expirationValue);
-                        if (expDate <= new Date()) {
-                            toastr.error('Expiration date must be in the future');
-                            return;
-                        }
-                        expirationIso = expDate.toISOString();
-                    }
+                    let expirationDaysValue = $("#client_expiration_days").val();
+                    let expirationDays = parseInt(expirationDaysValue) || 0;
 
                     const formData = {
                         name: name,
@@ -1700,7 +1701,7 @@
                         use_server_dns: $("#use_server_dns").is(":checked"),
                         enabled: true,
                         quota: quotaBytes,
-                        expiration: expirationIso || null,
+                        expiration_days: expirationDays,
                         subnet_ranges: ["__default_any__"]
                     };
 
