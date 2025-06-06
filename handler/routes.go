@@ -126,7 +126,7 @@ func Login(db store.IStore) echo.HandlerFunc {
 		if userCorrect && passwordCorrect {
 			ageMax := 0
 			if rememberMe {
-				ageMax = 86400 * 7
+				ageMax = util.SessionMaxAge
 			}
 
 			cookiePath := util.GetCookiePath()
@@ -347,7 +347,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if username == "" || password == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
+				"error":   "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
 			})
 		}
 
@@ -355,7 +355,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if !usernameRegexp.MatchString(username) {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
+				"error":   "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
 			})
 		}
 
@@ -363,7 +363,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if len(username) < 3 || len(username) > 32 {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
+				"error":   "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
 			})
 		}
 
@@ -372,7 +372,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if err == nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error": "این نام کاربری قبلاً استفاده شده است",
+				"error":   "این نام کاربری قبلاً استفاده شده است",
 			})
 		}
 
@@ -398,7 +398,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
-				"error": "خطا در پردازش رمز عبور",
+				"error":   "خطا در پردازش رمز عبور",
 			})
 		}
 		user.PasswordHash = hashedPassword
@@ -407,7 +407,7 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 		if err := db.SaveUser(user); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
-				"error": "خطا در ذخیره کاربر",
+				"error":   "خطا در ذخیره کاربر",
 			})
 		}
 
@@ -1385,7 +1385,6 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
-
 		globalSettings.UpdatedAt = time.Now().UTC()
 
 		// write config to the database
@@ -1619,4 +1618,3 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 func GetInternalRoutes() []Route {
 	return internalRoutes
 }
-

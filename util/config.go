@@ -24,6 +24,7 @@ var (
 	EmailFromName      string
 	SessionSecret      [64]byte
 	SessionMaxDuration int64
+	SessionMaxAge      int
 	WgConfTemplate     string
 	BasePath           string
 	SubnetRanges       map[string]([]*net.IPNet)
@@ -64,6 +65,7 @@ const (
 	DefaultClientExtraAllowedIpsEnvVar     = "WGUI_DEFAULT_CLIENT_EXTRA_ALLOWED_IPS"
 	DefaultClientUseServerDNSEnvVar        = "WGUI_DEFAULT_CLIENT_USE_SERVER_DNS"
 	DefaultClientEnableAfterCreationEnvVar = "WGUI_DEFAULT_CLIENT_ENABLE_AFTER_CREATION"
+	SessionMaxAgeEnvVar                    = "SESSION_MAX_AGE"
 )
 
 func ParseBasePath(basePath string) string {
