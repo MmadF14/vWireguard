@@ -49,6 +49,7 @@ var (
 	flagTelegramFloodWait        = 60
 	flagSessionSecret            = util.RandomString(32)
 	flagSessionMaxDuration       = 90
+	flagSessionMaxAge            = 7
 	flagWgConfTemplate           string
 	flagBasePath                 = "/"
 	flagSubnetRanges             string
@@ -93,6 +94,7 @@ func init() {
 	flag.StringVar(&flagBasePath, "base-path", util.LookupEnvOrString("BASE_PATH", flagBasePath), "The base path of the URL")
 	flag.StringVar(&flagSubnetRanges, "subnet-ranges", util.LookupEnvOrString("SUBNET_RANGES", flagSubnetRanges), "IP ranges to choose from when assigning an IP for a client.")
 	flag.IntVar(&flagSessionMaxDuration, "session-max-duration", util.LookupEnvOrInt("SESSION_MAX_DURATION", flagSessionMaxDuration), "Max time in days a remembered session is refreshed and valid.")
+	flag.IntVar(&flagSessionMaxAge, "session-max-age", util.LookupEnvOrInt(util.SessionMaxAgeEnvVar, flagSessionMaxAge), "Duration in days for 'remember me' sessions.")
 
 	var (
 		smtpPasswordLookup   = util.LookupEnvOrString("SMTP_PASSWORD", flagSmtpPassword)
@@ -139,6 +141,7 @@ func init() {
 	util.EmailFromName = flagEmailFromName
 	util.SessionSecret = sha512.Sum512([]byte(flagSessionSecret))
 	util.SessionMaxDuration = int64(flagSessionMaxDuration) * 86_400 // Store in seconds
+	util.SessionMaxAge = flagSessionMaxAge * 86_400
 	util.WgConfTemplate = flagWgConfTemplate
 	util.BasePath = util.ParseBasePath(flagBasePath)
 	util.SubnetRanges = util.ParseSubnetRanges(flagSubnetRanges)
@@ -188,7 +191,7 @@ func main() {
 
 	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name
 	tmplDir, _ := fs.Sub(fs.FS(embeddedTemplates), "templates")
-	
+
 	// strip the "assets/" prefix from the embedded directory and prepare assets
 	assetsDir, _ := fs.Sub(fs.FS(embeddedAssets), "assets")
 
@@ -227,12 +230,12 @@ func main() {
 					return echo.NotFoundHandler(c)
 				}
 				defer file.Close()
-				
+
 				content, err := io.ReadAll(file)
 				if err != nil {
 					return err
 				}
-				
+
 				return c.Blob(http.StatusOK, c.Response().Header().Get(echo.HeaderContentType), content)
 			}
 			return next(c)
@@ -268,7 +271,7 @@ func main() {
 	app.GET(util.BasePath+"/test-hash", handler.GetHashesChanges(db), handler.ValidSession)
 	app.GET(util.BasePath+"/about", handler.AboutPage())
 	app.GET(util.BasePath+"/utilities", handler.UtilitiesPage(db), handler.ValidSession, handler.RefreshSession)
-	
+
 	// Utilities routes
 	app.POST(util.BasePath+"/api/utilities/restart-service", handler.RestartWireGuardService(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/utilities/flush-dns", handler.FlushDNSCache(db), handler.ValidSession, handler.ContentTypeJson)
@@ -276,7 +279,7 @@ func main() {
 	app.POST(util.BasePath+"/api/utilities/generate-report", handler.GenerateSystemReport(db), handler.ValidSession, handler.ContentTypeJson)
 	app.GET(util.BasePath+"/api/utilities/logs", handler.GetSystemLogs(db), handler.ValidSession)
 	app.POST(util.BasePath+"/api/utilities/clear-logs", handler.ClearSystemLogs(db), handler.ValidSession, handler.ContentTypeJson)
-	
+
 	app.GET(util.BasePath+"/_health", handler.Health())
 	app.GET(util.BasePath+"/favicon", handler.Favicon())
 	app.POST(util.BasePath+"/new-client", handler.NewClient(db), handler.ValidSession, handler.ContentTypeJson)

@@ -126,7 +126,7 @@ func Login(db store.IStore) echo.HandlerFunc {
 		if userCorrect && passwordCorrect {
 			ageMax := 0
 			if rememberMe {
-				ageMax = 86400 * 7
+				ageMax = util.SessionMaxAge
 			}
 
 			cookiePath := util.GetCookiePath()
