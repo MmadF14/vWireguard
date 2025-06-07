@@ -102,6 +102,7 @@ EOL
 echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
 rm -rf /opt/vwireguard
 git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
+mkdir -p /opt/vwireguard/db/{clients,server,users,wake_on_lan_hosts}
 
 # Check and prepare assets
 echo -e "${YELLOW}Preparing assets...${NC}"
@@ -182,10 +183,17 @@ server {
     server_name ${PANEL_DOMAIN};
     location / {
         proxy_pass http://127.0.0.1:5000;
+<<<<<<< k1bm2c-codex/fix-installation-process-and-ssl-configuration
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+=======
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+>>>>>>> master
     }
 }
 NGINX
@@ -232,4 +240,4 @@ if [ -n "$PANEL_DOMAIN" ]; then
 else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
-echo -e "${YELLOW}=======================================================${NC}\n"
+=
