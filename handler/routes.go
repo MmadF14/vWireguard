@@ -1149,12 +1149,20 @@ func WireGuardServer(db store.IStore) echo.HandlerFunc {
 func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var serverInterface model.ServerInterface
-		c.Bind(&serverInterface)
+		if err := json.NewDecoder(c.Request().Body).Decode(&serverInterface); err != nil {
+			log.Warnf("Cannot parse server interface request: %v", err)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request"})
+		}
 
 		// validate the input addresses
 		if util.ValidateServerAddresses(serverInterface.Addresses) == false {
 			log.Warnf("Invalid server interface addresses input from user: %v", serverInterface.Addresses)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
+		}
+
+		if serverInterface.ListenPort <= 0 || serverInterface.ListenPort > 65535 {
+			log.Warnf("Invalid listen port: %v", serverInterface.ListenPort)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Port must be in range 1..65535"})
 		}
 
 		serverInterface.UpdatedAt = time.Now().UTC()
