@@ -34,6 +34,12 @@ apt-get upgrade -y
 echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
+# Prompt for domain to enable HTTPS via Let's Encrypt
+read -rp "Enter your domain for SSL (leave blank to skip): " PANEL_DOMAIN
+if [ -n "$PANEL_DOMAIN" ]; then
+    read -rp "Enter email for Let's Encrypt notifications: " LE_EMAIL
+fi
+
 # Install Node.js and npm
 echo -e "${YELLOW}Installing Node.js and npm...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
@@ -96,6 +102,7 @@ EOL
 echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
 rm -rf /opt/vwireguard
 git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
+mkdir -p /opt/vwireguard/db/{clients,server,users,wake_on_lan_hosts}
 
 # Check and prepare assets
 echo -e "${YELLOW}Preparing assets...${NC}"
@@ -166,6 +173,32 @@ fi
 systemctl enable vwireguard
 systemctl start vwireguard
 
+# Setup Nginx reverse proxy and SSL if domain provided
+if [ -n "$PANEL_DOMAIN" ]; then
+    echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
+    apt-get install -y nginx certbot python3-certbot-nginx
+    cat > /etc/nginx/sites-available/vwireguard <<NGINX
+server {
+    listen 80;
+    server_name ${PANEL_DOMAIN};
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+NGINX
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+    nginx -s reload || systemctl restart nginx
+    if [ -n "$LE_EMAIL" ]; then
+        certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
+    else
+        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
+    fi
+fi
+
 # Create default admin user
 echo -e "${YELLOW}Creating default admin user...${NC}"
 cat > /opt/vwireguard/config.json << EOL
@@ -195,5 +228,10 @@ echo -e "\n${YELLOW}=======================================================${NC}
 echo -e "${GREEN}Default Admin Credentials:${NC}"
 echo -e "  ${YELLOW}Username: admin${NC}"
 echo -e "  ${YELLOW}Password: admin${NC}"
-echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
+if [ -n "$PANEL_DOMAIN" ]; then
+    echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
+else
+    echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
+fi
 echo -e "${YELLOW}=======================================================${NC}\n"
+

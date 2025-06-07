@@ -108,7 +108,7 @@ change_port() {
     if [ ! -f "/etc/vwireguard/config.toml" ]; then
         echo -e "${RED}Config file not found${NC}"
         return
-    }
+    fi
     
     # Stop the service
     systemctl stop vwireguard
@@ -175,7 +175,42 @@ manage_ssl() {
     echo "2. Renew SSL Certificate"
     echo "3. View SSL Status"
     read -r ssl_choice
-    # Add your SSL management logic here
+    case $ssl_choice in
+        1)
+            read -rp "Enter domain: " domain
+            read -rp "Enter email (leave blank to skip): " email
+            apt-get install -y nginx certbot python3-certbot-nginx
+            cat > /etc/nginx/sites-available/vwireguard <<CONF
+server {
+    listen 80;
+    server_name ${domain};
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+CONF
+            ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+            nginx -s reload || systemctl restart nginx
+            if [ -n "$email" ]; then
+                certbot --nginx --non-interactive --agree-tos -m "$email" -d "$domain"
+            else
+                certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$domain"
+            fi
+            ;;
+        2)
+            certbot renew --quiet
+            ;;
+        3)
+            certbot certificates
+            ;;
+        *)
+            echo -e "${RED}Invalid option${NC}"
+            ;;
+    esac
 }
 
 manage_ip_limit() {
