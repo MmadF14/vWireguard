@@ -162,11 +162,19 @@
                 data: JSON.stringify(data),
                 success: function(data) {
                     $("#modal_new_client").modal('hide');
-                    toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
+                    if (window.langManager) {
+                        toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
+                    } else {
+                        toastr.success('Updated Wireguard server interface addresses successfully');
+                    }
                 },
                 error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(window.langManager.translate(responseJson['message']));
+                    if (window.langManager) {
+                        toastr.error(window.langManager.translate(responseJson['message']));
+                    } else {
+                        toastr.error(responseJson['message']);
+                    }
                 }
             });
         }
@@ -177,7 +185,7 @@
             'width': '100%',
             // 'height': '75%',
             'interactive': true,
-            'defaultText': window.langManager.translate('Add More'),
+            'defaultText': window.langManager ? window.langManager.translate('Add More') : 'Add More',
             'removeWithBackspace': true,
             'minChars': 0,
             'minInputWidth': '100%',
@@ -208,9 +216,9 @@
                 },
                 messages: {
                     listen_port: {
-                        required: window.langManager.translate("Please enter a port"),
-                        digits: window.langManager.translate("Port must be an integer"),
-                        range: window.langManager.translate("Port must be in range 1..65535")
+                        required: window.langManager ? window.langManager.translate("Please enter a port") : "Please enter a port",
+                        digits: window.langManager ? window.langManager.translate("Port must be an integer") : "Port must be an integer",
+                        range: window.langManager ? window.langManager.translate("Port must be in range 1..65535") : "Port must be in range 1..65535"
                     }
                 },
                 errorElement: 'span',
