@@ -265,7 +265,10 @@ func (o *JsonDB) GetServer() (model.Server, error) {
 			PostDown:   util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, ""),
 			UpdatedAt:  time.Now().UTC(),
 		}
-		o.conn.Write("server", "interfaces", serverInterface)
+		// Write the default interface settings to the database
+		if err := o.SaveServerInterface(serverInterface); err != nil {
+			return server, fmt.Errorf("failed to save default interface settings: %v", err)
+		}
 	}
 	server.Interface = &serverInterface
 
