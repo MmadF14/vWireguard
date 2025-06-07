@@ -185,6 +185,9 @@ http://localhost:5000
 - Username: admin
 - Password: admin
 
+4. To extend the "remember me" session duration, set the `SESSION_MAX_AGE` environment
+   variable (in days). The default value is `7` days.
+
 ## 🔒 Security
 
 - All passwords are hashed using bcrypt
