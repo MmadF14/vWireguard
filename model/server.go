@@ -27,6 +27,7 @@ type ServerInterface struct {
 	PostUp     string    `json:"post_up"`
 	PreDown    string    `json:"pre_down"`
 	PostDown   string    `json:"post_down"`
+
 	// فیلد جدید برای فاصله بررسی (بر حسب دقیقه)
 	CheckInterval int `json:"check_interval"`
 }
@@ -43,33 +44,6 @@ func (s *ServerInterface) UnmarshalJSON(data []byte) error {
 
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
-	}
-
-	if aux.ListenPort != nil {
-		switch v := aux.ListenPort.(type) {
-		case string:
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return err
-			}
-			s.ListenPort = p
-		case float64:
-			s.ListenPort = int(v)
-		}
-	}
-
-	if aux.CheckInterval != nil {
-		switch v := aux.CheckInterval.(type) {
-		case string:
-			p, err := strconv.Atoi(v)
-			if err != nil {
-				return err
-			}
-			s.CheckInterval = p
-		case float64:
-			s.CheckInterval = int(v)
-		}
-	}
 
 	return nil
 }
