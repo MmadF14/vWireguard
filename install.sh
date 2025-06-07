@@ -34,6 +34,7 @@ apt-get upgrade -y
 echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
+
 # Try to download latest pre-built release
 echo -e "${YELLOW}Downloading latest vWireguard release...${NC}"
 ARCH=$(uname -m)
@@ -60,11 +61,13 @@ if [ -n "$RELEASE_URL" ]; then
     fi
 fi
 
+
 # Prompt for domain to enable HTTPS via Let's Encrypt
 read -rp "Enter your domain for SSL (leave blank to skip): " PANEL_DOMAIN
 if [ -n "$PANEL_DOMAIN" ]; then
     read -rp "Enter email for Let's Encrypt notifications: " LE_EMAIL
 fi
+
 
 # Install build tools only if release download failed
 if [ "$USE_RELEASE" = false ]; then
@@ -90,6 +93,34 @@ if [ "$USE_RELEASE" = false ]; then
         echo -e "${RED}Failed to install Go!${NC}"
         exit 1
     fi
+
+
+# Install Node.js and npm
+echo -e "${YELLOW}Installing Node.js and npm...${NC}"
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt-get install -y nodejs
+
+# Install yarn
+echo -e "${YELLOW}Installing yarn...${NC}"
+npm install -g yarn
+
+# Install latest Go version
+echo -e "${YELLOW}Installing latest Go version...${NC}"
+GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n 1)
+GO_TAR="${GO_VERSION}.linux-amd64.tar.gz"
+wget "https://go.dev/dl/${GO_TAR}" -O /tmp/go.tar.gz
+rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+export PATH=$PATH:/usr/local/go/bin
+
+# Verify Go installation
+if go version; then
+    echo -e "${GREEN}Go installed successfully!${NC}"
+else
+    echo -e "${RED}Failed to install Go!${NC}"
+    exit 1
+
 fi
 
 # Enable IP forwarding
@@ -123,6 +154,7 @@ PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING 
 # Client configurations will be added here
 EOL
 
+
 # If release download failed, build from source
 if [ "$USE_RELEASE" = false ]; then
     echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
@@ -144,6 +176,25 @@ if [ "$USE_RELEASE" = false ]; then
             echo -e "${RED}Failed to execute asset script!${NC}"
             exit 1
         fi
+
+# Clone repository
+echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
+rm -rf /opt/vwireguard
+git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
+mkdir -p /opt/vwireguard/db/{clients,server,users,wake_on_lan_hosts}
+
+# Check and prepare assets
+echo -e "${YELLOW}Preparing assets...${NC}"
+cd /opt/vwireguard
+ASSET_SCRIPT=$(find . -type f \( -name "prepare_assets" -o -name "prepare_assets.sh" \) | head -n 1)
+
+if [ -n "$ASSET_SCRIPT" ]; then
+    echo -e "${GREEN}Found asset script at: ${ASSET_SCRIPT}${NC}"
+    chmod +x "$ASSET_SCRIPT"
+    echo -e "${YELLOW}Executing asset preparation...${NC}"
+    if "$ASSET_SCRIPT"; then
+        echo -e "${GREEN}Assets prepared successfully!${NC}"
+
     else
         echo -e "${RED}No prepare_assets script found in repository!${NC}"
         echo -e "${YELLOW}Searching in all directories...${NC}"
@@ -211,6 +262,9 @@ if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
     apt-get install -y nginx certbot python3-certbot-nginx
     cat > /etc/nginx/sites-available/vwireguard <<'NGINX'
+
+    cat > /etc/nginx/sites-available/vwireguard <<NGINX
+
 server {
     listen 80;
     server_name ${PANEL_DOMAIN};
@@ -221,6 +275,36 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
+
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+    nginx -s reload || systemctl restart nginx
+    if [ -n "$LE_EMAIL" ]; then
+        certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
+    else
+        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
+    fi
+fi
+
+# Create default admin user
+echo -e "${YELLOW}Creating default admin user...${NC}"
+cat > /opt/vwireguard/config.json << EOL
+{
+    "users": [
+        {
+            "username": "admin",
+            "password": "admin",
+            "role": "admin"
+        }
+    ]
+
 }
 NGINX
     ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
@@ -249,11 +333,16 @@ echo -e "  ${YELLOW}Username: ${ADMIN_USER}${NC}"
 echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
 echo "Username: ${ADMIN_USER}" > /root/vwireguard_credentials.txt
 echo "Password: ${ADMIN_PASS}" >> /root/vwireguard_credentials.txt
+
+
+echo -e "${GREEN}Default Admin Credentials:${NC}"
+echo -e "  ${YELLOW}Username: admin${NC}"
+echo -e "  ${YELLOW}Password: admin${NC}" 
+
+
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
 else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
 echo -e "${YELLOW}=======================================================${NC}\n"
-
-

@@ -34,6 +34,8 @@ During installation you will be asked for a domain name. If provided, the script
 sets up Nginx and obtains a Let's Encrypt certificate so the panel is available
 over HTTPS. The installer also attempts to download the latest pre-built
 release from GitHub so no manual build steps are required.
+over HTTPS.
+
 
 ### Manual Installation
 
