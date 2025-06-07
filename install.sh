@@ -94,6 +94,7 @@ if [ "$USE_RELEASE" = false ]; then
         exit 1
     fi
 
+
 # Install Node.js and npm
 echo -e "${YELLOW}Installing Node.js and npm...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
@@ -142,7 +143,7 @@ echo -e "${YELLOW}Detected default network interface: ${DEFAULT_INTERFACE}${NC}"
 
 # Create WireGuard server configuration
 echo -e "${YELLOW}Creating WireGuard server configuration...${NC}"
-cat > /etc/wireguard/wg0.conf << EOL
+cat > /etc/wireguard/wg0.conf <<'EOL'
 [Interface]
 PrivateKey = $(cat /etc/wireguard/server_private.key)
 Address = 10.0.0.1/24
@@ -223,7 +224,7 @@ ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
 
 # Create systemd service
 echo -e "${YELLOW}Creating systemd service...${NC}"
-cat > /etc/systemd/system/vwireguard.service << EOL
+cat > /etc/systemd/system/vwireguard.service <<'EOL'
 [Unit]
 Description=vWireguard Web Interface
 After=network.target
@@ -260,7 +261,10 @@ systemctl start vwireguard
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
     apt-get install -y nginx certbot python3-certbot-nginx
+    cat > /etc/nginx/sites-available/vwireguard <<'NGINX'
+
     cat > /etc/nginx/sites-available/vwireguard <<NGINX
+
 server {
     listen 80;
     server_name ${PANEL_DOMAIN};
@@ -271,6 +275,7 @@ server {
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
+
 
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -299,6 +304,7 @@ cat > /opt/vwireguard/config.json << EOL
             "role": "admin"
         }
     ]
+
 }
 NGINX
     ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
@@ -328,9 +334,11 @@ echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
 echo "Username: ${ADMIN_USER}" > /root/vwireguard_credentials.txt
 echo "Password: ${ADMIN_PASS}" >> /root/vwireguard_credentials.txt
 
+
 echo -e "${GREEN}Default Admin Credentials:${NC}"
 echo -e "  ${YELLOW}Username: admin${NC}"
 echo -e "  ${YELLOW}Password: admin${NC}" 
+
 
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
@@ -338,4 +346,3 @@ else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
 echo -e "${YELLOW}=======================================================${NC}\n"
-

@@ -36,6 +36,7 @@ over HTTPS. The installer also attempts to download the latest pre-built
 release from GitHub so no manual build steps are required.
 over HTTPS.
 
+
 ### Manual Installation
 
 1. Install required packages:
