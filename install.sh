@@ -193,7 +193,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-    }
+
 }
 NGINX
     ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
@@ -217,16 +217,10 @@ fi
 
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "\n${YELLOW}=======================================================${NC}"
-echo -e "${GREEN}Admin Credentials:${NC}"
-echo -e "  ${YELLOW}Username: ${ADMIN_USER}${NC}"
-echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
-echo "Username: ${ADMIN_USER}" > /root/vwireguard_credentials.txt
-echo "Password: ${ADMIN_PASS}" >> /root/vwireguard_credentials.txt
+
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
 else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
-echo -e "${YELLOW}=======================================================${NC}\n"
-
 
