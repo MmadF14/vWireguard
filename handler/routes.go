@@ -1146,18 +1146,20 @@ func WireGuardServer(db store.IStore) echo.HandlerFunc {
 }
 
 // WireGuardServerInterfaces handler
-func WireGuardServerInterfaces(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
+func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var serverInterface model.ServerInterface
 		if err := json.NewDecoder(c.Request().Body).Decode(&serverInterface); err != nil {
 			log.Warnf("Cannot parse server interface request: %v", err)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request"})
 		}
+
 		// validate the input addresses
 		if util.ValidateServerAddresses(serverInterface.Addresses) == false {
 			log.Warnf("Invalid server interface addresses input from user: %v", serverInterface.Addresses)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
 		}
+
 		if serverInterface.ListenPort <= 0 || serverInterface.ListenPort > 65535 {
 			log.Warnf("Invalid listen port: %v", serverInterface.ListenPort)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Port must be in range 1..65535"})
@@ -1166,41 +1168,11 @@ func WireGuardServerInterfaces(db store.IStore, tmplDir fs.FS) echo.HandlerFunc 
 		serverInterface.UpdatedAt = time.Now().UTC()
 
 		// write config to the database
+
 		if err := db.SaveServerInterface(serverInterface); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
 		}
 		log.Infof("Updated wireguard server interfaces settings: %v", serverInterface)
-
-		// Get all required data for configuration
-		server, err := db.GetServer()
-		if err != nil {
-			log.Errorf("Failed to get server configuration: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get server configuration"})
-		}
-
-		clients, err := db.GetClients(false)
-		if err != nil {
-			log.Errorf("Failed to get clients: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get clients"})
-		}
-
-		users, err := db.GetUsers()
-		if err != nil {
-			log.Errorf("Failed to get users: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get users"})
-		}
-
-		settings, err := db.GetGlobalSettings()
-		if err != nil {
-			log.Errorf("Failed to get global settings: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get global settings"})
-		}
-
-		// Apply the new configuration
-		if err := util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings); err != nil {
-			log.Errorf("Failed to write server configuration: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to write server configuration"})
-		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated interface addresses successfully"})
 	}

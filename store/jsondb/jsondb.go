@@ -257,28 +257,18 @@ func (o *JsonDB) GetServer() (model.Server, error) {
 	// read server interface information
 	serverInterface := model.ServerInterface{}
 	if err := o.conn.Read("server", "interfaces", &serverInterface); err != nil {
-		// If interface settings don't exist, create with default values
-		serverInterface = model.ServerInterface{
-			Addresses:  util.LookupEnvOrStrings(util.ServerAddressesEnvVar, []string{util.DefaultServerAddress}),
-			ListenPort: util.LookupEnvOrInt(util.ServerListenPortEnvVar, util.DefaultServerPort),
-			PostUp:     util.LookupEnvOrString(util.ServerPostUpScriptEnvVar, ""),
-			PostDown:   util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, ""),
-			UpdatedAt:  time.Now().UTC(),
-		}
-		// Write the default interface settings to the database
-		if err := o.SaveServerInterface(serverInterface); err != nil {
-			return server, fmt.Errorf("failed to save default interface settings: %v", err)
-		}
+		return server, err
 	}
-	server.Interface = &serverInterface
 
 	// read server key pair information
 	serverKeyPair := model.ServerKeypair{}
 	if err := o.conn.Read("server", "keypair", &serverKeyPair); err != nil {
 		return server, err
 	}
-	server.KeyPair = &serverKeyPair
 
+	// create Server object and return
+	server.Interface = &serverInterface
+	server.KeyPair = &serverKeyPair
 	return server, nil
 }
 
