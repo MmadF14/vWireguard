@@ -2,7 +2,6 @@ package model
 
 import (
 	"encoding/json"
-	"strconv"
 	"time"
 )
 
@@ -44,6 +43,6 @@ func (s *ServerInterface) UnmarshalJSON(data []byte) error {
 
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
-
+	}
 	return nil
 }
