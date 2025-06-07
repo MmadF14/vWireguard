@@ -76,24 +76,37 @@ uninstall_panel() {
 
 reset_credentials() {
     echo -e "${YELLOW}Resetting credentials...${NC}"
-    if [ ! -f "/etc/vwireguard/config.toml" ]; then
-        echo -e "${RED}Config file not found${NC}"
+    service_file="/etc/systemd/system/vwireguard.service"
+    if [ ! -f "$service_file" ]; then
+        echo -e "${RED}Service file not found${NC}"
         return
     fi
-    
-    # Stop the service
+
+    new_user=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
+    new_pass=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
+
     systemctl stop vwireguard
-    
-    # Reset credentials in config file
-    sed -i 's/username = .*/username = "admin"/' /etc/vwireguard/config.toml
-    sed -i 's/password = .*/password = "admin"/' /etc/vwireguard/config.toml
-    
-    # Start the service
+
+    if grep -q 'WGUI_USERNAME' "$service_file"; then
+        sed -i "s|Environment=\"WGUI_USERNAME=.*\"|Environment=\"WGUI_USERNAME=${new_user}\"|" "$service_file"
+    else
+        sed -i "/^WorkingDirectory=/a Environment=\"WGUI_USERNAME=${new_user}\"" "$service_file"
+    fi
+
+    if grep -q 'WGUI_PASSWORD' "$service_file"; then
+        sed -i "s|Environment=\"WGUI_PASSWORD=.*\"|Environment=\"WGUI_PASSWORD=${new_pass}\"|" "$service_file"
+    else
+        sed -i "/WGUI_USERNAME=/a Environment=\"WGUI_PASSWORD=${new_pass}\"" "$service_file"
+    fi
+
+    systemctl daemon-reload
     systemctl start vwireguard
-    
+
     echo -e "${GREEN}Credentials have been reset to:${NC}"
-    echo -e "Username: admin"
-    echo -e "Password: admin"
+    echo -e "Username: ${new_user}"
+    echo -e "Password: ${new_pass}"
+    echo "Username: ${new_user}" > /root/vwireguard_credentials.txt
+    echo "Password: ${new_pass}" >> /root/vwireguard_credentials.txt
 }
 
 change_port() {
@@ -108,7 +121,7 @@ change_port() {
     if [ ! -f "/etc/vwireguard/config.toml" ]; then
         echo -e "${RED}Config file not found${NC}"
         return
-    }
+    fi
     
     # Stop the service
     systemctl stop vwireguard
@@ -175,7 +188,42 @@ manage_ssl() {
     echo "2. Renew SSL Certificate"
     echo "3. View SSL Status"
     read -r ssl_choice
-    # Add your SSL management logic here
+    case $ssl_choice in
+        1)
+            read -rp "Enter domain: " domain
+            read -rp "Enter email (leave blank to skip): " email
+            apt-get install -y nginx certbot python3-certbot-nginx
+            cat > /etc/nginx/sites-available/vwireguard <<CONF
+server {
+    listen 80;
+    server_name ${domain};
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+CONF
+            ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+            nginx -s reload || systemctl restart nginx
+            if [ -n "$email" ]; then
+                certbot --nginx --non-interactive --agree-tos -m "$email" -d "$domain"
+            else
+                certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$domain"
+            fi
+            ;;
+        2)
+            certbot renew --quiet
+            ;;
+        3)
+            certbot certificates
+            ;;
+        *)
+            echo -e "${RED}Invalid option${NC}"
+            ;;
+    esac
 }
 
 manage_ip_limit() {
