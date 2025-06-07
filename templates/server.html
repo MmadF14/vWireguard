@@ -193,6 +193,7 @@
             $.validator.setDefaults({
                 submitHandler: function () {
                     submitServerInterfaceSetting();
+                    return false;
                 }
             });
             $("#frm_server_interface").validate({
