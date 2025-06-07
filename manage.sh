@@ -203,6 +203,12 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+
     }
 }
 CONF
@@ -294,7 +300,7 @@ backup_config() {
     rm -rf "$backup_dir"
     echo -e "${GREEN}Backup created at ${backup_dir}.tar.gz${NC}"
 }
-
+ 
 restore_config() {
     echo -e "${YELLOW}Enter backup file path:${NC}"
     read -r backup_file
