@@ -25,7 +25,6 @@ type ServerInterface struct {
 	PostUp     string    `json:"post_up"`
 	PreDown    string    `json:"pre_down"`
 	PostDown   string    `json:"post_down"`
-	    // فیلد جدید برای فاصله بررسی (بر حسب دقیقه)
-		CheckInterval int    `json:"check_interval"`
-	}
-
+	// فیلد جدید برای فاصله بررسی (بر حسب دقیقه)
+	CheckInterval int `json:"check_interval,string"`
+}
