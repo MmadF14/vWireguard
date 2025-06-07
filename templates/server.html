@@ -161,7 +161,11 @@
                 success: function(data) {
                     $("#modal_new_client").modal('hide');
                     toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
+                    setTimeout(function() {
+                    window.location.reload();
+                    }, 1000);
                 },
+                
                 error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(window.langManager.translate(responseJson['message']));
