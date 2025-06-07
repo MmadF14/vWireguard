@@ -1436,6 +1436,9 @@
                     if (client.created_at) {
                         html += `<div><i class="fas fa-calendar-plus"></i> Created: ${formatDate(new Date(client.created_at))}</div>`;
                     }
+                    if (client.created_by) {
+                        html += `<div><i class="fas fa-user"></i> Created by: ${client.created_by}</div>`;
+                    }
                     if (client.updated_at) {
                         html += `<div><i class="fas fa-history"></i> Updated: ${formatDate(new Date(client.updated_at))}</div>`;
                     }
