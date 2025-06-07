@@ -143,12 +143,14 @@
 {{define "bottom_js"}}
     <script>
         function submitServerInterfaceSetting() {
-            const addresses = $("#addresses").val().split(",");
-            const listen_port = $("#listen_port").val();
+            const addresses = $("#addresses").val()
+                .split(',')
+                .filter(a => a.trim() !== '');
+            const listen_port = parseInt($("#listen_port").val(), 10);
             const post_up = $("#post_up").val();
             const pre_down = $("#pre_down").val();
             const post_down = $("#post_down").val();
-            const check_interval = $("#check_interval").val();
+            const check_interval = parseInt($("#check_interval").val(), 10);
             const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": check_interval};
 
             $.ajax({
@@ -193,6 +195,7 @@
             $.validator.setDefaults({
                 submitHandler: function () {
                     submitServerInterfaceSetting();
+                    return false;
                 }
             });
             $("#frm_server_interface").validate({
