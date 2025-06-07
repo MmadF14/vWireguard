@@ -626,8 +626,9 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		client.CreatedAt = time.Now().UTC()
-		client.UpdatedAt = client.CreatedAt
+                client.CreatedBy = currentUser(c)
+                client.CreatedAt = time.Now().UTC()
+                client.UpdatedAt = client.CreatedAt
 
 		// write client to the database
 		if err := db.SaveClient(client); err != nil {

@@ -21,6 +21,7 @@ type Client struct {
 	AdditionalNotes string    `json:"additional_notes"`
 	UseServerDNS    bool      `json:"use_server_dns"`
 	Enabled         bool      `json:"enabled"`
+	CreatedBy       string    `json:"created_by,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 	Quota           int64     `json:"quota,omitempty"`
