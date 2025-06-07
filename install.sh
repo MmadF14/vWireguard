@@ -87,7 +87,7 @@ if [ "$USE_RELEASE" = false ]; then
     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
     export PATH=$PATH:/usr/local/go/bin
 
-    if go version; then
+cat > /etc/wireguard/wg0.conf <<'EOL'
         echo -e "${GREEN}Go installed successfully!${NC}"
     else
         echo -e "${RED}Failed to install Go!${NC}"
@@ -148,9 +148,9 @@ PrivateKey = $(cat /etc/wireguard/server_private.key)
 Address = 10.0.0.1/24
 ListenPort = 51820
 PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o ${DEFAULT_INTERFACE} -j MASQUERADE
-PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o ${DEFAULT_INTERFACE} -j MASQUERADE
+cat > /etc/systemd/system/vwireguard.service <<'EOL'
 
-# Client configurations will be added here
+    cat > /etc/nginx/sites-available/vwireguard <<'NGINX'
 EOL
 
 
