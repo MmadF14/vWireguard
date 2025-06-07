@@ -286,7 +286,7 @@ backup_config() {
     rm -rf "$backup_dir"
     echo -e "${GREEN}Backup created at ${backup_dir}.tar.gz${NC}"
 }
-
+ 
 restore_config() {
     echo -e "${YELLOW}Enter backup file path:${NC}"
     read -r backup_file

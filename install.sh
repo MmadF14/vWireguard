@@ -231,7 +231,7 @@ echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "\n${YELLOW}=======================================================${NC}"
 echo -e "${GREEN}Default Admin Credentials:${NC}"
 echo -e "  ${YELLOW}Username: admin${NC}"
-echo -e "  ${YELLOW}Password: admin${NC}"
+echo -e "  ${YELLOW}Password: admin${NC}" 
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
 else
