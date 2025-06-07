@@ -30,6 +30,11 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
+During installation you will be asked for a domain name. If provided, the script
+sets up Nginx and obtains a Let's Encrypt certificate so the panel is available
+over HTTPS. The installer also attempts to download the latest pre-built
+release from GitHub so no manual build steps are required.
+
 ### Manual Installation
 
 1. Install required packages:
@@ -79,10 +84,10 @@ sudo systemctl start vwireguard
 
 ## Default Credentials
 
-- Username: `admin`
-- Password: `admin`
+- The installer generates a random admin username and password.
+  They will be shown after installation and stored in `/root/vwireguard_credentials.txt`.
 
-**Important**: Please change the default password after your first login!
+**Important**: Save these credentials somewhere safe!
 
 ## Accessing the Web Interface
 
@@ -90,6 +95,7 @@ After installation, you can access the web interface at:
 ```
 http://YOUR_SERVER_IP:8080
 ```
+If you provided a domain during installation, use `https://your-domain` instead.
 
 ## Security Considerations
 
