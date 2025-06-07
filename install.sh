@@ -140,6 +140,10 @@ if [ ! -f "vwireguard" ]; then
     exit 1
 fi
 
+# Generate random admin credentials
+ADMIN_USER=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
+ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
+
 # Create systemd service
 echo -e "${YELLOW}Creating systemd service...${NC}"
 cat > /etc/systemd/system/vwireguard.service << EOL
@@ -151,6 +155,8 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/opt/vwireguard
+Environment="WGUI_USERNAME=${ADMIN_USER}"
+Environment="WGUI_PASSWORD=${ADMIN_PASS}"
 ExecStart=/opt/vwireguard/vwireguard
 Restart=always
 RestartSec=3
@@ -187,6 +193,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+    }
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -215,7 +222,15 @@ cat > /opt/vwireguard/config.json << EOL
         }
     ]
 }
-EOL
+NGINX
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+    nginx -s reload || systemctl restart nginx
+    if [ -n "$LE_EMAIL" ]; then
+        certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
+    else
+        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
+    fi
+fi
 
 # Final checks
 echo -e "${YELLOW}Verifying installation...${NC}"
@@ -229,6 +244,12 @@ fi
 
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "\n${YELLOW}=======================================================${NC}"
+echo -e "${GREEN}Admin Credentials:${NC}"
+echo -e "  ${YELLOW}Username: ${ADMIN_USER}${NC}"
+echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
+echo "Username: ${ADMIN_USER}" > /root/vwireguard_credentials.txt
+echo "Password: ${ADMIN_PASS}" >> /root/vwireguard_credentials.txt
+=======
 echo -e "${GREEN}Default Admin Credentials:${NC}"
 echo -e "  ${YELLOW}Username: admin${NC}"
 echo -e "  ${YELLOW}Password: admin${NC}" 
@@ -237,4 +258,9 @@ if [ -n "$PANEL_DOMAIN" ]; then
 else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
+echo -e "${YELLOW}=======================================================${NC}\n"
+
+
+=======
 =
+>>>>>>> master
