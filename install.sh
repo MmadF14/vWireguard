@@ -187,6 +187,7 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
+
     }
 }
 NGINX
@@ -233,5 +234,4 @@ if [ -n "$PANEL_DOMAIN" ]; then
 else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
-echo -e "${YELLOW}=======================================================${NC}\n"
 
