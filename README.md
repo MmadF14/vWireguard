@@ -30,6 +30,10 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
+During installation you will be asked for a domain name. If provided, the script
+sets up Nginx and obtains a Let's Encrypt certificate so the panel is available
+over HTTPS.
+
 ### Manual Installation
 
 1. Install required packages:
@@ -90,6 +94,7 @@ After installation, you can access the web interface at:
 ```
 http://YOUR_SERVER_IP:8080
 ```
+If you provided a domain during installation, use `https://your-domain` instead.
 
 ## Security Considerations
 
