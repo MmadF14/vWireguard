@@ -1436,6 +1436,9 @@
                     if (client.created_at) {
                         html += `<div><i class="fas fa-calendar-plus"></i> Created: ${formatDate(new Date(client.created_at))}</div>`;
                     }
+                    if (client.created_by) {
+                        html += `<div><i class="fas fa-user"></i> Created by: ${client.created_by}</div>`;
+                    }
                     if (client.updated_at) {
                         html += `<div><i class="fas fa-history"></i> Updated: ${formatDate(new Date(client.updated_at))}</div>`;
                     }
@@ -1463,20 +1466,40 @@
                     }
                     
                     // Show expiration if set
-                    if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
+                    if (client.expiration_days && client.expiration_days > 0) {
+                        if (client.first_connected_at && client.first_connected_at !== "0001-01-01T00:00:00Z") {
+                            const expirationDate = new Date(client.expiration);
+                            const now = new Date();
+                            const isExpired = expirationDate < now;
+
+                            const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+                            const expiryText = daysRemaining > 0 ?
+                                `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` :
+                                `Expired: ${formatDate(expirationDate)}`;
+
+                            html += `
+                                        <div class="client-expiry mt-2">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span class="${isExpired ? 'text-danger' : ''}">
+                                                ${expiryText}
+                                            </span>
+                                        </div>`;
+                        } else {
+                            html += `<div class="mt-2"><i class="fas fa-calendar-alt"></i> Expires ${client.expiration_days} days after first connection</div>`;
+                        }
+                    } else if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
                         const expirationDate = new Date(client.expiration);
                         const now = new Date();
                         const isExpired = expirationDate < now;
-                        
-                        // Calculate days remaining
+
                         const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
-                        const expiryText = daysRemaining > 0 ? 
-                            `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` : 
+                        const expiryText = daysRemaining > 0 ?
+                            `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` :
                             `Expired: ${formatDate(expirationDate)}`;
-                        
+
                         html += `
                                     <div class="client-expiry mt-2">
-                                        <i class="fas fa-calendar-alt"></i> 
+                                        <i class="fas fa-calendar-alt"></i>
                                         <span class="${isExpired ? 'text-danger' : ''}">
                                             ${expiryText}
                                         </span>
