@@ -121,7 +121,7 @@ change_port() {
     if [ ! -f "/etc/vwireguard/config.toml" ]; then
         echo -e "${RED}Config file not found${NC}"
         return
-    fi
+    }
     
     # Stop the service
     systemctl stop vwireguard
@@ -188,6 +188,7 @@ manage_ssl() {
     echo "2. Renew SSL Certificate"
     echo "3. View SSL Status"
     read -r ssl_choice
+<<<<<<< HEAD
     case $ssl_choice in
         1)
             read -rp "Enter domain: " domain
@@ -231,6 +232,9 @@ CONF
             echo -e "${RED}Invalid option${NC}"
             ;;
     esac
+=======
+    # Add your SSL management logic here
+>>>>>>> parent of 37fbd02 (Add optional SSL setup)
 }
 
 manage_ip_limit() {
