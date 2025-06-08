@@ -34,37 +34,62 @@ apt-get upgrade -y
 echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
+# Try to download latest pre-built release
+echo -e "${YELLOW}Downloading latest vWireguard release...${NC}"
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64) GOARCH=amd64 ;;
+    aarch64|arm64) GOARCH=arm64 ;;
+    armv7l|armv6l) GOARCH=arm ;;
+    i386|i686) GOARCH=386 ;;
+    *) GOARCH=amd64 ;;
+esac
+OS=linux
+RELEASE_URL=$(curl -s https://api.github.com/repos/MmadF14/vwireguard/releases/latest \
+    | grep browser_download_url \
+    | grep "${OS}" \
+    | grep "${GOARCH}" \
+    | head -n 1 \
+    | cut -d '"' -f 4)
+USE_RELEASE=false
+if [ -n "$RELEASE_URL" ]; then
+    if wget -qO /tmp/vwireguard.tar.gz "$RELEASE_URL"; then
+        mkdir -p /opt/vwireguard
+        tar -xzf /tmp/vwireguard.tar.gz -C /opt/vwireguard
+        USE_RELEASE=true
+    fi
+fi
+
 # Prompt for domain to enable HTTPS via Let's Encrypt
 read -rp "Enter your domain for SSL (leave blank to skip): " PANEL_DOMAIN
 if [ -n "$PANEL_DOMAIN" ]; then
     read -rp "Enter email for Let's Encrypt notifications: " LE_EMAIL
 fi
 
-# Install Node.js and npm
-echo -e "${YELLOW}Installing Node.js and npm...${NC}"
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt-get install -y nodejs
+# Install build tools only if release download failed
+if [ "$USE_RELEASE" = false ]; then
+    echo -e "${YELLOW}Installing Node.js and npm...${NC}"
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
 
-# Install yarn
-echo -e "${YELLOW}Installing yarn...${NC}"
-npm install -g yarn
+    echo -e "${YELLOW}Installing yarn...${NC}"
+    npm install -g yarn
 
-# Install latest Go version
-echo -e "${YELLOW}Installing latest Go version...${NC}"
-GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n 1)
-GO_TAR="${GO_VERSION}.linux-amd64.tar.gz"
-wget "https://go.dev/dl/${GO_TAR}" -O /tmp/go.tar.gz
-rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
-export PATH=$PATH:/usr/local/go/bin
+    echo -e "${YELLOW}Installing latest Go version...${NC}"
+    GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n 1)
+    GO_TAR="${GO_VERSION}.linux-amd64.tar.gz"
+    wget "https://go.dev/dl/${GO_TAR}" -O /tmp/go.tar.gz
+    rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tar.gz
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+    export PATH=$PATH:/usr/local/go/bin
 
-# Verify Go installation
-if go version; then
-    echo -e "${GREEN}Go installed successfully!${NC}"
-else
-    echo -e "${RED}Failed to install Go!${NC}"
-    exit 1
+    if go version; then
+        echo -e "${GREEN}Go installed successfully!${NC}"
+    else
+        echo -e "${RED}Failed to install Go!${NC}"
+        exit 1
+    fi
 fi
 
 # Enable IP forwarding
@@ -87,9 +112,10 @@ echo -e "${YELLOW}Detected default network interface: ${DEFAULT_INTERFACE}${NC}"
 
 # Create WireGuard server configuration
 echo -e "${YELLOW}Creating WireGuard server configuration...${NC}"
-cat > /etc/wireguard/wg0.conf << EOL
+SERVER_PRIVATE_KEY=$(cat /etc/wireguard/server_private.key)
+cat > /etc/wireguard/wg0.conf <<EOL
 [Interface]
-PrivateKey = $(cat /etc/wireguard/server_private.key)
+PrivateKey = ${SERVER_PRIVATE_KEY}
 Address = 10.0.0.1/24
 ListenPort = 51820
 PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o ${DEFAULT_INTERFACE} -j MASQUERADE
@@ -98,64 +124,111 @@ PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING 
 # Client configurations will be added here
 EOL
 
-# Clone repository
-echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
-rm -rf /opt/vwireguard
-git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
+# If release download failed, build from source
+if [ "$USE_RELEASE" = false ]; then
+    echo -e "${YELLOW}Cloning vWireguard repository...${NC}"
+    rm -rf /opt/vwireguard
+    git clone https://github.com/MmadF14/vwireguard.git /opt/vwireguard
+    mkdir -p /opt/vwireguard/db/{clients,server,users,wake_on_lan_hosts}
 
-# Check and prepare assets
-echo -e "${YELLOW}Preparing assets...${NC}"
-cd /opt/vwireguard
-ASSET_SCRIPT=$(find . -type f \( -name "prepare_assets" -o -name "prepare_assets.sh" \) | head -n 1)
+    echo -e "${YELLOW}Preparing assets...${NC}"
+    cd /opt/vwireguard
+    ASSET_SCRIPT=$(find . -type f \( -name "prepare_assets" -o -name "prepare_assets.sh" \) | head -n 1)
 
-if [ -n "$ASSET_SCRIPT" ]; then
-    echo -e "${GREEN}Found asset script at: ${ASSET_SCRIPT}${NC}"
-    chmod +x "$ASSET_SCRIPT"
-    echo -e "${YELLOW}Executing asset preparation...${NC}"
-    if "$ASSET_SCRIPT"; then
-        echo -e "${GREEN}Assets prepared successfully!${NC}"
+    if [ -n "$ASSET_SCRIPT" ]; then
+        echo -e "${GREEN}Found asset script at: ${ASSET_SCRIPT}${NC}"
+        chmod +x "$ASSET_SCRIPT"
+        echo -e "${YELLOW}Executing asset preparation...${NC}"
+        if "$ASSET_SCRIPT"; then
+            echo -e "${GREEN}Assets prepared successfully!${NC}"
+        else
+            echo -e "${RED}Failed to execute asset script!${NC}"
+            exit 1
+        fi
     else
-        echo -e "${RED}Failed to execute asset script!${NC}"
+        echo -e "${RED}No prepare_assets script found in repository!${NC}"
+        echo -e "${YELLOW}Searching in all directories...${NC}"
+        find . -type f -name "prepare_assets*"
+        echo -e "${RED}Please ensure prepare_assets exists in the repository${NC}"
         exit 1
     fi
-else
-    echo -e "${RED}No prepare_assets script found in repository!${NC}"
-    echo -e "${YELLOW}Searching in all directories...${NC}"
-    find . -type f -name "prepare_assets*"
-    echo -e "${RED}Please ensure prepare_assets exists in the repository${NC}"
-    exit 1
+
+    echo -e "${YELLOW}Building vWireguard...${NC}"
+    export GOPATH=/go
+    export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
+    go mod tidy
+    go build -ldflags="-s -w" -o vwireguard
+
+    if [ ! -f "vwireguard" ]; then
+        echo -e "${RED}Build failed! Check dependencies and try again.${NC}"
+        exit 1
+    fi
 fi
 
-# Build the application
-echo -e "${YELLOW}Building vWireguard...${NC}"
-export GOPATH=/go
-export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-go mod tidy
-go build -ldflags="-s -w" -o vwireguard
+# Generate random admin credentials
+ADMIN_USER=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
+ADMIN_PASS=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 8)
 
-# Verify build
-if [ ! -f "vwireguard" ]; then
-    echo -e "${RED}Build failed! Check dependencies and try again.${NC}"
-    exit 1
-fi
+# Install bcrypt for password hashing
+echo -e "${YELLOW}Installing bcrypt...${NC}"
+apt-get install -y python3-pip
+pip3 install bcrypt
 
-# Create systemd service
-echo -e "${YELLOW}Creating systemd service...${NC}"
-cat > /etc/systemd/system/vwireguard.service << EOL
+# Create database directory and set permissions
+echo -e "${YELLOW}Creating database directory...${NC}"
+mkdir -p /opt/vwireguard/db/users
+chmod 755 /opt/vwireguard/db
+chmod 755 /opt/vwireguard/db/users
+
+# Create admin user in database
+echo -e "${YELLOW}Creating admin user...${NC}"
+PASSWORD_HASH=$(python3 -c "import bcrypt; print(bcrypt.hashpw('${ADMIN_PASS}'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8'))")
+cat > /opt/vwireguard/db/users/${ADMIN_USER}.json <<EOL
+{
+    "username": "${ADMIN_USER}",
+    "password_hash": "${PASSWORD_HASH}",
+    "role": "admin"
+}
+EOL
+chmod 644 /opt/vwireguard/db/users/${ADMIN_USER}.json
+
+# برای ساخت هش bcrypt نیاز داریم
+apt-get install -y apache2-utils  # دستور htpasswd را می‌آورد (یک بار کافی است)
+
+# هش bcrypt (rounds=10) می‌سازیم
+ADMIN_HASH=$(htpasswd -bnBC 10 "" "$ADMIN_PASS" | tr -d ':\n')
+
+# در فایل سرویس، گذرواژهٔ هَش‌شده را بگذار
+cat > /etc/systemd/system/vwireguard.service <<EOF
 [Unit]
 Description=vWireguard Web Interface
 After=network.target
 
 [Service]
 Type=simple
-User=root
 WorkingDirectory=/opt/vwireguard
+Environment="WGUI_USERNAME=${ADMIN_USER}"
+Environment="WGUI_PASSWORD=${ADMIN_HASH}"
 ExecStart=/opt/vwireguard/vwireguard
 Restart=always
 RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
+EOF
+
+# Create config.json for the panel
+echo -e "${YELLOW}Creating panel configuration...${NC}"
+cat > /opt/vwireguard/config.json <<EOL
+{
+    "users": [
+        {
+            "username": "${ADMIN_USER}",
+            "password": "${ADMIN_PASS}",
+            "role": "admin"
+        }
+    ]
+}
 EOL
 
 # Start services
@@ -176,8 +249,6 @@ systemctl start vwireguard
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
     apt-get install -y nginx certbot python3-certbot-nginx
-    
-    # Create Nginx configuration
     cat > /etc/nginx/sites-available/vwireguard <<'EOL'
 server {
     listen 80;
@@ -191,70 +262,14 @@ server {
     }
 }
 EOL
-
-    # Enable the site
-    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-    
-    # Test Nginx configuration
-    nginx -t
-    
-    # Restart Nginx
-    systemctl restart nginx
-    
-    # Setup SSL with Certbot
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+    nginx -s reload || systemctl restart nginx
     if [ -n "$LE_EMAIL" ]; then
         certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
     else
-        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN" --redirect
+        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
     fi
-    
-    # Force HTTPS
-    cat > /etc/nginx/sites-available/vwireguard <<'EOL'
-server {
-    listen 80;
-    server_name ${PANEL_DOMAIN};
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${PANEL_DOMAIN};
-    
-    ssl_certificate /etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem;
-    
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOL
-    
-    # Restart Nginx again
-    systemctl restart nginx
 fi
-
-# Create default admin user configuration
-echo -e "${YELLOW}Creating admin user configuration...${NC}"
-cat > /opt/vwireguard/config.json << EOL
-{
-    "users": [
-        {
-            "username": "${ADMIN_USER}",
-            "password": "${ADMIN_PASS}",
-            "role": "admin"
-        }
-    ]
-}
-EOL
 
 # Final checks
 echo -e "${YELLOW}Verifying installation...${NC}"
@@ -280,4 +295,3 @@ else
     echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
 fi
 echo -e "${YELLOW}=======================================================${NC}\n"
->>>>>>> parent of 37fbd02 (Add optional SSL setup)

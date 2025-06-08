@@ -258,6 +258,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Handle modal accessibility
+    $('#modal_apply_config').on('show.bs.modal', function () {
+        $(this).removeAttr('aria-hidden');
+    }).on('hidden.bs.modal', function () {
+        $(this).attr('aria-hidden', 'true');
+    });
 });
 
 // Client population function
