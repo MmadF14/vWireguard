@@ -30,6 +30,9 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
+During installation you will be asked for a domain name. If provided, the script
+sets up Nginx and obtains a Let's Encrypt certificate so the panel is available
+over HTTPS.
 
 =======
 >>>>>>> parent of 37fbd02 (Add optional SSL setup)
