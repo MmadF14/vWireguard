@@ -35,6 +35,7 @@ echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Try to download latest pre-built release
 echo -e "${YELLOW}Downloading latest vWireguard release...${NC}"
 ARCH=$(uname -m)
@@ -73,6 +74,8 @@ if [ "$USE_RELEASE" = false ]; then
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
     apt-get install -y nodejs
 =======
+=======
+>>>>>>> parent of 37fbd02 (Add optional SSL setup)
 # Install Node.js and npm
 echo -e "${YELLOW}Installing Node.js and npm...${NC}"
 curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
@@ -211,6 +214,7 @@ systemctl enable vwireguard
 systemctl start vwireguard
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Setup Nginx reverse proxy and SSL if domain provided
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
@@ -289,6 +293,8 @@ fi
 # Create default admin user configuration
 echo -e "${YELLOW}Creating admin user configuration...${NC}"
 =======
+=======
+>>>>>>> parent of 37fbd02 (Add optional SSL setup)
 # Create default admin user
 echo -e "${YELLOW}Creating default admin user...${NC}"
 >>>>>>> parent of 37fbd02 (Add optional SSL setup)
@@ -317,6 +323,7 @@ fi
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "\n${YELLOW}=======================================================${NC}"
 <<<<<<< HEAD
+<<<<<<< HEAD
 echo -e "${GREEN}Admin Credentials:${NC}"
 echo -e "  ${YELLOW}Username: ${ADMIN_USER}${NC}"
 echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
@@ -330,9 +337,15 @@ else
 fi
 echo -e "${YELLOW}=======================================================${NC}\n"
 =======
+=======
+>>>>>>> parent of 37fbd02 (Add optional SSL setup)
 echo -e "${GREEN}Default Admin Credentials:${NC}"
 echo -e "  ${YELLOW}Username: admin${NC}"
 echo -e "  ${YELLOW}Password: admin${NC}"
 echo -e "${GREEN}Access URL: http://$(curl -s ifconfig.me):5000${NC}"
+<<<<<<< HEAD
+echo -e "${YELLOW}=======================================================${NC}\n"
+>>>>>>> parent of 37fbd02 (Add optional SSL setup)
+=======
 echo -e "${YELLOW}=======================================================${NC}\n"
 >>>>>>> parent of 37fbd02 (Add optional SSL setup)

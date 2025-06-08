@@ -189,6 +189,7 @@ manage_ssl() {
     echo "3. View SSL Status"
     read -r ssl_choice
 <<<<<<< HEAD
+<<<<<<< HEAD
     case $ssl_choice in
         1)
             read -rp "Enter domain: " domain
@@ -232,6 +233,9 @@ CONF
             echo -e "${RED}Invalid option${NC}"
             ;;
     esac
+=======
+    # Add your SSL management logic here
+>>>>>>> parent of 37fbd02 (Add optional SSL setup)
 =======
     # Add your SSL management logic here
 >>>>>>> parent of 37fbd02 (Add optional SSL setup)
