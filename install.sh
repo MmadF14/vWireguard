@@ -261,29 +261,19 @@ systemctl start vwireguard
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
     apt-get install -y nginx certbot python3-certbot-nginx
-    cat > /etc/nginx/sites-available/vwireguard <<'NGINX'
-
-    cat > /etc/nginx/sites-available/vwireguard <<NGINX
-
+    cat > /etc/nginx/sites-available/vwireguard <<'EOL'
 server {
     listen 80;
     server_name ${PANEL_DOMAIN};
     location / {
         proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-
-
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-NGINX
+EOL
     ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
     nginx -s reload || systemctl restart nginx
     if [ -n "$LE_EMAIL" ]; then
@@ -306,15 +296,7 @@ cat > /opt/vwireguard/config.json << EOL
     ]
 
 }
-NGINX
-    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
-    nginx -s reload || systemctl restart nginx
-    if [ -n "$LE_EMAIL" ]; then
-        certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
-    else
-        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
-    fi
-fi
+EOL
 
 # Final checks
 echo -e "${YELLOW}Verifying installation...${NC}"
