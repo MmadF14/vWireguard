@@ -34,34 +34,6 @@ apt-get upgrade -y
 echo -e "${YELLOW}Installing required packages...${NC}"
 apt-get install -y wireguard wireguard-tools git curl wget build-essential ufw
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-# Try to download latest pre-built release
-echo -e "${YELLOW}Downloading latest vWireguard release...${NC}"
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64) GOARCH=amd64 ;;
-    aarch64|arm64) GOARCH=arm64 ;;
-    armv7l|armv6l) GOARCH=arm ;;
-    i386|i686) GOARCH=386 ;;
-    *) GOARCH=amd64 ;;
-esac
-OS=linux
-RELEASE_URL=$(curl -s https://api.github.com/repos/MmadF14/vwireguard/releases/latest \
-    | grep browser_download_url \
-    | grep "${OS}" \
-    | grep "${GOARCH}" \
-    | head -n 1 \
-    | cut -d '"' -f 4)
-USE_RELEASE=false
-if [ -n "$RELEASE_URL" ]; then
-    if wget -qO /tmp/vwireguard.tar.gz "$RELEASE_URL"; then
-        mkdir -p /opt/vwireguard
-        tar -xzf /tmp/vwireguard.tar.gz -C /opt/vwireguard
-        USE_RELEASE=true
-    fi
-fi
-
 # Prompt for domain to enable HTTPS via Let's Encrypt
 read -rp "Enter your domain for SSL (leave blank to skip): " PANEL_DOMAIN
 if [ -n "$PANEL_DOMAIN" ]; then
@@ -213,88 +185,32 @@ fi
 systemctl enable vwireguard
 systemctl start vwireguard
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 # Setup Nginx reverse proxy and SSL if domain provided
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
     apt-get install -y nginx certbot python3-certbot-nginx
-    
-    # Create Nginx configuration
-    cat > /etc/nginx/sites-available/vwireguard <<'EOL'
+    cat > /etc/nginx/sites-available/vwireguard <<NGINX
 server {
     listen 80;
     server_name ${PANEL_DOMAIN};
-    
     location / {
         proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-EOL
-
-    # Enable the site
-    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
-    
-    # Test Nginx configuration
-    nginx -t
-    
-    # Restart Nginx
-    systemctl restart nginx
-    
-    # Setup SSL with Certbot
+NGINX
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
+    nginx -s reload || systemctl restart nginx
     if [ -n "$LE_EMAIL" ]; then
-        certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN" --redirect
+        certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
     else
-        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN" --redirect
+        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
     fi
-    
-    # Force HTTPS
-    cat > /etc/nginx/sites-available/vwireguard <<'EOL'
-server {
-    listen 80;
-    server_name ${PANEL_DOMAIN};
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name ${PANEL_DOMAIN};
-    
-    ssl_certificate /etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem;
-    
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOL
-    
-    # Restart Nginx again
-    systemctl restart nginx
 fi
 
-# Create default admin user configuration
-echo -e "${YELLOW}Creating admin user configuration...${NC}"
-=======
-=======
->>>>>>> parent of 37fbd02 (Add optional SSL setup)
 # Create default admin user
 echo -e "${YELLOW}Creating default admin user...${NC}"
 >>>>>>> parent of 37fbd02 (Add optional SSL setup)
@@ -322,14 +238,9 @@ fi
 
 echo -e "${GREEN}Installation completed successfully!${NC}"
 echo -e "\n${YELLOW}=======================================================${NC}"
-<<<<<<< HEAD
-<<<<<<< HEAD
-echo -e "${GREEN}Admin Credentials:${NC}"
-echo -e "  ${YELLOW}Username: ${ADMIN_USER}${NC}"
-echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
-echo "Username: ${ADMIN_USER}" > /root/vwireguard_credentials.txt
-echo "Password: ${ADMIN_PASS}" >> /root/vwireguard_credentials.txt
-
+echo -e "${GREEN}Default Admin Credentials:${NC}"
+echo -e "  ${YELLOW}Username: admin${NC}"
+echo -e "  ${YELLOW}Password: admin${NC}"
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
 else

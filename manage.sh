@@ -188,8 +188,6 @@ manage_ssl() {
     echo "2. Renew SSL Certificate"
     echo "3. View SSL Status"
     read -r ssl_choice
-<<<<<<< HEAD
-<<<<<<< HEAD
     case $ssl_choice in
         1)
             read -rp "Enter domain: " domain
@@ -201,17 +199,10 @@ server {
     server_name ${domain};
     location / {
         proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-
-
     }
 }
 CONF
@@ -233,12 +224,6 @@ CONF
             echo -e "${RED}Invalid option${NC}"
             ;;
     esac
-=======
-    # Add your SSL management logic here
->>>>>>> parent of 37fbd02 (Add optional SSL setup)
-=======
-    # Add your SSL management logic here
->>>>>>> parent of 37fbd02 (Add optional SSL setup)
 }
 
 manage_ip_limit() {
