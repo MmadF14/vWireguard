@@ -176,7 +176,9 @@ systemctl start vwireguard
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${YELLOW}Installing Nginx and Certbot for SSL...${NC}"
     apt-get install -y nginx certbot python3-certbot-nginx
-    cat > /etc/nginx/sites-available/vwireguard <<NGINX
+    
+    # Create Nginx configuration
+    cat > /etc/nginx/sites-available/vwireguard <<'EOL'
 server {
     listen 80;
     server_name ${PANEL_DOMAIN};
@@ -188,25 +190,90 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-NGINX
-    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/vwireguard
-    nginx -s reload || systemctl restart nginx
+EOL
+
+    # Enable the site
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+    
+    # Test Nginx configuration
+    nginx -t
+    
+    # Restart Nginx
+    systemctl restart nginx
+    
+    # Setup SSL with Certbot
     if [ -n "$LE_EMAIL" ]; then
         certbot --nginx --non-interactive --agree-tos -m "$LE_EMAIL" -d "$PANEL_DOMAIN"
     else
-        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN"
+        certbot --nginx --register-unsafely-without-email --non-interactive --agree-tos -d "$PANEL_DOMAIN" --redirect
     fi
+    
+    # Force HTTPS
+    cat > /etc/nginx/sites-available/vwireguard <<'EOL'
+server {
+    listen 80;
+    server_name ${PANEL_DOMAIN};
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name ${PANEL_DOMAIN};
+    
+    ssl_certificate /etc/letsencrypt/live/${PANEL_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${PANEL_DOMAIN}/privkey.pem;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOL
+    
+    # Restart Nginx again
+    systemctl restart nginx
 fi
 
-# Create default admin user
-echo -e "${YELLOW}Creating default admin user...${NC}"
->>>>>>> parent of 37fbd02 (Add optional SSL setup)
+# Create default admin user configuration
+echo -e "${YELLOW}Creating admin user configuration...${NC}"
+cat > /opt/vwireguard/config.json << EOL
+{
+    "users": [
+        {
+            "username": "${ADMIN_USER}",
+            "password": "${ADMIN_PASS}",
+            "role": "admin"
+        }
+    ]
+}
+EOL
 
+# Final checks
+echo -e "${YELLOW}Verifying installation...${NC}"
+if systemctl is-active --quiet vwireguard; then
+    echo -e "${GREEN}vWireguard service is running!${NC}"
+else
+    echo -e "${RED}vWireguard service failed to start${NC}"
+    journalctl -u vwireguard --no-pager -n 10
+    exit 1
+fi
 
-@@ -241,6 +218,7 @@ echo -e "\n${YELLOW}=======================================================${NC}
-echo -e "${GREEN}Default Admin Credentials:${NC}"
-echo -e "  ${YELLOW}Username: admin${NC}"
-echo -e "  ${YELLOW}Password: admin${NC}"
+echo -e "${GREEN}Installation completed successfully!${NC}"
+echo -e "\n${YELLOW}=======================================================${NC}"
+echo -e "${GREEN}Admin Credentials:${NC}"
+echo -e "  ${YELLOW}Username: ${ADMIN_USER}${NC}"
+echo -e "  ${YELLOW}Password: ${ADMIN_PASS}${NC}"
+echo "Username: ${ADMIN_USER}" > /root/vwireguard_credentials.txt
+echo "Password: ${ADMIN_PASS}" >> /root/vwireguard_credentials.txt
+
 if [ -n "$PANEL_DOMAIN" ]; then
     echo -e "${GREEN}Access URL: https://${PANEL_DOMAIN}${NC}"
 else
