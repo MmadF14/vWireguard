@@ -19,11 +19,15 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 		// Get tunnels
 		tunnels, err := db.GetTunnels()
 		if err != nil {
-			return c.Render(http.StatusInternalServerError, "tunnels.html", map[string]interface{}{
+			// Log the error for debugging
+			c.Logger().Errorf("Failed to get tunnels: %v", err)
+			return c.Render(http.StatusOK, "tunnels.html", map[string]interface{}{
 				"baseData": map[string]interface{}{
 					"Active": "tunnels",
 				},
-				"error": fmt.Sprintf("Failed to get tunnels: %v", err),
+				"basePath": "/",
+				"error":    fmt.Sprintf("Failed to get tunnels: %v", err),
+				"tunnels":  []model.Tunnel{}, // Empty slice instead of nil
 			})
 		}
 
@@ -31,7 +35,8 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 			"baseData": map[string]interface{}{
 				"Active": "tunnels",
 			},
-			"tunnels": tunnels,
+			"basePath": "/",
+			"tunnels":  tunnels,
 		})
 	}
 }

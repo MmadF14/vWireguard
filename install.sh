@@ -1,17 +1,12 @@
 #!/bin/bash
 
 # vWireguard Panel - One Click Installation Script
-# این اسکریپت برای نصب کامل پنل vWireguard با یک کلیک طراحی شده است
-
-# Text colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
-NC='\033[0m' # No Color
-
-# Print banner
+NC='\033[0m'
 echo -e "${BLUE}"
 cat << "EOF"
 ██╗   ██╗██╗    ██╗██╗██████╗ ███████╗ ██████╗ ██╗   ██╗ █████╗ ██████╗ ██████╗ 
@@ -22,300 +17,196 @@ cat << "EOF"
   ╚═══╝   ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ 
 EOF
 echo -e "${NC}"
-echo -e "${CYAN}=== vWireguard Panel - One Click Installation ===${NC}"
-echo -e "${YELLOW}این اسکریپت پنل vWireguard را به صورت کامل نصب می‌کند${NC}"
+echo -e "${CYAN}=== vWireguard Panel - نصب آسان ===${NC}"
 echo ""
-
-# Check if running as root
 if [ "$EUID" -ne 0 ]; then 
-    echo -e "${RED}❌ این اسکریپت باید با دسترسی root اجرا شود${NC}"
-    echo -e "${YELLOW}لطفاً دستور زیر را اجرا کنید:${NC}"
-    echo -e "${GREEN}sudo bash one_click_install.sh${NC}"
+    echo -e "${RED}❌ لطفاً با دسترسی root اجرا کنید:${NC}"
+    echo -e "${GREEN}sudo bash install.sh${NC}"
     exit 1
 fi
-
-# Function to log messages
-log_message() {
-    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')] $1${NC}"
-}
-
-# Function to log errors
-log_error() {
-    echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"
-}
-
-# Function to log warnings
-log_warning() {
-    echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"
-}
-
-# Function to check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Function to detect OS
+VWIREGUARD_DIR="/opt/vwireguard"
+DOMAIN=""
+SSL_ENABLED=false
+DEFAULT_INTERFACE=$(ip route | awk '/default/ {print $5}' | head -n 1)
+PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s icanhazip.com 2>/dev/null || echo "localhost")
+log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
+error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}"; }
+warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}"; }
 detect_os() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$NAME
-        VER=$VERSION_ID
-    elif type lsb_release >/dev/null 2>&1; then
-        OS=$(lsb_release -si)
-        VER=$(lsb_release -sr)
-    elif [ -f /etc/lsb-release ]; then
-        . /etc/lsb-release
-        OS=$DISTRIB_ID
-        VER=$DISTRIB_RELEASE
-    elif [ -f /etc/debian_version ]; then
-        OS=Debian
-        VER=$(cat /etc/debian_version)
-    elif [ -f /etc/SuSe-release ]; then
-        OS=SuSE
+    if [ -f /etc/debian_version ]; then
+        echo "debian"
     elif [ -f /etc/redhat-release ]; then
-        OS=RedHat
+        echo "rhel"
     else
-        OS=$(uname -s)
-        VER=$(uname -r)
+        echo "unknown"
     fi
-    echo "$OS"
 }
-
-# Function to install dependencies based on OS
-install_dependencies() {
-    local os=$(detect_os)
-    log_message "تشخیص سیستم عامل: $os"
+install_packages() {
+    log "نصب پکیج‌های مورد نیاز..."
     
-    case "$os" in
-        *"Ubuntu"*|*"Debian"*)
-            log_message "نصب پکیج‌های مورد نیاز برای Ubuntu/Debian..."
-            apt-get update
-            apt-get install -y curl wget git build-essential ufw wireguard wireguard-tools
+    local os=$(detect_os)
+    case $os in
+        "debian")
+            apt-get update -y
+            apt-get install -y curl wget git build-essential wireguard wireguard-tools ufw nginx certbot python3-certbot-nginx
             ;;
-        *"CentOS"*|*"Red Hat"*|*"Fedora"*)
-            log_message "نصب پکیج‌های مورد نیاز برای CentOS/RHEL/Fedora..."
-            if command_exists dnf; then
-                dnf update -y
-                dnf install -y curl wget git gcc make ufw wireguard-tools
-            else
-                yum update -y
-                yum install -y curl wget git gcc make ufw wireguard-tools
-            fi
+        "rhel")
+            yum update -y
+            yum install -y curl wget git gcc make wireguard-tools firewalld nginx certbot python3-certbot-nginx
             ;;
         *)
-            log_warning "سیستم عامل شناسایی نشد. تلاش برای نصب عمومی..."
-            if command_exists apt-get; then
-                apt-get update && apt-get install -y curl wget git build-essential ufw wireguard wireguard-tools
-            elif command_exists yum; then
-                yum update -y && yum install -y curl wget git gcc make ufw wireguard-tools
-            elif command_exists dnf; then
-                dnf update -y && dnf install -y curl wget git gcc make ufw wireguard-tools
-            else
-                log_error "نمی‌توان پکیج‌های مورد نیاز را نصب کرد"
-                exit 1
-            fi
+            error "سیستم عامل پشتیبانی نمی‌شود"
+            exit 1
             ;;
     esac
 }
-
-# Function to install Go
 install_go() {
-    log_message "نصب Go..."
-    
-    # Check if Go is already installed
-    if command_exists go; then
-        local go_version=$(go version | awk '{print $3}')
-        log_message "Go در حال حاضر نصب است: $go_version"
+    if command -v go >/dev/null 2>&1; then
+        log "Go قبلاً نصب شده است"
         return 0
     fi
     
-    # Download and install Go
-    local go_version=$(curl -s https://go.dev/VERSION?m=text | head -n 1)
-    local arch=$(uname -m)
+    log "نصب Go..."
+    local go_version="go1.21.5"
+    local arch=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
     
-    case "$arch" in
-        x86_64) GOARCH=amd64 ;;
-        aarch64|arm64) GOARCH=arm64 ;;
-        armv7l|armv6l) GOARCH=arm ;;
-        i386|i686) GOARCH=386 ;;
-        *) GOARCH=amd64 ;;
-    esac
+    wget -q "https://go.dev/dl/${go_version}.linux-${arch}.tar.gz" -O /tmp/go.tar.gz
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf /tmp/go.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
+    echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+}
+ask_ssl() {
+    echo ""
+    echo -e "${CYAN}=== تنظیمات SSL ===${NC}"
+    read -p "آیا دامنه دارید و می‌خواهید SSL فعال شود؟ (y/n): " -n 1 -r
+    echo ""
     
-    local go_tar="${go_version}.linux-${GOARCH}.tar.gz"
-    local go_url="https://go.dev/dl/${go_tar}"
-    
-    log_message "دانلود Go $go_version..."
-    if wget -qO /tmp/go.tar.gz "$go_url"; then
-        rm -rf /usr/local/go
-        tar -C /usr/local -xzf /tmp/go.tar.gz
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
-        echo 'export PATH=$PATH:/usr/local/go/bin' >> /root/.bashrc
-        export PATH=$PATH:/usr/local/go/bin
-        
-        if go version >/dev/null 2>&1; then
-            log_message "Go با موفقیت نصب شد"
-            return 0
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        read -p "نام دامنه خود را وارد کنید (مثال: vpn.example.com): " DOMAIN
+        if [ -n "$DOMAIN" ]; then
+            SSL_ENABLED=true
+            log "SSL برای دامنه $DOMAIN فعال خواهد شد"
         else
-            log_error "نصب Go ناموفق بود"
-            return 1
+            warn "دامنه وارد نشد، SSL غیرفعال می‌ماند"
         fi
     else
-        log_error "دانلود Go ناموفق بود"
-        return 1
+        log "SSL غیرفعال خواهد بود"
     fi
 }
-
-# Function to install Node.js and Yarn
-install_nodejs() {
-    log_message "نصب Node.js و Yarn..."
-    
-    # Check if Node.js is already installed
-    if command_exists node; then
-        local node_version=$(node --version)
-        log_message "Node.js در حال حاضر نصب است: $node_version"
-    else
-        # Install Node.js
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
-        apt-get install -y nodejs
-    fi
-    
-    # Install Yarn
-    if ! command_exists yarn; then
-        npm install -g yarn
-    fi
-    
-    log_message "Node.js و Yarn نصب شدند"
-}
-
-# Function to download and build vWireguard
 setup_vwireguard() {
-    log_message "تنظیم vWireguard..."
+    log "دانلود و نصب vWireguard..."
+    mkdir -p $VWIREGUARD_DIR
+    cd $VWIREGUARD_DIR
+    local arch=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
+    local release_url="https://github.com/MmadF14/vwireguard/releases/latest/download/vwireguard-linux-${arch}.tar.gz"
     
-    # Create installation directory
-    mkdir -p /opt/vwireguard
-    cd /opt/vwireguard
-    
-    # Try to download latest release first
-    log_message "تلاش برای دانلود آخرین نسخه..."
-    local arch=$(uname -m)
-    case "$arch" in
-        x86_64) GOARCH=amd64 ;;
-        aarch64|arm64) GOARCH=arm64 ;;
-        armv7l|armv6l) GOARCH=arm ;;
-        i386|i686) GOARCH=386 ;;
-        *) GOARCH=amd64 ;;
-    esac
-    
-    local release_url=$(curl -s https://api.github.com/repos/MmadF14/vwireguard/releases/latest \
-        | grep browser_download_url \
-        | grep "linux" \
-        | grep "${GOARCH}" \
-        | head -n 1 \
-        | cut -d '"' -f 4)
-    
-    if [ -n "$release_url" ]; then
-        log_message "دانلود نسخه آماده..."
-        if wget -qO /tmp/vwireguard.tar.gz "$release_url"; then
-            tar -xzf /tmp/vwireguard.tar.gz -C /opt/vwireguard
-            chmod +x /opt/vwireguard/vwireguard
-            log_message "نسخه آماده با موفقیت دانلود شد"
-            return 0
-        fi
-    fi
-    
-    # If release download failed, build from source
-    log_message "ساخت از کد منبع..."
-    rm -rf /opt/vwireguard/*
-    git clone https://github.com/MmadF14/vwireguard.git /tmp/vwireguard_src
-    cp -r /tmp/vwireguard_src/* /opt/vwireguard/
-    rm -rf /tmp/vwireguard_src
-    
-    # Create database directories
-    mkdir -p /opt/vwireguard/db/{clients,server,users,wake_on_lan_hosts}
-    
-    # Prepare assets
-    cd /opt/vwireguard
-    if [ -f "prepare_assets.sh" ]; then
-        chmod +x prepare_assets.sh
-        ./prepare_assets.sh
-    elif [ -f "prepare_assets" ]; then
-        chmod +x prepare_assets
-        ./prepare_assets
+    if wget -q --spider "$release_url" 2>/dev/null; then
+        log "دانلود نسخه آماده..."
+        wget -q "$release_url" -O vwireguard.tar.gz
+        tar -xzf vwireguard.tar.gz
+        rm vwireguard.tar.gz
     else
-        log_warning "فایل prepare_assets یافت نشد"
-    fi
-    
-    # Build the application
-    export GOPATH=/go
-    export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-    go mod tidy
-    go build -ldflags="-s -w" -o vwireguard
-    
-    if [ ! -f "vwireguard" ]; then
-        log_error "ساخت برنامه ناموفق بود"
-        return 1
+        log "ساخت از کد منبع..."
+        git clone https://github.com/MmadF14/vwireguard.git temp
+        mv temp/* .
+        rm -rf temp
+        
+        export PATH=$PATH:/usr/local/go/bin
+        go mod tidy
+        go build -ldflags="-s -w" -o vwireguard
     fi
     
     chmod +x vwireguard
-    log_message "vWireguard با موفقیت ساخته شد"
+    mkdir -p db/{clients,server,users,wake_on_lan_hosts,tunnels}
 }
-
-# Function to configure WireGuard
-configure_wireguard() {
-    log_message "تنظیم WireGuard..."
+setup_wireguard() {
+    log "تنظیم WireGuard..."
     
-    # Create WireGuard directory
     mkdir -p /etc/wireguard
-    
-    # Generate server keys
-    wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
-    chmod 600 /etc/wireguard/server_private.key
-    
-    # Detect default network interface
-    local default_interface=$(ip route | awk '/default/ {print $5}' | head -n 1)
-    if [ -z "$default_interface" ]; then
-        default_interface="eth0"
-    fi
-    
-    log_message "رابط شبکه پیش‌فرض: $default_interface"
-    
-    # Create WireGuard configuration
-    local server_private_key=$(cat /etc/wireguard/server_private.key)
-    cat > /etc/wireguard/wg0.conf <<EOL
+    cd /etc/wireguard
+    wg genkey | tee server_private.key | wg pubkey > server_public.key
+    chmod 600 server_private.key
+    cat > wg0.conf <<EOF
 [Interface]
-PrivateKey = ${server_private_key}
+PrivateKey = $(cat server_private.key)
 Address = 10.252.1.1/24
 ListenPort = 51820
-PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o ${default_interface} -j MASQUERADE
-PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o ${default_interface} -j MASQUERADE
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o ${DEFAULT_INTERFACE} -j MASQUERADE
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o ${DEFAULT_INTERFACE} -j MASQUERADE
 
 # Client configurations will be added here
-EOL
-    
-    # Enable IP forwarding
-    echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-wireguard.conf
+ EOF
+    echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-wireguard.conf
     sysctl -p /etc/sysctl.d/99-wireguard.conf
+}
+setup_nginx() {
+    log "تنظیم Nginx..."
     
-    log_message "WireGuard تنظیم شد"
+    if [ "$SSL_ENABLED" = true ]; then
+        cat > /etc/nginx/sites-available/vwireguard <<EOF
+server {
+    listen 80;
+    server_name $DOMAIN;
+    return 301 https://\$server_name\$request_uri;
 }
 
-# Function to create systemd service
+server {
+    listen 443 ssl http2;
+    server_name $DOMAIN;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+ EOF
+    else
+        cat > /etc/nginx/sites-available/vwireguard <<EOF
+server {
+    listen 80;
+    server_name _;
+    
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+    fi
+    
+    ln -sf /etc/nginx/sites-available/vwireguard /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t && systemctl reload nginx
+}
+setup_ssl() {
+    if [ "$SSL_ENABLED" = true ]; then
+        log "دریافت گواهی SSL..."
+        certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email admin@"$DOMAIN" --redirect
+        echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -
+    fi
+}
 create_service() {
-    log_message "ایجاد سرویس systemd..."
+    log "ایجاد سرویس systemd..."
     
     cat > /etc/systemd/system/vwireguard.service <<EOF
 [Unit]
-Description=vWireguard Web Interface
+Description=vWireguard Panel
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/vwireguard
-ExecStart=/opt/vwireguard/vwireguard
+WorkingDirectory=$VWIREGUARD_DIR
+ExecStart=$VWIREGUARD_DIR/vwireguard
 Restart=always
 RestartSec=3
 User=root
-Group=root
 
 [Install]
 WantedBy=multi-user.target
@@ -324,158 +215,96 @@ EOF
     systemctl daemon-reload
     systemctl enable vwireguard
     systemctl enable wg-quick@wg0
-    
-    log_message "سرویس systemd ایجاد شد"
 }
-
-# Function to configure firewall
-configure_firewall() {
-    log_message "تنظیم فایروال..."
+setup_firewall() {
+    log "تنظیم فایروال..."
     
-    # Configure UFW
-    if command_exists ufw; then
+    if command -v ufw >/dev/null 2>&1; then
         ufw --force enable
         ufw allow ssh
-        ufw allow 5000/tcp  # vWireguard panel
-        ufw allow 51820/udp # WireGuard
-        ufw allow 80/tcp    # HTTP (for SSL)
-        ufw allow 443/tcp   # HTTPS
-        log_message "فایروال UFW تنظیم شد"
-    elif command_exists firewall-cmd; then
+        ufw allow 80/tcp
+        ufw allow 443/tcp
+        ufw allow 51820/udp
+    elif command -v firewall-cmd >/dev/null 2>&1; then
+        systemctl start firewalld
+        systemctl enable firewalld
         firewall-cmd --permanent --add-service=ssh
-        firewall-cmd --permanent --add-port=5000/tcp
+        firewall-cmd --permanent --add-service=http
+        firewall-cmd --permanent --add-service=https
         firewall-cmd --permanent --add-port=51820/udp
-        firewall-cmd --permanent --add-port=80/tcp
-        firewall-cmd --permanent --add-port=443/tcp
         firewall-cmd --reload
-        log_message "فایروال firewalld تنظیم شد"
-    else
-        log_warning "فایروال یافت نشد"
     fi
 }
-
-# Function to start services
 start_services() {
-    log_message "راه‌اندازی سرویس‌ها..."
+    log "راه‌اندازی سرویس‌ها..."
     
-    # Start WireGuard
+    systemctl start nginx
     systemctl start wg-quick@wg0
-    if ! systemctl is-active --quiet wg-quick@wg0; then
-        log_error "راه‌اندازی WireGuard ناموفق بود"
-        return 1
-    fi
-    
-    # Start vWireguard panel
     systemctl start vwireguard
+    
     sleep 3
     
     if ! systemctl is-active --quiet vwireguard; then
-        log_error "راه‌اندازی پنل vWireguard ناموفق بود"
+        error "خطا در راه‌اندازی vWireguard"
         journalctl -u vwireguard --no-pager -n 10
-        return 1
+        exit 1
+    fi
+}
+show_summary() {
+    local panel_url
+    if [ "$SSL_ENABLED" = true ]; then
+        panel_url="https://$DOMAIN"
+    else
+        panel_url="http://$PUBLIC_IP"
     fi
     
-    log_message "سرویس‌ها با موفقیت راه‌اندازی شدند"
-}
-
-# Function to create credentials file
-create_credentials() {
-    local username="admin"
-    local password="admin"
-    
-    cat > /root/vwireguard_credentials.txt <<EOF
-=== vWireguard Panel Credentials ===
-Username: ${username}
-Password: ${password}
-Panel URL: http://$(curl -s ifconfig.me):5000
-WireGuard Port: 51820
-
-=== دسترسی‌های پنل vWireguard ===
-نام کاربری: ${username}
-رمز عبور: ${password}
-آدرس پنل: http://$(curl -s ifconfig.me):5000
-پورت WireGuard: 51820
-EOF
-    
-    log_message "فایل اطلاعات ورود در /root/vwireguard_credentials.txt ذخیره شد"
-}
-
-# Function to show installation summary
-show_summary() {
     echo ""
-    echo -e "${GREEN}=======================================================${NC}"
-    echo -e "${GREEN}✅ نصب vWireguard با موفقیت تکمیل شد!${NC}"
-    echo -e "${GREEN}=======================================================${NC}"
+    echo -e "${GREEN}=====================================${NC}"
+    echo -e "${GREEN}✅ نصب با موفقیت تکمیل شد!${NC}"
+    echo -e "${GREEN}=====================================${NC}"
     echo ""
-    echo -e "${CYAN}📋 اطلاعات نصب:${NC}"
+    echo -e "${CYAN}📋 اطلاعات پنل:${NC}"
+    echo -e "  ${YELLOW}آدرس:${NC} $panel_url"
     echo -e "  ${YELLOW}نام کاربری:${NC} admin"
     echo -e "  ${YELLOW}رمز عبور:${NC} admin"
-    echo -e "  ${YELLOW}آدرس پنل:${NC} http://$(curl -s ifconfig.me):5000"
-    echo -e "  ${YELLOW}پورت WireGuard:${NC} 51820"
     echo ""
-    echo -e "${CYAN}📁 فایل‌های مهم:${NC}"
-    echo -e "  ${YELLOW}پوشه نصب:${NC} /opt/vwireguard"
-    echo -e "  ${YELLOW}تنظیمات WireGuard:${NC} /etc/wireguard/wg0.conf"
-    echo -e "  ${YELLOW}اطلاعات ورود:${NC} /root/vwireguard_credentials.txt"
+    echo -e "${CYAN}🔧 WireGuard:${NC}"
+    echo -e "  ${YELLOW}پورت:${NC} 51820"
+    echo -e "  ${YELLOW}تنظیمات:${NC} /etc/wireguard/wg0.conf"
     echo ""
-    echo -e "${CYAN}🔧 دستورات مفید:${NC}"
-    echo -e "  ${YELLOW}مشاهده وضعیت:${NC} systemctl status vwireguard"
-    echo -e "  ${YELLOW}مشاهده لاگ‌ها:${NC} journalctl -u vwireguard -f"
-    echo -e "  ${YELLOW}راه‌اندازی مجدد:${NC} systemctl restart vwireguard"
-    echo -e "  ${YELLOW}توقف سرویس:${NC} systemctl stop vwireguard"
+    echo -e "${CYAN}⚙️ دستورات مفید:${NC}"
+    echo -e "  ${YELLOW}وضعیت:${NC} systemctl status vwireguard"
+    echo -e "  ${YELLOW}لاگ‌ها:${NC} journalctl -u vwireguard -f"
+    echo -e "  ${YELLOW}ری‌استارت:${NC} systemctl restart vwireguard"
     echo ""
-    echo -e "${GREEN}=======================================================${NC}"
-    echo -e "${GREEN}🎉 پنل vWireguard آماده استفاده است!${NC}"
-    echo -e "${GREEN}=======================================================${NC}"
-}
+    echo -e "${GREEN}🎉 پنل آماده است!${NC}"
+    echo -e "${GREEN}=====================================${NC}"
+    cat > /root/vwireguard-info.txt <<EOF
+vWireguard Panel Information
+===========================
+Panel URL: $panel_url
+Username: admin
+Password: admin
+WireGuard Port: 51820
 
-# Main installation function
+Installation Directory: $VWIREGUARD_DIR
+Config File: /etc/wireguard/wg0.conf
+Service Status: systemctl status vwireguard
+EOF
+}
 main() {
-    log_message "شروع نصب vWireguard..."
+    log "شروع نصب vWireguard..."
     
-    # Update system
-    log_message "به‌روزرسانی سیستم..."
-    apt-get update && apt-get upgrade -y
-    
-    # Install dependencies
-    install_dependencies
-    
-    # Install Go
-    if ! install_go; then
-        log_error "نصب Go ناموفق بود"
-        exit 1
-    fi
-    
-    # Install Node.js and Yarn
-    install_nodejs
-    
-    # Setup vWireguard
-    if ! setup_vwireguard; then
-        log_error "تنظیم vWireguard ناموفق بود"
-        exit 1
-    fi
-    
-    # Configure WireGuard
-    configure_wireguard
-    
-    # Create systemd service
+    install_packages
+    install_go
+    ask_ssl
+    setup_vwireguard
+    setup_wireguard
+    setup_nginx
+    setup_ssl
     create_service
-    
-    # Configure firewall
-    configure_firewall
-    
-    # Start services
-    if ! start_services; then
-        log_error "راه‌اندازی سرویس‌ها ناموفق بود"
-        exit 1
-    fi
-    
-    # Create credentials file
-    create_credentials
-    
-    # Show summary
+    setup_firewall
+    start_services
     show_summary
 }
-
-# Run main function
 main "$@" 
