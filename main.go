@@ -310,6 +310,19 @@ func main() {
 	app.PUT(util.BasePath+"/wake_on_lan_host/:mac_address", handler.WakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/terminate-client", handler.TerminateClient(db, tmplDir), handler.ValidSession, handler.ContentTypeJson)
 
+	// Tunnel routes
+	app.GET(util.BasePath+"/tunnels", handler.TunnelsPage(db), handler.ValidSession, handler.RefreshSession)
+	app.GET(util.BasePath+"/api/tunnels", handler.GetTunnels(db), handler.ValidSession)
+	app.GET(util.BasePath+"/api/tunnel/:id", handler.GetTunnel(db), handler.ValidSession)
+	app.POST(util.BasePath+"/api/tunnel", handler.NewTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	app.PUT(util.BasePath+"/api/tunnel/:id", handler.UpdateTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	app.DELETE(util.BasePath+"/api/tunnel/:id", handler.DeleteTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	app.POST(util.BasePath+"/api/tunnel/:id/status", handler.SetTunnelStatus(db), handler.ValidSession, handler.ContentTypeJson)
+	app.POST(util.BasePath+"/api/tunnel/:id/start", handler.StartTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	app.POST(util.BasePath+"/api/tunnel/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	app.GET(util.BasePath+"/api/tunnel/:id/stats", handler.GetTunnelStats(db), handler.ValidSession)
+	app.GET(util.BasePath+"/api/tunnel-types", handler.GetTunnelTypes(), handler.ValidSession)
+
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {
 		app.Add(route.Method, route.Path, route.Handler(db), route.Middleware...)

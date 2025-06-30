@@ -27,4 +27,12 @@ type IStore interface {
 	GetPath() string
 	SaveHashes(hashes model.ClientServerHashes) error
 	GetHashes() (model.ClientServerHashes, error)
+
+	// Tunnel methods
+	GetTunnels() ([]model.Tunnel, error)
+	GetTunnelByID(tunnelID string) (model.Tunnel, error)
+	SaveTunnel(tunnel model.Tunnel) error
+	DeleteTunnel(tunnelID string) error
+	UpdateTunnelStatus(tunnelID string, status model.TunnelStatus) error
+	UpdateTunnelStats(tunnelID string, bytesIn, bytesOut int64) error
 }

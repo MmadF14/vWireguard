@@ -1,0 +1,634 @@
+{{define "top_css"}}
+<style>
+.tunnel-card {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.tunnel-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.tunnel-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-active {
+    background-color: #d1edff;
+    color: #0c63e4;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.status-error {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.tunnel-stats {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.stat-item {
+    background: white;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid #e9ecef;
+    text-align: center;
+    min-width: 80px;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #495057;
+}
+
+.stat-label {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.tunnel-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.tunnel-type-badge {
+    background: #e9ecef;
+    color: #495057;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+}
+
+.config-form {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid #dee2e6;
+    margin-bottom: 1rem;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.form-section h5 {
+    color: #495057;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0.5rem;
+}
+</style>
+{{end}}
+
+{{define "tunnels.html"}}
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 data-translate="Tunnels">تانل‌ها</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="{{.basePath}}/" data-translate="Home">خانه</a></li>
+                        <li class="breadcrumb-item active" data-translate="Tunnels">تانل‌ها</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="content">
+        <div class="container-fluid">
+            <!-- Add New Tunnel Button -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalNewTunnel">
+                        <i class="fas fa-plus"></i> <span data-translate="New Tunnel">تانل جدید</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tunnels List -->
+            <div class="row" id="tunnels-container">
+                {{if .tunnels}}
+                    {{range .tunnels}}
+                    <div class="col-lg-6 col-xl-4" data-tunnel-id="{{.ID}}">
+                        <div class="tunnel-card">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h5 class="mb-0">{{.Name}}</h5>
+                                <span class="tunnel-status status-{{.Status}}">{{.Status}}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <span class="tunnel-type-badge">{{.Type}}</span>
+                            </div>
+
+                            {{if .Description}}
+                            <p class="text-muted small mb-2">{{.Description}}</p>
+                            {{end}}
+
+                            <div class="tunnel-stats">
+                                <div class="stat-item">
+                                    <div class="stat-value">{{.BytesIn}}</div>
+                                    <div class="stat-label" data-translate="In">ورودی</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value">{{.BytesOut}}</div>
+                                    <div class="stat-label" data-translate="Out">خروجی</div>
+                                </div>
+                            </div>
+
+                            <div class="tunnel-actions">
+                                {{if .Enabled}}
+                                    {{if eq .Status "active"}}
+                                    <button class="btn btn-sm btn-warning" onclick="stopTunnel('{{.ID}}')">
+                                        <i class="fas fa-stop"></i> <span data-translate="Stop">توقف</span>
+                                    </button>
+                                    {{else}}
+                                    <button class="btn btn-sm btn-success" onclick="startTunnel('{{.ID}}')">
+                                        <i class="fas fa-play"></i> <span data-translate="Start">شروع</span>
+                                    </button>
+                                    {{end}}
+                                {{end}}
+                                
+                                <button class="btn btn-sm btn-secondary" onclick="editTunnel('{{.ID}}')">
+                                    <i class="fas fa-edit"></i> <span data-translate="Edit">ویرایش</span>
+                                </button>
+                                
+                                <button class="btn btn-sm btn-info" onclick="viewTunnelStats('{{.ID}}')">
+                                    <i class="fas fa-chart-line"></i> <span data-translate="Stats">آمار</span>
+                                </button>
+                                
+                                <button class="btn btn-sm btn-danger" onclick="deleteTunnel('{{.ID}}')">
+                                    <i class="fas fa-trash"></i> <span data-translate="Delete">حذف</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                {{else}}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span data-translate="No tunnels configured">هیچ تانلی تنظیم نشده است. برای شروع یک تانل جدید اضافه کنید.</span>
+                        </div>
+                    </div>
+                {{end}}
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- New Tunnel Modal -->
+<div class="modal fade" id="modalNewTunnel" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-translate="Add New Tunnel">اضافه کردن تانل جدید</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="tunnelForm">
+                    <div class="form-section">
+                        <h5 data-translate="Basic Information">اطلاعات پایه</h5>
+                        
+                        <div class="form-group">
+                            <label for="tunnelName" data-translate="Tunnel Name">نام تانل</label>
+                            <input type="text" class="form-control" id="tunnelName" name="name" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tunnelType" data-translate="Tunnel Type">نوع تانل</label>
+                            <select class="form-control" id="tunnelType" name="type" required>
+                                <option value="" data-translate="Select tunnel type">انتخاب نوع تانل</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tunnelDescription" data-translate="Description">توضیحات</label>
+                            <textarea class="form-control" id="tunnelDescription" name="description" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h5 data-translate="Source Configuration">تنظیمات مبدا</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="sourceInterface" data-translate="Source Interface">رابط مبدا</label>
+                                    <input type="text" class="form-control" id="sourceInterface" name="source_interface">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="sourceIP" data-translate="Source IP">IP مبدا</label>
+                                    <input type="text" class="form-control" id="sourceIP" name="source_ip">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sourcePort" data-translate="Source Port">پورت مبدا</label>
+                            <input type="number" class="form-control" id="sourcePort" name="source_port" min="1" max="65535">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h5 data-translate="Destination Configuration">تنظیمات مقصد</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="destinationIP" data-translate="Destination IP">IP مقصد</label>
+                                    <input type="text" class="form-control" id="destinationIP" name="destination_ip" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="destinationPort" data-translate="Destination Port">پورت مقصد</label>
+                                    <input type="number" class="form-control" id="destinationPort" name="destination_port" min="1" max="65535" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="authSection" style="display: none;">
+                        <h5 data-translate="Authentication">احراز هویت</h5>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="username" data-translate="Username">نام کاربری</label>
+                                    <input type="text" class="form-control" id="username" name="username">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="password" data-translate="Password">رمز عبور</label>
+                                    <input type="password" class="form-control" id="password" name="password">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="keyFile" data-translate="Key File Path">مسیر فایل کلید</label>
+                            <input type="text" class="form-control" id="keyFile" name="key_file">
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="advancedConfig" style="display: none;">
+                        <h5 data-translate="Advanced Configuration">تنظیمات پیشرفته</h5>
+                        <div id="dynamicConfig">
+                            <!-- Dynamic configuration fields will be added here based on tunnel type -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-translate="Cancel">لغو</button>
+                <button type="button" class="btn btn-primary" onclick="saveTunnel()" data-translate="Create Tunnel">ایجاد تانل</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Modal -->
+<div class="modal fade" id="modalTunnelStats" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-translate="Tunnel Statistics">آمار تانل</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="statsContent">
+                <!-- Stats content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentTunnelId = null;
+let tunnelTypes = [];
+
+$(document).ready(function() {
+    loadTunnelTypes();
+    setupTunnelTypeChange();
+});
+
+function loadTunnelTypes() {
+    $.get('{{.basePath}}/api/tunnel-types')
+        .done(function(data) {
+            tunnelTypes = data;
+            const select = $('#tunnelType');
+            select.empty().append('<option value="">انتخاب نوع تانل</option>');
+            
+            data.forEach(function(type) {
+                select.append(`<option value="${type.value}" title="${type.description}">${type.label}</option>`);
+            });
+        })
+        .fail(function() {
+            toastr.error('خطا در بارگذاری انواع تانل');
+        });
+}
+
+function setupTunnelTypeChange() {
+    $('#tunnelType').change(function() {
+        const selectedType = $(this).val();
+        updateConfigForm(selectedType);
+    });
+}
+
+function updateConfigForm(tunnelType) {
+    const authSection = $('#authSection');
+    const advancedSection = $('#advancedConfig');
+    const dynamicConfig = $('#dynamicConfig');
+    
+    // Clear previous dynamic fields
+    dynamicConfig.empty();
+    
+    // Show/hide sections based on tunnel type
+    if (['wg-to-ssh', 'wg-to-openvpn'].includes(tunnelType)) {
+        authSection.show();
+    } else {
+        authSection.hide();
+    }
+    
+    // Add specific configuration fields based on tunnel type
+    switch(tunnelType) {
+        case 'wg-to-wg':
+            advancedSection.show();
+            dynamicConfig.append(`
+                <div class="form-group">
+                    <label>WireGuard Endpoint</label>
+                    <input type="text" class="form-control" name="wg_endpoint" placeholder="example.com:51820">
+                </div>
+                <div class="form-group">
+                    <label>WireGuard Public Key</label>
+                    <input type="text" class="form-control" name="wg_public_key">
+                </div>
+            `);
+            break;
+            
+        case 'wg-to-ssh':
+            advancedSection.show();
+            dynamicConfig.append(`
+                <div class="form-group">
+                    <label>SSH Host</label>
+                    <input type="text" class="form-control" name="ssh_host" required>
+                </div>
+                <div class="form-group">
+                    <label>SSH Port</label>
+                    <input type="number" class="form-control" name="ssh_port" value="22">
+                </div>
+            `);
+            break;
+            
+        case 'wg-to-socks':
+            advancedSection.show();
+            dynamicConfig.append(`
+                <div class="form-group">
+                    <label>SOCKS Version</label>
+                    <select class="form-control" name="socks_version">
+                        <option value="4">SOCKS4</option>
+                        <option value="5" selected>SOCKS5</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="socksAuth" name="socks_auth">
+                        <label class="custom-control-label" for="socksAuth">Require authentication</label>
+                    </div>
+                </div>
+            `);
+            break;
+            
+        case 'port-forward':
+            advancedSection.show();
+            dynamicConfig.append(`
+                <div class="form-group">
+                    <label>Protocol</label>
+                    <select class="form-control" name="protocol">
+                        <option value="tcp">TCP</option>
+                        <option value="udp">UDP</option>
+                        <option value="both">Both</option>
+                    </select>
+                </div>
+            `);
+            break;
+            
+        default:
+            advancedSection.hide();
+    }
+}
+
+function saveTunnel() {
+    const form = $('#tunnelForm');
+    const formData = new FormData(form[0]);
+    const data = {};
+    
+    // Convert FormData to JSON
+    for (let [key, value] of formData.entries()) {
+        if (key.includes('_port')) {
+            data[key] = parseInt(value) || 0;
+        } else if (key === 'socks_auth') {
+            data[key] = value === 'on';
+        } else {
+            data[key] = value;
+        }
+    }
+    
+    // Add config object for advanced settings
+    data.config = {};
+    const configFields = form.find('#dynamicConfig input, #dynamicConfig select');
+    configFields.each(function() {
+        const field = $(this);
+        const name = field.attr('name');
+        let value = field.val();
+        
+        if (field.attr('type') === 'number') {
+            value = parseInt(value) || 0;
+        } else if (field.attr('type') === 'checkbox') {
+            value = field.is(':checked');
+        }
+        
+        if (name && value !== '') {
+            data.config[name] = value;
+        }
+    });
+    
+    const method = currentTunnelId ? 'PUT' : 'POST';
+    const url = currentTunnelId ? 
+        `{{.basePath}}/api/tunnel/${currentTunnelId}` : 
+        '{{.basePath}}/api/tunnel';
+    
+    $.ajax({
+        url: url,
+        method: method,
+        contentType: 'application/json',
+        data: JSON.stringify(data)
+    })
+    .done(function(response) {
+        if (response.success) {
+            toastr.success(response.message);
+            $('#modalNewTunnel').modal('hide');
+            location.reload();
+        } else {
+            toastr.error(response.message);
+        }
+    })
+    .fail(function() {
+        toastr.error('خطا در ذخیره تانل');
+    });
+}
+
+function editTunnel(tunnelId) {
+    currentTunnelId = tunnelId;
+    
+    $.get(`{{.basePath}}/api/tunnel/${tunnelId}`)
+        .done(function(tunnel) {
+            // Fill form with tunnel data
+            $('#tunnelName').val(tunnel.name);
+            $('#tunnelType').val(tunnel.type).trigger('change');
+            $('#tunnelDescription').val(tunnel.description);
+            $('#sourceInterface').val(tunnel.source_interface);
+            $('#sourceIP').val(tunnel.source_ip);
+            $('#sourcePort').val(tunnel.source_port);
+            $('#destinationIP').val(tunnel.destination_ip);
+            $('#destinationPort').val(tunnel.destination_port);
+            $('#username').val(tunnel.username);
+            $('#password').val(tunnel.password);
+            $('#keyFile').val(tunnel.key_file);
+            
+            $('.modal-title').text('ویرایش تانل');
+            $('.btn-primary').text('بروزرسانی تانل');
+            $('#modalNewTunnel').modal('show');
+        })
+        .fail(function() {
+            toastr.error('خطا در بارگذاری اطلاعات تانل');
+        });
+}
+
+function startTunnel(tunnelId) {
+    $.post(`{{.basePath}}/api/tunnel/${tunnelId}/start`)
+        .done(function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+                location.reload();
+            } else {
+                toastr.error(response.message);
+            }
+        })
+        .fail(function() {
+            toastr.error('خطا در شروع تانل');
+        });
+}
+
+function stopTunnel(tunnelId) {
+    $.post(`{{.basePath}}/api/tunnel/${tunnelId}/stop`)
+        .done(function(response) {
+            if (response.success) {
+                toastr.success(response.message);
+                location.reload();
+            } else {
+                toastr.error(response.message);
+            }
+        })
+        .fail(function() {
+            toastr.error('خطا در توقف تانل');
+        });
+}
+
+function deleteTunnel(tunnelId) {
+    if (!confirm('آیا از حذف این تانل اطمینان دارید؟')) {
+        return;
+    }
+    
+    $.ajax({
+        url: `{{.basePath}}/api/tunnel/${tunnelId}`,
+        method: 'DELETE'
+    })
+    .done(function(response) {
+        if (response.success) {
+            toastr.success(response.message);
+            $(`[data-tunnel-id="${tunnelId}"]`).remove();
+        } else {
+            toastr.error(response.message);
+        }
+    })
+    .fail(function() {
+        toastr.error('خطا در حذف تانل');
+    });
+}
+
+function viewTunnelStats(tunnelId) {
+    $.get(`{{.basePath}}/api/tunnel/${tunnelId}/stats`)
+        .done(function(stats) {
+            const content = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>اطلاعات کلی</h6>
+                        <p><strong>نام:</strong> ${stats.name}</p>
+                        <p><strong>وضعیت:</strong> <span class="tunnel-status status-${stats.status}">${stats.status}</span></p>
+                        <p><strong>تاریخ ایجاد:</strong> ${new Date(stats.created_at).toLocaleString('fa-IR')}</p>
+                        <p><strong>آخرین بروزرسانی:</strong> ${new Date(stats.updated_at).toLocaleString('fa-IR')}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>آمار ترافیک</h6>
+                        <p><strong>داده ورودی:</strong> ${formatBytes(stats.bytes_in)}</p>
+                        <p><strong>داده خروجی:</strong> ${formatBytes(stats.bytes_out)}</p>
+                        <p><strong>آخرین اتصال:</strong> ${stats.last_seen ? new Date(stats.last_seen).toLocaleString('fa-IR') : 'هرگز'}</p>
+                    </div>
+                </div>
+            `;
+            $('#statsContent').html(content);
+            $('#modalTunnelStats').modal('show');
+        })
+        .fail(function() {
+            toastr.error('خطا در بارگذاری آمار تانل');
+        });
+}
+
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Reset form when modal is closed
+$('#modalNewTunnel').on('hidden.bs.modal', function() {
+    $('#tunnelForm')[0].reset();
+    $('#authSection, #advancedConfig').hide();
+    $('#dynamicConfig').empty();
+    currentTunnelId = null;
+    $('.modal-title').text('اضافه کردن تانل جدید');
+    $('.btn-primary').text('ایجاد تانل');
+});
+</script>
+{{end}} 
