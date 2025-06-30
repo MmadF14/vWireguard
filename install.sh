@@ -107,7 +107,7 @@ setup_vwireguard() {
         tar -xzf vwireguard.tar.gz
         rm vwireguard.tar.gz
     else
-        log "ساخت از کد منبع..."
+        log "Building from source..."
         git clone https://github.com/MmadF14/vwireguard.git temp
         mv temp/* .
         rm -rf temp
@@ -292,8 +292,82 @@ Config File: /etc/wireguard/wg0.conf
 Service Status: systemctl status vwireguard
 EOF
 }
-main() {
-    log "شروع نصب vWireguard..."
+# Update function
+update_vwireguard() {
+    log "Starting vWireguard update..."
+    
+    if [ ! -d "$VWIREGUARD_DIR" ] || [ ! -f "$VWIREGUARD_DIR/vwireguard" ]; then
+        error "vWireguard is not installed. Please run script without parameters to install."
+        exit 1
+    fi
+    
+    # Create backup
+    local backup_dir="/opt/vwireguard-backup-$(date +%Y%m%d_%H%M%S)"
+    mkdir -p "$backup_dir"
+    cp -r "$VWIREGUARD_DIR/db" "$backup_dir/" 2>/dev/null
+    cp "$VWIREGUARD_DIR/vwireguard" "$backup_dir/vwireguard.old" 2>/dev/null
+    log "Backup created at $backup_dir"
+    
+    # Stop service
+    systemctl stop vwireguard
+    
+    # Update binary
+    cd $VWIREGUARD_DIR
+    local arch=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
+    local release_url="https://github.com/MmadF14/vwireguard/releases/latest/download/vwireguard-linux-${arch}.tar.gz"
+    
+    if wget -q --spider "$release_url" 2>/dev/null; then
+        log "Downloading new version..."
+        wget -q "$release_url" -O vwireguard-new.tar.gz
+        mkdir -p temp_extract
+        tar -xzf vwireguard-new.tar.gz -C temp_extract
+        
+        # Backup old binary and replace
+        mv vwireguard vwireguard.old
+        mv temp_extract/vwireguard ./vwireguard
+        chmod +x vwireguard
+        
+        # Update templates and static files if they exist
+        if [ -d "temp_extract/templates" ]; then
+            cp -r temp_extract/templates ./
+        fi
+        if [ -d "temp_extract/static" ]; then
+            cp -r temp_extract/static ./
+        fi
+        
+        rm -rf temp_extract vwireguard-new.tar.gz
+    else
+        log "Building from source..."
+        install_go
+        git clone https://github.com/MmadF14/vwireguard.git temp_build
+        cd temp_build
+        export PATH=$PATH:/usr/local/go/bin
+        go mod tidy
+        go build -ldflags="-s -w" -o ../vwireguard-new
+        cd ..
+        rm -rf temp_build
+        
+        mv vwireguard vwireguard.old
+        mv vwireguard-new vwireguard
+        chmod +x vwireguard
+    fi
+    
+    # Start service
+    systemctl start vwireguard
+    
+    if systemctl is-active --quiet vwireguard; then
+        log "✅ Update completed successfully!"
+        log "Old backup stored at: $backup_dir"
+    else
+        error "Failed to start - restoring from backup..."
+        cp "$backup_dir/vwireguard.old" ./vwireguard
+        systemctl start vwireguard
+    fi
+}
+
+# Main installation function
+install_vwireguard() {
+    log "Starting vWireguard installation..."
     
     install_packages
     install_go
@@ -307,4 +381,17 @@ main() {
     start_services
     show_summary
 }
+
+# Main function
+main() {
+    case "${1:-}" in
+        update|--update|-u)
+            update_vwireguard
+            ;;
+        *)
+            install_vwireguard
+            ;;
+    esac
+}
+
 main "$@" 
