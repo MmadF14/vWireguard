@@ -322,6 +322,7 @@ func main() {
 	app.POST(util.BasePath+"/api/tunnel/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	app.GET(util.BasePath+"/api/tunnel/:id/stats", handler.GetTunnelStats(db), handler.ValidSession)
 	app.GET(util.BasePath+"/api/tunnel-types", handler.GetTunnelTypes(), handler.ValidSession)
+	app.POST(util.BasePath+"/api/generate-keypair", handler.GenerateKeypair(), handler.ValidSession, handler.ContentTypeJson)
 
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {

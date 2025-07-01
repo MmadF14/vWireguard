@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rs/xid"
+	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/MmadF14/vwireguard/model"
 	"github.com/MmadF14/vwireguard/store"
@@ -76,33 +77,84 @@ func GetTunnel(db store.IStore) echo.HandlerFunc {
 // NewTunnel handler creates a new tunnel
 func NewTunnel(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var tunnel model.Tunnel
+		var tunnelData struct {
+			Name              string                       `json:"name"`
+			Type              model.TunnelType             `json:"type"`
+			Description       string                       `json:"description"`
+			RouteAll          bool                         `json:"route_all"`
+			ClientIDs         []string                     `json:"client_ids"`
+			WGConfig          *model.WireGuardTunnelConfig `json:"wg_config,omitempty"`
+			SSHConfig         *model.SSHTunnelConfig       `json:"ssh_config,omitempty"`
+			PortForwardConfig *model.PortForwardConfig     `json:"port_forward_config,omitempty"`
+		}
 
 		// Bind JSON data
-		if err := c.Bind(&tunnel); err != nil {
+		if err := c.Bind(&tunnelData); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid tunnel data"})
 		}
 
 		// Validate required fields
-		if tunnel.Name == "" {
+		if tunnelData.Name == "" {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel name is required"})
 		}
 
-		if tunnel.Type == "" {
+		if tunnelData.Type == "" {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel type is required"})
 		}
 
-		// Set default values
-		tunnel.ID = xid.New().String()
-		tunnel.Status = model.TunnelStatusInactive
-		tunnel.Enabled = true
-		tunnel.CreatedBy = currentUser(c)
-		tunnel.CreatedAt = time.Now().UTC()
-		tunnel.UpdatedAt = time.Now().UTC()
+		// Validate type-specific configuration
+		switch tunnelData.Type {
+		case model.TunnelTypeWireGuardToWireGuard:
+			if tunnelData.WGConfig == nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "WireGuard configuration is required"})
+			}
+			if tunnelData.WGConfig.RemoteEndpoint == "" || tunnelData.WGConfig.RemotePublicKey == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote endpoint and public key are required"})
+			}
+			// Generate local keypair if not provided
+			if tunnelData.WGConfig.LocalPrivateKey == "" {
+				privateKey, publicKey, err := generateWireGuardKeypair()
+				if err != nil {
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate keypair"})
+				}
+				tunnelData.WGConfig.LocalPrivateKey = privateKey
+				tunnelData.WGConfig.LocalPublicKey = publicKey
+			}
 
-		// Initialize config if empty
-		if tunnel.Config == nil {
-			tunnel.Config = make(map[string]interface{})
+		case model.TunnelTypeWireGuardToSSH:
+			if tunnelData.SSHConfig == nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "SSH configuration is required"})
+			}
+			if tunnelData.SSHConfig.SSHHost == "" || tunnelData.SSHConfig.SSHUser == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "SSH host and user are required"})
+			}
+
+		case model.TunnelTypePortForward:
+			if tunnelData.PortForwardConfig == nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Port forward configuration is required"})
+			}
+			if tunnelData.PortForwardConfig.RemoteHost == "" || tunnelData.PortForwardConfig.RemotePort == 0 {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote host and port are required"})
+			}
+		}
+
+		// Create tunnel model
+		tunnel := model.Tunnel{
+			ID:                xid.New().String(),
+			Name:              tunnelData.Name,
+			Type:              tunnelData.Type,
+			Description:       tunnelData.Description,
+			Status:            model.TunnelStatusInactive,
+			Enabled:           true,
+			RouteAll:          tunnelData.RouteAll,
+			ClientIDs:         tunnelData.ClientIDs,
+			WGConfig:          tunnelData.WGConfig,
+			SSHConfig:         tunnelData.SSHConfig,
+			PortForwardConfig: tunnelData.PortForwardConfig,
+			Priority:          1,
+			CreatedBy:         currentUser(c),
+			CreatedAt:         time.Now().UTC(),
+			UpdatedAt:         time.Now().UTC(),
 		}
 
 		// Save tunnel
@@ -327,5 +379,30 @@ func GetTunnelTypes() echo.HandlerFunc {
 		}
 
 		return c.JSON(http.StatusOK, types)
+	}
+}
+
+// generateWireGuardKeypair generates a new WireGuard keypair
+func generateWireGuardKeypair() (privateKey, publicKey string, err error) {
+	key, err := wgtypes.GeneratePrivateKey()
+	if err != nil {
+		return "", "", err
+	}
+	return key.String(), key.PublicKey().String(), nil
+}
+
+// GenerateKeypair handler for generating WireGuard keypair
+func GenerateKeypair() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		privateKey, publicKey, err := generateWireGuardKeypair()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate keypair"})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success":     true,
+			"private_key": privateKey,
+			"public_key":  publicKey,
+		})
 	}
 }

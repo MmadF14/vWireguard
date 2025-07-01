@@ -58,12 +58,12 @@ install_packages() {
             apt-get install -y curl wget git build-essential wireguard wireguard-tools ufw openssl
             ;;
         "rhel")
-            yum update -y
+                yum update -y
             yum install -y curl wget git gcc make wireguard-tools firewalld openssl
             ;;
         *)
             error "Operating system not supported"
-            exit 1
+                exit 1
             ;;
     esac
 }
@@ -79,10 +79,10 @@ install_go() {
     local arch=$(uname -m | sed 's/x86_64/amd64/; s/aarch64/arm64/')
     
     wget -q "https://go.dev/dl/${go_version}.linux-${arch}.tar.gz" -O /tmp/go.tar.gz
-    rm -rf /usr/local/go
-    tar -C /usr/local -xzf /tmp/go.tar.gz
+        rm -rf /usr/local/go
+        tar -C /usr/local -xzf /tmp/go.tar.gz
     export PATH=$PATH:/usr/local/go/bin
-    echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+        echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
 }
 
 ask_ssl() {
@@ -124,8 +124,8 @@ setup_vwireguard() {
         rm -rf temp
         
         export PATH=$PATH:/usr/local/go/bin
-        go mod tidy
-        go build -ldflags="-s -w" -o vwireguard
+    go mod tidy
+    go build -ldflags="-s -w" -o vwireguard
     fi
     
     chmod +x vwireguard
@@ -191,7 +191,7 @@ PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -t nat -D POSTROUTING 
 
 # Client configurations will be added here
 EOF
-
+    
     echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-wireguard.conf
     sysctl -p /etc/sysctl.d/99-wireguard.conf
 }
@@ -347,7 +347,7 @@ update_vwireguard() {
         mv vwireguard vwireguard.old
         mv temp_extract/vwireguard ./vwireguard
         chmod +x vwireguard
-        
+    
         # Update templates and static files if they exist
         if [ -d "temp_extract/templates" ]; then
             cp -r temp_extract/templates ./

@@ -27,7 +27,7 @@ const (
 	TunnelStatusError    TunnelStatus = "error"
 )
 
-// Tunnel model
+// Tunnel model - for routing WireGuard clients through different tunnel types
 type Tunnel struct {
 	ID          string       `json:"id"`
 	Name        string       `json:"name"`
@@ -35,22 +35,19 @@ type Tunnel struct {
 	Status      TunnelStatus `json:"status"`
 	Description string       `json:"description"`
 
-	// Source configuration
-	SourceInterface string `json:"source_interface"`
-	SourceIP        string `json:"source_ip"`
-	SourcePort      int    `json:"source_port"`
+	// Client routing - which clients use this tunnel
+	ClientIDs    []string `json:"client_ids"`    // Specific client IDs
+	ClientGroups []string `json:"client_groups"` // Or client groups/tags
+	RouteAll     bool     `json:"route_all"`     // Route all clients through this tunnel
 
-	// Destination configuration
-	DestinationIP   string `json:"destination_ip"`
-	DestinationPort int    `json:"destination_port"`
+	// WireGuard-to-WireGuard specific fields
+	WGConfig *WireGuardTunnelConfig `json:"wg_config,omitempty"`
 
-	// Tunnel specific configurations
-	Config map[string]interface{} `json:"config"`
+	// SSH tunnel specific fields
+	SSHConfig *SSHTunnelConfig `json:"ssh_config,omitempty"`
 
-	// Authentication for certain tunnel types
-	Username string `json:"username,omitempty"`
-	Password string `json:"password,omitempty"`
-	KeyFile  string `json:"key_file,omitempty"`
+	// Port forward specific fields
+	PortForwardConfig *PortForwardConfig `json:"port_forward_config,omitempty"`
 
 	// Traffic statistics
 	BytesIn  int64 `json:"bytes_in"`
@@ -58,12 +55,68 @@ type Tunnel struct {
 
 	// Management
 	Enabled   bool   `json:"enabled"`
+	Priority  int    `json:"priority"` // Higher priority tunnels are preferred
 	CreatedBy string `json:"created_by"`
 
 	// Timestamps
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	LastSeen  time.Time `json:"last_seen"`
+}
+
+// WireGuard tunnel configuration
+type WireGuardTunnelConfig struct {
+	// Remote WireGuard server details
+	RemoteEndpoint  string `json:"remote_endpoint"`   // IP:Port of remote WG server
+	RemotePublicKey string `json:"remote_public_key"` // Remote server's public key
+	LocalPrivateKey string `json:"local_private_key"` // Our private key for this tunnel
+	LocalPublicKey  string `json:"local_public_key"`  // Our public key (auto-generated)
+
+	// Network configuration
+	TunnelIP            string   `json:"tunnel_ip"`     // Our IP in the tunnel network
+	AllowedIPs          []string `json:"allowed_ips"`   // IPs to route through tunnel
+	DNS                 []string `json:"dns,omitempty"` // DNS servers to use
+	MTU                 int      `json:"mtu,omitempty"` // MTU size
+	PersistentKeepalive int      `json:"persistent_keepalive,omitempty"`
+}
+
+// SSH tunnel configuration
+type SSHTunnelConfig struct {
+	// SSH server details
+	SSHHost       string `json:"ssh_host"`        // SSH server IP/hostname
+	SSHPort       int    `json:"ssh_port"`        // SSH port (default 22)
+	SSHUser       string `json:"ssh_user"`        // SSH username
+	SSHKeyPath    string `json:"ssh_key_path"`    // Path to SSH private key
+	SSHKeyContent string `json:"ssh_key_content"` // SSH private key content
+
+	// Tunnel configuration
+	TunnelType    string `json:"tunnel_type"`     // "socks5", "http", "port_forward"
+	LocalBindPort int    `json:"local_bind_port"` // Local port to bind
+	RemoteHost    string `json:"remote_host"`     // Remote host to forward to
+	RemotePort    int    `json:"remote_port"`     // Remote port to forward to
+
+	// SOCKS5 specific
+	SOCKSUsername string `json:"socks_username,omitempty"`
+	SOCKSPassword string `json:"socks_password,omitempty"`
+}
+
+// Port forward configuration (Dokodemo Door style)
+type PortForwardConfig struct {
+	// Protocol
+	Protocol string `json:"protocol"` // "tcp", "udp", "both"
+
+	// Local binding
+	LocalBindIP   string `json:"local_bind_ip"`   // IP to bind locally
+	LocalBindPort int    `json:"local_bind_port"` // Port to bind locally
+
+	// Remote target
+	RemoteHost string `json:"remote_host"` // Target host
+	RemotePort int    `json:"remote_port"` // Target port
+
+	// Advanced options
+	Transparent    bool   `json:"transparent"`          // Transparent proxy mode
+	FollowRedirect bool   `json:"follow_redirect"`      // Follow redirects
+	UserAgent      string `json:"user_agent,omitempty"` // Custom user agent for HTTP
 }
 
 // TunnelConfig represents configuration for different tunnel types

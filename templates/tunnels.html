@@ -29,15 +29,32 @@ Tunnels
                             <h5 class="card-title mb-0">{{.Name}}</h5>
                             <span class="badge badge-{{if eq .Status "active"}}success{{else}}secondary{{end}}">{{.Status}}</span>
                         </div>
-                        <div class="card-body">
-                            <p class="card-text">
-                                <strong>Type:</strong> {{.Type}}<br>
-                                <strong>Destination:</strong> {{.DestinationIP}}:{{.DestinationPort}}
-                            </p>
-                            {{if .Description}}
-                            <p class="text-muted">{{.Description}}</p>
-                            {{end}}
-                        </div>
+                                                 <div class="card-body">
+                             <p class="card-text">
+                                 <strong>Type:</strong> {{.Type}}<br>
+                                 {{if eq .Type "wg-to-wg"}}
+                                     {{if .WGConfig}}
+                                         <strong>Remote:</strong> {{.WGConfig.RemoteEndpoint}}<br>
+                                         <strong>Tunnel IP:</strong> {{.WGConfig.TunnelIP}}
+                                     {{end}}
+                                 {{else if eq .Type "wg-to-ssh"}}
+                                     {{if .SSHConfig}}
+                                         <strong>SSH Server:</strong> {{.SSHConfig.SSHHost}}:{{.SSHConfig.SSHPort}}<br>
+                                         <strong>Tunnel Type:</strong> {{.SSHConfig.TunnelType}}
+                                     {{end}}
+                                 {{else if eq .Type "port-forward"}}
+                                     {{if .PortForwardConfig}}
+                                         <strong>Protocol:</strong> {{.PortForwardConfig.Protocol}}<br>
+                                         <strong>Target:</strong> {{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}
+                                     {{end}}
+                                 {{end}}
+                                 <strong>Clients:</strong> 
+                                 {{if .RouteAll}}All Clients{{else}}{{len .ClientIDs}} Selected{{end}}
+                             </p>
+                             {{if .Description}}
+                             <p class="text-muted">{{.Description}}</p>
+                             {{end}}
+                         </div>
                         <div class="card-footer">
                             <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
                                 <i class="fas fa-edit"></i> Edit
@@ -63,7 +80,7 @@ Tunnels
 
 <!-- New Tunnel Modal -->
 <div class="modal fade" id="modal_new_tunnel">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">New Tunnel</h4>
@@ -73,30 +90,170 @@ Tunnels
             </div>
             <form id="frm_new_tunnel">
                 <div class="modal-body">
+                    <!-- Basic Information -->
                     <div class="form-group">
                         <label for="tunnel_name">Tunnel Name</label>
                         <input type="text" class="form-control" id="tunnel_name" name="name" required>
                     </div>
+                    
                     <div class="form-group">
                         <label for="tunnel_type">Tunnel Type</label>
-                        <select class="form-control" id="tunnel_type" name="type" required>
+                        <select class="form-control" id="tunnel_type" name="type" required onchange="showTunnelConfig()">
                             <option value="">Select tunnel type</option>
                             <option value="wg-to-wg">WireGuard to WireGuard</option>
-                            <option value="wg-to-ssh">WireGuard to SSH</option>
-                            <option value="port-forward">Port Forward</option>
+                            <option value="wg-to-ssh">SSH Tunnel (SOCKS5/HTTP/Port Forward)</option>
+                            <option value="port-forward">Port Forward (Dokodemo Door)</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="destination_ip">Destination IP</label>
-                        <input type="text" class="form-control" id="destination_ip" name="destination_ip" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="destination_port">Destination Port</label>
-                        <input type="number" class="form-control" id="destination_port" name="destination_port" required>
-                    </div>
+
                     <div class="form-group">
                         <label for="description">Description (Optional)</label>
                         <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                    </div>
+
+                    <!-- Client Selection -->
+                    <div class="form-group">
+                        <label>Client Routing</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="client_routing" id="route_all" value="all" checked>
+                            <label class="form-check-label" for="route_all">
+                                Route all clients through this tunnel
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="client_routing" id="route_selected" value="selected">
+                            <label class="form-check-label" for="route_selected">
+                                Route only selected clients
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="client_selection" style="display:none;">
+                        <label>Select Clients</label>
+                        <div id="client_list">
+                            <!-- Will be populated via AJAX -->
+                        </div>
+                    </div>
+
+                    <!-- WireGuard Configuration -->
+                    <div id="wg_config" style="display:none;">
+                        <h5>WireGuard Configuration</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="wg_remote_endpoint">Remote Endpoint (IP:Port)</label>
+                                    <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="wg_tunnel_ip">Our Tunnel IP</label>
+                                    <input type="text" class="form-control" id="wg_tunnel_ip" placeholder="10.0.1.2/24">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="wg_remote_public_key">Remote Public Key</label>
+                            <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="wg_allowed_ips">Allowed IPs (comma separated)</label>
+                            <input type="text" class="form-control" id="wg_allowed_ips" value="0.0.0.0/0" placeholder="0.0.0.0/0, ::/0">
+                        </div>
+                    </div>
+
+                    <!-- SSH Configuration -->
+                    <div id="ssh_config" style="display:none;">
+                        <h5>SSH Tunnel Configuration</h5>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="ssh_host">SSH Server Host</label>
+                                    <input type="text" class="form-control" id="ssh_host" placeholder="ssh.example.com">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="ssh_port">SSH Port</label>
+                                    <input type="number" class="form-control" id="ssh_port" value="22">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="ssh_user">SSH Username</label>
+                            <input type="text" class="form-control" id="ssh_user" placeholder="root">
+                        </div>
+                        <div class="form-group">
+                            <label for="ssh_tunnel_type">Tunnel Type</label>
+                            <select class="form-control" id="ssh_tunnel_type" onchange="showSSHTunnelOptions()">
+                                <option value="socks5">SOCKS5 Proxy</option>
+                                <option value="http">HTTP Proxy</option>
+                                <option value="port_forward">Port Forward</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="ssh_key">SSH Private Key</label>
+                            <textarea class="form-control" id="ssh_key" rows="4" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
+                        </div>
+                        <div id="ssh_port_forward_config" style="display:none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="ssh_remote_host">Remote Host</label>
+                                        <input type="text" class="form-control" id="ssh_remote_host" placeholder="localhost">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="ssh_remote_port">Remote Port</label>
+                                        <input type="number" class="form-control" id="ssh_remote_port" placeholder="80">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Port Forward Configuration -->
+                    <div id="port_forward_config" style="display:none;">
+                        <h5>Port Forward Configuration (Dokodemo Door)</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="pf_protocol">Protocol</label>
+                                    <select class="form-control" id="pf_protocol">
+                                        <option value="tcp">TCP</option>
+                                        <option value="udp">UDP</option>
+                                        <option value="both">Both (TCP + UDP)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="pf_local_port">Local Bind Port</label>
+                                    <input type="number" class="form-control" id="pf_local_port" placeholder="8080">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label for="pf_remote_host">Target Host</label>
+                                    <input type="text" class="form-control" id="pf_remote_host" placeholder="google.com">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="pf_remote_port">Target Port</label>
+                                    <input type="number" class="form-control" id="pf_remote_port" placeholder="80">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="pf_transparent">
+                            <label class="form-check-label" for="pf_transparent">
+                                Transparent Proxy Mode
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -112,17 +269,70 @@ Tunnels
 {{define "bottom_js"}}
 <script>
 $(document).ready(function() {
+    // Load client list on modal open
+    $('#modal_new_tunnel').on('shown.bs.modal', function() {
+        loadClientList();
+    });
+
+    // Handle client routing selection
+    $('input[name="client_routing"]').change(function() {
+        if ($(this).val() === 'selected') {
+            $('#client_selection').show();
+        } else {
+            $('#client_selection').hide();
+        }
+    });
+
     // Handle new tunnel form submission
     $('#frm_new_tunnel').on('submit', function(e) {
         e.preventDefault();
         
+        const tunnelType = $('#tunnel_type').val();
         const formData = {
             name: $('#tunnel_name').val(),
-            type: $('#tunnel_type').val(),
-            destination_ip: $('#destination_ip').val(),
-            destination_port: parseInt($('#destination_port').val()),
-            description: $('#description').val()
+            type: tunnelType,
+            description: $('#description').val(),
+            route_all: $('input[name="client_routing"]:checked').val() === 'all',
+            client_ids: []
         };
+
+        // Get selected clients if not routing all
+        if (!formData.route_all) {
+            $('input[name="client_ids"]:checked').each(function() {
+                formData.client_ids.push($(this).val());
+            });
+        }
+
+        // Add type-specific configuration
+        if (tunnelType === 'wg-to-wg') {
+            formData.wg_config = {
+                remote_endpoint: $('#wg_remote_endpoint').val(),
+                remote_public_key: $('#wg_remote_public_key').val(),
+                tunnel_ip: $('#wg_tunnel_ip').val(),
+                allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim())
+            };
+        } else if (tunnelType === 'wg-to-ssh') {
+            formData.ssh_config = {
+                ssh_host: $('#ssh_host').val(),
+                ssh_port: parseInt($('#ssh_port').val()),
+                ssh_user: $('#ssh_user').val(),
+                ssh_key_content: $('#ssh_key').val(),
+                tunnel_type: $('#ssh_tunnel_type').val()
+            };
+            
+            if ($('#ssh_tunnel_type').val() === 'port_forward') {
+                formData.ssh_config.remote_host = $('#ssh_remote_host').val();
+                formData.ssh_config.remote_port = parseInt($('#ssh_remote_port').val());
+            }
+        } else if (tunnelType === 'port-forward') {
+            formData.port_forward_config = {
+                protocol: $('#pf_protocol').val(),
+                local_bind_port: parseInt($('#pf_local_port').val()),
+                remote_host: $('#pf_remote_host').val(),
+                remote_port: parseInt($('#pf_remote_port').val()),
+                transparent: $('#pf_transparent').is(':checked')
+            };
+        }
         
         $.ajax({
             url: '/api/tunnel',
@@ -146,8 +356,90 @@ $(document).ready(function() {
     // Reset form when modal is closed
     $('#modal_new_tunnel').on('hidden.bs.modal', function() {
         $('#frm_new_tunnel')[0].reset();
+        $('#wg_config, #ssh_config, #port_forward_config').hide();
+        $('#client_selection').hide();
+        $('input[name="client_routing"][value="all"]').prop('checked', true);
     });
 });
+
+function showTunnelConfig() {
+    const tunnelType = $('#tunnel_type').val();
+    
+    // Hide all config sections
+    $('#wg_config, #ssh_config, #port_forward_config').hide();
+    
+    // Show relevant config section
+    if (tunnelType === 'wg-to-wg') {
+        $('#wg_config').show();
+        generateWireGuardKeys();
+    } else if (tunnelType === 'wg-to-ssh') {
+        $('#ssh_config').show();
+        showSSHTunnelOptions();
+    } else if (tunnelType === 'port-forward') {
+        $('#port_forward_config').show();
+    }
+}
+
+function showSSHTunnelOptions() {
+    const tunnelType = $('#ssh_tunnel_type').val();
+    
+    if (tunnelType === 'port_forward') {
+        $('#ssh_port_forward_config').show();
+    } else {
+        $('#ssh_port_forward_config').hide();
+    }
+}
+
+function generateWireGuardKeys() {
+    // Generate local keypair for this tunnel
+    // Note: In real implementation, this should be done server-side
+    $.ajax({
+        url: '/api/generate-keypair',
+        method: 'POST'
+    })
+    .done(function(response) {
+        if (response.success) {
+            // Store the private key (will be used when creating tunnel)
+            $('#wg_config').data('private-key', response.private_key);
+            $('#wg_config').data('public-key', response.public_key);
+            
+            // Show info to user
+            const infoHtml = `
+                <div class="alert alert-info">
+                    <strong>Generated Keypair:</strong><br>
+                    <small>Public Key: <code>${response.public_key}</code></small><br>
+                    <small class="text-muted">Private key is stored securely</small><br>
+                    <small class="text-muted">Add this public key to your remote WireGuard server</small>
+                </div>
+            `;
+            $('#wg_config').prepend(infoHtml);
+        }
+    });
+}
+
+function loadClientList() {
+    $.ajax({
+        url: '/api/clients',
+        method: 'GET'
+    })
+    .done(function(clients) {
+        let clientHtml = '';
+        clients.forEach(function(client) {
+            clientHtml += `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
+                    <label class="form-check-label" for="client_${client.id}">
+                        ${client.name} (${client.address})
+                    </label>
+                </div>
+            `;
+        });
+        $('#client_list').html(clientHtml);
+    })
+    .fail(function() {
+        $('#client_list').html('<div class="alert alert-warning">Failed to load clients</div>');
+    });
+}
 
 function editTunnel(tunnelId) {
     // Load tunnel data
@@ -156,12 +448,47 @@ function editTunnel(tunnelId) {
         method: 'GET'
     })
     .done(function(tunnel) {
-        // Populate form
+        // Populate basic fields
         $('#tunnel_name').val(tunnel.name);
         $('#tunnel_type').val(tunnel.type);
-        $('#destination_ip').val(tunnel.destination_ip);
-        $('#destination_port').val(tunnel.destination_port);
         $('#description').val(tunnel.description);
+        
+        // Show config for this tunnel type
+        showTunnelConfig();
+        
+        // Populate type-specific fields
+        if (tunnel.type === 'wg-to-wg' && tunnel.wg_config) {
+            $('#wg_remote_endpoint').val(tunnel.wg_config.remote_endpoint);
+            $('#wg_remote_public_key').val(tunnel.wg_config.remote_public_key);
+            $('#wg_tunnel_ip').val(tunnel.wg_config.tunnel_ip);
+            $('#wg_allowed_ips').val(tunnel.wg_config.allowed_ips.join(', '));
+        } else if (tunnel.type === 'wg-to-ssh' && tunnel.ssh_config) {
+            $('#ssh_host').val(tunnel.ssh_config.ssh_host);
+            $('#ssh_port').val(tunnel.ssh_config.ssh_port);
+            $('#ssh_user').val(tunnel.ssh_config.ssh_user);
+            $('#ssh_key').val(tunnel.ssh_config.ssh_key_content);
+            $('#ssh_tunnel_type').val(tunnel.ssh_config.tunnel_type);
+            showSSHTunnelOptions();
+            if (tunnel.ssh_config.remote_host) {
+                $('#ssh_remote_host').val(tunnel.ssh_config.remote_host);
+                $('#ssh_remote_port').val(tunnel.ssh_config.remote_port);
+            }
+        } else if (tunnel.type === 'port-forward' && tunnel.port_forward_config) {
+            $('#pf_protocol').val(tunnel.port_forward_config.protocol);
+            $('#pf_local_port').val(tunnel.port_forward_config.local_bind_port);
+            $('#pf_remote_host').val(tunnel.port_forward_config.remote_host);
+            $('#pf_remote_port').val(tunnel.port_forward_config.remote_port);
+            $('#pf_transparent').prop('checked', tunnel.port_forward_config.transparent);
+        }
+        
+        // Set client routing
+        if (tunnel.route_all) {
+            $('input[name="client_routing"][value="all"]').prop('checked', true);
+        } else {
+            $('input[name="client_routing"][value="selected"]').prop('checked', true);
+            $('#client_selection').show();
+            // Mark selected clients (will be loaded via loadClientList)
+        }
         
         // Change modal title and store tunnel ID
         $('#modal_new_tunnel .modal-title').text('Edit Tunnel');
@@ -174,7 +501,7 @@ function editTunnel(tunnelId) {
 }
 
 function deleteTunnel(tunnelId) {
-    if (confirm('Are you sure you want to delete this tunnel?')) {
+    if (confirm('Are you sure you want to delete this tunnel? This will affect client routing.')) {
         $.ajax({
             url: '/api/tunnel/' + tunnelId,
             method: 'DELETE',
