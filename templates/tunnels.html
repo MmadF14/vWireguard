@@ -13,16 +13,21 @@ Tunnels
 <section class="content">
     <div class="container-fluid">
         <!-- Debug Info -->
-        {{if gt (len .tunnels) 0}}
         <div class="row mb-2">
             <div class="col-12">
-                <div class="alert alert-success">
-                    <i class="fas fa-info-circle"></i>
-                    <strong>Active Tunnels:</strong> {{len .tunnels}} configured
+                <div class="alert alert-info">
+                    <i class="fas fa-bug"></i>
+                    <strong>Debug Info:</strong> 
+                    Template loaded successfully. 
+                    Found {{len .tunnels}} tunnels.
+                    {{if .tunnels}}
+                        <br><small>Tunnels: {{range .tunnels}}{{.Name}} ({{.Type}}) {{end}}</small>
+                    {{else}}
+                        <br><small>No tunnels found in database.</small>
+                    {{end}}
                 </div>
             </div>
         </div>
-        {{end}}
         
         <div class="row mb-3">
             <div class="col-12">
@@ -411,7 +416,7 @@ $(document).ready(function() {
         console.log('Final form data:', formData); // Debug log
         
         $.ajax({
-            url: '{{.basePath}}api/tunnel',
+            url: '/api/tunnel',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(formData)
@@ -465,7 +470,7 @@ function generateWireGuardKeys() {
     console.log('Generating WireGuard keypair...');
     
     $.ajax({
-        url: '{{.basePath}}api/generate-keypair',
+        url: '/api/generate-keypair',
         method: 'POST',
         contentType: 'application/json'
     })
@@ -502,7 +507,7 @@ function generateWireGuardKeys() {
 
 function loadClientList() {
     $.ajax({
-        url: '{{.basePath}}api/clients',
+        url: '/api/clients',
         method: 'GET'
     })
     .done(function(response) {        
@@ -538,7 +543,7 @@ function loadClientList() {
 function editTunnel(tunnelId) {
     // Load tunnel data
     $.ajax({
-        url: '{{.basePath}}api/tunnel/' + tunnelId,
+        url: '/api/tunnel/' + tunnelId,
         method: 'GET'
     })
     .done(function(tunnel) {
@@ -593,7 +598,7 @@ function editTunnel(tunnelId) {
 function deleteTunnel(tunnelId) {
     if (confirm('Are you sure you want to delete this tunnel? This will affect client routing.')) {
         $.ajax({
-            url: '{{.basePath}}api/tunnel/' + tunnelId,
+            url: '/api/tunnel/' + tunnelId,
             method: 'DELETE',
             contentType: 'application/json'
         })
@@ -612,7 +617,7 @@ function deleteTunnel(tunnelId) {
 
 function startTunnel(tunnelId) {
     $.ajax({
-        url: '{{.basePath}}api/tunnel/' + tunnelId + '/start',
+        url: '/api/tunnel/' + tunnelId + '/start',
         method: 'POST',
         contentType: 'application/json'
     })
@@ -630,7 +635,7 @@ function startTunnel(tunnelId) {
 
 function stopTunnel(tunnelId) {
     $.ajax({
-        url: '{{.basePath}}api/tunnel/' + tunnelId + '/stop',
+        url: '/api/tunnel/' + tunnelId + '/stop',
         method: 'POST',
         contentType: 'application/json'
     })
@@ -651,7 +656,7 @@ function testAPI() {
     
     // Test 1: Get tunnels
     $.ajax({
-        url: '{{.basePath}}api/tunnels',
+        url: '/api/tunnels',
         method: 'GET'
     })
     .done(function(response) {
@@ -680,7 +685,7 @@ function testAPI() {
     console.log('Creating test tunnel:', testTunnel);
     
     $.ajax({
-        url: '{{.basePath}}api/tunnel',
+        url: '/api/tunnel',
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(testTunnel)

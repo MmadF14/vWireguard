@@ -22,13 +22,6 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 		username := currentUser(c)
 		isAdmin := isAdmin(c)
 
-		// Prepare base data like other pages
-		baseData := map[string]interface{}{
-			"Active":      "tunnels",
-			"CurrentUser": username,
-			"Admin":       isAdmin,
-		}
-
 		// Get tunnels
 		tunnels := make([]model.Tunnel, 0)
 		if db != nil {
@@ -45,13 +38,11 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 			log.Printf("TunnelsPage: Database is nil")
 		}
 
-		// Template data - flatten the structure like other pages
-		templateData := baseData
-		templateData["tunnels"] = tunnels
-		templateData["basePath"] = "/"
-
 		log.Printf("TunnelsPage: Rendering template with %d tunnels", len(tunnels))
-		return c.Render(http.StatusOK, "tunnels.html", templateData)
+		return c.Render(http.StatusOK, "tunnels.html", map[string]interface{}{
+			"baseData": model.BaseData{Active: "tunnels", CurrentUser: username, Admin: isAdmin},
+			"tunnels":  tunnels,
+		})
 	}
 }
 
