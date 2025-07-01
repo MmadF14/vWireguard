@@ -12,30 +12,12 @@ Tunnels
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
-        <!-- Debug Info -->
-        <div class="row mb-2">
-            <div class="col-12">
-                <div class="alert alert-info">
-                    <i class="fas fa-bug"></i>
-                    <strong>Debug Info:</strong> 
-                    Template loaded successfully. 
-                    Found {{len .tunnels}} tunnels.
-                    {{if .tunnels}}
-                        <br><small>Tunnels: {{range .tunnels}}{{.Name}} ({{.Type}}) {{end}}</small>
-                    {{else}}
-                        <br><small>No tunnels found in database.</small>
-                    {{end}}
-                </div>
-            </div>
-        </div>
+
         
         <div class="row mb-3">
             <div class="col-12">
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
                     <i class="fas fa-plus"></i> New Tunnel
-                </button>
-                <button type="button" class="btn btn-info ml-2" onclick="testAPI()">
-                    <i class="fas fa-bug"></i> Test API  
                 </button>
             </div>
         </div>
@@ -196,7 +178,7 @@ Tunnels
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="wg_remote_endpoint">Remote Endpoint (IP:Port)</label>
-                                    <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820" required>
+                                    <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820">
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -208,7 +190,7 @@ Tunnels
                         </div>
                         <div class="form-group">
                             <label for="wg_remote_public_key">Remote Public Key</label>
-                            <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key" required></textarea>
+                            <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key"></textarea>
                         </div>
                         <div class="form-group">
                             <label for="wg_allowed_ips">Allowed IPs (comma separated)</label>
@@ -452,17 +434,22 @@ $(document).ready(function() {
 function showTunnelConfig() {
     const tunnelType = $('#tunnel_type').val();
     
+    // Reset all required attributes first
+    $('#wg_remote_endpoint, #wg_remote_public_key, #dokodemo_address, #dokodemo_port, #pf_remote_host, #pf_remote_port').removeAttr('required');
+    
     // Hide all config sections
     $('#wg_config, #dokodemo_config, #port_forward_config').hide();
     
-        // Show relevant config section
+    // Show relevant config section and set required fields
     if (tunnelType === 'wg-to-wg') {
         $('#wg_config').show();
-        // Don't auto-generate keys, let user click a button
+        $('#wg_remote_endpoint, #wg_remote_public_key').attr('required', 'required');
     } else if (tunnelType === 'wg-to-dokodemo') {
         $('#dokodemo_config').show();
+        $('#dokodemo_address, #dokodemo_port').attr('required', 'required');
     } else if (tunnelType === 'port-forward') {
         $('#port_forward_config').show();
+        $('#pf_remote_host, #pf_remote_port').attr('required', 'required');
     }
 }
 
@@ -651,57 +638,6 @@ function stopTunnel(tunnelId) {
     });
 }
 
-function testAPI() {
-    console.log('Testing API endpoints...');
-    
-    // Test 1: Get tunnels
-    $.ajax({
-        url: '/api/tunnels',
-        method: 'GET'
-    })
-    .done(function(response) {
-        console.log('GET /api/tunnels response:', response);
-    })
-    .fail(function(xhr, status, error) {
-        console.error('GET /api/tunnels failed:', xhr, status, error);
-    });
-    
-    // Test 2: Create a simple tunnel
-    const testTunnel = {
-        name: 'Test Tunnel',
-        type: 'port-forward',
-        description: 'Test tunnel for debugging',
-        route_all: true,
-        client_ids: [],
-        port_forward_config: {
-            protocol: 'tcp',
-            local_bind_port: 8080,
-            remote_host: 'google.com',
-            remote_port: 80,
-            transparent: false
-        }
-    };
-    
-    console.log('Creating test tunnel:', testTunnel);
-    
-    $.ajax({
-        url: '/api/tunnel',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(testTunnel)
-    })
-    .done(function(response) {
-        console.log('POST /api/tunnel response:', response);
-        alert('Test tunnel created! Check console for details.');
-        setTimeout(function() {
-            location.reload();
-        }, 1000);
-    })
-    .fail(function(xhr, status, error) {
-        console.error('POST /api/tunnel failed:', xhr, status, error);
-        console.error('Response text:', xhr.responseText);
-        alert('Test tunnel failed! Check console for details.');
-    });
-}
+
 </script>
 {{end}} 
