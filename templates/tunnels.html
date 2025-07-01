@@ -168,10 +168,28 @@ Tunnels
                         
                         <!-- Key Generation Section -->
                         <div class="form-group">
-                            <button type="button" class="btn btn-info btn-sm" onclick="generateWireGuardKeys()">
-                                <i class="fas fa-key"></i> Generate Local Keypair
-                            </button>
-                            <small class="form-text text-muted">Generate a local keypair for this tunnel</small>
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-info btn-sm" onclick="generateWireGuardKeys()">
+                                    <i class="fas fa-key"></i> Generate Keypair
+                                </button>
+                                <button type="button" class="btn btn-outline-info btn-sm" onclick="showManualKeyEntry()">
+                                    <i class="fas fa-edit"></i> Manual Entry
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">Generate or manually enter your keypair</small>
+                        </div>
+                        
+                        <!-- Manual Key Entry -->
+                        <div id="manual_key_section" style="display:none;">
+                            <div class="form-group">
+                                <label for="wg_manual_private_key">Local Private Key</label>
+                                <textarea class="form-control" id="wg_manual_private_key" rows="2" placeholder="Enter your WireGuard private key" onblur="generatePublicKeyFromPrivate()"></textarea>
+                                <small class="form-text text-muted">Enter your private key and public key will be auto-generated</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="wg_manual_public_key">Local Public Key (Auto-generated)</label>
+                                <input type="text" class="form-control" id="wg_manual_public_key" readonly placeholder="Will be generated from private key">
+                            </div>
                         </div>
                         
                         <div class="row">
@@ -360,13 +378,23 @@ $(document).ready(function() {
                 alert('Please fill all WireGuard configuration fields');
                 return;
             }
+            
+            // Get keys from either generated or manual entry
+            let localPrivateKey = $('#wg_config').data('private-key') || $('#wg_manual_private_key').val();
+            let localPublicKey = $('#wg_config').data('public-key') || $('#wg_manual_public_key').val();
+            
+            if (!localPrivateKey || !localPublicKey) {
+                alert('Please generate a keypair or enter private key manually');
+                return;
+            }
+            
             formData.wg_config = {
                 remote_endpoint: $('#wg_remote_endpoint').val(),
                 remote_public_key: $('#wg_remote_public_key').val(),
                 tunnel_ip: $('#wg_tunnel_ip').val(),
                 allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim()),
-                local_private_key: $('#wg_config').data('private-key') || '',
-                local_public_key: $('#wg_config').data('public-key') || ''
+                local_private_key: localPrivateKey,
+                local_public_key: localPublicKey
             };
         } else if (tunnelType === 'wg-to-dokodemo') {
             if (!$('#dokodemo_address').val() || !$('#dokodemo_port').val()) {
@@ -425,7 +453,10 @@ $(document).ready(function() {
     // Reset form when modal is closed
     $('#modal_new_tunnel').on('hidden.bs.modal', function() {
         $('#frm_new_tunnel')[0].reset();
-        $('#wg_config, #dokodemo_config, #port_forward_config').hide();
+        $('#wg_config, #dokodemo_config, #port_forward_config, #manual_key_section').hide();
+        $('#wg_config .alert').remove();
+        $('#wg_manual_private_key, #wg_manual_public_key').val('');
+        $('#wg_config').removeData('private-key public-key');
         $('#client_selection').hide();
         $('input[name="client_routing"][value="all"]').prop('checked', true);
     });
@@ -456,6 +487,9 @@ function showTunnelConfig() {
 function generateWireGuardKeys() {
     console.log('Generating WireGuard keypair...');
     
+    // Hide manual key section
+    $('#manual_key_section').hide();
+    
     $.ajax({
         url: '/api/generate-keypair',
         method: 'POST',
@@ -475,9 +509,9 @@ function generateWireGuardKeys() {
             const infoHtml = `
                 <div class="alert alert-success">
                     <strong>✓ Keypair Generated!</strong><br>
+                    <small>Private Key: <code>${response.private_key}</code></small><br>
                     <small>Public Key: <code>${response.public_key}</code></small><br>
-                    <small class="text-muted">Private key is stored securely</small><br>
-                    <small class="text-success">Add this public key to your remote WireGuard server</small>
+                    <small class="text-success">Add the public key to your remote WireGuard server</small>
                 </div>
             `;
             $('#wg_config').prepend(infoHtml);
@@ -489,6 +523,71 @@ function generateWireGuardKeys() {
         console.error('Keypair generation failed:', xhr, status, error);
         console.error('Response text:', xhr.responseText);
         alert('Error generating keypair: ' + (xhr.responseText || error));
+    });
+}
+
+function showManualKeyEntry() {
+    console.log('Showing manual key entry...');
+    
+    // Remove any existing alerts
+    $('#wg_config .alert').remove();
+    
+    // Show manual key section
+    $('#manual_key_section').show();
+    
+    // Clear stored keys
+    $('#wg_config').removeData('private-key public-key');
+    
+    // Focus on private key field
+    $('#wg_manual_private_key').focus();
+}
+
+function generatePublicKeyFromPrivate() {
+    const privateKey = $('#wg_manual_private_key').val().trim();
+    
+    if (!privateKey) {
+        $('#wg_manual_public_key').val('');
+        return;
+    }
+    
+    console.log('Generating public key from private key...');
+    
+    $.ajax({
+        url: '/api/generate-keypair',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            private_key: privateKey
+        })
+    })
+    .done(function(response) {
+        console.log('Public key response:', response);
+        if (response.success) {
+            $('#wg_manual_public_key').val(response.public_key);
+            
+            // Store keys for form submission
+            $('#wg_config').data('private-key', privateKey);
+            $('#wg_config').data('public-key', response.public_key);
+            
+            // Show success message
+            $('#wg_config .alert').remove();
+            const infoHtml = `
+                <div class="alert alert-success">
+                    <strong>✓ Public Key Generated!</strong><br>
+                    <small>Public Key: <code>${response.public_key}</code></small><br>
+                    <small class="text-success">Add this public key to your remote WireGuard server</small>
+                </div>
+            `;
+            $('#wg_config').prepend(infoHtml);
+        } else {
+            $('#wg_manual_public_key').val('');
+            alert('Error generating public key: ' + (response.message || 'Invalid private key'));
+        }
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Public key generation failed:', xhr, status, error);
+        $('#wg_manual_public_key').val('');
+        alert('Error generating public key: Invalid private key format');
     });
 }
 

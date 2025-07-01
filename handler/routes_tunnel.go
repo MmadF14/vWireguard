@@ -402,18 +402,46 @@ func generateWireGuardKeypair() (privateKey, publicKey string, err error) {
 	return key.String(), key.PublicKey().String(), nil
 }
 
-// GenerateKeypair generates a new WireGuard keypair
+// GenerateKeypair generates a new WireGuard keypair or derives public key from private key
 func GenerateKeypair() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		privateKey, publicKey, err := generateWireGuardKeypair()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate keypair"})
+		var requestData struct {
+			PrivateKey string `json:"private_key,omitempty"`
 		}
 
+		// Try to bind request data (might be empty for new generation)
+		c.Bind(&requestData)
+
+		var privateKeyStr, publicKeyStr string
+		var err error
+
+		if requestData.PrivateKey != "" {
+			// Generate public key from provided private key
+			log.Printf("GenerateKeypair: Deriving public key from provided private key")
+
+			privateKey, err := wgtypes.ParseKey(requestData.PrivateKey)
+			if err != nil {
+				log.Printf("GenerateKeypair: Invalid private key: %v", err)
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid private key format"})
+			}
+
+			privateKeyStr = privateKey.String()
+			publicKeyStr = privateKey.PublicKey().String()
+		} else {
+			// Generate new keypair
+			log.Printf("GenerateKeypair: Generating new keypair")
+			privateKeyStr, publicKeyStr, err = generateWireGuardKeypair()
+			if err != nil {
+				log.Printf("GenerateKeypair: Failed to generate keypair: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate keypair"})
+			}
+		}
+
+		log.Printf("GenerateKeypair: Success - Public key: %s", publicKeyStr)
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success":     true,
-			"private_key": privateKey,
-			"public_key":  publicKey,
+			"private_key": privateKeyStr,
+			"public_key":  publicKeyStr,
 		})
 	}
 }
