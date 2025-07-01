@@ -25,7 +25,9 @@ func (db *JsonDB) GetTunnels() ([]model.Tunnel, error) {
 	for _, f := range records {
 		tunnel := model.Tunnel{}
 		if err := json.Unmarshal([]byte(f), &tunnel); err != nil {
-			return tunnels, fmt.Errorf("cannot decode tunnel JSON: %v", err)
+			// Log the error but continue processing other tunnels
+			fmt.Printf("Warning: cannot decode tunnel JSON: %v\n", err)
+			continue
 		}
 		tunnels = append(tunnels, tunnel)
 	}
@@ -64,13 +66,8 @@ func (db *JsonDB) SaveTunnel(tunnel model.Tunnel) error {
 		tunnel.Status = model.TunnelStatusInactive
 	}
 
-	// Marshal and save
-	peerData, err := json.Marshal(tunnel)
-	if err != nil {
-		return fmt.Errorf("cannot marshal tunnel: %v", err)
-	}
-
-	return db.conn.Write(tunnelCollectionName, tunnel.ID, string(peerData))
+	// Save directly - scribble will handle JSON marshaling
+	return db.conn.Write(tunnelCollectionName, tunnel.ID, tunnel)
 }
 
 // DeleteTunnel implementation
