@@ -12,6 +12,18 @@ Tunnels
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
+        <!-- Debug Info -->
+        {{if gt (len .tunnels) 0}}
+        <div class="row mb-2">
+            <div class="col-12">
+                <div class="alert alert-success">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Active Tunnels:</strong> {{len .tunnels}} configured
+                </div>
+            </div>
+        </div>
+        {{end}}
+        
         <div class="row mb-3">
             <div class="col-12">
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
@@ -29,33 +41,58 @@ Tunnels
                             <h5 class="card-title mb-0">{{.Name}}</h5>
                             <span class="badge badge-{{if eq .Status "active"}}success{{else}}secondary{{end}}">{{.Status}}</span>
                         </div>
-                                                 <div class="card-body">
-                             <p class="card-text">
-                                 <strong>Type:</strong> {{.Type}}<br>
-                                 {{if eq .Type "wg-to-wg"}}
-                                     {{if .WGConfig}}
-                                         <strong>Remote:</strong> {{.WGConfig.RemoteEndpoint}}<br>
-                                         <strong>Tunnel IP:</strong> {{.WGConfig.TunnelIP}}
-                                     {{end}}
-                                 {{else if eq .Type "wg-to-dokodemo"}}
-                                     {{if .DokodemoConfig}}
-                                         <strong>Target:</strong> {{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}<br>
-                                         <strong>Protocol:</strong> {{.DokodemoConfig.Network}}
-                                     {{end}}
-                                 {{else if eq .Type "port-forward"}}
-                                     {{if .PortForwardConfig}}
-                                         <strong>Protocol:</strong> {{.PortForwardConfig.Protocol}}<br>
-                                         <strong>Target:</strong> {{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}
-                                     {{end}}
-                                 {{end}}
-                                 <strong>Clients:</strong> 
-                                 {{if .RouteAll}}All Clients{{else}}{{len .ClientIDs}} Selected{{end}}
-                             </p>
-                             {{if .Description}}
-                             <p class="text-muted">{{.Description}}</p>
-                             {{end}}
-                         </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Type:</strong> {{.Type}}<br>
+                                {{if eq .Type "wg-to-wg"}}
+                                    {{if .WGConfig}}
+                                        <strong>Remote:</strong> {{.WGConfig.RemoteEndpoint}}<br>
+                                        <strong>Tunnel IP:</strong> {{.WGConfig.TunnelIP}}
+                                    {{end}}
+                                {{else if eq .Type "wg-to-dokodemo"}}
+                                    {{if .DokodemoConfig}}
+                                        <strong>Target:</strong> {{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}<br>
+                                        <strong>Protocol:</strong> {{.DokodemoConfig.Network}}
+                                    {{end}}
+                                {{else if eq .Type "port-forward"}}
+                                    {{if .PortForwardConfig}}
+                                        <strong>Protocol:</strong> {{.PortForwardConfig.Protocol}}<br>
+                                        <strong>Target:</strong> {{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}
+                                    {{end}}
+                                {{end}}
+                                <strong>Clients:</strong> 
+                                {{if .RouteAll}}All Clients{{else}}{{len .ClientIDs}} Selected{{end}}
+                            </p>
+                            {{if .Description}}
+                            <p class="text-muted">{{.Description}}</p>
+                            {{end}}
+                            
+                            <!-- Traffic Stats -->
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-download"></i> In: 
+                                        <span class="text-success">{{.BytesIn}} bytes</span>
+                                    </small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">
+                                        <i class="fas fa-upload"></i> Out: 
+                                        <span class="text-primary">{{.BytesOut}} bytes</span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card-footer">
+                            {{if eq .Status "active"}}
+                            <button class="btn btn-sm btn-warning mr-2" onclick="stopTunnel('{{.ID}}')">
+                                <i class="fas fa-stop"></i> Stop
+                            </button>
+                            {{else}}
+                            <button class="btn btn-sm btn-success mr-2" onclick="startTunnel('{{.ID}}')">
+                                <i class="fas fa-play"></i> Start
+                            </button>
+                            {{end}}
                             <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
@@ -101,7 +138,7 @@ Tunnels
                         <select class="form-control" id="tunnel_type" name="type" required onchange="showTunnelConfig()">
                             <option value="">Select tunnel type</option>
                             <option value="wg-to-wg">WireGuard to WireGuard</option>
-                                                            <option value="wg-to-dokodemo">Dokodemo Door (Transparent Proxy)</option>
+                            <option value="wg-to-dokodemo">Dokodemo Door (Transparent Proxy)</option>
                             <option value="port-forward">Port Forward (Dokodemo Door)</option>
                         </select>
                     </div>
@@ -369,14 +406,12 @@ function showTunnelConfig() {
     if (tunnelType === 'wg-to-wg') {
         $('#wg_config').show();
         generateWireGuardKeys();
-            } else if (tunnelType === 'wg-to-dokodemo') {
-            $('#dokodemo_config').show();
-        } else if (tunnelType === 'port-forward') {
+    } else if (tunnelType === 'wg-to-dokodemo') {
+        $('#dokodemo_config').show();
+    } else if (tunnelType === 'port-forward') {
         $('#port_forward_config').show();
     }
 }
-
-
 
 function generateWireGuardKeys() {
     // Generate local keypair for this tunnel
@@ -513,6 +548,42 @@ function deleteTunnel(tunnelId) {
             alert('Error deleting tunnel');
         });
     }
+}
+
+function startTunnel(tunnelId) {
+    $.ajax({
+        url: '{{.basePath}}api/tunnel/' + tunnelId + '/start',
+        method: 'POST',
+        contentType: 'application/json'
+    })
+    .done(function(response) {
+        if (response.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + response.message);
+        }
+    })
+    .fail(function() {
+        alert('Error starting tunnel');
+    });
+}
+
+function stopTunnel(tunnelId) {
+    $.ajax({
+        url: '{{.basePath}}api/tunnel/' + tunnelId + '/stop',
+        method: 'POST',
+        contentType: 'application/json'
+    })
+    .done(function(response) {
+        if (response.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + response.message);
+        }
+    })
+    .fail(function() {
+        alert('Error stopping tunnel');
+    });
 }
 </script>
 {{end}} 
