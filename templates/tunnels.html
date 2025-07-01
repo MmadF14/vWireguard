@@ -1,40 +1,36 @@
-{{define "tunnels.html"}}
-<div class="content-wrapper">
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1>Tunnels</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="/">Home</a></li>
-                        <li class="breadcrumb-item active">Tunnels</li>
-                    </ol>
+{{define "title"}}
+Tunnels
+{{end}}
+
+{{define "top_css"}}
+{{end}}
+
+{{define "page_title"}}
+Tunnels
+{{end}}
+
+{{define "page_content"}}
+<section class="content">
+    <div class="container-fluid">
+        <div class="row mb-3">
+            <div class="col-12">
+                <button type="button" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> New Tunnel
+                </button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Tunnels feature is working. No tunnels configured yet.
                 </div>
             </div>
         </div>
     </div>
+</section>
+{{end}}
 
-    <section class="content">
-        <div class="container-fluid">
-            <div class="row mb-3">
-                <div class="col-12">
-                    <button type="button" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> New Tunnel
-                    </button>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        Tunnels feature is working. No tunnels configured yet.
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-</div>
+{{define "bottom_js"}}
 {{end}} 
