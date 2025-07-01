@@ -1,4 +1,4 @@
-{{define "top_css"}}
+{{define "tunnels.html"}}
 <style>
 .tunnel-card {
     background: #f8f9fa;
@@ -33,9 +33,6 @@
     font-size: 0.8rem;
 }
 </style>
-{{end}}
-
-{{define "tunnels.html"}}
 <div class="content-wrapper">
     <div class="content-header">
         <div class="container-fluid">
@@ -78,17 +75,17 @@
 
             <!-- Tunnels List -->
             <div class="row" id="tunnels-container">
-                {{if and .tunnels (gt (len .tunnels) 0)}}
+                {{if .tunnels}}
                     {{range .tunnels}}
                     <div class="col-lg-6 col-xl-4">
                         <div class="tunnel-card">
                             <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="mb-0">{{if .Name}}{{.Name}}{{else}}Unnamed Tunnel{{end}}</h5>
-                                <span class="tunnel-status status-{{if .Status}}{{.Status}}{{else}}inactive{{end}}">{{if .Status}}{{.Status}}{{else}}inactive{{end}}</span>
+                                <h5 class="mb-0">{{.Name}}</h5>
+                                <span class="tunnel-status status-{{.Status}}">{{.Status}}</span>
                             </div>
                             
                             <div class="mb-2">
-                                <span class="tunnel-type-badge">{{if .Type}}{{.Type}}{{else}}unknown{{end}}</span>
+                                <span class="tunnel-type-badge">{{.Type}}</span>
                             </div>
 
                             {{if .Description}}
