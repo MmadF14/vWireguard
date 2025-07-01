@@ -29,6 +29,9 @@ Tunnels
                 <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
                     <i class="fas fa-plus"></i> New Tunnel
                 </button>
+                <button type="button" class="btn btn-info ml-2" onclick="testAPI()">
+                    <i class="fas fa-bug"></i> Test API  
+                </button>
             </div>
         </div>
 
@@ -325,6 +328,8 @@ $(document).ready(function() {
     $('#frm_new_tunnel').on('submit', function(e) {
         e.preventDefault();
         
+        console.log('Form submitted!'); // Debug log
+        
         const tunnelType = $('#tunnel_type').val();
         const formData = {
             name: $('#tunnel_name').val(),
@@ -333,6 +338,18 @@ $(document).ready(function() {
             route_all: $('input[name="client_routing"]:checked').val() === 'all',
             client_ids: []
         };
+
+        console.log('Form data before validation:', formData); // Debug log
+
+        // Validate required fields
+        if (!formData.name) {
+            alert('Please enter tunnel name');
+            return;
+        }
+        if (!formData.type) {
+            alert('Please select tunnel type');
+            return;
+        }
 
         // Get selected clients if not routing all
         if (!formData.route_all) {
@@ -343,13 +360,23 @@ $(document).ready(function() {
 
         // Add type-specific configuration
         if (tunnelType === 'wg-to-wg') {
+            if (!$('#wg_remote_endpoint').val() || !$('#wg_remote_public_key').val()) {
+                alert('Please fill all WireGuard configuration fields');
+                return;
+            }
             formData.wg_config = {
                 remote_endpoint: $('#wg_remote_endpoint').val(),
                 remote_public_key: $('#wg_remote_public_key').val(),
                 tunnel_ip: $('#wg_tunnel_ip').val(),
-                allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim())
+                allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim()),
+                local_private_key: $('#wg_config').data('private-key') || '',
+                local_public_key: $('#wg_config').data('public-key') || ''
             };
         } else if (tunnelType === 'wg-to-dokodemo') {
+            if (!$('#dokodemo_address').val() || !$('#dokodemo_port').val()) {
+                alert('Please fill all Dokodemo configuration fields');
+                return;
+            }
             formData.dokodemo_config = {
                 address: $('#dokodemo_address').val(),
                 port: parseInt($('#dokodemo_port').val()),
@@ -359,6 +386,10 @@ $(document).ready(function() {
                 follow_redirect: $('#dokodemo_follow_redirect').is(':checked')
             };
         } else if (tunnelType === 'port-forward') {
+            if (!$('#pf_remote_host').val() || !$('#pf_remote_port').val()) {
+                alert('Please fill all Port Forward configuration fields');
+                return;
+            }
             formData.port_forward_config = {
                 protocol: $('#pf_protocol').val(),
                 local_bind_port: parseInt($('#pf_local_port').val()),
@@ -368,6 +399,8 @@ $(document).ready(function() {
             };
         }
         
+        console.log('Final form data:', formData); // Debug log
+        
         $.ajax({
             url: '{{.basePath}}api/tunnel',
             method: 'POST',
@@ -375,15 +408,21 @@ $(document).ready(function() {
             data: JSON.stringify(formData)
         })
         .done(function(response) {
+            console.log('API Response:', response); // Debug log
             if (response.success) {
+                alert('Tunnel created successfully!');
                 $('#modal_new_tunnel').modal('hide');
-                location.reload();
+                setTimeout(function() {
+                    location.reload();
+                }, 500);
             } else {
-                alert('Error: ' + response.message);
+                alert('Error: ' + (response.message || 'Unknown error'));
             }
         })
-        .fail(function() {
-            alert('Error creating tunnel');
+        .fail(function(xhr, status, error) {
+            console.error('API Error:', xhr, status, error); // Debug log
+            console.error('Response Text:', xhr.responseText); // Debug log
+            alert('Error creating tunnel: ' + (xhr.responseText || error));
         });
     });
     
@@ -583,6 +622,59 @@ function stopTunnel(tunnelId) {
     })
     .fail(function() {
         alert('Error stopping tunnel');
+    });
+}
+
+function testAPI() {
+    console.log('Testing API endpoints...');
+    
+    // Test 1: Get tunnels
+    $.ajax({
+        url: '{{.basePath}}api/tunnels',
+        method: 'GET'
+    })
+    .done(function(response) {
+        console.log('GET /api/tunnels response:', response);
+    })
+    .fail(function(xhr, status, error) {
+        console.error('GET /api/tunnels failed:', xhr, status, error);
+    });
+    
+    // Test 2: Create a simple tunnel
+    const testTunnel = {
+        name: 'Test Tunnel',
+        type: 'port-forward',
+        description: 'Test tunnel for debugging',
+        route_all: true,
+        client_ids: [],
+        port_forward_config: {
+            protocol: 'tcp',
+            local_bind_port: 8080,
+            remote_host: 'google.com',
+            remote_port: 80,
+            transparent: false
+        }
+    };
+    
+    console.log('Creating test tunnel:', testTunnel);
+    
+    $.ajax({
+        url: '{{.basePath}}api/tunnel',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(testTunnel)
+    })
+    .done(function(response) {
+        console.log('POST /api/tunnel response:', response);
+        alert('Test tunnel created! Check console for details.');
+        setTimeout(function() {
+            location.reload();
+        }, 1000);
+    })
+    .fail(function(xhr, status, error) {
+        console.error('POST /api/tunnel failed:', xhr, status, error);
+        console.error('Response text:', xhr.responseText);
+        alert('Test tunnel failed! Check console for details.');
     });
 }
 </script>

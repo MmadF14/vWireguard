@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -33,7 +34,15 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 		if db != nil {
 			if dbTunnels, err := db.GetTunnels(); err == nil {
 				tunnels = dbTunnels
+				log.Printf("TunnelsPage: Found %d tunnels", len(tunnels))
+				for i, tunnel := range tunnels {
+					log.Printf("Tunnel %d: %s (%s) - Status: %s", i+1, tunnel.Name, tunnel.Type, tunnel.Status)
+				}
+			} else {
+				log.Printf("TunnelsPage: Error getting tunnels: %v", err)
 			}
+		} else {
+			log.Printf("TunnelsPage: Database is nil")
 		}
 
 		// Template data
@@ -43,6 +52,7 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 			"basePath": "/",
 		}
 
+		log.Printf("TunnelsPage: Rendering template with %d tunnels", len(tunnels))
 		return c.Render(http.StatusOK, "tunnels.html", templateData)
 	}
 }
@@ -78,6 +88,8 @@ func GetTunnel(db store.IStore) echo.HandlerFunc {
 // NewTunnel handler creates a new tunnel
 func NewTunnel(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		log.Printf("NewTunnel: Handler called")
+
 		var tunnelData struct {
 			Name              string                       `json:"name"`
 			Type              model.TunnelType             `json:"type"`
@@ -91,8 +103,11 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 
 		// Bind JSON data
 		if err := c.Bind(&tunnelData); err != nil {
+			log.Printf("NewTunnel: Bind error: %v", err)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid tunnel data"})
 		}
+
+		log.Printf("NewTunnel: Received data - Name: %s, Type: %s", tunnelData.Name, tunnelData.Type)
 
 		// Validate required fields
 		if tunnelData.Name == "" {
@@ -162,10 +177,13 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 		}
 
 		// Save tunnel
+		log.Printf("NewTunnel: Attempting to save tunnel - ID: %s, Name: %s", tunnel.ID, tunnel.Name)
 		if err := db.SaveTunnel(tunnel); err != nil {
+			log.Printf("NewTunnel: Save error: %v", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to save tunnel: %v", err)})
 		}
 
+		log.Printf("NewTunnel: Tunnel saved successfully - ID: %s", tunnel.ID)
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel created successfully"})
 	}
 }
