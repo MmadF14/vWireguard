@@ -178,11 +178,20 @@ Tunnels
                     <!-- WireGuard Configuration -->
                     <div id="wg_config" style="display:none;">
                         <h5>WireGuard Configuration</h5>
+                        
+                        <!-- Key Generation Section -->
+                        <div class="form-group">
+                            <button type="button" class="btn btn-info btn-sm" onclick="generateWireGuardKeys()">
+                                <i class="fas fa-key"></i> Generate Local Keypair
+                            </button>
+                            <small class="form-text text-muted">Generate a local keypair for this tunnel</small>
+                        </div>
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="wg_remote_endpoint">Remote Endpoint (IP:Port)</label>
-                                    <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820">
+                                    <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820" required>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -194,7 +203,7 @@ Tunnels
                         </div>
                         <div class="form-group">
                             <label for="wg_remote_public_key">Remote Public Key</label>
-                            <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key"></textarea>
+                            <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key" required></textarea>
                         </div>
                         <div class="form-group">
                             <label for="wg_allowed_ips">Allowed IPs (comma separated)</label>
@@ -441,10 +450,10 @@ function showTunnelConfig() {
     // Hide all config sections
     $('#wg_config, #dokodemo_config, #port_forward_config').hide();
     
-    // Show relevant config section
+        // Show relevant config section
     if (tunnelType === 'wg-to-wg') {
         $('#wg_config').show();
-        generateWireGuardKeys();
+        // Don't auto-generate keys, let user click a button
     } else if (tunnelType === 'wg-to-dokodemo') {
         $('#dokodemo_config').show();
     } else if (tunnelType === 'port-forward') {
@@ -453,29 +462,41 @@ function showTunnelConfig() {
 }
 
 function generateWireGuardKeys() {
-    // Generate local keypair for this tunnel
-    // Note: In real implementation, this should be done server-side
+    console.log('Generating WireGuard keypair...');
+    
     $.ajax({
         url: '{{.basePath}}api/generate-keypair',
-        method: 'POST'
+        method: 'POST',
+        contentType: 'application/json'
     })
     .done(function(response) {
+        console.log('Keypair response:', response);
         if (response.success) {
             // Store the private key (will be used when creating tunnel)
             $('#wg_config').data('private-key', response.private_key);
             $('#wg_config').data('public-key', response.public_key);
             
+            // Remove any existing alerts
+            $('#wg_config .alert').remove();
+            
             // Show info to user
             const infoHtml = `
-                <div class="alert alert-info">
-                    <strong>Generated Keypair:</strong><br>
+                <div class="alert alert-success">
+                    <strong>✓ Keypair Generated!</strong><br>
                     <small>Public Key: <code>${response.public_key}</code></small><br>
                     <small class="text-muted">Private key is stored securely</small><br>
-                    <small class="text-muted">Add this public key to your remote WireGuard server</small>
+                    <small class="text-success">Add this public key to your remote WireGuard server</small>
                 </div>
             `;
             $('#wg_config').prepend(infoHtml);
+        } else {
+            alert('Error generating keypair: ' + (response.message || 'Unknown error'));
         }
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Keypair generation failed:', xhr, status, error);
+        console.error('Response text:', xhr.responseText);
+        alert('Error generating keypair: ' + (xhr.responseText || error));
     });
 }
 

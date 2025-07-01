@@ -45,12 +45,10 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 			log.Printf("TunnelsPage: Database is nil")
 		}
 
-		// Template data
-		templateData := map[string]interface{}{
-			"baseData": baseData,
-			"tunnels":  tunnels,
-			"basePath": "/",
-		}
+		// Template data - flatten the structure like other pages
+		templateData := baseData
+		templateData["tunnels"] = tunnels
+		templateData["basePath"] = "/"
 
 		log.Printf("TunnelsPage: Rendering template with %d tunnels", len(tunnels))
 		return c.Render(http.StatusOK, "tunnels.html", templateData)
