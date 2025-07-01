@@ -16,43 +16,17 @@ import (
 // TunnelsPage handler
 func TunnelsPage(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Initialize empty tunnels slice
-		tunnels := make([]model.Tunnel, 0)
-
-		// Try to get tunnels
-		if db != nil {
-			if dbTunnels, err := db.GetTunnels(); err != nil {
-				// Log the error for debugging
-				c.Logger().Errorf("Failed to get tunnels from database: %v", err)
-			} else {
-				tunnels = dbTunnels
-			}
-		}
-
-		// Prepare base data
+		// Simple base data
 		baseData := map[string]interface{}{
 			"Active": "tunnels",
 		}
 
-		// Add user context if available
-		if user := currentUser(c); user != "" {
-			baseData["CurrentUser"] = user
-		}
-
-		// Template data
+		// Simple template data
 		templateData := map[string]interface{}{
 			"baseData": baseData,
-			"basePath": "/",
-			"tunnels":  tunnels,
 		}
 
-		// Try to render template
-		if err := c.Render(http.StatusOK, "tunnels.html", templateData); err != nil {
-			c.Logger().Errorf("Failed to render tunnels template: %v", err)
-			return c.String(http.StatusInternalServerError, "Failed to render tunnels page")
-		}
-
-		return nil
+		return c.Render(http.StatusOK, "tunnels.html", templateData)
 	}
 }
 

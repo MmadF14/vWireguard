@@ -1,38 +1,4 @@
 {{define "tunnels.html"}}
-<style>
-.tunnel-card {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-.tunnel-status {
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.status-active {
-    background-color: #d1edff;
-    color: #0c63e4;
-}
-
-.status-inactive {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.tunnel-type-badge {
-    background: #e9ecef;
-    color: #495057;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.8rem;
-}
-</style>
 <div class="content-wrapper">
     <div class="content-header">
         <div class="container-fluid">
@@ -42,7 +8,7 @@
                 </div>
                 <div class="col-sm-6">
                     <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{.basePath}}/">Home</a></li>
+                        <li class="breadcrumb-item"><a href="/">Home</a></li>
                         <li class="breadcrumb-item active">Tunnels</li>
                     </ol>
                 </div>
@@ -52,193 +18,24 @@
 
     <section class="content">
         <div class="container-fluid">
-            <!-- Add New Tunnel Button -->
             <div class="row mb-3">
                 <div class="col-12">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modalNewTunnel">
+                    <button type="button" class="btn btn-primary">
                         <i class="fas fa-plus"></i> New Tunnel
                     </button>
                 </div>
             </div>
 
-            <!-- Error Display -->
-            {{if .error}}
             <div class="row">
                 <div class="col-12">
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        {{.error}}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Tunnels feature is working. No tunnels configured yet.
                     </div>
                 </div>
-            </div>
-            {{end}}
-
-            <!-- Tunnels List -->
-            <div class="row" id="tunnels-container">
-                {{if .tunnels}}
-                    {{range .tunnels}}
-                    <div class="col-lg-6 col-xl-4">
-                        <div class="tunnel-card">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="mb-0">{{.Name}}</h5>
-                                <span class="tunnel-status status-{{.Status}}">{{.Status}}</span>
-                            </div>
-                            
-                            <div class="mb-2">
-                                <span class="tunnel-type-badge">{{.Type}}</span>
-                            </div>
-
-                            {{if .Description}}
-                            <p class="text-muted small mb-2">{{.Description}}</p>
-                            {{end}}
-
-                            <div class="d-flex">
-                                <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="deleteTunnel('{{.ID}}')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {{end}}
-                {{else}}
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            No tunnels configured. Add a new tunnel to get started.
-                        </div>
-                    </div>
-                {{end}}
             </div>
         </div>
     </section>
 </div>
-
-<!-- New Tunnel Modal -->
-<div class="modal fade" id="modalNewTunnel" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add New Tunnel</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="tunnelForm">
-                    <div class="form-group">
-                        <label for="tunnelName">Tunnel Name</label>
-                        <input type="text" class="form-control" id="tunnelName" name="name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="tunnelType">Tunnel Type</label>
-                        <select class="form-control" id="tunnelType" name="type" required>
-                            <option value="">Select tunnel type</option>
-                            <option value="wg-to-wg">WireGuard to WireGuard</option>
-                            <option value="wg-to-ssh">WireGuard to SSH</option>
-                            <option value="port-forward">Port Forward</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="destinationIP">Destination IP</label>
-                        <input type="text" class="form-control" id="destinationIP" name="destination_ip" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="destinationPort">Destination Port</label>
-                        <input type="number" class="form-control" id="destinationPort" name="destination_port" required>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveTunnel()">Create Tunnel</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-function saveTunnel() {
-    const form = $('#tunnelForm');
-    const formData = new FormData(form[0]);
-    const data = {};
-    
-    for (let [key, value] of formData.entries()) {
-        data[key] = value;
-    }
-    
-    $.ajax({
-        url: '{{.basePath}}/api/tunnel',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(data)
-    })
-    .done(function(response) {
-        if (response.success) {
-            $('#modalNewTunnel').modal('hide');
-            location.reload();
-        } else {
-            alert('Error: ' + response.message);
-        }
-    })
-    .fail(function() {
-        alert('Error creating tunnel');
-    });
-}
-
-function editTunnel(tunnelId) {
-    // Load tunnel data and show edit modal
-    $.ajax({
-        url: '{{.basePath}}/api/tunnel/' + tunnelId,
-        method: 'GET'
-    })
-    .done(function(tunnel) {
-        // Populate form with tunnel data
-        $('#tunnelName').val(tunnel.name);
-        $('#tunnelType').val(tunnel.type);
-        $('#destinationIP').val(tunnel.destination_ip);
-        $('#destinationPort').val(tunnel.destination_port);
-        
-        // Change modal title and button
-        $('#modalNewTunnel .modal-title').text('Edit Tunnel');
-        $('#modalNewTunnel').data('tunnel-id', tunnelId);
-        $('#modalNewTunnel').modal('show');
-    })
-    .fail(function() {
-        alert('Error loading tunnel data');
-    });
-}
-
-function deleteTunnel(tunnelId) {
-    if (confirm('Are you sure you want to delete this tunnel?')) {
-        $.ajax({
-            url: '{{.basePath}}/api/tunnel/' + tunnelId,
-            method: 'DELETE',
-            contentType: 'application/json'
-        })
-        .done(function(response) {
-            if (response.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + response.message);
-            }
-        })
-        .fail(function() {
-            alert('Error deleting tunnel');
-        });
-    }
-}
-
-// Reset modal when closed
-$('#modalNewTunnel').on('hidden.bs.modal', function () {
-    $('#tunnelForm')[0].reset();
-    $('#modalNewTunnel .modal-title').text('Add New Tunnel');
-    $('#modalNewTunnel').removeData('tunnel-id');
-});
-</script>
+{{end}} 
 {{end}} 
