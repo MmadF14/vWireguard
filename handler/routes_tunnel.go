@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -42,6 +43,7 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 		return c.Render(http.StatusOK, "tunnels.html", map[string]interface{}{
 			"baseData": model.BaseData{Active: "tunnels", CurrentUser: username, Admin: isAdmin},
 			"tunnels":  tunnels,
+			"basePath": "/",
 		})
 	}
 }
@@ -116,14 +118,26 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			if tunnelData.WGConfig.RemoteEndpoint == "" || tunnelData.WGConfig.RemotePublicKey == "" {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote endpoint and public key are required"})
 			}
-			// Generate local keypair if not provided
+			// Handle keypair generation/validation
 			if tunnelData.WGConfig.LocalPrivateKey == "" {
+				// Generate new keypair if not provided
 				privateKey, publicKey, err := generateWireGuardKeypair()
 				if err != nil {
 					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate keypair"})
 				}
 				tunnelData.WGConfig.LocalPrivateKey = privateKey
 				tunnelData.WGConfig.LocalPublicKey = publicKey
+			} else {
+				// Validate private key and derive public key
+				privateKeyStr := strings.TrimSpace(tunnelData.WGConfig.LocalPrivateKey)
+				privateKey, err := wgtypes.ParseKey(privateKeyStr)
+				if err != nil {
+					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid private key format: " + err.Error()})
+				}
+
+				// Ensure proper formatting and derive public key
+				tunnelData.WGConfig.LocalPrivateKey = privateKey.String()
+				tunnelData.WGConfig.LocalPublicKey = privateKey.PublicKey().String()
 			}
 
 		case model.TunnelTypeWireGuardToDokodemo:
@@ -419,14 +433,21 @@ func GenerateKeypair() echo.HandlerFunc {
 			// Generate public key from provided private key
 			log.Printf("GenerateKeypair: Deriving public key from provided private key")
 
-			privateKey, err := wgtypes.ParseKey(requestData.PrivateKey)
+			// Trim whitespace and validate length
+			privateKeyStr = strings.TrimSpace(requestData.PrivateKey)
+
+			privateKey, err := wgtypes.ParseKey(privateKeyStr)
 			if err != nil {
 				log.Printf("GenerateKeypair: Invalid private key: %v", err)
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid private key format"})
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid private key format: " + err.Error()})
 			}
 
+			// Regenerate to ensure proper formatting
 			privateKeyStr = privateKey.String()
 			publicKeyStr = privateKey.PublicKey().String()
+
+			log.Printf("GenerateKeypair: Private key: %s", privateKeyStr)
+			log.Printf("GenerateKeypair: Derived public key: %s", publicKeyStr)
 		} else {
 			// Generate new keypair
 			log.Printf("GenerateKeypair: Generating new keypair")
@@ -442,6 +463,23 @@ func GenerateKeypair() echo.HandlerFunc {
 			"success":     true,
 			"private_key": privateKeyStr,
 			"public_key":  publicKeyStr,
+		})
+	}
+}
+
+// GeneratePreSharedKey generates a new WireGuard PreShared Key
+func GeneratePreSharedKey() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		key, err := wgtypes.GenerateKey()
+		if err != nil {
+			log.Printf("GeneratePreSharedKey: Failed to generate key: %v", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate PreShared Key"})
+		}
+
+		log.Printf("GeneratePreSharedKey: Success - Key generated")
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success":       true,
+			"preshared_key": key.String(),
 		})
 	}
 }

@@ -214,6 +214,20 @@ Tunnels
                             <label for="wg_allowed_ips">Allowed IPs (comma separated)</label>
                             <input type="text" class="form-control" id="wg_allowed_ips" value="0.0.0.0/0" placeholder="0.0.0.0/0, ::/0">
                         </div>
+                        
+                        <!-- PreShared Key (Optional) -->
+                        <div class="form-group">
+                            <label for="wg_preshared_key">PreShared Key (Optional)</label>
+                            <div class="input-group">
+                                <textarea class="form-control" id="wg_preshared_key" rows="2" placeholder="Leave empty or enter PreShared Key for extra security"></textarea>
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePreSharedKey()">
+                                        <i class="fas fa-key"></i> Generate
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">Optional: Adds an extra layer of symmetric-key cryptography</small>
+                        </div>
                     </div>
 
                     <!-- Dokodemo Door Configuration -->
@@ -550,7 +564,7 @@ function generatePublicKeyFromPrivate() {
         return;
     }
     
-    console.log('Generating public key from private key...');
+    console.log('Generating public key from private key:', privateKey);
     
     $.ajax({
         url: '/api/generate-keypair',
@@ -566,7 +580,7 @@ function generatePublicKeyFromPrivate() {
             $('#wg_manual_public_key').val(response.public_key);
             
             // Store keys for form submission
-            $('#wg_config').data('private-key', privateKey);
+            $('#wg_config').data('private-key', response.private_key);
             $('#wg_config').data('public-key', response.public_key);
             
             // Show success message
@@ -574,8 +588,9 @@ function generatePublicKeyFromPrivate() {
             const infoHtml = `
                 <div class="alert alert-success">
                     <strong>✓ Public Key Generated!</strong><br>
+                    <small>Private Key: <code>${response.private_key}</code></small><br>
                     <small>Public Key: <code>${response.public_key}</code></small><br>
-                    <small class="text-success">Add this public key to your remote WireGuard server</small>
+                    <small class="text-success">Add the public key to your remote WireGuard server</small>
                 </div>
             `;
             $('#wg_config').prepend(infoHtml);
@@ -586,8 +601,31 @@ function generatePublicKeyFromPrivate() {
     })
     .fail(function(xhr, status, error) {
         console.error('Public key generation failed:', xhr, status, error);
+        console.error('Response text:', xhr.responseText);
         $('#wg_manual_public_key').val('');
-        alert('Error generating public key: Invalid private key format');
+        alert('Error generating public key: ' + (xhr.responseText || 'Invalid private key format'));
+    });
+}
+
+function generatePreSharedKey() {
+    console.log('Generating PreShared Key...');
+    
+    $.ajax({
+        url: '/api/generate-preshared-key',
+        method: 'POST',
+        contentType: 'application/json'
+    })
+    .done(function(response) {
+        console.log('PreShared key response:', response);
+        if (response.success) {
+            $('#wg_preshared_key').val(response.preshared_key);
+        } else {
+            alert('Error generating PreShared key: ' + (response.message || 'Unknown error'));
+        }
+    })
+    .fail(function(xhr, status, error) {
+        console.error('PreShared key generation failed:', xhr, status, error);
+        alert('Error generating PreShared key');
     });
 }
 
