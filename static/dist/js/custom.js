@@ -103,24 +103,8 @@ function addGlobalStyle(css, id) {
 }
 
 function updateApplyConfigVisibility() {
-    $.ajax({
-        cache: false,
-        method: 'GET',
-        url: basePath + '/test-hash',
-        dataType: 'json',
-        contentType: "application/json",
-        success: function(data) {
-            if (data.status) {
-                $("#apply-config-button").show();
-            } else {
-                $("#apply-config-button").hide();
-            }
-        },
-        error: function(jqXHR, exception) {
-            const responseJson = jQuery.parseJSON(jqXHR.responseText);
-            showNotification(responseJson['message'], 'error');
-        }
-    });
+    // Always show apply config button
+    $("#apply-config-button").show();
 }
 
 function updateQuotaInput() {

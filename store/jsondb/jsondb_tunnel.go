@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/MmadF14/vwireguard/model"
@@ -25,8 +26,9 @@ func (db *JsonDB) GetTunnels() ([]model.Tunnel, error) {
 	for _, f := range records {
 		tunnel := model.Tunnel{}
 		if err := json.Unmarshal([]byte(f), &tunnel); err != nil {
-			// Log the error but continue processing other tunnels
+			// Log the error and try to identify the problematic record
 			fmt.Printf("Warning: cannot decode tunnel JSON: %v\n", err)
+			fmt.Printf("Problematic JSON data: %s\n", string(f))
 			continue
 		}
 		tunnels = append(tunnels, tunnel)
@@ -113,5 +115,37 @@ func (db *JsonDB) ensureTunnelDir() error {
 	if _, err := os.Stat(tunnelDir); os.IsNotExist(err) {
 		return os.MkdirAll(tunnelDir, os.ModePerm)
 	}
+	return nil
+}
+
+// CleanupCorruptedTunnels removes tunnel records that cannot be parsed
+func (db *JsonDB) CleanupCorruptedTunnels() error {
+	records, err := db.conn.ReadAll(tunnelCollectionName)
+	if err != nil {
+		return err
+	}
+
+	corruptedCount := 0
+	for i, f := range records {
+		tunnel := model.Tunnel{}
+		if err := json.Unmarshal([]byte(f), &tunnel); err != nil {
+			// This record is corrupted, try to delete it
+			// We need to find the file name somehow
+			tunnelDir := filepath.Join(db.dbPath, tunnelCollectionName)
+			files, dirErr := os.ReadDir(tunnelDir)
+			if dirErr == nil && i < len(files) {
+				fileName := strings.TrimSuffix(files[i].Name(), ".json")
+				if deleteErr := db.conn.Delete(tunnelCollectionName, fileName); deleteErr == nil {
+					fmt.Printf("Deleted corrupted tunnel record: %s\n", fileName)
+					corruptedCount++
+				}
+			}
+		}
+	}
+
+	if corruptedCount > 0 {
+		fmt.Printf("Cleaned up %d corrupted tunnel records\n", corruptedCount)
+	}
+
 	return nil
 }

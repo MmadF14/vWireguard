@@ -12,13 +12,20 @@ Tunnels
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
-
-        
-        <div class="row mb-3">
-            <div class="col-12">
-                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
-                    <i class="fas fa-plus"></i> New Tunnel
-                </button>
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Tunnels</h1>
+                <p class="text-muted">Manage network tunnels and routing</p>
+            </div>
+            <div class="col-sm-6">
+                <div class="float-right">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
+                        <i class="fas fa-plus"></i> New Tunnel
+                    </button>
+                    <button type="button" class="btn btn-warning ml-2" data-toggle="modal" data-target="#modal_cleanup_tunnels">
+                        <i class="fas fa-broom"></i> Cleanup
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -333,6 +340,28 @@ Tunnels
         </div>
     </div>
 </div>
+
+<!-- Cleanup Modal -->
+<div class="modal fade" id="modal_cleanup_tunnels" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Cleanup Corrupted Tunnels</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>This will remove any corrupted tunnel records that cannot be loaded properly.</p>
+                <p><strong>Warning:</strong> This action cannot be undone!</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="cleanupTunnels()">Cleanup</button>
+            </div>
+        </div>
+    </div>
+</div>
 {{end}}
 
 {{define "bottom_js"}}
@@ -352,11 +381,14 @@ $(document).ready(function() {
         }
     });
 
-    // Handle new tunnel form submission
+    // Handle tunnel form submission (create/edit)
     $('#frm_new_tunnel').on('submit', function(e) {
         e.preventDefault();
         
-        console.log('Form submitted!'); // Debug log
+        console.log('Form submitted!');
+        
+        const tunnelId = $('#modal_new_tunnel').data('tunnel-id');
+        const isEdit = !!tunnelId;
         
         const tunnelType = $('#tunnel_type').val();
         const formData = {
@@ -367,7 +399,7 @@ $(document).ready(function() {
             client_ids: []
         };
 
-        console.log('Form data before validation:', formData); // Debug log
+        console.log('Form data before validation:', formData);
 
         // Validate required fields
         if (!formData.name) {
@@ -408,7 +440,8 @@ $(document).ready(function() {
                 tunnel_ip: $('#wg_tunnel_ip').val(),
                 allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim()),
                 local_private_key: localPrivateKey,
-                local_public_key: localPublicKey
+                local_public_key: localPublicKey,
+                preshared_key: $('#wg_preshared_key').val()
             };
         } else if (tunnelType === 'wg-to-dokodemo') {
             if (!$('#dokodemo_address').val() || !$('#dokodemo_port').val()) {
@@ -437,18 +470,23 @@ $(document).ready(function() {
             };
         }
         
-        console.log('Final form data:', formData); // Debug log
+        console.log('Final form data:', formData);
+        
+        // Determine URL and method based on create/edit mode
+        const url = isEdit ? `/api/tunnel/${tunnelId}` : '/api/tunnel';
+        const method = isEdit ? 'PUT' : 'POST';
+        const action = isEdit ? 'updated' : 'created';
         
         $.ajax({
-            url: '/api/tunnel',
-            method: 'POST',
+            url: url,
+            method: method,
             contentType: 'application/json',
             data: JSON.stringify(formData)
         })
         .done(function(response) {
-            console.log('API Response:', response); // Debug log
+            console.log('API Response:', response);
             if (response.success) {
-                alert('Tunnel created successfully!');
+                alert(`Tunnel ${action} successfully!`);
                 $('#modal_new_tunnel').modal('hide');
                 setTimeout(function() {
                     location.reload();
@@ -458,9 +496,9 @@ $(document).ready(function() {
             }
         })
         .fail(function(xhr, status, error) {
-            console.error('API Error:', xhr, status, error); // Debug log
-            console.error('Response Text:', xhr.responseText); // Debug log
-            alert('Error creating tunnel: ' + (xhr.responseText || error));
+            console.error('API Error:', xhr, status, error);
+            console.error('Response Text:', xhr.responseText);
+            alert(`Error ${action.replace('ed', 'ing')} tunnel: ` + (xhr.responseText || error));
         });
     });
     
@@ -469,10 +507,15 @@ $(document).ready(function() {
         $('#frm_new_tunnel')[0].reset();
         $('#wg_config, #dokodemo_config, #port_forward_config, #manual_key_section').hide();
         $('#wg_config .alert').remove();
-        $('#wg_manual_private_key, #wg_manual_public_key').val('');
+        $('#wg_manual_private_key, #wg_manual_public_key, #wg_preshared_key').val('');
         $('#wg_config').removeData('private-key public-key');
         $('#client_selection').hide();
         $('input[name="client_routing"][value="all"]').prop('checked', true);
+        
+        // Reset modal for create mode
+        $('#modal_new_tunnel').removeData('tunnel-id');
+        $('#modal_new_tunnel .modal-title').text('New Tunnel');
+        $('#frm_new_tunnel button[type="submit"]').text('Create Tunnel');
     });
 });
 
@@ -636,6 +679,8 @@ function loadClientList() {
     })
     .done(function(response) {        
         let clientHtml = '';
+        console.log('Client list response:', response);
+        
         // Handle GetClients API response structure
         const clients = response.success && response.data ? response.data : [];
         
@@ -645,13 +690,16 @@ function loadClientList() {
         }
         
         clients.forEach(function(clientData) {
-            const client = clientData.client || clientData; // Handle ClientData structure
+            // ClientData structure has nested client object
+            const client = clientData.client;
             if (client && client.id) {
+                const ips = client.allocated_ips || [];
+                const ipStr = Array.isArray(ips) ? ips.join(', ') : 'N/A';
                 clientHtml += `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
                         <label class="form-check-label" for="client_${client.id}">
-                            ${client.name} (${client.allocated_ips ? client.allocated_ips.join(', ') : 'N/A'})
+                            ${client.name} (${ipStr})
                         </label>
                     </div>
                 `;
@@ -659,7 +707,8 @@ function loadClientList() {
         });
         $('#client_list').html(clientHtml);
     })
-    .fail(function() {
+    .fail(function(xhr, status, error) {
+        console.error('Failed to load clients:', xhr, status, error);
         $('#client_list').html('<div class="alert alert-warning">Failed to load clients</div>');
     });
 }
@@ -709,9 +758,21 @@ function editTunnel(tunnelId) {
             // Mark selected clients (will be loaded via loadClientList)
         }
         
-        // Change modal title and store tunnel ID
+        // Change modal title, button text and store tunnel ID
         $('#modal_new_tunnel .modal-title').text('Edit Tunnel');
+        $('#frm_new_tunnel button[type="submit"]').text('Update Tunnel');
         $('#modal_new_tunnel').data('tunnel-id', tunnelId);
+        
+        // Load and mark selected clients
+        loadClientList();
+        setTimeout(function() {
+            if (tunnel.client_ids && tunnel.client_ids.length > 0) {
+                tunnel.client_ids.forEach(function(clientId) {
+                    $(`#client_${clientId}`).prop('checked', true);
+                });
+            }
+        }, 500);
+        
         $('#modal_new_tunnel').modal('show');
     })
     .fail(function() {
@@ -775,6 +836,28 @@ function stopTunnel(tunnelId) {
     });
 }
 
+function cleanupTunnels() {
+    if (confirm('Are you sure you want to cleanup corrupted tunnels? This action cannot be undone!')) {
+        $.ajax({
+            url: '/api/cleanup-tunnels',
+            method: 'POST',
+            contentType: 'application/json'
+        })
+        .done(function(response) {
+            if (response.success) {
+                alert('Tunnel cleanup completed successfully!');
+                $('#modal_cleanup_tunnels').modal('hide');
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.error('Cleanup failed:', xhr, status, error);
+            alert('Error cleaning up tunnels: ' + (xhr.responseText || error));
+        });
+    }
+}
 
 </script>
 {{end}} 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/MmadF14/vwireguard/model"
 	"github.com/MmadF14/vwireguard/store"
+	"github.com/MmadF14/vwireguard/store/jsondb"
 )
 
 // TunnelsPage handler
@@ -129,27 +130,15 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 				tunnelData.WGConfig.LocalPublicKey = publicKey
 			} else {
 				// Validate private key and derive public key
-				log.Printf("NewTunnel: Manual private key provided: '%s'", tunnelData.WGConfig.LocalPrivateKey)
 				privateKeyStr := strings.TrimSpace(tunnelData.WGConfig.LocalPrivateKey)
-				log.Printf("NewTunnel: After trim: '%s' (length: %d)", privateKeyStr, len(privateKeyStr))
-
-				if len(privateKeyStr) != 44 {
-					log.Printf("NewTunnel: Invalid private key length. Expected 44, got %d", len(privateKeyStr))
-					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Invalid private key length. Expected 44 characters, got %d", len(privateKeyStr))})
-				}
-
 				privateKey, err := wgtypes.ParseKey(privateKeyStr)
 				if err != nil {
-					log.Printf("NewTunnel: Parse key error: %v", err)
 					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid private key format: " + err.Error()})
 				}
 
 				// Ensure proper formatting and derive public key
 				tunnelData.WGConfig.LocalPrivateKey = privateKey.String()
 				tunnelData.WGConfig.LocalPublicKey = privateKey.PublicKey().String()
-
-				log.Printf("NewTunnel: Formatted private key: %s", tunnelData.WGConfig.LocalPrivateKey)
-				log.Printf("NewTunnel: Derived public key: %s", tunnelData.WGConfig.LocalPublicKey)
 			}
 
 		case model.TunnelTypeWireGuardToDokodemo:
@@ -443,33 +432,16 @@ func GenerateKeypair() echo.HandlerFunc {
 
 		if requestData.PrivateKey != "" {
 			// Generate public key from provided private key
-			log.Printf("GenerateKeypair: Deriving public key from provided private key")
-			log.Printf("GenerateKeypair: Input private key raw: '%s'", requestData.PrivateKey)
-			log.Printf("GenerateKeypair: Input private key length: %d", len(requestData.PrivateKey))
-
-			// Trim whitespace and validate length
 			privateKeyStr = strings.TrimSpace(requestData.PrivateKey)
-			log.Printf("GenerateKeypair: After trim: '%s'", privateKeyStr)
-			log.Printf("GenerateKeypair: After trim length: %d", len(privateKeyStr))
-
-			// Check if it's a valid WireGuard private key format (should be 44 characters base64)
-			if len(privateKeyStr) != 44 {
-				log.Printf("GenerateKeypair: Invalid private key length. Expected 44, got %d", len(privateKeyStr))
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Invalid private key length. Expected 44 characters, got %d", len(privateKeyStr))})
-			}
 
 			privateKey, err := wgtypes.ParseKey(privateKeyStr)
 			if err != nil {
-				log.Printf("GenerateKeypair: Invalid private key parse error: %v", err)
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid private key format: " + err.Error()})
 			}
 
 			// Regenerate to ensure proper formatting
 			privateKeyStr = privateKey.String()
 			publicKeyStr = privateKey.PublicKey().String()
-
-			log.Printf("GenerateKeypair: Formatted private key: %s", privateKeyStr)
-			log.Printf("GenerateKeypair: Derived public key: %s", publicKeyStr)
 		} else {
 			// Generate new keypair
 			log.Printf("GenerateKeypair: Generating new keypair")
@@ -506,36 +478,16 @@ func GeneratePreSharedKey() echo.HandlerFunc {
 	}
 }
 
-// TestKeyDerivation for debugging key derivation issues
-func TestKeyDerivation() echo.HandlerFunc {
+// CleanupTunnels handler removes corrupted tunnel records
+func CleanupTunnels(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Generate a test keypair to verify everything works
-		testPrivateKey, testPublicKey, err := generateWireGuardKeypair()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate test keypair"})
+		// Cast to JsonDB to access cleanup method
+		if jsonDB, ok := db.(*jsondb.JsonDB); ok {
+			if err := jsonDB.CleanupCorruptedTunnels(); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to cleanup tunnels: " + err.Error()})
+			}
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel cleanup completed successfully"})
 		}
-
-		log.Printf("TEST: Generated test keypair")
-		log.Printf("TEST: Private key: %s (length: %d)", testPrivateKey, len(testPrivateKey))
-		log.Printf("TEST: Public key: %s (length: %d)", testPublicKey, len(testPublicKey))
-
-		// Parse the private key back to verify it works
-		parsedKey, err := wgtypes.ParseKey(testPrivateKey)
-		if err != nil {
-			log.Printf("TEST: Failed to parse generated private key: %v", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to parse test private key"})
-		}
-
-		derivedPublicKey := parsedKey.PublicKey().String()
-		log.Printf("TEST: Derived public key: %s", derivedPublicKey)
-		log.Printf("TEST: Keys match: %v", testPublicKey == derivedPublicKey)
-
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"success":            true,
-			"test_private_key":   testPrivateKey,
-			"test_public_key":    testPublicKey,
-			"derived_public_key": derivedPublicKey,
-			"keys_match":         testPublicKey == derivedPublicKey,
-		})
+		return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cleanup not supported for this database type"})
 	}
 }
