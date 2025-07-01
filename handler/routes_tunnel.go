@@ -16,14 +16,29 @@ import (
 // TunnelsPage handler
 func TunnelsPage(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Simple base data
+		// Get current user info
+		username := currentUser(c)
+		isAdmin := isAdmin(c)
+
+		// Prepare base data like other pages
 		baseData := map[string]interface{}{
-			"Active": "tunnels",
+			"Active":      "tunnels",
+			"CurrentUser": username,
+			"Admin":       isAdmin,
 		}
 
-		// Simple template data
+		// Get tunnels
+		tunnels := make([]model.Tunnel, 0)
+		if db != nil {
+			if dbTunnels, err := db.GetTunnels(); err == nil {
+				tunnels = dbTunnels
+			}
+		}
+
+		// Template data
 		templateData := map[string]interface{}{
 			"baseData": baseData,
+			"tunnels":  tunnels,
 		}
 
 		return c.Render(http.StatusOK, "tunnels.html", templateData)

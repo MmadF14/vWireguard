@@ -14,23 +14,183 @@ Tunnels
     <div class="container-fluid">
         <div class="row mb-3">
             <div class="col-12">
-                <button type="button" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
                     <i class="fas fa-plus"></i> New Tunnel
                 </button>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i>
-                    Tunnels feature is working. No tunnels configured yet.
+        <div class="row" id="tunnel-list">
+            {{if .tunnels}}
+                {{range .tunnels}}
+                <div class="col-lg-4 col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{{.Name}}</h5>
+                            <span class="badge badge-{{if eq .Status "active"}}success{{else}}secondary{{end}}">{{.Status}}</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Type:</strong> {{.Type}}<br>
+                                <strong>Destination:</strong> {{.DestinationIP}}:{{.DestinationPort}}
+                            </p>
+                            {{if .Description}}
+                            <p class="text-muted">{{.Description}}</p>
+                            {{end}}
+                        </div>
+                        <div class="card-footer">
+                            <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteTunnel('{{.ID}}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            </div>
+                {{end}}
+            {{else}}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        No tunnels configured. Add a new tunnel to get started.
+                    </div>
+                </div>
+            {{end}}
         </div>
     </div>
 </section>
+
+<!-- New Tunnel Modal -->
+<div class="modal fade" id="modal_new_tunnel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">New Tunnel</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="frm_new_tunnel">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="tunnel_name">Tunnel Name</label>
+                        <input type="text" class="form-control" id="tunnel_name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tunnel_type">Tunnel Type</label>
+                        <select class="form-control" id="tunnel_type" name="type" required>
+                            <option value="">Select tunnel type</option>
+                            <option value="wg-to-wg">WireGuard to WireGuard</option>
+                            <option value="wg-to-ssh">WireGuard to SSH</option>
+                            <option value="port-forward">Port Forward</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="destination_ip">Destination IP</label>
+                        <input type="text" class="form-control" id="destination_ip" name="destination_ip" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="destination_port">Destination Port</label>
+                        <input type="number" class="form-control" id="destination_port" name="destination_port" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description (Optional)</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Tunnel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {{end}}
 
 {{define "bottom_js"}}
+<script>
+$(document).ready(function() {
+    // Handle new tunnel form submission
+    $('#frm_new_tunnel').on('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            name: $('#tunnel_name').val(),
+            type: $('#tunnel_type').val(),
+            destination_ip: $('#destination_ip').val(),
+            destination_port: parseInt($('#destination_port').val()),
+            description: $('#description').val()
+        };
+        
+        $.ajax({
+            url: '/api/tunnel',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData)
+        })
+        .done(function(response) {
+            if (response.success) {
+                $('#modal_new_tunnel').modal('hide');
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        })
+        .fail(function() {
+            alert('Error creating tunnel');
+        });
+    });
+    
+    // Reset form when modal is closed
+    $('#modal_new_tunnel').on('hidden.bs.modal', function() {
+        $('#frm_new_tunnel')[0].reset();
+    });
+});
+
+function editTunnel(tunnelId) {
+    // Load tunnel data
+    $.ajax({
+        url: '/api/tunnel/' + tunnelId,
+        method: 'GET'
+    })
+    .done(function(tunnel) {
+        // Populate form
+        $('#tunnel_name').val(tunnel.name);
+        $('#tunnel_type').val(tunnel.type);
+        $('#destination_ip').val(tunnel.destination_ip);
+        $('#destination_port').val(tunnel.destination_port);
+        $('#description').val(tunnel.description);
+        
+        // Change modal title and store tunnel ID
+        $('#modal_new_tunnel .modal-title').text('Edit Tunnel');
+        $('#modal_new_tunnel').data('tunnel-id', tunnelId);
+        $('#modal_new_tunnel').modal('show');
+    })
+    .fail(function() {
+        alert('Error loading tunnel data');
+    });
+}
+
+function deleteTunnel(tunnelId) {
+    if (confirm('Are you sure you want to delete this tunnel?')) {
+        $.ajax({
+            url: '/api/tunnel/' + tunnelId,
+            method: 'DELETE',
+            contentType: 'application/json'
+        })
+        .done(function(response) {
+            if (response.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        })
+        .fail(function() {
+            alert('Error deleting tunnel');
+        });
+    }
+}
+</script>
 {{end}} 
