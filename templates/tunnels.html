@@ -37,10 +37,10 @@ Tunnels
                                          <strong>Remote:</strong> {{.WGConfig.RemoteEndpoint}}<br>
                                          <strong>Tunnel IP:</strong> {{.WGConfig.TunnelIP}}
                                      {{end}}
-                                 {{else if eq .Type "wg-to-ssh"}}
-                                     {{if .SSHConfig}}
-                                         <strong>SSH Server:</strong> {{.SSHConfig.SSHHost}}:{{.SSHConfig.SSHPort}}<br>
-                                         <strong>Tunnel Type:</strong> {{.SSHConfig.TunnelType}}
+                                 {{else if eq .Type "wg-to-dokodemo"}}
+                                     {{if .DokodemoConfig}}
+                                         <strong>Target:</strong> {{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}<br>
+                                         <strong>Protocol:</strong> {{.DokodemoConfig.Network}}
                                      {{end}}
                                  {{else if eq .Type "port-forward"}}
                                      {{if .PortForwardConfig}}
@@ -101,7 +101,7 @@ Tunnels
                         <select class="form-control" id="tunnel_type" name="type" required onchange="showTunnelConfig()">
                             <option value="">Select tunnel type</option>
                             <option value="wg-to-wg">WireGuard to WireGuard</option>
-                            <option value="wg-to-ssh">SSH Tunnel (SOCKS5/HTTP/Port Forward)</option>
+                                                            <option value="wg-to-dokodemo">Dokodemo Door (Transparent Proxy)</option>
                             <option value="port-forward">Port Forward (Dokodemo Door)</option>
                         </select>
                     </div>
@@ -162,54 +162,55 @@ Tunnels
                         </div>
                     </div>
 
-                    <!-- SSH Configuration -->
-                    <div id="ssh_config" style="display:none;">
-                        <h5>SSH Tunnel Configuration</h5>
+                    <!-- Dokodemo Door Configuration -->
+                    <div id="dokodemo_config" style="display:none;">
+                        <h5>Dokodemo Door Configuration</h5>
                         <div class="row">
                             <div class="col-md-8">
                                 <div class="form-group">
-                                    <label for="ssh_host">SSH Server Host</label>
-                                    <input type="text" class="form-control" id="ssh_host" placeholder="ssh.example.com">
+                                    <label for="dokodemo_address">Target Address</label>
+                                    <input type="text" class="form-control" id="dokodemo_address" placeholder="example.com or 1.2.3.4">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label for="ssh_port">SSH Port</label>
-                                    <input type="number" class="form-control" id="ssh_port" value="22">
+                                    <label for="dokodemo_port">Target Port</label>
+                                    <input type="number" class="form-control" id="dokodemo_port" placeholder="80">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="dokodemo_network">Network Protocol</label>
+                                    <select class="form-control" id="dokodemo_network">
+                                        <option value="tcp">TCP</option>
+                                        <option value="udp">UDP</option>
+                                        <option value="tcp,udp">TCP + UDP</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="dokodemo_timeout">Timeout (seconds)</label>
+                                    <input type="number" class="form-control" id="dokodemo_timeout" value="300" placeholder="300">
                                 </div>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="ssh_user">SSH Username</label>
-                            <input type="text" class="form-control" id="ssh_user" placeholder="root">
-                        </div>
-                        <div class="form-group">
-                            <label for="ssh_tunnel_type">Tunnel Type</label>
-                            <select class="form-control" id="ssh_tunnel_type" onchange="showSSHTunnelOptions()">
-                                <option value="socks5">SOCKS5 Proxy</option>
-                                <option value="http">HTTP Proxy</option>
-                                <option value="port_forward">Port Forward</option>
+                            <label for="dokodemo_domain_strategy">Domain Strategy</label>
+                            <select class="form-control" id="dokodemo_domain_strategy">
+                                <option value="AsIs">As Is (default)</option>
+                                <option value="UseIP">Use IP</option>
+                                <option value="UseIPv4">Use IPv4</option>
+                                <option value="UseIPv6">Use IPv6</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="ssh_key">SSH Private Key</label>
-                            <textarea class="form-control" id="ssh_key" rows="4" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
-                        </div>
-                        <div id="ssh_port_forward_config" style="display:none;">
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="ssh_remote_host">Remote Host</label>
-                                        <input type="text" class="form-control" id="ssh_remote_host" placeholder="localhost">
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="ssh_remote_port">Remote Port</label>
-                                        <input type="number" class="form-control" id="ssh_remote_port" placeholder="80">
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="dokodemo_follow_redirect">
+                            <label class="form-check-label" for="dokodemo_follow_redirect">
+                                Follow HTTP Redirects  
+                            </label>
                         </div>
                     </div>
 
@@ -311,19 +312,15 @@ $(document).ready(function() {
                 tunnel_ip: $('#wg_tunnel_ip').val(),
                 allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim())
             };
-        } else if (tunnelType === 'wg-to-ssh') {
-            formData.ssh_config = {
-                ssh_host: $('#ssh_host').val(),
-                ssh_port: parseInt($('#ssh_port').val()),
-                ssh_user: $('#ssh_user').val(),
-                ssh_key_content: $('#ssh_key').val(),
-                tunnel_type: $('#ssh_tunnel_type').val()
+        } else if (tunnelType === 'wg-to-dokodemo') {
+            formData.dokodemo_config = {
+                address: $('#dokodemo_address').val(),
+                port: parseInt($('#dokodemo_port').val()),
+                network: $('#dokodemo_network').val(),
+                timeout: parseInt($('#dokodemo_timeout').val()) || 300,
+                domain_strategy: $('#dokodemo_domain_strategy').val(),
+                follow_redirect: $('#dokodemo_follow_redirect').is(':checked')
             };
-            
-            if ($('#ssh_tunnel_type').val() === 'port_forward') {
-                formData.ssh_config.remote_host = $('#ssh_remote_host').val();
-                formData.ssh_config.remote_port = parseInt($('#ssh_remote_port').val());
-            }
         } else if (tunnelType === 'port-forward') {
             formData.port_forward_config = {
                 protocol: $('#pf_protocol').val(),
@@ -356,7 +353,7 @@ $(document).ready(function() {
     // Reset form when modal is closed
     $('#modal_new_tunnel').on('hidden.bs.modal', function() {
         $('#frm_new_tunnel')[0].reset();
-        $('#wg_config, #ssh_config, #port_forward_config').hide();
+        $('#wg_config, #dokodemo_config, #port_forward_config').hide();
         $('#client_selection').hide();
         $('input[name="client_routing"][value="all"]').prop('checked', true);
     });
@@ -366,29 +363,20 @@ function showTunnelConfig() {
     const tunnelType = $('#tunnel_type').val();
     
     // Hide all config sections
-    $('#wg_config, #ssh_config, #port_forward_config').hide();
+    $('#wg_config, #dokodemo_config, #port_forward_config').hide();
     
     // Show relevant config section
     if (tunnelType === 'wg-to-wg') {
         $('#wg_config').show();
         generateWireGuardKeys();
-    } else if (tunnelType === 'wg-to-ssh') {
-        $('#ssh_config').show();
-        showSSHTunnelOptions();
-    } else if (tunnelType === 'port-forward') {
+            } else if (tunnelType === 'wg-to-dokodemo') {
+            $('#dokodemo_config').show();
+        } else if (tunnelType === 'port-forward') {
         $('#port_forward_config').show();
     }
 }
 
-function showSSHTunnelOptions() {
-    const tunnelType = $('#ssh_tunnel_type').val();
-    
-    if (tunnelType === 'port_forward') {
-        $('#ssh_port_forward_config').show();
-    } else {
-        $('#ssh_port_forward_config').hide();
-    }
-}
+
 
 function generateWireGuardKeys() {
     // Generate local keypair for this tunnel
@@ -462,17 +450,13 @@ function editTunnel(tunnelId) {
             $('#wg_remote_public_key').val(tunnel.wg_config.remote_public_key);
             $('#wg_tunnel_ip').val(tunnel.wg_config.tunnel_ip);
             $('#wg_allowed_ips').val(tunnel.wg_config.allowed_ips.join(', '));
-        } else if (tunnel.type === 'wg-to-ssh' && tunnel.ssh_config) {
-            $('#ssh_host').val(tunnel.ssh_config.ssh_host);
-            $('#ssh_port').val(tunnel.ssh_config.ssh_port);
-            $('#ssh_user').val(tunnel.ssh_config.ssh_user);
-            $('#ssh_key').val(tunnel.ssh_config.ssh_key_content);
-            $('#ssh_tunnel_type').val(tunnel.ssh_config.tunnel_type);
-            showSSHTunnelOptions();
-            if (tunnel.ssh_config.remote_host) {
-                $('#ssh_remote_host').val(tunnel.ssh_config.remote_host);
-                $('#ssh_remote_port').val(tunnel.ssh_config.remote_port);
-            }
+        } else if (tunnel.type === 'wg-to-dokodemo' && tunnel.dokodemo_config) {
+            $('#dokodemo_address').val(tunnel.dokodemo_config.address);
+            $('#dokodemo_port').val(tunnel.dokodemo_config.port);
+            $('#dokodemo_network').val(tunnel.dokodemo_config.network);
+            $('#dokodemo_timeout').val(tunnel.dokodemo_config.timeout || 300);
+            $('#dokodemo_domain_strategy').val(tunnel.dokodemo_config.domain_strategy || 'AsIs');
+            $('#dokodemo_follow_redirect').prop('checked', tunnel.dokodemo_config.follow_redirect || false);
         } else if (tunnel.type === 'port-forward' && tunnel.port_forward_config) {
             $('#pf_protocol').val(tunnel.port_forward_config.protocol);
             $('#pf_local_port').val(tunnel.port_forward_config.local_bind_port);

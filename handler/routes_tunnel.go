@@ -40,6 +40,7 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 		templateData := map[string]interface{}{
 			"baseData": baseData,
 			"tunnels":  tunnels,
+			"basePath": "/",
 		}
 
 		return c.Render(http.StatusOK, "tunnels.html", templateData)
@@ -84,7 +85,7 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			RouteAll          bool                         `json:"route_all"`
 			ClientIDs         []string                     `json:"client_ids"`
 			WGConfig          *model.WireGuardTunnelConfig `json:"wg_config,omitempty"`
-			SSHConfig         *model.SSHTunnelConfig       `json:"ssh_config,omitempty"`
+			DokodemoConfig    *model.DokodemoTunnelConfig  `json:"dokodemo_config,omitempty"`
 			PortForwardConfig *model.PortForwardConfig     `json:"port_forward_config,omitempty"`
 		}
 
@@ -121,12 +122,15 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 				tunnelData.WGConfig.LocalPublicKey = publicKey
 			}
 
-		case model.TunnelTypeWireGuardToSSH:
-			if tunnelData.SSHConfig == nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "SSH configuration is required"})
+		case model.TunnelTypeWireGuardToDokodemo:
+			if tunnelData.DokodemoConfig == nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Dokodemo configuration is required"})
 			}
-			if tunnelData.SSHConfig.SSHHost == "" || tunnelData.SSHConfig.SSHUser == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "SSH host and user are required"})
+			if tunnelData.DokodemoConfig.Address == "" || tunnelData.DokodemoConfig.Port == 0 {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Target address and port are required"})
+			}
+			if tunnelData.DokodemoConfig.Network == "" {
+				tunnelData.DokodemoConfig.Network = "tcp" // Default to TCP
 			}
 
 		case model.TunnelTypePortForward:
@@ -149,7 +153,7 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			RouteAll:          tunnelData.RouteAll,
 			ClientIDs:         tunnelData.ClientIDs,
 			WGConfig:          tunnelData.WGConfig,
-			SSHConfig:         tunnelData.SSHConfig,
+			DokodemoConfig:    tunnelData.DokodemoConfig,
 			PortForwardConfig: tunnelData.PortForwardConfig,
 			Priority:          1,
 			CreatedBy:         currentUser(c),
@@ -342,9 +346,9 @@ func GetTunnelTypes() echo.HandlerFunc {
 				"description": "Connect two WireGuard networks",
 			},
 			{
-				"value":       string(model.TunnelTypeWireGuardToSSH),
-				"label":       "WireGuard to SSH",
-				"description": "SSH tunnel over WireGuard",
+				"value":       string(model.TunnelTypeWireGuardToDokodemo),
+				"label":       "WireGuard to Dokodemo Door",
+				"description": "Transparent proxy using Dokodemo Door",
 			},
 			{
 				"value":       string(model.TunnelTypeWireGuardToOpenVPN),

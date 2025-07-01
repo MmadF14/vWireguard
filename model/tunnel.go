@@ -9,7 +9,7 @@ type TunnelType string
 
 const (
 	TunnelTypeWireGuardToWireGuard TunnelType = "wg-to-wg"
-	TunnelTypeWireGuardToSSH       TunnelType = "wg-to-ssh"
+	TunnelTypeWireGuardToDokodemo  TunnelType = "wg-to-dokodemo"
 	TunnelTypeWireGuardToOpenVPN   TunnelType = "wg-to-openvpn"
 	TunnelTypeWireGuardToL2TP      TunnelType = "wg-to-l2tp"
 	TunnelTypeWireGuardToSOCKS     TunnelType = "wg-to-socks"
@@ -43,8 +43,8 @@ type Tunnel struct {
 	// WireGuard-to-WireGuard specific fields
 	WGConfig *WireGuardTunnelConfig `json:"wg_config,omitempty"`
 
-	// SSH tunnel specific fields
-	SSHConfig *SSHTunnelConfig `json:"ssh_config,omitempty"`
+	// Dokodemo Door specific fields
+	DokodemoConfig *DokodemoTunnelConfig `json:"dokodemo_config,omitempty"`
 
 	// Port forward specific fields
 	PortForwardConfig *PortForwardConfig `json:"port_forward_config,omitempty"`
@@ -80,24 +80,22 @@ type WireGuardTunnelConfig struct {
 	PersistentKeepalive int      `json:"persistent_keepalive,omitempty"`
 }
 
-// SSH tunnel configuration
-type SSHTunnelConfig struct {
-	// SSH server details
-	SSHHost       string `json:"ssh_host"`        // SSH server IP/hostname
-	SSHPort       int    `json:"ssh_port"`        // SSH port (default 22)
-	SSHUser       string `json:"ssh_user"`        // SSH username
-	SSHKeyPath    string `json:"ssh_key_path"`    // Path to SSH private key
-	SSHKeyContent string `json:"ssh_key_content"` // SSH private key content
+// Dokodemo Door tunnel configuration
+type DokodemoTunnelConfig struct {
+	// Target address (where traffic will be forwarded)
+	Address string `json:"address"` // Target IP/hostname
+	Port    int    `json:"port"`    // Target port
+	Network string `json:"network"` // "tcp", "udp", or "tcp,udp"
 
-	// Tunnel configuration
-	TunnelType    string `json:"tunnel_type"`     // "socks5", "http", "port_forward"
-	LocalBindPort int    `json:"local_bind_port"` // Local port to bind
-	RemoteHost    string `json:"remote_host"`     // Remote host to forward to
-	RemotePort    int    `json:"remote_port"`     // Remote port to forward to
+	// Timeout settings
+	Timeout        int  `json:"timeout,omitempty"`         // Connection timeout in seconds
+	UserLevel      int  `json:"user_level,omitempty"`      // User level for traffic stats
+	FollowRedirect bool `json:"follow_redirect,omitempty"` // Follow HTTP redirects
 
-	// SOCKS5 specific
-	SOCKSUsername string `json:"socks_username,omitempty"`
-	SOCKSPassword string `json:"socks_password,omitempty"`
+	// Advanced settings
+	DomainStrategy string            `json:"domain_strategy,omitempty"` // "AsIs", "UseIP", "UseIPv4", "UseIPv6"
+	UserAgent      string            `json:"user_agent,omitempty"`      // Custom user agent
+	Headers        map[string]string `json:"headers,omitempty"`         // Custom headers
 }
 
 // Port forward configuration (Dokodemo Door style)
