@@ -332,7 +332,7 @@ $(document).ready(function() {
         }
         
         $.ajax({
-            url: '/api/tunnel',
+            url: '{{.basePath}}api/tunnel',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(formData)
@@ -382,7 +382,7 @@ function generateWireGuardKeys() {
     // Generate local keypair for this tunnel
     // Note: In real implementation, this should be done server-side
     $.ajax({
-        url: '/api/generate-keypair',
+        url: '{{.basePath}}api/generate-keypair',
         method: 'POST'
     })
     .done(function(response) {
@@ -407,20 +407,31 @@ function generateWireGuardKeys() {
 
 function loadClientList() {
     $.ajax({
-        url: '/api/clients',
+        url: '{{.basePath}}api/clients',
         method: 'GET'
     })
-    .done(function(clients) {
+    .done(function(response) {        
         let clientHtml = '';
-        clients.forEach(function(client) {
-            clientHtml += `
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
-                    <label class="form-check-label" for="client_${client.id}">
-                        ${client.name} (${client.address})
-                    </label>
-                </div>
-            `;
+        // Handle GetClients API response structure
+        const clients = response.success && response.data ? response.data : [];
+        
+        if (clients.length === 0) {
+            $('#client_list').html('<div class="alert alert-info">No clients available</div>');
+            return;
+        }
+        
+        clients.forEach(function(clientData) {
+            const client = clientData.client || clientData; // Handle ClientData structure
+            if (client && client.id) {
+                clientHtml += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
+                        <label class="form-check-label" for="client_${client.id}">
+                            ${client.name} (${client.allocated_ips ? client.allocated_ips.join(', ') : 'N/A'})
+                        </label>
+                    </div>
+                `;
+            }
         });
         $('#client_list').html(clientHtml);
     })
@@ -432,7 +443,7 @@ function loadClientList() {
 function editTunnel(tunnelId) {
     // Load tunnel data
     $.ajax({
-        url: '/api/tunnel/' + tunnelId,
+        url: '{{.basePath}}api/tunnel/' + tunnelId,
         method: 'GET'
     })
     .done(function(tunnel) {
@@ -487,7 +498,7 @@ function editTunnel(tunnelId) {
 function deleteTunnel(tunnelId) {
     if (confirm('Are you sure you want to delete this tunnel? This will affect client routing.')) {
         $.ajax({
-            url: '/api/tunnel/' + tunnelId,
+            url: '{{.basePath}}api/tunnel/' + tunnelId,
             method: 'DELETE',
             contentType: 'application/json'
         })

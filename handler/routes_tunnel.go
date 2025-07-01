@@ -395,7 +395,7 @@ func generateWireGuardKeypair() (privateKey, publicKey string, err error) {
 	return key.String(), key.PublicKey().String(), nil
 }
 
-// GenerateKeypair handler for generating WireGuard keypair
+// GenerateKeypair generates a new WireGuard keypair
 func GenerateKeypair() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		privateKey, publicKey, err := generateWireGuardKeypair()
