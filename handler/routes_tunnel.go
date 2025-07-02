@@ -548,8 +548,10 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
-	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
-	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
+	// Generate simple interface name (e.g., wg1, wg2, wg3)
+	// Use last 3 chars of tunnel ID as number
+	interfaceSuffix := tunnel.ID[len(tunnel.ID)-3:]
+	interfaceName := fmt.Sprintf("wg%s", interfaceSuffix)
 
 	log.Printf("Starting WireGuard tunnel: %s -> %s", tunnel.Name, interfaceName)
 
@@ -568,7 +570,20 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("failed to create config directory: %v", err)
 	}
 
-	// WireGuard config content
+	// WireGuard config content - safe routing to prevent server network loss
+	safeAllowedIPs := "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" // Private networks only
+	if len(tunnel.WGConfig.AllowedIPs) > 0 {
+		// اگه user مقدار خاصی تنظیم کرده، اولش چک کن که خطرناک نباشه
+		allowedIPsStr := strings.Join(tunnel.WGConfig.AllowedIPs, ", ")
+		if strings.Contains(allowedIPsStr, "0.0.0.0/0") {
+			log.Printf("Warning: Using 0.0.0.0/0 in AllowedIPs - this may disconnect server")
+			// برای امنیت، به جای 0.0.0.0/0 از split routing استفاده کن
+			safeAllowedIPs = "1.0.0.0/8,2.0.0.0/7,4.0.0.0/6,8.0.0.0/5,16.0.0.0/4,32.0.0.0/3,64.0.0.0/2,128.0.0.0/1"
+		} else {
+			safeAllowedIPs = allowedIPsStr
+		}
+	}
+
 	configContent := fmt.Sprintf(`[Interface]
 PrivateKey = %s
 Address = %s
@@ -581,7 +596,7 @@ AllowedIPs = %s`,
 		tunnel.WGConfig.TunnelIP,
 		tunnel.WGConfig.RemotePublicKey,
 		tunnel.WGConfig.RemoteEndpoint,
-		strings.Join(tunnel.WGConfig.AllowedIPs, ", "))
+		safeAllowedIPs)
 
 	// Add PreShared Key if available
 	if tunnel.WGConfig.PreSharedKey != "" {
@@ -632,8 +647,10 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
-	// Generate interface name based on tunnel ID
-	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
+	// Generate simple interface name (e.g., wg1, wg2, wg3)
+	// Use last 3 chars of tunnel ID as number
+	interfaceSuffix := tunnel.ID[len(tunnel.ID)-3:]
+	interfaceName := fmt.Sprintf("wg%s", interfaceSuffix)
 
 	log.Printf("Stopping WireGuard tunnel: %s -> %s", tunnel.Name, interfaceName)
 
