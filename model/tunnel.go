@@ -67,10 +67,11 @@ type Tunnel struct {
 // WireGuard tunnel configuration
 type WireGuardTunnelConfig struct {
 	// Remote WireGuard server details
-	RemoteEndpoint  string `json:"remote_endpoint"`   // IP:Port of remote WG server
-	RemotePublicKey string `json:"remote_public_key"` // Remote server's public key
-	LocalPrivateKey string `json:"local_private_key"` // Our private key for this tunnel
-	LocalPublicKey  string `json:"local_public_key"`  // Our public key (auto-generated)
+	RemoteEndpoint  string `json:"remote_endpoint"`         // IP:Port of remote WG server
+	RemotePublicKey string `json:"remote_public_key"`       // Remote server's public key
+	LocalPrivateKey string `json:"local_private_key"`       // Our private key for this tunnel
+	LocalPublicKey  string `json:"local_public_key"`        // Our public key (auto-generated)
+	PreSharedKey    string `json:"preshared_key,omitempty"` // Optional pre-shared key
 
 	// Network configuration
 	TunnelIP            string   `json:"tunnel_ip"`     // Our IP in the tunnel network

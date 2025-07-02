@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -300,11 +303,22 @@ func StartTunnel(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel is disabled"})
 		}
 
-		// Here you would implement the actual tunnel starting logic
-		// For now, just update the status
+		// Implement actual tunnel starting logic based on type
+		switch tunnel.Type {
+		case model.TunnelTypeWireGuardToWireGuard:
+			if err := startWireGuardTunnel(tunnel); err != nil {
+				log.Printf("Failed to start WireGuard tunnel: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start WireGuard tunnel: " + err.Error()})
+			}
+		default:
+			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
+			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
+		}
+
+		// Update status
 		err = db.UpdateTunnelStatus(tunnelID, model.TunnelStatusActive)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to start tunnel: %v", err)})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel status: %v", err)})
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel started successfully"})
@@ -317,16 +331,27 @@ func StopTunnel(db store.IStore) echo.HandlerFunc {
 		tunnelID := c.Param("id")
 
 		// Get tunnel
-		_, err := db.GetTunnelByID(tunnelID)
+		tunnel, err := db.GetTunnelByID(tunnelID)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
 		}
 
-		// Here you would implement the actual tunnel stopping logic
-		// For now, just update the status
+		// Implement actual tunnel stopping logic based on type
+		switch tunnel.Type {
+		case model.TunnelTypeWireGuardToWireGuard:
+			if err := stopWireGuardTunnel(tunnel); err != nil {
+				log.Printf("Failed to stop WireGuard tunnel: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop WireGuard tunnel: " + err.Error()})
+			}
+		default:
+			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
+			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
+		}
+
+		// Update status
 		err = db.UpdateTunnelStatus(tunnelID, model.TunnelStatusInactive)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to stop tunnel: %v", err)})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel status: %v", err)})
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel stopped successfully"})
@@ -490,4 +515,114 @@ func CleanupTunnels(db store.IStore) echo.HandlerFunc {
 		}
 		return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cleanup not supported for this database type"})
 	}
+}
+
+// DeleteAllTunnels handler removes all tunnel records (emergency cleanup)
+func DeleteAllTunnels(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Get all tunnels first
+		tunnels, err := db.GetTunnels()
+		if err != nil {
+			log.Printf("Error getting tunnels for cleanup: %v", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to get tunnels"})
+		}
+
+		// Delete each tunnel
+		deletedCount := 0
+		for _, tunnel := range tunnels {
+			if err := db.DeleteTunnel(tunnel.ID); err != nil {
+				log.Printf("Error deleting tunnel %s: %v", tunnel.ID, err)
+			} else {
+				deletedCount++
+			}
+		}
+
+		log.Printf("Deleted %d tunnels", deletedCount)
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Deleted %d tunnels successfully", deletedCount)})
+	}
+}
+
+// startWireGuardTunnel starts a WireGuard tunnel
+func startWireGuardTunnel(tunnel model.Tunnel) error {
+	if tunnel.WGConfig == nil {
+		return fmt.Errorf("WireGuard configuration is missing")
+	}
+
+	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
+	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
+
+	log.Printf("Starting WireGuard tunnel: %s -> %s", tunnel.Name, interfaceName)
+
+	// Create WireGuard config file
+	configPath := filepath.Join("/etc/wireguard", interfaceName+".conf")
+
+	// WireGuard config content
+	configContent := fmt.Sprintf(`[Interface]
+PrivateKey = %s
+Address = %s
+ListenPort = 0
+
+[Peer]
+PublicKey = %s
+Endpoint = %s
+AllowedIPs = %s`,
+		tunnel.WGConfig.LocalPrivateKey,
+		tunnel.WGConfig.TunnelIP,
+		tunnel.WGConfig.RemotePublicKey,
+		tunnel.WGConfig.RemoteEndpoint,
+		strings.Join(tunnel.WGConfig.AllowedIPs, ", "))
+
+	// Add PreShared Key if available
+	if tunnel.WGConfig.PreSharedKey != "" {
+		configContent += fmt.Sprintf("\nPreSharedKey = %s", tunnel.WGConfig.PreSharedKey)
+	}
+
+	// Write config file
+	if err := os.WriteFile(configPath, []byte(configContent), 0600); err != nil {
+		return fmt.Errorf("failed to write config file: %v", err)
+	}
+
+	log.Printf("Created WireGuard config: %s", configPath)
+
+	// Start the tunnel using wg-quick
+	cmd := exec.Command("sudo", "wg-quick", "up", interfaceName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
+		return fmt.Errorf("failed to start tunnel: %v, output: %s", err, string(output))
+	}
+
+	log.Printf("Successfully started WireGuard tunnel: %s", interfaceName)
+	log.Printf("Command output: %s", string(output))
+
+	// TODO: Add iptables rules for routing traffic
+	// This is where you would add the routing logic to forward traffic
+	// from the main WireGuard interface (wg0) to this tunnel interface
+
+	return nil
+}
+
+// stopWireGuardTunnel stops a WireGuard tunnel
+func stopWireGuardTunnel(tunnel model.Tunnel) error {
+	if tunnel.WGConfig == nil {
+		return fmt.Errorf("WireGuard configuration is missing")
+	}
+
+	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
+	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
+
+	log.Printf("Stopping WireGuard tunnel: %s", interfaceName)
+
+	// Stop the tunnel using wg-quick
+	cmd := exec.Command("sudo", "wg-quick", "down", interfaceName)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Failed to stop tunnel %s: %v, Output: %s", interfaceName, err, string(output))
+		return fmt.Errorf("failed to stop tunnel: %v, output: %s", err, string(output))
+	}
+
+	log.Printf("Successfully stopped WireGuard tunnel: %s", interfaceName)
+	log.Printf("Command output: %s", string(output))
+
+	return nil
 }

@@ -325,6 +325,7 @@ func main() {
 	app.POST(util.BasePath+"/api/generate-keypair", handler.GenerateKeypair(), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/generate-preshared-key", handler.GeneratePreSharedKey(), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/cleanup-tunnels", handler.CleanupTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.DELETE(util.BasePath+"/api/delete-all-tunnels", handler.DeleteAllTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {

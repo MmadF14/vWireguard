@@ -357,7 +357,8 @@ Tunnels
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="cleanupTunnels()">Cleanup</button>
+                <button type="button" class="btn btn-warning" onclick="cleanupTunnels()">Smart Cleanup</button>
+                <button type="button" class="btn btn-danger" onclick="deleteAllTunnels()">Delete All</button>
             </div>
         </div>
     </div>
@@ -733,7 +734,27 @@ function editTunnel(tunnelId) {
             $('#wg_remote_endpoint').val(tunnel.wg_config.remote_endpoint);
             $('#wg_remote_public_key').val(tunnel.wg_config.remote_public_key);
             $('#wg_tunnel_ip').val(tunnel.wg_config.tunnel_ip);
-            $('#wg_allowed_ips').val(tunnel.wg_config.allowed_ips.join(', '));
+            if (tunnel.wg_config.allowed_ips && Array.isArray(tunnel.wg_config.allowed_ips)) {
+                $('#wg_allowed_ips').val(tunnel.wg_config.allowed_ips.join(', '));
+            }
+            
+            // Load private/public key if available
+            if (tunnel.wg_config.local_private_key) {
+                $('#wg_manual_private_key').val(tunnel.wg_config.local_private_key);
+                $('#manual_key_section').show();
+            }
+            if (tunnel.wg_config.local_public_key) {
+                $('#wg_manual_public_key').val(tunnel.wg_config.local_public_key);
+            }
+            
+            // Load PreShared Key if available
+            if (tunnel.wg_config.preshared_key) {
+                $('#wg_preshared_key').val(tunnel.wg_config.preshared_key);
+            }
+            
+            // Store keys for form submission
+            $('#wg_config').data('private-key', tunnel.wg_config.local_private_key || '');
+            $('#wg_config').data('public-key', tunnel.wg_config.local_public_key || '');
         } else if (tunnel.type === 'wg-to-dokodemo' && tunnel.dokodemo_config) {
             $('#dokodemo_address').val(tunnel.dokodemo_config.address);
             $('#dokodemo_port').val(tunnel.dokodemo_config.port);
@@ -856,6 +877,31 @@ function cleanupTunnels() {
             console.error('Cleanup failed:', xhr, status, error);
             alert('Error cleaning up tunnels: ' + (xhr.responseText || error));
         });
+    }
+}
+
+function deleteAllTunnels() {
+    if (confirm('⚠️ WARNING: This will delete ALL tunnels permanently!\n\nThis action cannot be undone. Are you sure?')) {
+        if (confirm('⚠️ FINAL CONFIRMATION: Delete ALL tunnel records?')) {
+            $.ajax({
+                url: '/api/delete-all-tunnels',
+                method: 'DELETE',
+                contentType: 'application/json'
+            })
+            .done(function(response) {
+                if (response.success) {
+                    alert('All tunnels deleted successfully!');
+                    $('#modal_cleanup_tunnels').modal('hide');
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Delete all failed:', xhr, status, error);
+                alert('Error deleting tunnels: ' + (xhr.responseText || error));
+            });
+        }
     }
 }
 
