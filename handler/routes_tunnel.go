@@ -589,32 +589,36 @@ AllowedIPs = %s`,
 		configContent += fmt.Sprintf("\nPreSharedKey = %s", tunnel.WGConfig.PreSharedKey)
 	}
 
-	// Write config file
+	// Write config file with proper permissions
 	if err := os.WriteFile(configPath, []byte(configContent), 0600); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 
 	log.Printf("Created WireGuard config: %s", configPath)
 
-	// Start the tunnel using wg-quick with interface name (not full path)
+	// Verify file exists and is readable
+	if _, err := os.Stat(configPath); err != nil {
+		return fmt.Errorf("config file not accessible: %v", err)
+	}
+
+	// Double check with ls command for debugging
+	lsCmd := exec.Command("ls", "-la", configPath)
+	lsOutput, _ := lsCmd.CombinedOutput()
+	log.Printf("Config file details: %s", string(lsOutput))
+
+	// Start the tunnel using wg-quick with interface name
 	cmd := exec.Command("wg-quick", "up", interfaceName)
+	cmd.Dir = "/etc/wireguard" // Set working directory
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
 
-		// Check specific error conditions and provide helpful messages
-		outputStr := string(output)
-		if strings.Contains(outputStr, "Permission denied") || strings.Contains(outputStr, "Operation not permitted") {
-			return fmt.Errorf("permission denied: please run vWireguard as root or configure proper sudo permissions")
-		} else if strings.Contains(outputStr, "command not found") {
-			return fmt.Errorf("WireGuard tools not installed - please install wireguard-tools package")
-		} else if strings.Contains(outputStr, "already exists") {
-			return fmt.Errorf("tunnel interface already exists - try stopping it first")
-		} else if strings.Contains(outputStr, "Cannot find device") {
-			return fmt.Errorf("network device error - check WireGuard kernel module")
-		}
+		// چک کنیم فایل واقعاً اونجا هست
+		checkCmd := exec.Command("ls", "-la", "/etc/wireguard/")
+		checkOutput, _ := checkCmd.CombinedOutput()
+		log.Printf("Contents of /etc/wireguard/: %s", string(checkOutput))
 
-		return fmt.Errorf("failed to start tunnel: %s", outputStr)
+		return fmt.Errorf("failed to start tunnel: %s", string(output))
 	}
 
 	log.Printf("Successfully started WireGuard tunnel: %s", interfaceName)

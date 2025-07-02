@@ -1204,16 +1204,33 @@ body {
     letter-spacing: 0 !important;
 }
 
-/* اطمینان از نمایش همیشگی Apply Config Button */
-#apply-config-button {
+/* اطمینان از نمایش همیشگی Apply Config Button - قوی‌ترین حالت */
+#apply-config-button,
+button#apply-config-button,
+.navbar #apply-config-button,
+.navbar-nav #apply-config-button {
     display: inline-block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    position: relative !important;
+    z-index: 9999 !important;
 }
 
-/* Dark mode overrides */
-[data-theme="dark"] #apply-config-button {
+/* Dark mode overrides - قوی‌تر */
+[data-theme="dark"] #apply-config-button,
+[data-theme="dark"] button#apply-config-button,
+[data-theme="dark"] .navbar #apply-config-button,
+[data-theme="dark"] .navbar-nav #apply-config-button {
     display: inline-block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    position: relative !important;
+    z-index: 9999 !important;
+}
+
+/* Override هر چیزی که بخواد این button رو hide کنه */
+#apply-config-button[style*="display: none"],
+#apply-config-button[style*="visibility: hidden"] {
+    display: inline-block !important;
+    visibility: visible !important;
 } 

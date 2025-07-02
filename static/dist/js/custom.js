@@ -109,9 +109,37 @@ function forceShowApplyConfig() {
         applyBtn.style.display = "inline-block";
         applyBtn.style.visibility = "visible";
         applyBtn.style.opacity = "1";
+        applyBtn.style.position = "relative";
+        applyBtn.style.zIndex = "9999";
         console.log("Apply Config button FORCED to show");
     } else {
         console.error("Apply Config button NOT FOUND in DOM!");
+    }
+}
+
+// MutationObserver برای محافظت از Apply Config Button
+function protectApplyConfigButton() {
+    const applyBtn = document.getElementById("apply-config-button");
+    if (applyBtn) {
+        // MutationObserver برای چک کردن تغییرات style
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    const style = applyBtn.getAttribute('style') || '';
+                    if (style.includes('display: none') || style.includes('visibility: hidden')) {
+                        console.log("Apply Config button under attack! Protecting...");
+                        forceShowApplyConfig();
+                    }
+                }
+            });
+        });
+        
+        observer.observe(applyBtn, {
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+        
+        console.log("Apply Config button is now protected!");
     }
 }
 
@@ -211,6 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(forceShowApplyConfig, 500);
     setTimeout(forceShowApplyConfig, 1000);
     
+    // محافظت از Apply Config Button
+    setTimeout(protectApplyConfigButton, 200);
+    
     // Initialize AllowedIPs tag inputs
     $("#client_allowed_ips").tagsInput({
         'width': '100%',
@@ -283,6 +314,11 @@ document.addEventListener('DOMContentLoaded', () => {
 // مطمئن شدن که Apply Config button همیشه نمایش داده میشه
 window.onload = function() {
     forceShowApplyConfig();
+    
+    // هر 2 ثانیه چک کن که apply config button نمایش داده شده باشه
+    setInterval(function() {
+        forceShowApplyConfig();
+    }, 2000);
 };
 
 // هر بار که صفحه focus میشه، دوباره چک کن
