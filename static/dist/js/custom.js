@@ -102,6 +102,40 @@ function addGlobalStyle(css, id) {
     }
 }
 
+// Global function برای Apply Config - بدون هیچ dependency
+window.applyConfig = function() {
+    console.log("Apply Config called directly");
+    
+    if (confirm("Do you want to write config file and restart WireGuard server?")) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/apply-wg-config', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                console.log("Apply config response:", xhr.status, xhr.responseText);
+                if (xhr.status === 200) {
+                    alert('Applied config successfully');
+                    if (typeof location !== 'undefined') {
+                        location.reload();
+                    }
+                } else {
+                    let errorMsg = 'Error applying configuration';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        errorMsg = response.message || errorMsg;
+                    } catch(e) {
+                        errorMsg = xhr.statusText || errorMsg;
+                    }
+                    alert('Error: ' + errorMsg);
+                }
+            }
+        };
+        
+        xhr.send('{}');
+    }
+};
+
 // Force show apply config button - خیلی ساده!
 function forceShowApplyConfig() {
     const btn = document.getElementById("apply-config-button");
