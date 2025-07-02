@@ -596,8 +596,8 @@ AllowedIPs = %s`,
 
 	log.Printf("Created WireGuard config: %s", configPath)
 
-	// Start the tunnel using wg-quick with full config path
-	cmd := exec.Command("wg-quick", "up", configPath)
+	// Start the tunnel using wg-quick with interface name (not full path)
+	cmd := exec.Command("wg-quick", "up", interfaceName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
@@ -629,9 +629,8 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
-	// Generate interface name and config path based on tunnel ID
+	// Generate interface name based on tunnel ID
 	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
-	configPath := filepath.Join("/etc/wireguard", interfaceName+".conf")
 
 	log.Printf("Stopping WireGuard tunnel: %s -> %s", tunnel.Name, interfaceName)
 
@@ -641,8 +640,8 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard tools not installed or not in PATH")
 	}
 
-	// Stop the tunnel using wg-quick with full config path
-	cmd := exec.Command("wg-quick", "down", configPath)
+	// Stop the tunnel using wg-quick with interface name (not full path)
+	cmd := exec.Command("wg-quick", "down", interfaceName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to stop tunnel %s: %v, Output: %s", interfaceName, err, string(output))

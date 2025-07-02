@@ -102,8 +102,34 @@ function addGlobalStyle(css, id) {
     }
 }
 
+// Force show apply config button - اجباری!
+function forceShowApplyConfig() {
+    const applyBtn = document.getElementById("apply-config-button");
+    if (applyBtn) {
+        applyBtn.style.display = "inline-block";
+        applyBtn.style.visibility = "visible";
+        applyBtn.style.opacity = "1";
+        console.log("Apply Config button FORCED to show");
+    } else {
+        console.error("Apply Config button NOT FOUND in DOM!");
+    }
+}
+
 function updateApplyConfigVisibility() {
-    $("#apply-config-button").show();
+    // مطمئن شدن که DOM آماده هست
+    $(document).ready(function() {
+        const applyBtn = $("#apply-config-button");
+        if (applyBtn.length > 0) {
+            // Force نمایش button و CSS override
+            applyBtn.show().css({
+                'display': 'inline-block !important',
+                'visibility': 'visible !important'
+            });
+            console.log("Apply Config button forced to show");
+        } else {
+            console.warn("Apply Config button not found in DOM");
+        }
+    });
 }
 
 function updateQuotaInput() {
@@ -180,6 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // همیشه Apply Config button رو نمایش بده
     updateApplyConfigVisibility();
     
+    // اجباری نمایش Apply Config - دوبار مطمئن میشیم!
+    setTimeout(forceShowApplyConfig, 100);
+    setTimeout(forceShowApplyConfig, 500);
+    setTimeout(forceShowApplyConfig, 1000);
+    
     // Initialize AllowedIPs tag inputs
     $("#client_allowed_ips").tagsInput({
         'width': '100%',
@@ -248,6 +279,16 @@ document.addEventListener('DOMContentLoaded', () => {
         $(this).attr('aria-hidden', 'true');
     });
 });
+
+// مطمئن شدن که Apply Config button همیشه نمایش داده میشه
+window.onload = function() {
+    forceShowApplyConfig();
+};
+
+// هر بار که صفحه focus میشه، دوباره چک کن
+window.onfocus = function() {
+    forceShowApplyConfig();
+};
 
 // Client population function
 function populateClient(client_id) {
