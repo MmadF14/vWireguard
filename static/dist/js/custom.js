@@ -102,19 +102,30 @@ function addGlobalStyle(css, id) {
     }
 }
 
-// Force show apply config button - اجباری!
+// Force show apply config button - خیلی ساده!
 function forceShowApplyConfig() {
-    const applyBtn = document.getElementById("apply-config-button");
-    if (applyBtn) {
-        applyBtn.style.display = "inline-block";
-        applyBtn.style.visibility = "visible";
-        applyBtn.style.opacity = "1";
-        applyBtn.style.position = "relative";
-        applyBtn.style.zIndex = "9999";
-        console.log("Apply Config button FORCED to show");
-    } else {
-        console.error("Apply Config button NOT FOUND in DOM!");
+    const btn = document.getElementById("apply-config-button");
+    if (btn) {
+        btn.style.cssText = "margin-left: 0.5em; display: inline-block !important; visibility: visible !important; opacity: 1 !important;";
+        console.log("Apply Config FORCED to show");
+        return true;
     }
+    console.error("Apply Config NOT FOUND!");
+    return false;
+}
+
+// تابع ساده برای اطمینان از نمایش apply config
+function ensureApplyConfigVisible() {
+    // هر ثانیه چک کن
+    setInterval(function() {
+        forceShowApplyConfig();
+    }, 1000);
+    
+    // فوری هم چک کن
+    setTimeout(forceShowApplyConfig, 100);
+    setTimeout(forceShowApplyConfig, 500);
+    setTimeout(forceShowApplyConfig, 1000);
+    setTimeout(forceShowApplyConfig, 2000);
 }
 
 // MutationObserver برای محافظت از Apply Config Button
@@ -210,6 +221,11 @@ function updateStatusIndicators() {
 
 // Initialize all functionality
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("DOM loaded - ensuring Apply Config is visible");
+    
+    // اطمینان از نمایش Apply Config
+    ensureApplyConfigVisible();
+    
     // Add custom toast style
     addGlobalStyle(`
         .toast-top-right-fix {
@@ -233,11 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // همیشه Apply Config button رو نمایش بده
     updateApplyConfigVisibility();
-    
-    // اجباری نمایش Apply Config - دوبار مطمئن میشیم!
-    setTimeout(forceShowApplyConfig, 100);
-    setTimeout(forceShowApplyConfig, 500);
-    setTimeout(forceShowApplyConfig, 1000);
     
     // محافظت از Apply Config Button
     setTimeout(protectApplyConfigButton, 200);
@@ -284,21 +295,43 @@ document.addEventListener('DOMContentLoaded', () => {
         updateIPAllocationSuggestion();
     });
     
-    // Apply config confirm button event
+    // Apply config confirm button event - ساده شده
     $("#apply_config_confirm").click(function () {
+        console.log("Apply config clicked");
         $.ajax({
             cache: false,
             method: 'POST',
-            url: basePath + '/api/apply-wg-config',
+            url: '/api/apply-wg-config',  // بدون basePath
             dataType: 'json',
             contentType: "application/json",
             success: function(data) {
+                console.log("Apply config success");
                 $("#modal_apply_config").modal('hide');
-                showNotification('Applied config successfully', 'success');
+                if (typeof showNotification === 'function') {
+                    showNotification('Applied config successfully', 'success');
+                } else if (typeof toastr !== 'undefined') {
+                    toastr.success('Applied config successfully');
+                } else {
+                    alert('Applied config successfully');
+                }
             },
             error: function(jqXHR, exception) {
-                const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                showNotification(responseJson['message'], 'error');
+                console.error("Apply config error:", jqXHR);
+                let errorMsg = 'Error applying configuration';
+                try {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    errorMsg = responseJson.message || errorMsg;
+                } catch(e) {
+                    errorMsg = jqXHR.statusText || errorMsg;
+                }
+                
+                if (typeof showNotification === 'function') {
+                    showNotification(errorMsg, 'error');
+                } else if (typeof toastr !== 'undefined') {
+                    toastr.error(errorMsg);
+                } else {
+                    alert('Error: ' + errorMsg);
+                }
             }
         });
     });
@@ -313,16 +346,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // مطمئن شدن که Apply Config button همیشه نمایش داده میشه
 window.onload = function() {
-    forceShowApplyConfig();
-    
-    // هر 2 ثانیه چک کن که apply config button نمایش داده شده باشه
-    setInterval(function() {
-        forceShowApplyConfig();
-    }, 2000);
+    console.log("Window loaded - forcing Apply Config");
+    ensureApplyConfigVisible();
 };
 
 // هر بار که صفحه focus میشه، دوباره چک کن
 window.onfocus = function() {
+    console.log("Window focused - forcing Apply Config");
     forceShowApplyConfig();
 };
 
