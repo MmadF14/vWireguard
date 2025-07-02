@@ -10,6 +10,45 @@ Tunnels
 {{end}}
 
 {{define "page_content"}}
+<!-- Page Header -->
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1><i class="fas fa-exchange-alt"></i> Tunnels</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{{.basePath}}">Home</a></li>
+                    <li class="breadcrumb-item active">Tunnels</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Warning about routing setup -->
+<section class="content">
+    <div class="container-fluid">
+        <div class="alert alert-info">
+            <h5><i class="icon fas fa-info"></i> Tunnel Routing Setup Required</h5>
+            <p>For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:</p>
+            <code>sudo bash setup_tunnel_routing.sh</code>
+            <p class="mt-2 mb-0">This will configure iptables rules for traffic forwarding and enable IP forwarding.</p>
+        </div>
+        
+        <div class="alert alert-warning">
+            <h5><i class="icon fas fa-exclamation-triangle"></i> Important Notes</h5>
+            <ul class="mb-0">
+                <li><strong>Safe Routing:</strong> AllowedIPs of <code>0.0.0.0/0</code> is automatically replaced with private networks to prevent server disconnection</li>
+                <li><strong>Edit Restriction:</strong> Active tunnels cannot be edited - stop the tunnel first</li>
+                <li><strong>Interface Names:</strong> Tunnel interfaces use format <code>wg{suffix}</code> (e.g., wg123)</li>
+                <li><strong>Traffic Forwarding:</strong> Ensure your server has proper iptables rules for traffic forwarding</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
 <section class="content">
     <div class="container-fluid">
         <div class="row mb-2">
@@ -90,9 +129,15 @@ Tunnels
                                 <i class="fas fa-play"></i> Start
                             </button>
                             {{end}}
+                            {{if eq .Status "active"}}
+                            <button class="btn btn-sm btn-secondary mr-2" disabled title="Stop tunnel first to edit">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            {{else}}
                             <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
+                            {{end}}
                             <button class="btn btn-sm btn-danger" onclick="deleteTunnel('{{.ID}}')">
                                 <i class="fas fa-trash"></i> Delete
                             </button>

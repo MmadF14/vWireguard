@@ -207,6 +207,11 @@ func UpdateTunnel(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
 		}
 
+		// Prevent editing active tunnels - user must stop first
+		if existingTunnel.Status == model.TunnelStatusActive {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot edit active tunnel. Please stop the tunnel first."})
+		}
+
 		var updatedTunnel model.Tunnel
 		if err := c.Bind(&updatedTunnel); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid tunnel data"})
@@ -220,6 +225,10 @@ func UpdateTunnel(db store.IStore) echo.HandlerFunc {
 		updatedTunnel.BytesIn = existingTunnel.BytesIn
 		updatedTunnel.BytesOut = existingTunnel.BytesOut
 		updatedTunnel.LastSeen = existingTunnel.LastSeen
+
+		// Preserve enabled status and current status
+		updatedTunnel.Enabled = existingTunnel.Enabled
+		updatedTunnel.Status = existingTunnel.Status
 
 		// Save updated tunnel
 		if err := db.SaveTunnel(updatedTunnel); err != nil {
@@ -591,9 +600,29 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 		}
 	}
 
+	// Get main interface name for routing
+	mainInterface := "eth0" // Default
+	// Try to detect main interface
+	routeCmd := exec.Command("ip", "route", "show", "default")
+	if routeOutput, err := routeCmd.Output(); err == nil {
+		routeStr := string(routeOutput)
+		if strings.Contains(routeStr, "dev ") {
+			parts := strings.Split(routeStr, "dev ")
+			if len(parts) > 1 {
+				interfaceParts := strings.Fields(parts[1])
+				if len(interfaceParts) > 0 {
+					mainInterface = interfaceParts[0]
+					log.Printf("Detected main interface: %s", mainInterface)
+				}
+			}
+		}
+	}
+
 	configContent := fmt.Sprintf(`[Interface]
 PrivateKey = %s
 Address = %s
+PostUp = iptables -A FORWARD -i %s -j ACCEPT; iptables -A FORWARD -o %s -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE
+PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -D FORWARD -o %s -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE
 
 [Peer]
 PublicKey = %s
@@ -601,6 +630,8 @@ Endpoint = %s
 AllowedIPs = %s`,
 		tunnel.WGConfig.LocalPrivateKey,
 		tunnel.WGConfig.TunnelIP,
+		interfaceName, interfaceName, mainInterface, // PostUp rules
+		interfaceName, interfaceName, mainInterface, // PostDown rules
 		tunnel.WGConfig.RemotePublicKey,
 		tunnel.WGConfig.RemoteEndpoint,
 		safeAllowedIPs)
@@ -609,6 +640,9 @@ AllowedIPs = %s`,
 	if tunnel.WGConfig.PreSharedKey != "" {
 		configContent += fmt.Sprintf("\nPreSharedKey = %s", tunnel.WGConfig.PreSharedKey)
 	}
+
+	// Add PersistentKeepalive for better connectivity
+	configContent += "\nPersistentKeepalive = 25"
 
 	// Write config file with proper permissions
 	if err := os.WriteFile(configPath, []byte(configContent), 0600); err != nil {
@@ -650,6 +684,12 @@ AllowedIPs = %s`,
 		return fmt.Errorf("tunnel interface %s is already active", interfaceName)
 	}
 
+	// Enable IP forwarding if not already enabled
+	enableForwardingCmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
+	if err := enableForwardingCmd.Run(); err != nil {
+		log.Printf("Warning: Failed to enable IP forwarding: %v", err)
+	}
+
 	// Start the tunnel using wg-quick with interface name in /etc/wireguard directory
 	cmd := exec.Command("wg-quick", "up", interfaceName)
 	cmd.Dir = "/etc/wireguard" // Set working directory to /etc/wireguard
@@ -681,6 +721,19 @@ AllowedIPs = %s`,
 
 	log.Printf("Successfully started WireGuard tunnel: %s", interfaceName)
 	log.Printf("Command output: %s", string(output))
+
+	// Verify tunnel is up and running
+	verifyCmd := exec.Command("wg", "show", interfaceName)
+	if verifyOutput, err := verifyCmd.Output(); err == nil {
+		log.Printf("Tunnel verification: %s", string(verifyOutput))
+	}
+
+	// Add additional routing for client traffic if needed
+	if tunnel.RouteAll {
+		log.Printf("Setting up routing for all clients through tunnel %s", interfaceName)
+		// This would require integration with main WireGuard server routing
+		// For now, just log the intention
+	}
 
 	return nil
 }
@@ -722,14 +775,31 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		// Check specific error conditions
 		outputStr := string(output)
 		if strings.Contains(outputStr, "is not a WireGuard interface") {
-			return fmt.Errorf("tunnel interface not found - it may already be stopped")
+			log.Printf("Interface %s not found - it may already be stopped", interfaceName)
+			// Continue with cleanup even if interface wasn't found
+		} else {
+			return fmt.Errorf("failed to stop tunnel: %s", outputStr)
 		}
-
-		return fmt.Errorf("failed to stop tunnel: %s", outputStr)
+	} else {
+		log.Printf("Successfully stopped WireGuard tunnel: %s", interfaceName)
+		log.Printf("Command output: %s", string(output))
 	}
 
-	log.Printf("Successfully stopped WireGuard tunnel: %s", interfaceName)
-	log.Printf("Command output: %s", string(output))
+	// Clean up config file
+	configPath := filepath.Join("/etc/wireguard", interfaceName+".conf")
+	if err := os.Remove(configPath); err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("Warning: Failed to remove config file %s: %v", configPath, err)
+		}
+	} else {
+		log.Printf("Removed config file: %s", configPath)
+	}
+
+	// Verify interface is down
+	wgShowCmd := exec.Command("wg", "show", interfaceName)
+	if wgShowCmd.Run() == nil {
+		log.Printf("Warning: Interface %s still appears to be active after stop", interfaceName)
+	}
 
 	return nil
 }
