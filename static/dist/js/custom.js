@@ -103,7 +103,6 @@ function addGlobalStyle(css, id) {
 }
 
 function updateApplyConfigVisibility() {
-    // همیشه Apply Config button رو نمایش بده - هیچ منطقی نداره
     $("#apply-config-button").show();
 }
 
