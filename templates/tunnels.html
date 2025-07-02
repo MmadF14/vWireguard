@@ -108,16 +108,26 @@ Tunnels
                                 <div class="col-6">
                                     <small class="text-muted">
                                         <i class="fas fa-download"></i> In: 
-                                        <span class="text-success">{{.BytesIn}} bytes</span>
+                                        <span class="text-success" data-tunnel-id="{{.ID}}" data-stat="bytes_in">{{.BytesIn | formatBytes}}</span>
                                     </small>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">
                                         <i class="fas fa-upload"></i> Out: 
-                                        <span class="text-primary">{{.BytesOut}} bytes</span>
+                                        <span class="text-primary" data-tunnel-id="{{.ID}}" data-stat="bytes_out">{{.BytesOut | formatBytes}}</span>
                                     </small>
                                 </div>
                             </div>
+                            {{if eq .Status "active"}}
+                            <div class="row mt-1">
+                                <div class="col-12">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock"></i> Last seen: 
+                                        <span data-tunnel-id="{{.ID}}" data-stat="last_seen">{{if .LastSeen.IsZero}}Never{{else}}{{.LastSeen.Format "2006-01-02 15:04:05"}}{{end}}</span>
+                                    </small>
+                                </div>
+                            </div>
+                            {{end}}
                         </div>
                         <div class="card-footer">
                             {{if eq .Status "active"}}
@@ -431,6 +441,9 @@ $(document).ready(function() {
             $('#client_selection').hide();
         }
     });
+
+    // Start auto-refresh for tunnel statistics
+    startTunnelStatsRefresh();
 
     // Handle tunnel form submission (create/edit)
     $('#frm_new_tunnel').on('submit', function(e) {
@@ -1059,5 +1072,74 @@ function deleteAllTunnels() {
     }
 }
 
+// Format bytes to human readable format
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Start auto-refresh for tunnel statistics
+function startTunnelStatsRefresh() {
+    // Refresh stats every 30 seconds for active tunnels
+    setInterval(function() {
+        refreshActiveTunnelStats();
+    }, 30000);
+}
+
+// Refresh statistics for active tunnels
+function refreshActiveTunnelStats() {
+    $('.badge-success').each(function() {
+        const card = $(this).closest('.card');
+        const tunnelId = card.find('[data-tunnel-id]').first().attr('data-tunnel-id');
+        
+        if (tunnelId) {
+            $.ajax({
+                url: '/api/tunnel/' + tunnelId + '/stats',
+                method: 'GET',
+                dataType: 'json'
+            })
+            .done(function(stats) {
+                // Update bytes in
+                card.find('[data-stat="bytes_in"]').text(formatBytes(stats.bytes_in));
+                // Update bytes out
+                card.find('[data-stat="bytes_out"]').text(formatBytes(stats.bytes_out));
+                // Update last seen
+                if (stats.last_seen) {
+                    const lastSeen = new Date(stats.last_seen).toLocaleString();
+                    card.find('[data-stat="last_seen"]').text(lastSeen);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Failed to refresh tunnel stats for ' + tunnelId + ':', error);
+            });
+        }
+    });
+}
+
+// Manual refresh button for tunnel stats
+function refreshTunnelStats(tunnelId) {
+    $.ajax({
+        url: '/api/tunnel/' + tunnelId + '/stats',
+        method: 'GET',
+        dataType: 'json'
+    })
+    .done(function(stats) {
+        const card = $('[data-tunnel-id="' + tunnelId + '"]').closest('.card');
+        card.find('[data-stat="bytes_in"]').text(formatBytes(stats.bytes_in));
+        card.find('[data-stat="bytes_out"]').text(formatBytes(stats.bytes_out));
+        if (stats.last_seen) {
+            const lastSeen = new Date(stats.last_seen).toLocaleString();
+            card.find('[data-stat="last_seen"]').text(lastSeen);
+        }
+        console.log('Tunnel stats refreshed for', tunnelId);
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Failed to refresh tunnel stats:', error);
+        alert('Failed to refresh tunnel statistics');
+    });
+}
 </script>
 {{end}} 

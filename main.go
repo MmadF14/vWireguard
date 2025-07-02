@@ -317,15 +317,15 @@ func main() {
 	app.POST(util.BasePath+"/api/tunnel", handler.NewTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	app.PUT(util.BasePath+"/api/tunnel/:id", handler.UpdateTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	app.DELETE(util.BasePath+"/api/tunnel/:id", handler.DeleteTunnel(db), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/tunnel/:id/status", handler.SetTunnelStatus(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/tunnel/:id/start", handler.StartTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/tunnel/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	app.GET(util.BasePath+"/api/tunnel/:id/stats", handler.GetTunnelStats(db), handler.ValidSession)
-	app.GET(util.BasePath+"/api/tunnel-types", handler.GetTunnelTypes(), handler.ValidSession)
-	app.POST(util.BasePath+"/api/generate-keypair", handler.GenerateKeypair(), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/generate-preshared-key", handler.GeneratePreSharedKey(), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/cleanup-tunnels", handler.CleanupTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
-	app.DELETE(util.BasePath+"/api/delete-all-tunnels", handler.DeleteAllTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/tunnel/:id/status", handler.SetTunnelStatus(db), handler.ValidSession, handler.ContentTypeJson)
+	app.GET(util.BasePath+"/api/tunnel/types", handler.GetTunnelTypes(), handler.ValidSession)
+	app.POST(util.BasePath+"/api/tunnel/generate-keypair", handler.GenerateKeypair(), handler.ValidSession, handler.ContentTypeJson)
+	app.POST(util.BasePath+"/api/tunnel/generate-preshared-key", handler.GeneratePreSharedKey(), handler.ValidSession, handler.ContentTypeJson)
+	app.POST(util.BasePath+"/api/tunnel/cleanup", handler.CleanupTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.DELETE(util.BasePath+"/api/tunnel/cleanup/all", handler.DeleteAllTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {

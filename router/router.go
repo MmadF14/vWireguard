@@ -2,6 +2,7 @@ package router
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"reflect"
@@ -46,6 +47,37 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 	}
 
 	return tmpl.ExecuteTemplate(w, "base.html", data)
+}
+
+// formatBytes formats bytes into human readable format
+func formatBytes(bytes int64) string {
+	if bytes == 0 {
+		return "0 B"
+	}
+	const unit = 1024
+	sizes := []string{"B", "KB", "MB", "GB", "TB"}
+
+	var i int
+	absBytes := bytes
+	if absBytes < 0 {
+		absBytes = -absBytes
+	}
+
+	for absBytes >= unit && i < len(sizes)-1 {
+		absBytes /= unit
+		i++
+	}
+
+	divisor := int64(1)
+	for j := 0; j < i; j++ {
+		divisor *= unit
+	}
+
+	result := float64(bytes) / float64(divisor)
+	if i == 0 {
+		return fmt.Sprintf("%.0f %s", result, sizes[i])
+	}
+	return fmt.Sprintf("%.2f %s", result, sizes[i])
 }
 
 // New function
@@ -130,6 +162,7 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	// create template list
 	funcs := template.FuncMap{
 		"StringsJoin": strings.Join,
+		"formatBytes": formatBytes,
 	}
 	templates := make(map[string]*template.Template)
 	templates["login.html"] = template.Must(template.New("login").Funcs(funcs).Parse(tmplLoginString))

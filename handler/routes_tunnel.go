@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -376,6 +377,15 @@ func GetTunnelStats(db store.IStore) echo.HandlerFunc {
 		tunnel, err := db.GetTunnelByID(tunnelID)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
+		}
+
+		// Update tunnel stats from WireGuard interface if tunnel is active
+		if tunnel.Status == model.TunnelStatusActive {
+			if err := updateTunnelStatsFromWG(db, tunnel); err != nil {
+				log.Printf("Failed to update tunnel stats: %v", err)
+			}
+			// Reload tunnel data after update
+			tunnel, _ = db.GetTunnelByID(tunnelID)
 		}
 
 		stats := map[string]interface{}{
@@ -801,5 +811,63 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		log.Printf("Warning: Interface %s still appears to be active after stop", interfaceName)
 	}
 
+	return nil
+}
+
+// updateTunnelStatsFromWG updates tunnel statistics from WireGuard interface
+func updateTunnelStatsFromWG(db store.IStore, tunnel model.Tunnel) error {
+	if tunnel.WGConfig == nil {
+		return fmt.Errorf("WireGuard configuration is missing")
+	}
+
+	// Generate simple interface name (e.g., wg1, wg2, wg3)
+	// Use last 3 chars of tunnel ID as number
+	interfaceSuffix := tunnel.ID[len(tunnel.ID)-3:]
+	interfaceName := fmt.Sprintf("wg%s", interfaceSuffix)
+
+	log.Printf("Updating tunnel stats from WireGuard interface: %s", interfaceName)
+
+	// Check if wg-quick is available
+	if _, err := exec.LookPath("wg-quick"); err != nil {
+		log.Printf("wg-quick not found: %v", err)
+		return fmt.Errorf("WireGuard tools not installed or not in PATH")
+	}
+
+	// Get tunnel stats from WireGuard interface
+	statsCmd := exec.Command("wg", "show", interfaceName)
+	statsOutput, err := statsCmd.Output()
+	if err != nil {
+		log.Printf("Failed to get tunnel stats from WireGuard interface: %v", err)
+		return fmt.Errorf("failed to get tunnel stats from WireGuard interface")
+	}
+
+	// Parse stats output
+	stats := string(statsOutput)
+	lines := strings.Split(stats, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "transfer") {
+			parts := strings.Fields(line)
+			if len(parts) >= 3 {
+				bytesIn, err := strconv.ParseUint(parts[1], 10, 64)
+				if err != nil {
+					log.Printf("Failed to parse bytes_in: %v", err)
+				}
+				bytesOut, err := strconv.ParseUint(parts[2], 10, 64)
+				if err != nil {
+					log.Printf("Failed to parse bytes_out: %v", err)
+				}
+				tunnel.BytesIn = int64(bytesIn)
+				tunnel.BytesOut = int64(bytesOut)
+			}
+		}
+	}
+
+	// Update tunnel stats in database
+	if err := db.SaveTunnel(tunnel); err != nil {
+		log.Printf("Failed to update tunnel stats in database: %v", err)
+		return fmt.Errorf("failed to update tunnel stats in database")
+	}
+
+	log.Printf("Tunnel stats updated successfully")
 	return nil
 }

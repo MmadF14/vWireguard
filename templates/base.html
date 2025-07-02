@@ -432,6 +432,49 @@
     <!-- START: On page js -->
     {{template "bottom_js" .}}
     <!-- END: On page js -->
+
+    <script>
+    // Global applyConfig function for Apply Config button
+    window.applyConfig = function() {
+        $('#modal_apply_config').modal('show');
+    };
+
+    // Apply config confirmation handler
+    $(document).ready(function() {
+        $('#apply_config_confirm').click(function() {
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '/api/apply-wg-config',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
+                    $('#modal_apply_config').modal('hide');
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Configuration applied successfully');
+                    } else {
+                        alert('Configuration applied successfully');
+                    }
+                },
+                error: function(jqXHR) {
+                    $('#modal_apply_config').modal('hide');
+                    let errorMessage = 'Error applying configuration';
+                    try {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        errorMessage = responseJson.message || errorMessage;
+                    } catch (e) {
+                        console.error('Error parsing error response:', e);
+                    }
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(errorMessage);
+                    } else {
+                        alert(errorMessage);
+                    }
+                }
+            });
+        });
+    });
+    </script>
 </body>
 
 </html>
