@@ -684,33 +684,34 @@ function loadClientList() {
         let clientHtml = '';
         console.log('Client list response:', response);
         
-        // GetClients API response structure: {success: true, data: [{client: {...}}, ...]}
+        // GetClients API response structure: {success: true, data: [{Client: {...}, QRCode: "..."}, ...]}
         let clientsData = [];
         if (response && response.success && Array.isArray(response.data)) {
             clientsData = response.data;
-        } else if (Array.isArray(response)) {
-            // Fallback for direct array response
-            clientsData = response.map(client => ({client: client}));
+            console.log('Found', clientsData.length, 'client data objects');
         } else {
             console.error('Unexpected API response structure:', response);
             $('#client_list').html('<div class="alert alert-warning">Unexpected API response structure</div>');
             return;
         }
         
-        console.log('Processed clients data:', clientsData);
-        
         if (!clientsData || clientsData.length === 0) {
             $('#client_list').html('<div class="alert alert-info">No clients available. Please create some clients first in the <a href="/">Wireguard Clients</a> section.</div>');
             return;
         }
         
-        clientsData.forEach(function(clientData) {
-            // ClientData structure has nested client object
-            const client = clientData.client;
+        clientsData.forEach(function(clientDataObj, index) {
+            console.log('Processing client data object', index, ':', clientDataObj);
+            
+            // ClientData structure: {Client: {...}, QRCode: "..."}
+            // کلیدها با حروف بزرگ هستن: Client نه client
+            const client = clientDataObj.Client || clientDataObj.client;
+            
             if (client && client.id && client.name) {
-                const ips = client.allocated_ips || [];
+                const ips = client.allocated_ips || client.AllocatedIPs || [];
                 const ipStr = Array.isArray(ips) ? ips.join(', ') : (typeof ips === 'string' ? ips : 'N/A');
-                const clientName = client.name || 'Unnamed Client';
+                const clientName = client.name || client.Name || 'Unnamed Client';
+                
                 clientHtml += `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
@@ -720,17 +721,19 @@ function loadClientList() {
                         </label>
                     </div>
                 `;
-                console.log('Added client:', clientName, 'with IPs:', ipStr);
+                console.log('Added client:', clientName, 'with ID:', client.id, 'and IPs:', ipStr);
             } else {
-                console.warn('Invalid client data:', clientData);
+                console.warn('Invalid client data in object', index, ':', clientDataObj);
+                console.warn('Client object found:', client);
             }
         });
         
         if (clientHtml === '') {
             $('#client_list').html('<div class="alert alert-warning">No valid clients found. Please check if you have created any clients in the <a href="/">Wireguard Clients</a> section.</div>');
+            console.warn('No valid clients processed from', clientsData.length, 'client data objects');
         } else {
             $('#client_list').html(clientHtml);
-            console.log('Successfully loaded', clientsData.length, 'clients');
+            console.log('Successfully processed and displayed clients');
         }
     })
     .fail(function(xhr, status, error) {

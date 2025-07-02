@@ -103,7 +103,7 @@ function addGlobalStyle(css, id) {
 }
 
 function updateApplyConfigVisibility() {
-    // همیشه Apply Config button رو نمایش بده
+    // همیشه Apply Config button رو نمایش بده - هیچ منطقی نداره
     $("#apply-config-button").show();
 }
 
@@ -232,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
             dataType: 'json',
             contentType: "application/json",
             success: function(data) {
-                updateApplyConfigVisibility();
                 $("#modal_apply_config").modal('hide');
                 showNotification('Applied config successfully', 'success');
             },
