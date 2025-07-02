@@ -1202,4 +1202,18 @@ body {
 
 [lang="fa"] * {
     letter-spacing: 0 !important;
+}
+
+/* اطمینان از نمایش همیشگی Apply Config Button */
+#apply-config-button {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] #apply-config-button {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 } 
