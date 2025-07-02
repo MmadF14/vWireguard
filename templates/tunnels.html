@@ -675,6 +675,7 @@ function generatePreSharedKey() {
 }
 
 function loadClientList() {
+    console.log('Loading client list...');
     $.ajax({
         url: '/api/clients',
         method: 'GET'
@@ -683,31 +684,30 @@ function loadClientList() {
         let clientHtml = '';
         console.log('Client list response:', response);
         
-        // Handle different API response structures
-        let clients = [];
-        if (Array.isArray(response)) {
-            // Direct array response
-            clients = response;
-        } else if (response.success && response.data) {
-            // Success wrapper with data
-            clients = response.data;
-        } else if (response.data) {
-            // Just data wrapper
-            clients = response.data;
+        // GetClients API response structure: {success: true, data: [{client: {...}}, ...]}
+        let clientsData = [];
+        if (response && response.success && Array.isArray(response.data)) {
+            clientsData = response.data;
+        } else if (Array.isArray(response)) {
+            // Fallback for direct array response
+            clientsData = response.map(client => ({client: client}));
         } else {
-            // Fallback to response itself
-            clients = response;
-        }
-        
-        if (!clients || clients.length === 0) {
-            $('#client_list').html('<div class="alert alert-info">No clients available. Please create some clients first in the Wireguard Clients section.</div>');
+            console.error('Unexpected API response structure:', response);
+            $('#client_list').html('<div class="alert alert-warning">Unexpected API response structure</div>');
             return;
         }
         
-        clients.forEach(function(clientData) {
-            // Handle both direct client objects and nested client structures
-            const client = clientData.client || clientData;
-            if (client && client.id) {
+        console.log('Processed clients data:', clientsData);
+        
+        if (!clientsData || clientsData.length === 0) {
+            $('#client_list').html('<div class="alert alert-info">No clients available. Please create some clients first in the <a href="/">Wireguard Clients</a> section.</div>');
+            return;
+        }
+        
+        clientsData.forEach(function(clientData) {
+            // ClientData structure has nested client object
+            const client = clientData.client;
+            if (client && client.id && client.name) {
                 const ips = client.allocated_ips || [];
                 const ipStr = Array.isArray(ips) ? ips.join(', ') : (typeof ips === 'string' ? ips : 'N/A');
                 const clientName = client.name || 'Unnamed Client';
@@ -715,22 +715,28 @@ function loadClientList() {
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
                         <label class="form-check-label" for="client_${client.id}">
-                            ${clientName} (${ipStr})
+                            <strong>${clientName}</strong><br>
+                            <small class="text-muted">IPs: ${ipStr}</small>
                         </label>
                     </div>
                 `;
+                console.log('Added client:', clientName, 'with IPs:', ipStr);
+            } else {
+                console.warn('Invalid client data:', clientData);
             }
         });
         
         if (clientHtml === '') {
-            $('#client_list').html('<div class="alert alert-warning">No valid clients found</div>');
+            $('#client_list').html('<div class="alert alert-warning">No valid clients found. Please check if you have created any clients in the <a href="/">Wireguard Clients</a> section.</div>');
         } else {
             $('#client_list').html(clientHtml);
+            console.log('Successfully loaded', clientsData.length, 'clients');
         }
     })
     .fail(function(xhr, status, error) {
         console.error('Failed to load clients:', xhr, status, error);
-        $('#client_list').html('<div class="alert alert-warning">Failed to load clients. Please check if you have created any clients in the Wireguard Clients section.</div>');
+        console.error('Response text:', xhr.responseText);
+        $('#client_list').html('<div class="alert alert-danger">Failed to load clients: ' + (xhr.responseText || error) + '<br>Please check if you have created any clients in the <a href="/">Wireguard Clients</a> section.</div>');
     });
 }
 

@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -549,15 +548,6 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
-	// Check if we're on Windows
-	if runtime.GOOS == "windows" {
-		log.Printf("Starting WireGuard tunnel on Windows: %s", tunnel.Name)
-		// On Windows, we can't use wg-quick directly
-		// For now, just simulate the start and update status
-		log.Printf("Windows WireGuard tunnel simulation: %s started", tunnel.Name)
-		return nil
-	}
-
 	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
 	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
 
@@ -572,15 +562,10 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 	// Create WireGuard config file
 	configPath := filepath.Join("/etc/wireguard", interfaceName+".conf")
 
-	// Check if /etc/wireguard directory exists
+	// Ensure /etc/wireguard directory exists
 	if err := os.MkdirAll("/etc/wireguard", 0700); err != nil {
 		log.Printf("Failed to create /etc/wireguard directory: %v", err)
-		// Try alternative location
-		homeDir, _ := os.UserHomeDir()
-		configPath = filepath.Join(homeDir, ".wireguard", interfaceName+".conf")
-		if err := os.MkdirAll(filepath.Dir(configPath), 0700); err != nil {
-			return fmt.Errorf("failed to create config directory: %v", err)
-		}
+		return fmt.Errorf("failed to create config directory: %v", err)
 	}
 
 	// WireGuard config content
@@ -611,31 +596,25 @@ AllowedIPs = %s`,
 
 	log.Printf("Created WireGuard config: %s", configPath)
 
-	// Try to start the tunnel using wg-quick
-	var cmd *exec.Cmd
-	if os.Getuid() == 0 {
-		// Running as root
-		cmd = exec.Command("wg-quick", "up", interfaceName)
-	} else {
-		// Try with sudo
-		cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
-	}
-
+	// Start the tunnel using wg-quick
+	cmd := exec.Command("wg-quick", "up", interfaceName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
 
-		// Check specific error conditions
+		// Check specific error conditions and provide helpful messages
 		outputStr := string(output)
-		if strings.Contains(outputStr, "Permission denied") {
-			return fmt.Errorf("permission denied: run as root or configure sudo access")
+		if strings.Contains(outputStr, "Permission denied") || strings.Contains(outputStr, "Operation not permitted") {
+			return fmt.Errorf("permission denied: please run vWireguard as root or configure proper sudo permissions")
 		} else if strings.Contains(outputStr, "command not found") {
-			return fmt.Errorf("WireGuard tools not installed")
-		} else if strings.Contains(outputStr, "RTNETLINK answers: Operation not permitted") {
-			return fmt.Errorf("insufficient network permissions: run as root or configure capabilities")
+			return fmt.Errorf("WireGuard tools not installed - please install wireguard-tools package")
+		} else if strings.Contains(outputStr, "already exists") {
+			return fmt.Errorf("tunnel interface already exists - try stopping it first")
+		} else if strings.Contains(outputStr, "Cannot find device") {
+			return fmt.Errorf("network device error - check WireGuard kernel module")
 		}
 
-		return fmt.Errorf("failed to start tunnel: %v, output: %s", err, string(output))
+		return fmt.Errorf("failed to start tunnel: %s", outputStr)
 	}
 
 	log.Printf("Successfully started WireGuard tunnel: %s", interfaceName)
@@ -650,14 +629,6 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
-	// Check if we're on Windows
-	if runtime.GOOS == "windows" {
-		log.Printf("Stopping WireGuard tunnel on Windows: %s", tunnel.Name)
-		// On Windows, just simulate the stop
-		log.Printf("Windows WireGuard tunnel simulation: %s stopped", tunnel.Name)
-		return nil
-	}
-
 	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
 	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
 
@@ -669,20 +640,19 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard tools not installed or not in PATH")
 	}
 
-	// Try to stop the tunnel using wg-quick
-	var cmd *exec.Cmd
-	if os.Getuid() == 0 {
-		// Running as root
-		cmd = exec.Command("wg-quick", "down", interfaceName)
-	} else {
-		// Try with sudo
-		cmd = exec.Command("sudo", "wg-quick", "down", interfaceName)
-	}
-
+	// Stop the tunnel using wg-quick
+	cmd := exec.Command("wg-quick", "down", interfaceName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to stop tunnel %s: %v, Output: %s", interfaceName, err, string(output))
-		return fmt.Errorf("failed to stop tunnel: %v, output: %s", err, string(output))
+
+		// Check specific error conditions
+		outputStr := string(output)
+		if strings.Contains(outputStr, "is not a WireGuard interface") {
+			return fmt.Errorf("tunnel interface not found - it may already be stopped")
+		}
+
+		return fmt.Errorf("failed to stop tunnel: %s", outputStr)
 	}
 
 	log.Printf("Successfully stopped WireGuard tunnel: %s", interfaceName)
