@@ -572,7 +572,6 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 	configContent := fmt.Sprintf(`[Interface]
 PrivateKey = %s
 Address = %s
-ListenPort = 0
 
 [Peer]
 PublicKey = %s
