@@ -103,8 +103,14 @@ function addGlobalStyle(css, id) {
 }
 
 function updateApplyConfigVisibility() {
-    // Always show apply config button
-    $("#apply-config-button").show();
+    // Only show apply config button when there are actual changes pending
+    // This should be called when clients are modified
+    const hasChanges = $('.client-row').length > 0; // Check if there are clients
+    if (hasChanges) {
+        $("#apply-config-button").show();
+    } else {
+        $("#apply-config-button").hide();
+    }
 }
 
 function updateQuotaInput() {
@@ -179,7 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
     updateQuotaInput();
     
     // Update apply config visibility
-    updateApplyConfigVisibility();
+    if (window.location.pathname.includes('/') && !window.location.pathname.includes('/tunnels')) {
+        // Only check for apply config visibility on client pages
+        updateApplyConfigVisibility();
+    } else {
+        // Hide apply config button on non-client pages
+        $("#apply-config-button").hide();
+    }
     
     // Initialize AllowedIPs tag inputs
     $("#client_allowed_ips").tagsInput({

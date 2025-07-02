@@ -373,10 +373,11 @@ $(document).ready(function() {
         loadClientList();
     });
 
-    // Handle client routing selection
+    // Handle client routing radio button changes
     $('input[name="client_routing"]').change(function() {
         if ($(this).val() === 'selected') {
             $('#client_selection').show();
+            loadClientList();
         } else {
             $('#client_selection').hide();
         }
@@ -682,35 +683,54 @@ function loadClientList() {
         let clientHtml = '';
         console.log('Client list response:', response);
         
-        // Handle GetClients API response structure
-        const clients = response.success && response.data ? response.data : [];
+        // Handle different API response structures
+        let clients = [];
+        if (Array.isArray(response)) {
+            // Direct array response
+            clients = response;
+        } else if (response.success && response.data) {
+            // Success wrapper with data
+            clients = response.data;
+        } else if (response.data) {
+            // Just data wrapper
+            clients = response.data;
+        } else {
+            // Fallback to response itself
+            clients = response;
+        }
         
-        if (clients.length === 0) {
-            $('#client_list').html('<div class="alert alert-info">No clients available</div>');
+        if (!clients || clients.length === 0) {
+            $('#client_list').html('<div class="alert alert-info">No clients available. Please create some clients first in the Wireguard Clients section.</div>');
             return;
         }
         
         clients.forEach(function(clientData) {
-            // ClientData structure has nested client object
-            const client = clientData.client;
+            // Handle both direct client objects and nested client structures
+            const client = clientData.client || clientData;
             if (client && client.id) {
                 const ips = client.allocated_ips || [];
-                const ipStr = Array.isArray(ips) ? ips.join(', ') : 'N/A';
+                const ipStr = Array.isArray(ips) ? ips.join(', ') : (typeof ips === 'string' ? ips : 'N/A');
+                const clientName = client.name || 'Unnamed Client';
                 clientHtml += `
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="client_ids" value="${client.id}" id="client_${client.id}">
                         <label class="form-check-label" for="client_${client.id}">
-                            ${client.name} (${ipStr})
+                            ${clientName} (${ipStr})
                         </label>
                     </div>
                 `;
             }
         });
-        $('#client_list').html(clientHtml);
+        
+        if (clientHtml === '') {
+            $('#client_list').html('<div class="alert alert-warning">No valid clients found</div>');
+        } else {
+            $('#client_list').html(clientHtml);
+        }
     })
     .fail(function(xhr, status, error) {
         console.error('Failed to load clients:', xhr, status, error);
-        $('#client_list').html('<div class="alert alert-warning">Failed to load clients</div>');
+        $('#client_list').html('<div class="alert alert-warning">Failed to load clients. Please check if you have created any clients in the Wireguard Clients section.</div>');
     });
 }
 

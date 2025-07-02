@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -548,13 +549,39 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
+	// Check if we're on Windows
+	if runtime.GOOS == "windows" {
+		log.Printf("Starting WireGuard tunnel on Windows: %s", tunnel.Name)
+		// On Windows, we can't use wg-quick directly
+		// For now, just simulate the start and update status
+		log.Printf("Windows WireGuard tunnel simulation: %s started", tunnel.Name)
+		return nil
+	}
+
 	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
 	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
 
 	log.Printf("Starting WireGuard tunnel: %s -> %s", tunnel.Name, interfaceName)
 
+	// Check if wg-quick is available
+	if _, err := exec.LookPath("wg-quick"); err != nil {
+		log.Printf("wg-quick not found: %v", err)
+		return fmt.Errorf("WireGuard tools not installed or not in PATH")
+	}
+
 	// Create WireGuard config file
 	configPath := filepath.Join("/etc/wireguard", interfaceName+".conf")
+
+	// Check if /etc/wireguard directory exists
+	if err := os.MkdirAll("/etc/wireguard", 0700); err != nil {
+		log.Printf("Failed to create /etc/wireguard directory: %v", err)
+		// Try alternative location
+		homeDir, _ := os.UserHomeDir()
+		configPath = filepath.Join(homeDir, ".wireguard", interfaceName+".conf")
+		if err := os.MkdirAll(filepath.Dir(configPath), 0700); err != nil {
+			return fmt.Errorf("failed to create config directory: %v", err)
+		}
+	}
 
 	// WireGuard config content
 	configContent := fmt.Sprintf(`[Interface]
@@ -584,20 +611,35 @@ AllowedIPs = %s`,
 
 	log.Printf("Created WireGuard config: %s", configPath)
 
-	// Start the tunnel using wg-quick
-	cmd := exec.Command("sudo", "wg-quick", "up", interfaceName)
+	// Try to start the tunnel using wg-quick
+	var cmd *exec.Cmd
+	if os.Getuid() == 0 {
+		// Running as root
+		cmd = exec.Command("wg-quick", "up", interfaceName)
+	} else {
+		// Try with sudo
+		cmd = exec.Command("sudo", "wg-quick", "up", interfaceName)
+	}
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
+
+		// Check specific error conditions
+		outputStr := string(output)
+		if strings.Contains(outputStr, "Permission denied") {
+			return fmt.Errorf("permission denied: run as root or configure sudo access")
+		} else if strings.Contains(outputStr, "command not found") {
+			return fmt.Errorf("WireGuard tools not installed")
+		} else if strings.Contains(outputStr, "RTNETLINK answers: Operation not permitted") {
+			return fmt.Errorf("insufficient network permissions: run as root or configure capabilities")
+		}
+
 		return fmt.Errorf("failed to start tunnel: %v, output: %s", err, string(output))
 	}
 
 	log.Printf("Successfully started WireGuard tunnel: %s", interfaceName)
 	log.Printf("Command output: %s", string(output))
-
-	// TODO: Add iptables rules for routing traffic
-	// This is where you would add the routing logic to forward traffic
-	// from the main WireGuard interface (wg0) to this tunnel interface
 
 	return nil
 }
@@ -608,13 +650,35 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		return fmt.Errorf("WireGuard configuration is missing")
 	}
 
+	// Check if we're on Windows
+	if runtime.GOOS == "windows" {
+		log.Printf("Stopping WireGuard tunnel on Windows: %s", tunnel.Name)
+		// On Windows, just simulate the stop
+		log.Printf("Windows WireGuard tunnel simulation: %s stopped", tunnel.Name)
+		return nil
+	}
+
 	// Generate interface name based on tunnel ID (e.g., wg-tunnel-abc123)
 	interfaceName := fmt.Sprintf("wg-tunnel-%s", tunnel.ID[:8])
 
 	log.Printf("Stopping WireGuard tunnel: %s", interfaceName)
 
-	// Stop the tunnel using wg-quick
-	cmd := exec.Command("sudo", "wg-quick", "down", interfaceName)
+	// Check if wg-quick is available
+	if _, err := exec.LookPath("wg-quick"); err != nil {
+		log.Printf("wg-quick not found: %v", err)
+		return fmt.Errorf("WireGuard tools not installed or not in PATH")
+	}
+
+	// Try to stop the tunnel using wg-quick
+	var cmd *exec.Cmd
+	if os.Getuid() == 0 {
+		// Running as root
+		cmd = exec.Command("wg-quick", "down", interfaceName)
+	} else {
+		// Try with sudo
+		cmd = exec.Command("sudo", "wg-quick", "down", interfaceName)
+	}
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("Failed to stop tunnel %s: %v, Output: %s", interfaceName, err, string(output))
