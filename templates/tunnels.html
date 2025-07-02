@@ -219,7 +219,11 @@ Tunnels
                         </div>
                         <div class="form-group">
                             <label for="wg_allowed_ips">Allowed IPs (comma separated)</label>
-                            <input type="text" class="form-control" id="wg_allowed_ips" value="0.0.0.0/0" placeholder="0.0.0.0/0, ::/0">
+                            <input type="text" class="form-control" id="wg_allowed_ips" value="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" placeholder="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16">
+                            <small class="form-text text-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>WARNING:</strong> Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.
+                            </small>
                         </div>
                         
                         <!-- PreShared Key (Optional) -->
@@ -851,38 +855,114 @@ function deleteTunnel(tunnelId) {
 }
 
 function startTunnel(tunnelId) {
+    console.log('Starting tunnel:', tunnelId);
+    
+    // Disable button and show loading
+    const startBtn = event.target;
+    const originalText = startBtn.innerHTML;
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+    
     $.ajax({
         url: '/api/tunnel/' + tunnelId + '/start',
         method: 'POST',
-        contentType: 'application/json'
-    })
-    .done(function(response) {
-        if (response.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + response.message);
+        contentType: 'application/json',
+        timeout: 60000, // 60 seconds timeout
+        beforeSend: function() {
+            console.log('Sending start tunnel request...');
         }
     })
-    .fail(function() {
-        alert('Error starting tunnel');
+    .done(function(response) {
+        console.log('Start tunnel response:', response);
+        if (response.success) {
+            alert('Tunnel started successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (response.message || 'Unknown error'));
+        }
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Start tunnel failed:', {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText,
+            error: error
+        });
+        
+        let errorMessage = 'Error starting tunnel';
+        if (status === 'timeout') {
+            errorMessage = 'Request timeout - tunnel start is taking too long';
+        } else if (xhr.responseText) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.message || errorMessage;
+            } catch(e) {
+                errorMessage = xhr.responseText || errorMessage;
+            }
+        }
+        
+        alert(errorMessage);
+    })
+    .always(function() {
+        // Re-enable button
+        startBtn.disabled = false;
+        startBtn.innerHTML = originalText;
     });
 }
 
 function stopTunnel(tunnelId) {
+    console.log('Stopping tunnel:', tunnelId);
+    
+    // Disable button and show loading
+    const stopBtn = event.target;
+    const originalText = stopBtn.innerHTML;
+    stopBtn.disabled = true;
+    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+    
     $.ajax({
         url: '/api/tunnel/' + tunnelId + '/stop',
         method: 'POST',
-        contentType: 'application/json'
-    })
-    .done(function(response) {
-        if (response.success) {
-            location.reload();
-        } else {
-            alert('Error: ' + response.message);
+        contentType: 'application/json',
+        timeout: 30000, // 30 seconds timeout
+        beforeSend: function() {
+            console.log('Sending stop tunnel request...');
         }
     })
-    .fail(function() {
-        alert('Error stopping tunnel');
+    .done(function(response) {
+        console.log('Stop tunnel response:', response);
+        if (response.success) {
+            alert('Tunnel stopped successfully!');
+            location.reload();
+        } else {
+            alert('Error: ' + (response.message || 'Unknown error'));
+        }
+    })
+    .fail(function(xhr, status, error) {
+        console.error('Stop tunnel failed:', {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText,
+            error: error
+        });
+        
+        let errorMessage = 'Error stopping tunnel';
+        if (status === 'timeout') {
+            errorMessage = 'Request timeout - tunnel stop is taking too long';
+        } else if (xhr.responseText) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.message || errorMessage;
+            } catch(e) {
+                errorMessage = xhr.responseText || errorMessage;
+            }
+        }
+        
+        alert(errorMessage);
+    })
+    .always(function() {
+        // Re-enable button
+        stopBtn.disabled = false;
+        stopBtn.innerHTML = originalText;
     });
 }
 

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -575,11 +576,17 @@ func startWireGuardTunnel(tunnel model.Tunnel) error {
 	if len(tunnel.WGConfig.AllowedIPs) > 0 {
 		// اگه user مقدار خاصی تنظیم کرده، اولش چک کن که خطرناک نباشه
 		allowedIPsStr := strings.Join(tunnel.WGConfig.AllowedIPs, ", ")
-		if strings.Contains(allowedIPsStr, "0.0.0.0/0") {
-			log.Printf("Warning: Using 0.0.0.0/0 in AllowedIPs - this may disconnect server")
-			// برای امنیت، به جای 0.0.0.0/0 از split routing استفاده کن
-			safeAllowedIPs = "1.0.0.0/8,2.0.0.0/7,4.0.0.0/6,8.0.0.0/5,16.0.0.0/4,32.0.0.0/3,64.0.0.0/2,128.0.0.0/1"
+		if strings.Contains(allowedIPsStr, "0.0.0.0/0") || strings.Contains(allowedIPsStr, "::/0") {
+			log.Printf("ERROR: Dangerous routing detected! User tried to use 0.0.0.0/0 which would disconnect server")
+			log.Printf("Automatically using safe private networks instead: %s", safeAllowedIPs)
+			// برای امنیت کامل، فقط private networks استفاده میکنیم
+			// اگه user واقعاً global routing میخواد، باید manual تنظیم کنه
+		} else if strings.Contains(allowedIPsStr, "1.0.0.0") || strings.Contains(allowedIPsStr, "8.8.8.8") {
+			// اگه public IP ranges داره، هشدار بده
+			log.Printf("Warning: Public IP ranges detected in AllowedIPs - using private networks for safety")
+			// Private networks فقط
 		} else {
+			// فقط اگه safe باشه، استفاده کن
 			safeAllowedIPs = allowedIPsStr
 		}
 	}
@@ -620,11 +627,48 @@ AllowedIPs = %s`,
 	lsOutput, _ := lsCmd.CombinedOutput()
 	log.Printf("Config file details: %s", string(lsOutput))
 
+	// Check if config file exists and is readable
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		return fmt.Errorf("configuration file does not exist: %s", configPath)
+	}
+
+	// Validate config file syntax
+	validateCmd := exec.Command("wg-quick", "strip", interfaceName)
+	validateCmd.Dir = "/etc/wireguard"
+	validateOutput, err := validateCmd.CombinedOutput()
+	if err != nil {
+		log.Printf("Config validation failed for %s: %v, Output: %s", interfaceName, err, string(validateOutput))
+		return fmt.Errorf("invalid WireGuard configuration: %s", string(validateOutput))
+	}
+
+	log.Printf("Config validation passed for %s", interfaceName)
+
+	// Check if interface is already active
+	wgShowCmd := exec.Command("wg", "show", interfaceName)
+	if wgShowCmd.Run() == nil {
+		log.Printf("Interface %s is already active", interfaceName)
+		return fmt.Errorf("tunnel interface %s is already active", interfaceName)
+	}
+
 	// Start the tunnel using wg-quick with interface name in /etc/wireguard directory
 	cmd := exec.Command("wg-quick", "up", interfaceName)
 	cmd.Dir = "/etc/wireguard" // Set working directory to /etc/wireguard
-	output, err := cmd.CombinedOutput()
+
+	// Add timeout to prevent hanging
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+
+	// Use CommandContext for timeout
+	cmdWithTimeout := exec.CommandContext(ctx, "wg-quick", "up", interfaceName)
+	cmdWithTimeout.Dir = "/etc/wireguard"
+
+	output, err := cmdWithTimeout.CombinedOutput()
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			log.Printf("Tunnel start timeout for %s", interfaceName)
+			return fmt.Errorf("tunnel start timeout - check WireGuard configuration")
+		}
+
 		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
 
 		// چک کنیم فایل واقعاً اونجا هست
@@ -661,10 +705,18 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 	}
 
 	// Stop the tunnel using wg-quick with interface name in /etc/wireguard directory
-	cmd := exec.Command("wg-quick", "down", interfaceName)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "wg-quick", "down", interfaceName)
 	cmd.Dir = "/etc/wireguard" // Set working directory to /etc/wireguard
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			log.Printf("Tunnel stop timeout for %s", interfaceName)
+			return fmt.Errorf("tunnel stop timeout")
+		}
+
 		log.Printf("Failed to stop tunnel %s: %v, Output: %s", interfaceName, err, string(output))
 
 		// Check specific error conditions
