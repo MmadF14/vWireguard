@@ -424,6 +424,74 @@
 
 {{define "bottom_js"}}
 <script>
+// Force translation for tunnels page
+function forceTranslateTunnels() {
+    console.log('Force translating tunnels page...');
+    
+    // Direct translation mapping
+    const directTranslations = {
+        'Tunnels': 'تانل‌ها',
+        'New Tunnel': 'تانل جدید',
+        'Cleanup': 'پاکسازی',
+        'Tunnel Routing Setup Required': 'تنظیم مسیریابی تانل مورد نیاز است',
+        'Important Notes': 'نکات مهم',
+        'Type': 'نوع',
+        'Remote': 'راه دور',
+        'Tunnel IP': 'آی‌پی تانل',
+        'Target': 'هدف',
+        'Protocol': 'پروتکل',
+        'Clients': 'کلاینت‌ها',
+        'All Clients': 'همه کلاینت‌ها',
+        'Selected': 'انتخاب شده',
+        'In': 'ورودی',
+        'Out': 'خروجی',
+        'Last seen': 'آخرین بازدید',
+        'Never': 'هرگز',
+        'Stop': 'توقف',
+        'Start': 'شروع',
+        'Edit': 'ویرایش',
+        'Delete': 'حذف',
+        'Tunnel Name': 'نام تانل',
+        'Tunnel Type': 'نوع تانل',
+        'Select tunnel type': 'نوع تانل را انتخاب کنید',
+        'WireGuard to WireGuard': 'WireGuard به WireGuard',
+        'Description (Optional)': 'توضیحات (اختیاری)',
+        'Client Routing': 'مسیریابی کلاینت',
+        'Route all clients through this tunnel': 'همه کلاینت‌ها را از طریق این تانل مسیریابی کن',
+        'Route only selected clients': 'فقط کلاینت‌های انتخاب شده را مسیریابی کن',
+        'Select Clients': 'انتخاب کلاینت‌ها',
+        'Cancel': 'لغو',
+        'Create Tunnel': 'ایجاد تانل',
+        'Manage network tunnels and routing': 'مدیریت تانل‌های شبکه و مسیریابی'
+    };
+    
+    // Apply translations
+    document.querySelectorAll('[data-translate]').forEach(element => {
+        const key = element.getAttribute('data-translate');
+        if (directTranslations[key]) {
+            element.textContent = directTranslations[key];
+        }
+    });
+    
+    // Also translate specific text content
+    document.querySelectorAll('*').forEach(element => {
+        if (element.children.length === 0 && element.textContent.trim()) {
+            const text = element.textContent.trim();
+            if (directTranslations[text]) {
+                element.textContent = directTranslations[text];
+            }
+        }
+    });
+}
+
+// Run translation when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(forceTranslateTunnels, 100);
+    setTimeout(forceTranslateTunnels, 500);
+    setTimeout(forceTranslateTunnels, 1000);
+});
+</script>
+<script>
 $(document).ready(function() {
     // Load client list on modal open
     $('#modal_new_tunnel').on('shown.bs.modal', function() {

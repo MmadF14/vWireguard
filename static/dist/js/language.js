@@ -1,6 +1,6 @@
 class LanguageManager {
     constructor() {
-        this.currentLang = localStorage.getItem('language') || 'en';
+        this.currentLang = localStorage.getItem('language') || 'fa';
         this.translations = translations;
         this.init();
     }

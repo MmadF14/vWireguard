@@ -34,6 +34,26 @@
     <script src="{{.basePath}}/static/dist/js/translations.js"></script>
     <script src="{{.basePath}}/static/dist/js/language.js"></script>
     
+    <!-- Debug Script -->
+    <script>
+        console.log('Base.html loaded, checking translations...');
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, translations object:', typeof translations !== 'undefined' ? translations : 'NOT FOUND');
+            console.log('Language manager:', typeof window.langManager !== 'undefined' ? window.langManager : 'NOT FOUND');
+            
+            // Force translation test
+            setTimeout(function() {
+                console.log('Running force translation test...');
+                if (window.langManager) {
+                    console.log('Current language:', window.langManager.currentLang);
+                    window.langManager.forceRetranslate();
+                } else {
+                    console.error('Language manager not found!');
+                }
+            }, 2000);
+        });
+    </script>
+    
     <!-- Performance Optimization -->
     <script>
         // Lazy load images
