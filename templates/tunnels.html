@@ -59,10 +59,10 @@
             <div class="col-sm-6">
                 <div class="float-right">
                     <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
-                        <i class="fas fa-plus"></i> <span data-translate="New Tunnel">تانل جدید</span>
+                        <i class="fas fa-plus"></i> <span data-translate="New Tunnel">New Tunnel</span>
                     </button>
                     <button type="button" class="btn btn-warning ml-2" data-toggle="modal" data-target="#modal_cleanup_tunnels">
-                        <i class="fas fa-broom"></i> <span data-translate="Cleanup">پاکسازی</span>
+                        <i class="fas fa-broom"></i> <span data-translate="Cleanup">Cleanup</span>
                     </button>
                 </div>
             </div>
@@ -79,25 +79,25 @@
                         </div>
                         <div class="card-body">
                             <p class="card-text">
-                                <strong data-translate="Type">نوع:</strong> {{.Type}}<br>
+                                <strong data-translate="Type">Type:</strong> {{.Type}}<br>
                                 {{if eq .Type "wg-to-wg"}}
                                     {{if .WGConfig}}
-                                        <strong data-translate="Remote">راه دور:</strong> {{.WGConfig.RemoteEndpoint}}<br>
-                                        <strong data-translate="Tunnel IP">آی‌پی تانل:</strong> {{.WGConfig.TunnelIP}}
+                                        <strong data-translate="Remote">Remote:</strong> {{.WGConfig.RemoteEndpoint}}<br>
+                                        <strong data-translate="Tunnel IP">Tunnel IP:</strong> {{.WGConfig.TunnelIP}}
                                     {{end}}
                                 {{else if eq .Type "wg-to-dokodemo"}}
                                     {{if .DokodemoConfig}}
-                                        <strong data-translate="Target">هدف:</strong> {{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}<br>
-                                        <strong data-translate="Protocol">پروتکل:</strong> {{.DokodemoConfig.Network}}
+                                        <strong data-translate="Target">Target:</strong> {{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}<br>
+                                        <strong data-translate="Protocol">Protocol:</strong> {{.DokodemoConfig.Network}}
                                     {{end}}
                                 {{else if eq .Type "port-forward"}}
                                     {{if .PortForwardConfig}}
-                                        <strong data-translate="Protocol">پروتکل:</strong> {{.PortForwardConfig.Protocol}}<br>
-                                        <strong data-translate="Target">هدف:</strong> {{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}
+                                        <strong data-translate="Protocol">Protocol:</strong> {{.PortForwardConfig.Protocol}}<br>
+                                        <strong data-translate="Target">Target:</strong> {{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}
                                     {{end}}
                                 {{end}}
-                                <strong data-translate="Clients">کلاینت‌ها:</strong> 
-                                {{if .RouteAll}}<span data-translate="All Clients">همه کلاینت‌ها</span>{{else}}{{len .ClientIDs}} <span data-translate="Selected">انتخاب شده</span>{{end}}
+                                <strong data-translate="Clients">Clients:</strong> 
+                                {{if .RouteAll}}<span data-translate="All Clients">All Clients</span>{{else}}{{len .ClientIDs}} <span data-translate="Selected">Selected</span>{{end}}
                             </p>
                             {{if .Description}}
                             <p class="text-muted">{{.Description}}</p>
@@ -107,13 +107,13 @@
                             <div class="row mt-2">
                                 <div class="col-6">
                                     <small class="text-muted">
-                                        <i class="fas fa-download"></i> <span data-translate="In">ورودی</span>: 
+                                        <i class="fas fa-download"></i> <span data-translate="In">In</span>: 
                                         <span class="text-success" data-tunnel-id="{{.ID}}" data-stat="bytes_in">{{.BytesIn | formatBytes}}</span>
                                     </small>
                                 </div>
                                 <div class="col-6">
                                     <small class="text-muted">
-                                        <i class="fas fa-upload"></i> <span data-translate="Out">خروجی</span>: 
+                                        <i class="fas fa-upload"></i> <span data-translate="Out">Out</span>: 
                                         <span class="text-primary" data-tunnel-id="{{.ID}}" data-stat="bytes_out">{{.BytesOut | formatBytes}}</span>
                                     </small>
                                 </div>
@@ -122,8 +122,8 @@
                             <div class="row mt-1">
                                 <div class="col-12">
                                     <small class="text-muted">
-                                        <i class="fas fa-clock"></i> <span data-translate="Last seen">آخرین بازدید</span>: 
-                                        <span data-tunnel-id="{{.ID}}" data-stat="last_seen">{{if .LastSeen.IsZero}}<span data-translate="Never">هرگز</span>{{else}}{{.LastSeen.Format "2006-01-02 15:04:05"}}{{end}}</span>
+                                        <i class="fas fa-clock"></i> <span data-translate="Last seen">Last seen</span>: 
+                                        <span data-tunnel-id="{{.ID}}" data-stat="last_seen">{{if .LastSeen.IsZero}}<span data-translate="Never">Never</span>{{else}}{{.LastSeen.Format "2006-01-02 15:04:05"}}{{end}}</span>
                                     </small>
                                 </div>
                             </div>
@@ -132,11 +132,11 @@
                         <div class="card-footer">
                             {{if eq .Status "active"}}
                             <button class="btn btn-sm btn-warning mr-2" onclick="stopTunnel('{{.ID}}')">
-                                <i class="fas fa-stop"></i> <span data-translate="Stop">توقف</span>
+                                <i class="fas fa-stop"></i> <span data-translate="Stop">Stop</span>
                             </button>
                             {{else}}
                             <button class="btn btn-sm btn-success mr-2" onclick="startTunnel('{{.ID}}')">
-                                <i class="fas fa-play"></i> <span data-translate="Start">شروع</span>
+                                <i class="fas fa-play"></i> <span data-translate="Start">Start</span>
                             </button>
                             {{end}}
                             {{if eq .Status "active"}}
@@ -172,7 +172,7 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" data-translate="New Tunnel">تانل جدید</h4>
+                                        <h4 class="modal-title" data-translate="New Tunnel">New Tunnel</h4>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
@@ -181,42 +181,42 @@
                 <div class="modal-body">
                     <!-- Basic Information -->
                     <div class="form-group">
-                        <label for="tunnel_name" data-translate="Tunnel Name">نام تانل</label>
+                        <label for="tunnel_name" data-translate="Tunnel Name">Tunnel Name</label>
                         <input type="text" class="form-control" id="tunnel_name" name="name" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="tunnel_type" data-translate="Tunnel Type">نوع تانل</label>
+                        <label for="tunnel_type" data-translate="Tunnel Type">Tunnel Type</label>
                         <select class="form-control" id="tunnel_type" name="type" required onchange="showTunnelConfig()">
-                            <option value="" data-translate="Select tunnel type">نوع تانل را انتخاب کنید</option>
-                            <option value="wg-to-wg" data-translate="WireGuard to WireGuard">WireGuard به WireGuard</option>
+                            <option value="" data-translate="Select tunnel type">Select tunnel type</option>
+                            <option value="wg-to-wg" data-translate="WireGuard to WireGuard">WireGuard to WireGuard</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="description" data-translate="Description (Optional)">توضیحات (اختیاری)</label>
+                        <label for="description" data-translate="Description (Optional)">Description (Optional)</label>
                         <textarea class="form-control" id="description" name="description" rows="2"></textarea>
                     </div>
 
                     <!-- Client Selection -->
                     <div class="form-group">
-                        <label data-translate="Client Routing">مسیریابی کلاینت</label>
+                        <label data-translate="Client Routing">Client Routing</label>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="client_routing" id="route_all" value="all" checked>
                             <label class="form-check-label" for="route_all" data-translate="Route all clients through this tunnel">
-                                همه کلاینت‌ها را از طریق این تانل مسیریابی کن
+                                Route all clients through this tunnel
                             </label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="client_routing" id="route_selected" value="selected">
                             <label class="form-check-label" for="route_selected" data-translate="Route only selected clients">
-                                فقط کلاینت‌های انتخاب شده را مسیریابی کن
+                                Route only selected clients
                             </label>
                         </div>
                     </div>
 
                     <div class="form-group" id="client_selection" style="display:none;">
-                        <label data-translate="Select Clients">انتخاب کلاینت‌ها</label>
+                        <label data-translate="Select Clients">Select Clients</label>
                         <div id="client_list">
                             <!-- Will be populated via AJAX -->
                         </div>
