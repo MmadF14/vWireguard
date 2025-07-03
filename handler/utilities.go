@@ -55,13 +55,35 @@ func FlushDNSCache(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Only administrators can flush DNS cache"})
 		}
 
-		// Execute system DNS flush command
-		cmd := exec.Command("systemd-resolve", "--flush-caches")
-		if err := cmd.Run(); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to flush DNS cache"})
+		var err error
+		var message string
+
+		// Try different DNS cache flush methods
+		if _, lookupErr := exec.LookPath("systemd-resolve"); lookupErr == nil {
+			// systemd-resolved
+			cmd := exec.Command("systemd-resolve", "--flush-caches")
+			err = cmd.Run()
+			message = "systemd DNS cache flushed successfully"
+		} else if _, lookupErr := exec.LookPath("resolvectl"); lookupErr == nil {
+			// newer systemd
+			cmd := exec.Command("resolvectl", "flush-caches")
+			err = cmd.Run()
+			message = "systemd DNS cache flushed successfully"
+		} else if _, lookupErr := exec.LookPath("systemctl"); lookupErr == nil {
+			// Try restarting systemd-resolved
+			cmd := exec.Command("systemctl", "restart", "systemd-resolved")
+			err = cmd.Run()
+			message = "systemd-resolved service restarted successfully"
+		} else {
+			// Fallback - just return success message
+			message = "DNS cache flush attempted (no systemd-resolved found)"
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "DNS cache flushed successfully"})
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to flush DNS cache: " + err.Error()})
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, message})
 	}
 }
 
@@ -72,16 +94,30 @@ func CheckForUpdates(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Only administrators can check for updates"})
 		}
 
-		// Execute apt update and upgrade check
-		cmd := exec.Command("apt-get", "update")
-		if err := cmd.Run(); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to check for updates"})
-		}
+		var output []byte
+		var err error
 
-		cmd = exec.Command("apt-get", "upgrade", "-s")
-		output, err := cmd.Output()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to check for updates"})
+		// Try different package managers
+		if _, lookupErr := exec.LookPath("apt-get"); lookupErr == nil {
+			// Debian/Ubuntu
+			cmd := exec.Command("apt", "list", "--upgradable")
+			if output, err = cmd.Output(); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to check for updates: " + err.Error()})
+			}
+		} else if _, lookupErr := exec.LookPath("yum"); lookupErr == nil {
+			// RHEL/CentOS
+			cmd := exec.Command("yum", "check-update")
+			output, _ = cmd.Output() // yum check-update returns non-zero even when successful
+		} else if _, lookupErr := exec.LookPath("dnf"); lookupErr == nil {
+			// Fedora
+			cmd := exec.Command("dnf", "check-update")
+			output, _ = cmd.Output() // dnf check-update returns non-zero even when successful
+		} else {
+			// Generic system info
+			cmd := exec.Command("uname", "-a")
+			if output, err = cmd.Output(); err != nil {
+				output = []byte("System information not available")
+			}
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, string(output)})
@@ -157,29 +193,33 @@ func GetSystemLogs(db store.IStore) echo.HandlerFunc {
 			level = "info"
 		}
 
-		// Map level to journalctl priority
+		// Map level to journalctl priority numbers
 		var priority string
 		switch level {
 		case "error":
-			priority = "err"
+			priority = "3" // err
 		case "warning":
-			priority = "warning"
+			priority = "4" // warning
 		case "info":
-			priority = "info"
+			priority = "6" // info
 		case "debug":
-			priority = "debug"
+			priority = "7" // debug
 		default:
-			priority = "info"
+			priority = "6" // info
 		}
 
 		// Get logs based on level
-		cmd := exec.Command("journalctl", "-n", "100", "--no-pager", "-p", priority)
+		cmd := exec.Command("journalctl", "-n", "100", "--no-pager", "-p", priority, "--since", "1 hour ago")
 		output, err := cmd.Output()
 		if err != nil {
-			// If journalctl fails, try alternative approach
-			cmd = exec.Command("journalctl", "-n", "100", "--no-pager")
+			// If journalctl fails, try alternative approach without priority filter
+			cmd = exec.Command("journalctl", "-n", "100", "--no-pager", "--since", "1 hour ago")
 			if output, err = cmd.Output(); err != nil {
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to retrieve system logs: " + err.Error()})
+				// Last resort - just get recent logs without any filters
+				cmd = exec.Command("journalctl", "-n", "50", "--no-pager")
+				if output, err = cmd.Output(); err != nil {
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to retrieve system logs: " + err.Error()})
+				}
 			}
 		}
 

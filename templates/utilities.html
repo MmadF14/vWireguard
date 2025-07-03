@@ -133,55 +133,75 @@ $(document).ready(function() {
     // Button click handlers
     $('#restart-service').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        $.post(basePath + '/api/utilities/restart-service')
-            .done(function(response) {
-                if (response.success) {
-                    showSuccess(response.message);
-                } else {
-                    showError(response.message);
-                }
-            })
-            .fail(function(xhr, status, error) {
-                console.error('Failed to restart service:', xhr.responseText);
-                showError('Failed to restart service: ' + error);
-            });
+        $.ajax({
+            url: basePath + '/api/utilities/restart-service',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({})
+        })
+        .done(function(response) {
+            if (response.success) {
+                showSuccess(response.message);
+            } else {
+                showError(response.message);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.error('Failed to restart service:', xhr.responseText);
+            showError('Failed to restart service: ' + error);
+        });
     });
 
     $('#flush-dns').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        $.post(basePath + '/api/utilities/flush-dns')
-            .done(function(response) {
-                if (response.success) {
-                    showSuccess(response.message);
-                } else {
-                    showError(response.message);
-                }
-            })
-            .fail(function(xhr, status, error) {
-                console.error('Failed to flush DNS cache:', xhr.responseText);
-                showError('Failed to flush DNS cache: ' + error);
-            });
+        $.ajax({
+            url: basePath + '/api/utilities/flush-dns',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({})
+        })
+        .done(function(response) {
+            if (response.success) {
+                showSuccess(response.message);
+            } else {
+                showError(response.message);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.error('Failed to flush DNS cache:', xhr.responseText);
+            showError('Failed to flush DNS cache: ' + error);
+        });
     });
 
     $('#check-updates').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        $.post(basePath + '/api/utilities/check-updates')
-            .done(function(response) {
-                if (response.success) {
-                    showSuccess(response.message);
-                } else {
-                    showError(response.message);
-                }
-            })
-            .fail(function(xhr, status, error) {
-                console.error('Failed to check for updates:', xhr.responseText);
-                showError('Failed to check for updates: ' + error);
-            });
+        $.ajax({
+            url: basePath + '/api/utilities/check-updates',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({})
+        })
+        .done(function(response) {
+            if (response.success) {
+                showSuccess(response.message);
+            } else {
+                showError(response.message);
+            }
+        })
+        .fail(function(xhr, status, error) {
+            console.error('Failed to check for updates:', xhr.responseText);
+            showError('Failed to check for updates: ' + error);
+        });
     });
 
     $('#generate-report').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        $.post(basePath + '/api/utilities/generate-report')
+        $.ajax({
+            url: basePath + '/api/utilities/generate-report',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({})
+        })
             .done(function(response) {
                 if (response.success) {
                     // Create a formatted report
@@ -226,19 +246,24 @@ $(document).ready(function() {
     $('#clear-logs').click(function() {
         if (confirm(window.langManager.translate('Are you sure you want to clear all logs?'))) {
             const basePath = '{{.basePath}}' || window.basePath || '';
-            $.post(basePath + '/api/utilities/clear-logs')
-                .done(function(response) {
-                    if (response.success) {
-                        showSuccess(response.message);
-                        refreshLogs();
-                    } else {
-                        showError(response.message);
-                    }
-                })
-                .fail(function(xhr, status, error) {
-                    console.error('Failed to clear logs:', xhr.responseText);
-                    showError('Failed to clear logs: ' + error);
-                });
+            $.ajax({
+                url: basePath + '/api/utilities/clear-logs',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({})
+            })
+            .done(function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    refreshLogs();
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Failed to clear logs:', xhr.responseText);
+                showError('Failed to clear logs: ' + error);
+            });
         }
     });
 
