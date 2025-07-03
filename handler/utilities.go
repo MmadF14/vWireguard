@@ -97,30 +97,53 @@ func CheckForUpdates(db store.IStore) echo.HandlerFunc {
 		var output []byte
 		var err error
 
+		var message string
+
 		// Try different package managers
-		if _, lookupErr := exec.LookPath("apt-get"); lookupErr == nil {
-			// Debian/Ubuntu
+		if _, lookupErr := exec.LookPath("apt"); lookupErr == nil {
+			// Debian/Ubuntu - Check for available package updates
+			message = "Checking for available package updates on Debian/Ubuntu system...\n\n"
 			cmd := exec.Command("apt", "list", "--upgradable")
 			if output, err = cmd.Output(); err != nil {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to check for updates: " + err.Error()})
 			}
+			if len(output) > 0 {
+				message += string(output)
+			} else {
+				message += "No package updates available."
+			}
 		} else if _, lookupErr := exec.LookPath("yum"); lookupErr == nil {
-			// RHEL/CentOS
+			// RHEL/CentOS - Check for available package updates
+			message = "Checking for available package updates on RHEL/CentOS system...\n\n"
 			cmd := exec.Command("yum", "check-update")
 			output, _ = cmd.Output() // yum check-update returns non-zero even when successful
+			if len(output) > 0 {
+				message += string(output)
+			} else {
+				message += "No package updates available."
+			}
 		} else if _, lookupErr := exec.LookPath("dnf"); lookupErr == nil {
-			// Fedora
+			// Fedora - Check for available package updates
+			message = "Checking for available package updates on Fedora system...\n\n"
 			cmd := exec.Command("dnf", "check-update")
 			output, _ = cmd.Output() // dnf check-update returns non-zero even when successful
+			if len(output) > 0 {
+				message += string(output)
+			} else {
+				message += "No package updates available."
+			}
 		} else {
-			// Generic system info
+			// Generic system info when no package manager found
+			message = "Package manager not found. Showing system information instead:\n\n"
 			cmd := exec.Command("uname", "-a")
 			if output, err = cmd.Output(); err != nil {
-				output = []byte("System information not available")
+				message += "System information not available"
+			} else {
+				message += string(output)
 			}
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, string(output)})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, message})
 	}
 }
 
@@ -197,15 +220,11 @@ func GetSystemLogs(db store.IStore) echo.HandlerFunc {
 		var priority string
 		switch level {
 		case "error":
-			priority = "3" // err
-		case "warning":
-			priority = "4" // warning
+			priority = "3" // err and crit only
 		case "info":
-			priority = "6" // info
-		case "debug":
-			priority = "7" // debug
+			priority = "6" // info and above (includes warning, err, crit)
 		default:
-			priority = "6" // info
+			priority = "6" // info and above
 		}
 
 		// Get logs based on level
@@ -234,12 +253,30 @@ func ClearSystemLogs(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Only administrators can clear system logs"})
 		}
 
-		// Clear system logs
-		cmd := exec.Command("journalctl", "--vacuum-time=1s")
-		if err := cmd.Run(); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to clear system logs"})
+		var err error
+		var message string
+
+		// Try multiple approaches to clear logs
+		// Method 1: Clear logs older than 1 day
+		cmd := exec.Command("journalctl", "--vacuum-time=1d")
+		if err = cmd.Run(); err == nil {
+			message = "System logs older than 1 day cleared successfully"
+		} else {
+			// Method 2: Keep only last 100MB of logs
+			cmd = exec.Command("journalctl", "--vacuum-size=100M")
+			if err = cmd.Run(); err == nil {
+				message = "System logs trimmed to 100MB successfully"
+			} else {
+				// Method 3: Rotate logs
+				cmd = exec.Command("systemctl", "kill", "--kill-who=main", "--signal=SIGUSR2", "systemd-journald.service")
+				if err = cmd.Run(); err == nil {
+					message = "System logs rotated successfully"
+				} else {
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to clear system logs: " + err.Error()})
+				}
+			}
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "System logs cleared successfully"})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, message})
 	}
 }
