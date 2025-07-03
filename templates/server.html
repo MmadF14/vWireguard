@@ -165,10 +165,17 @@
             const post_up = $("#post_up").val();
             const pre_down = $("#pre_down").val();
             const post_down = $("#post_down").val();
-            const check_interval = parseInt($("#check_interval").val(), 10);
-            const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": check_interval};
+            const check_interval_val = $("#check_interval").val();
+            const check_interval = parseInt(check_interval_val, 10);
+            // Make sure check_interval is valid, default to 1 if not
+            const final_check_interval = isNaN(check_interval) ? 1 : check_interval;
+            const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": final_check_interval};
 
             console.log('Submitting server interface data:', data);
+            console.log('Check interval raw value:', check_interval_val);
+            console.log('Check interval parsed:', check_interval);
+            console.log('Check interval is NaN?', isNaN(check_interval));
+            console.log('Final check interval:', final_check_interval);
 
             $.ajax({
                 cache: false,
@@ -182,17 +189,34 @@
                     // Reset button state first
                     submitBtn.prop('disabled', false);
                     submitBtn.html('<span data-translate="Save">Save</span>');
-                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
+                    if (window.langManager && window.langManager.translateElement) {
+                        window.langManager.translateElement(submitBtn.find('[data-translate]'));
+                    }
                     
-                    // Show success message
-                    if(response.success !== false) {
-                        toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
+                    // Show success message - always show success unless explicitly failed
+                    if(response && response.success === false) {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error(response.message || window.langManager.translate('Unknown error'));
+                        } else {
+                            console.error('toastr is not defined');
+                            alert('Error: ' + (response.message || 'Unknown error'));
+                        }
+                    } else {
+                        // Show success message
+                        console.log('Showing success message');
+                        if (typeof toastr !== 'undefined') {
+                            const successMessage = (window.langManager && window.langManager.translate) ? 
+                                window.langManager.translate('Updated Wireguard server interface addresses successfully') : 
+                                'Settings updated successfully!';
+                            toastr.success(successMessage);
+                        } else {
+                            console.error('toastr is not defined');
+                            alert('Settings updated successfully!');
+                        }
                         // Reload the page to show updated values
                         setTimeout(function() {
                             window.location.reload();
                         }, 1500);
-                    } else {
-                        toastr.error(response.message || window.langManager.translate('Unknown error'));
                     }
                 },
                 error: function(jqXHR, exception) {
@@ -200,7 +224,9 @@
                     // Reset button state
                     submitBtn.prop('disabled', false);
                     submitBtn.html('<span data-translate="Save">Save</span>');
-                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
+                    if (window.langManager && window.langManager.translateElement) {
+                        window.langManager.translateElement(submitBtn.find('[data-translate]'));
+                    }
                     
                     let errorMessage = 'An error occurred';
                     try {
@@ -209,7 +235,12 @@
                     } catch(e) {
                         console.error('Error parsing response:', e);
                     }
-                    toastr.error(window.langManager.translate(errorMessage));
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(window.langManager.translate(errorMessage));
+                    } else {
+                        console.error('toastr is not defined');
+                        alert('Error: ' + errorMessage);
+                    }
                 }
             });
         }
