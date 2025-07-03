@@ -67,7 +67,7 @@
                         <!-- /.card-body -->
 
                         <div class="card-footer">
-                            <button type="submit" class="btn btn-success" data-translate="Save">Save</button>
+                            <button type="submit" class="btn btn-success" data-translate="Save" onclick="console.log('Save button clicked')">Save</button>
                         </div>
                     </form>
                 </div>
@@ -143,14 +143,20 @@
 {{define "bottom_js"}}
     <script>
         function submitServerInterfaceSetting() {
+            console.log('submitServerInterfaceSetting called');
+            
             // Show loading state
             const submitBtn = $('#frm_server_interface button[type="submit"]');
             const originalText = submitBtn.html();
+            console.log('Original button text:', originalText);
+            
             submitBtn.prop('disabled', true);
-            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">در حال پردازش...</span>');
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
             
             // Apply translation to processing text
-            window.langManager.translateElement(submitBtn.find('[data-translate]'));
+            if (window.langManager && window.langManager.translateElement) {
+                window.langManager.translateElement(submitBtn.find('[data-translate]'));
+            }
             
             const addresses = $("#addresses").val()
                 .split(',')
@@ -173,21 +179,27 @@
                 data: JSON.stringify(data),
                 success: function(response) {
                     console.log('Server interface updated successfully:', response);
-                    toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
-                    // Reset button state
+                    // Reset button state first
                     submitBtn.prop('disabled', false);
-                    submitBtn.html('<span data-translate="Save">ذخیره</span>');
+                    submitBtn.html('<span data-translate="Save">Save</span>');
                     window.langManager.translateElement(submitBtn.find('[data-translate]'));
-                    // Reload the page to show updated values
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 1500);
+                    
+                    // Show success message
+                    if(response.success !== false) {
+                        toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
+                        // Reload the page to show updated values
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        toastr.error(response.message || window.langManager.translate('Unknown error'));
+                    }
                 },
                 error: function(jqXHR, exception) {
                     console.error('Error updating server interface:', jqXHR, exception);
                     // Reset button state
                     submitBtn.prop('disabled', false);
-                    submitBtn.html('<span data-translate="Save">ذخیره</span>');
+                    submitBtn.html('<span data-translate="Save">Save</span>');
                     window.langManager.translateElement(submitBtn.find('[data-translate]'));
                     
                     let errorMessage = 'An error occurred';
@@ -204,15 +216,29 @@
     </script>
     <script>
         // Wireguard Interface Addresses tag input
-        $("#addresses").tagsInput({
-            'width': '100%',
-            // 'height': '75%',
-            'interactive': true,
-            'defaultText': window.langManager.translate('Add More'),
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'minInputWidth': '100%',
-            'placeholderColor': '#666666'
+        $(document).ready(function() {
+            console.log('Document ready - initializing tags input');
+            
+            $("#addresses").tagsInput({
+                'width': '100%',
+                // 'height': '75%',
+                'interactive': true,
+                'defaultText': window.langManager.translate('Add More'),
+                'removeWithBackspace': true,
+                'minChars': 0,
+                'minInputWidth': '100%',
+                'placeholderColor': '#666666'
+            });
+            
+            console.log('Tags input initialized');
+            
+            // Add direct click handler for save button
+            $('#frm_server_interface button[type="submit"]').on('click', function(e) {
+                console.log('Save button clicked directly');
+                e.preventDefault();
+                submitServerInterfaceSetting();
+                return false;
+            });
         });
 
         // Load server addresses to the form
@@ -223,12 +249,21 @@
 
         // Wireguard Interface Addresses form validation
         $(document).ready(function () {
-            $.validator.setDefaults({
-                submitHandler: function (form) {
+            console.log('Setting up form validation for server interface');
+            
+            // Also add a direct submit handler as backup
+            $('#frm_server_interface').on('submit', function(e) {
+                console.log('Form submit event triggered');
+                e.preventDefault();
+                if ($(this).valid()) {
+                    console.log('Form is valid, calling submitServerInterfaceSetting');
                     submitServerInterfaceSetting();
-                    return false;
+                } else {
+                    console.log('Form is not valid');
                 }
+                return false;
             });
+            
             $("#frm_server_interface").validate({
                 rules: {
                     listen_port: {
@@ -254,6 +289,10 @@
                 },
                 unhighlight: function (element, errorClass, validClass) {
                     $(element).removeClass('is-invalid');
+                },
+                submitHandler: function (form) {
+                    submitServerInterfaceSetting();
+                    return false;
                 }
             });
         });
