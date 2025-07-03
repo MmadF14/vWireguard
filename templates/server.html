@@ -143,6 +143,11 @@
 {{define "bottom_js"}}
     <script>
         function submitServerInterfaceSetting() {
+            // Show loading state
+            const submitBtn = $('button[type="submit"]');
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
+            
             const addresses = $("#addresses").val()
                 .split(',')
                 .filter(a => a.trim() !== '');
@@ -162,12 +167,19 @@
                 data: JSON.stringify(data),
                 success: function(data) {
                     toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
+                    // Reset button state
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html('<span data-translate="Save">Save</span>');
                     // Reload the page to show updated values
                     setTimeout(function() {
                         window.location.reload();
                     }, 1000);
                 },
                 error: function(jqXHR, exception) {
+                    // Reset button state
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html('<span data-translate="Save">Save</span>');
+                    
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(window.langManager.translate(responseJson['message']));
                 }

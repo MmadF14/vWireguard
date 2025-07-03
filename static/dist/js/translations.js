@@ -823,6 +823,8 @@ const translations = {
         "Please enter a port": "لطفاً یک پورت وارد کنید",
         "Port must be an integer": "پورت باید یک عدد صحیح باشد",
         "Port must be in range 1..65535": "پورت باید در محدوده 1 تا 65535 باشد",
-        "Add More": "افزودن بیشتر"
+        "Add More": "افزودن بیشتر",
+        "Processing...": "در حال پردازش...",
+        "AllowedIPs of": "آی‌پی‌های مجاز"
     }
 }; 

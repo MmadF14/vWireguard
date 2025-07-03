@@ -1307,6 +1307,22 @@ body {
     text-align: right;
 }
 
+/* Keep log output always left-to-right for readability */
+[lang="fa"] #log-output,
+[lang="fa"] .log-output,
+[lang="fa"] pre,
+[lang="fa"] code {
+    direction: ltr !important;
+    text-align: left !important;
+    font-family: 'Courier New', monospace !important;
+}
+
+/* Also apply to modal bodies that contain logs */
+[lang="fa"] .modal-body pre {
+    direction: ltr !important;
+    text-align: left !important;
+}
+
 /* اطمینان از نمایش همیشگی Apply Config Button - قوی‌ترین حالت */
 #apply-config-button,
 button#apply-config-button,

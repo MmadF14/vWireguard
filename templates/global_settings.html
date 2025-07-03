@@ -224,6 +224,12 @@ $(document).ready(function() {
     });
 
     function submitGlobalSettings() {
+        // Show loading state
+        const submitBtn = $('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
+        
         const formData = {
             endpoint_address: $("#endpoint_address").val(),
             dns_servers: $("#dns_servers").val().split(","),
@@ -240,6 +246,10 @@ $(document).ready(function() {
             contentType: "application/json",
             data: JSON.stringify(formData),
             success: function(response) {
+                // Reset button state
+                submitBtn.prop('disabled', false);
+                submitBtn.html(originalText);
+                
                 if(response.success) {
                     toastr.success(translations[langManager.currentLang].msg_success || 'Settings saved successfully');
                 } else {
@@ -247,6 +257,10 @@ $(document).ready(function() {
                 }
             },
             error: function(xhr) {
+                // Reset button state
+                submitBtn.prop('disabled', false);
+                submitBtn.html(originalText);
+                
                 const errorMsg = xhr.responseJSON?.message || xhr.statusText;
                 toastr.error(`${translations[langManager.currentLang].msg_error || 'Error'}: ${errorMsg}`);
                 console.error('Full error:', xhr);
