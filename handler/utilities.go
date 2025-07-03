@@ -17,7 +17,7 @@ func UtilitiesPage(db store.IStore) echo.HandlerFunc {
 			"baseData": model.BaseData{
 				Active:      "utilities",
 				CurrentUser: currentUser(c),
-				Admin:      user.Role == model.RoleAdmin,
+				Admin:       user.Role == model.RoleAdmin,
 			},
 		}
 
@@ -32,10 +32,16 @@ func RestartWireGuardService(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Only administrators can restart the service"})
 		}
 
-		// Execute systemctl restart command
+		// First try to restart wg-quick@wg0
 		cmd := exec.Command("systemctl", "restart", "wg-quick@wg0")
-		if err := cmd.Run(); err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to restart WireGuard service"})
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			// If that fails, try restarting the main vWireguard service
+			cmd = exec.Command("systemctl", "restart", "vwireguard")
+			if output, err = cmd.CombinedOutput(); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to restart WireGuard service: " + string(output)})
+			}
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "vWireguard service restarted successfully"})
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "WireGuard service restarted successfully"})
@@ -94,40 +100,48 @@ func GenerateSystemReport(db store.IStore) echo.HandlerFunc {
 
 		// Get system uptime
 		cmd := exec.Command("uptime")
-		uptime, err := cmd.Output()
-		if err == nil {
+		if uptime, err := cmd.Output(); err == nil {
 			report["uptime"] = string(uptime)
+		} else {
+			report["uptime"] = "Unable to get uptime"
 		}
 
 		// Get memory usage
 		cmd = exec.Command("free", "-h")
-		memory, err := cmd.Output()
-		if err == nil {
+		if memory, err := cmd.Output(); err == nil {
 			report["memory"] = string(memory)
+		} else {
+			report["memory"] = "Unable to get memory info"
 		}
 
 		// Get disk usage
 		cmd = exec.Command("df", "-h")
-		disk, err := cmd.Output()
-		if err == nil {
+		if disk, err := cmd.Output(); err == nil {
 			report["disk"] = string(disk)
+		} else {
+			report["disk"] = "Unable to get disk info"
 		}
 
 		// Get WireGuard status
 		cmd = exec.Command("systemctl", "status", "wg-quick@wg0")
-		wgStatus, err := cmd.Output()
-		if err == nil {
+		if wgStatus, err := cmd.Output(); err == nil {
 			report["wireguard_status"] = string(wgStatus)
+		} else {
+			report["wireguard_status"] = "WireGuard service not running or not found"
 		}
 
 		// Get system logs
-		cmd = exec.Command("journalctl", "-n", "100", "--no-pager")
-		logs, err := cmd.Output()
-		if err == nil {
+		cmd = exec.Command("journalctl", "-n", "50", "--no-pager")
+		if logs, err := cmd.Output(); err == nil {
 			report["system_logs"] = string(logs)
+		} else {
+			report["system_logs"] = "Unable to get system logs"
 		}
 
-		return c.JSON(http.StatusOK, report)
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success": true,
+			"message": report,
+		})
 	}
 }
 
@@ -143,11 +157,30 @@ func GetSystemLogs(db store.IStore) echo.HandlerFunc {
 			level = "info"
 		}
 
+		// Map level to journalctl priority
+		var priority string
+		switch level {
+		case "error":
+			priority = "err"
+		case "warning":
+			priority = "warning"
+		case "info":
+			priority = "info"
+		case "debug":
+			priority = "debug"
+		default:
+			priority = "info"
+		}
+
 		// Get logs based on level
-		cmd := exec.Command("journalctl", "-n", "100", "--no-pager", "--priority="+level)
+		cmd := exec.Command("journalctl", "-n", "100", "--no-pager", "-p", priority)
 		output, err := cmd.Output()
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to retrieve system logs"})
+			// If journalctl fails, try alternative approach
+			cmd = exec.Command("journalctl", "-n", "100", "--no-pager")
+			if output, err = cmd.Output(); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to retrieve system logs: " + err.Error()})
+			}
 		}
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, string(output)})
@@ -169,4 +202,4 @@ func ClearSystemLogs(db store.IStore) echo.HandlerFunc {
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "System logs cleared successfully"})
 	}
-} 
+}

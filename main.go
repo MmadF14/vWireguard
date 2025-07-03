@@ -270,15 +270,15 @@ func main() {
 
 	app.GET(util.BasePath+"/test-hash", handler.GetHashesChanges(db), handler.ValidSession)
 	app.GET(util.BasePath+"/about", handler.AboutPage())
-	app.GET(util.BasePath+"/utilities", handler.UtilitiesPage(db), handler.ValidSession, handler.RefreshSession)
+	app.GET(util.BasePath+"/utilities", handler.UtilitiesPage(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 
 	// Utilities routes
-	app.POST(util.BasePath+"/api/utilities/restart-service", handler.RestartWireGuardService(db), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/utilities/flush-dns", handler.FlushDNSCache(db), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/utilities/check-updates", handler.CheckForUpdates(db), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/utilities/generate-report", handler.GenerateSystemReport(db), handler.ValidSession, handler.ContentTypeJson)
-	app.GET(util.BasePath+"/api/utilities/logs", handler.GetSystemLogs(db), handler.ValidSession)
-	app.POST(util.BasePath+"/api/utilities/clear-logs", handler.ClearSystemLogs(db), handler.ValidSession, handler.ContentTypeJson)
+	app.POST(util.BasePath+"/api/utilities/restart-service", handler.RestartWireGuardService(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/utilities/flush-dns", handler.FlushDNSCache(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/utilities/check-updates", handler.CheckForUpdates(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/utilities/generate-report", handler.GenerateSystemReport(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.GET(util.BasePath+"/api/utilities/logs", handler.GetSystemLogs(db), handler.ValidSession, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/utilities/clear-logs", handler.ClearSystemLogs(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 
 	app.GET(util.BasePath+"/_health", handler.Health())
 	app.GET(util.BasePath+"/favicon", handler.Favicon())
