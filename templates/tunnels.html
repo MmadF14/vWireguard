@@ -424,252 +424,56 @@
 
 {{define "bottom_js"}}
 <script>
-// Force translation for tunnels page
-function forceTranslateTunnels() {
-    console.log('Force translating tunnels page...');
+// Smart translation for tunnels page - only when Persian is selected
+function smartTranslateTunnels() {
+    // Check if current language is Persian
+    const currentLang = localStorage.getItem('language') || 'en';
+    if (currentLang !== 'fa') {
+        console.log('Not Persian language, skipping force translation');
+        return;
+    }
     
-    // Direct translation mapping
-    const directTranslations = {
-        'Tunnels': 'تانل‌ها',
-        'Home': 'خانه',
-        'New Tunnel': 'تانل جدید',
-        'Cleanup': 'پاکسازی',
-        'Tunnel Routing Setup Required': 'تنظیم مسیریابی تانل مورد نیاز است',
-        'For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:': 'برای عملکرد صحیح تانل‌ها، باید قوانین مسیریابی را روی سرور خود تنظیم کنید. این دستور را به عنوان root اجرا کنید:',
-        'This will configure iptables rules for traffic forwarding and enable IP forwarding.': 'این کار قوانین iptables برای هدایت ترافیک را پیکربندی کرده و IP forwarding را فعال می‌کند.',
-        'Important Notes': 'نکات مهم',
-        'Safe Routing:': 'مسیریابی امن:',
-        'AllowedIPs of': 'آی‌پی‌های مجاز',
-        'is automatically replaced with private networks to prevent server disconnection': 'به طور خودکار با شبکه‌های خصوصی جایگزین می‌شود تا از قطع اتصال سرور جلوگیری شود',
-        'Edit Restriction:': 'محدودیت ویرایش:',
-        'Active tunnels cannot be edited - stop the tunnel first': 'تانل‌های فعال قابل ویرایش نیستند - ابتدا تانل را متوقف کنید',
-        'Interface Names:': 'نام‌های رابط:',
-        'Tunnel interfaces use format': 'رابط‌های تانل از فرمت استفاده می‌کنند',
-        'Traffic Forwarding:': 'هدایت ترافیک:',
-        'Ensure your server has proper iptables rules for traffic forwarding': 'مطمئن شوید سرور شما دارای قوانین iptables مناسب برای هدایت ترافیک است',
-        'Manage network tunnels and routing': 'مدیریت تانل‌های شبکه و مسیریابی',
-        'Type': 'نوع',
-        'Remote': 'راه دور',
-        'Tunnel IP': 'آی‌پی تانل',
-        'Target': 'هدف',
-        'Protocol': 'پروتکل',
-        'Clients': 'کلاینت‌ها',
-        'All Clients': 'همه کلاینت‌ها',
-        'Selected': 'انتخاب شده',
-        'In': 'ورودی',
-        'Out': 'خروجی',
-        'Last seen': 'آخرین بازدید',
-        'Never': 'هرگز',
-        'Stop': 'توقف',
-        'Start': 'شروع',
-        'Stop tunnel first to edit': 'برای ویرایش ابتدا تانل را متوقف کنید',
-        'Edit': 'ویرایش',
-        'Delete': 'حذف',
-        'No tunnels configured. Add a new tunnel to get started.': 'هیچ تانلی پیکربندی نشده است. برای شروع یک تانل جدید اضافه کنید.',
-        'Tunnel Name': 'نام تانل',
-        'Tunnel Type': 'نوع تانل',
-        'Select tunnel type': 'نوع تانل را انتخاب کنید',
-        'WireGuard to WireGuard': 'WireGuard به WireGuard',
-        'Description (Optional)': 'توضیحات (اختیاری)',
-        'Client Routing': 'مسیریابی کلاینت',
-        'Route all clients through this tunnel': 'همه کلاینت‌ها را از طریق این تانل مسیریابی کن',
-        'Route only selected clients': 'فقط کلاینت‌های انتخاب شده را مسیریابی کن',
-        'Select Clients': 'انتخاب کلاینت‌ها',
-        'WireGuard Configuration': 'پیکربندی WireGuard',
-        'MANUAL ENTRY': 'ورود دستی',
-        'GENERATE KEYPAIR': 'تولید جفت کلید',
-        'Generate or manually enter your keypair': 'جفت کلید خود را تولید کنید یا به صورت دستی وارد کنید',
-        'Our Tunnel IP': 'آی‌پی تانل ما',
-        'Remote Endpoint (IP:Port)': 'نقطه انتهای راه دور (IP:Port)',
-        'Remote Public Key': 'کلید عمومی راه دور',
-        'Remote WireGuard server\'s public key': 'کلید عمومی سرور WireGuard راه دور',
-        'Allowed IPs (comma separated)': 'آی‌پی‌های مجاز (جدا شده با کاما)',
-        'PreShared Key (Optional)': 'کلید از پیش به اشتراک گذاشته شده (اختیاری)',
-        'Leave empty or enter PreShared Key for extra security': 'خالی بگذارید یا کلید از پیش به اشتراک گذاشته شده را برای امنیت اضافی وارد کنید',
-        'Optional: Adds an extra layer of symmetric-key cryptography': 'اختیاری: یک لایه اضافی از رمزنگاری کلید متقارن اضافه می‌کند',
-        'Cancel': 'لغو',
-        'Create Tunnel': 'ایجاد تانل',
-        'Generate': 'تولید',
-        'Save': 'ذخیره',
-        'Close': 'بستن',
+    console.log('Smart translating tunnels page for Persian...');
+    
+    // Use the existing translation system first
+    if (typeof applyTranslations === 'function') {
+        applyTranslations();
+    }
+    
+    // Additional translations for elements that might not be caught by the main system
+    const additionalTranslations = {
+        'test': 'تست',
+        'wg-to-wg': 'WG به WG',
         'active': 'فعال',
         'inactive': 'غیرفعال',
-        'wg-to-wg': 'WG به WG',
-        'STOP TUNNEL FIRST TO EDIT': 'برای ویرایش ابتدا تانل را متوقف کنید',
-        'STOP': 'توقف',
-        'DELETE': 'حذف',
-        'Please fill out this field.': 'لطفاً این فیلد را پر کنید.',
-        'Cleanup Corrupted Tunnels': 'پاکسازی تانل‌های خراب',
-        'This will remove any corrupted tunnel records that cannot be loaded properly.': 'این عمل تمام رکوردهای تانل خراب که نمی‌توانند به درستی بارگذاری شوند را حذف می‌کند.',
-        'This action cannot be undone!': 'این عمل قابل برگشت نیست!',
-        'Smart Cleanup': 'پاکسازی هوشمند',
-        'Delete All': 'حذف همه',
-        // Additional translations for specific elements visible in the screenshot
-        'test': 'تست',
-        'B': 'بایت',
-        'Download': 'دانلود',
-        'Upload': 'آپلود',
-        'Processing...': 'در حال پردازش...',
-        'WARNING:': 'هشدار:',
-        'Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.': 'استفاده از 0.0.0.0/0 تمام ترافیک را از طریق تانل هدایت می‌کند و ممکن است سرور شما را قطع کند! برای امنیت فقط از شبکه‌های خصوصی استفاده کنید.',
-        'مسیریابی کلاینت': 'مسیریابی کلاینت',
-        'توضیحات (اختیاری)': 'توضیحات (اختیاری)',
-        // Placeholder texts
-        'Enter your WireGuard private key': 'کلید خصوصی WireGuard خود را وارد کنید',
-        'Will be generated from private key': 'از کلید خصوصی تولید خواهد شد',
-        'Remote WireGuard server\'s public key': 'کلید عمومی سرور WireGuard راه دور',
-        'Leave empty or enter PreShared Key for extra security': 'خالی بگذارید یا کلید از پیش به اشتراک گذاشته شده را برای امنیت اضافی وارد کنید',
-        // Additional form elements
-        'Local Private Key': 'کلید خصوصی محلی',
-        'Local Public Key (Auto-generated)': 'کلید عمومی محلی (تولید خودکار)',
-        'Enter your private key and public key will be auto-generated': 'کلید خصوصی خود را وارد کنید و کلید عمومی به طور خودکار تولید می‌شود',
-        // Status and button text that might appear dynamically
-        'Stopping...': 'در حال توقف...',
-        'Starting...': 'در حال شروع...',
-        'Loading...': 'در حال بارگذاری...',
-        'Saving...': 'در حال ذخیره...',
-        'Generating...': 'در حال تولید...',
-        'Success': 'موفق',
-        'Error': 'خطا',
-        'Failed': 'ناموفق',
-        // Additional tunnel-specific terms
-        'Tunnel created successfully!': 'تانل با موفقیت ایجاد شد!',
-        'Tunnel updated successfully!': 'تانل با موفقیت به‌روزرسانی شد!',
-        'Tunnel deleted successfully!': 'تانل با موفقیت حذف شد!',
-        'Tunnel started successfully!': 'تانل با موفقیت شروع شد!',
-        'Tunnel stopped successfully!': 'تانل با موفقیت متوقف شد!',
-        'Are you sure you want to delete this tunnel?': 'آیا مطمئن هستید که می‌خواهید این تانل را حذف کنید؟',
-        'Are you sure you want to stop this tunnel?': 'آیا مطمئن هستید که می‌خواهید این تانل را متوقف کنید؟',
-        'Are you sure you want to start this tunnel?': 'آیا مطمئن هستید که می‌خواهید این تانل را شروع کنید؟'
+        'B': 'بایت'
     };
     
-    // Apply translations to elements with data-translate attribute
-    document.querySelectorAll('[data-translate]').forEach(element => {
-        const key = element.getAttribute('data-translate');
-        if (directTranslations[key]) {
-            element.textContent = directTranslations[key];
+    // Apply additional translations only to specific elements
+    document.querySelectorAll('.badge, .card-title').forEach(element => {
+        const text = element.textContent.trim();
+        if (additionalTranslations[text]) {
+            element.textContent = additionalTranslations[text];
         }
     });
     
-    // Apply translations to all text content
-    document.querySelectorAll('*').forEach(element => {
-        // Skip script and style elements
-        if (element.tagName === 'SCRIPT' || element.tagName === 'STYLE') return;
-        
-        // Check direct text content for leaf elements
-        if (element.children.length === 0 && element.textContent.trim()) {
-            const text = element.textContent.trim();
-            if (directTranslations[text]) {
-                element.textContent = directTranslations[text];
-            }
-        }
-        
-        // Check text nodes within elements
-        if (element.childNodes.length > 0) {
-            element.childNodes.forEach(node => {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    const text = node.textContent.trim();
-                    if (text && directTranslations[text]) {
-                        node.textContent = directTranslations[text];
-                    }
-                }
-            });
-        }
-        
-        // Check attributes
-        ['title', 'placeholder', 'alt', 'value'].forEach(attr => {
-            if (element.hasAttribute(attr)) {
-                const value = element.getAttribute(attr);
-                if (directTranslations[value]) {
-                    element.setAttribute(attr, directTranslations[value]);
-                }
-            }
-        });
-    });
-    
-    // Special handling for badges and status elements
-    document.querySelectorAll('.badge').forEach(badge => {
-        const text = badge.textContent.trim();
-        if (directTranslations[text]) {
-            badge.textContent = directTranslations[text];
-        }
-    });
-    
-    // Special handling for button text
-    document.querySelectorAll('button').forEach(button => {
-        const text = button.textContent.trim();
-        if (directTranslations[text]) {
-            button.textContent = directTranslations[text];
-        }
-    });
-    
-    // Special handling for card titles and specific elements
-    document.querySelectorAll('.card-title').forEach(title => {
-        const text = title.textContent.trim();
-        if (directTranslations[text]) {
-            title.textContent = directTranslations[text];
-        }
-    });
-    
-    // Special handling for specific text patterns
-    document.querySelectorAll('strong').forEach(strong => {
-        const text = strong.textContent.trim();
-        if (directTranslations[text]) {
-            strong.textContent = directTranslations[text];
-        }
-    });
-    
-    // Handle specific elements by their content
-    document.querySelectorAll('span, div, p, td, th, label').forEach(element => {
-        if (element.children.length === 0) { // Only text nodes
-            const text = element.textContent.trim();
-            if (text && directTranslations[text]) {
-                element.textContent = directTranslations[text];
-            }
-        }
-    });
-    
-    console.log('Force translation completed');
+    console.log('Smart translation completed');
 }
 
-// Run translation when page loads
+// Run smart translation when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Run translation multiple times to catch dynamic content
-    setTimeout(forceTranslateTunnels, 50);
-    setTimeout(forceTranslateTunnels, 100);
-    setTimeout(forceTranslateTunnels, 200);
-    setTimeout(forceTranslateTunnels, 500);
-    setTimeout(forceTranslateTunnels, 1000);
-    setTimeout(forceTranslateTunnels, 2000);
-    setTimeout(forceTranslateTunnels, 3000);
+    // Run smart translation only if Persian is selected
+    setTimeout(smartTranslateTunnels, 500);
+    setTimeout(smartTranslateTunnels, 1000);
     
     // Also run translation when modals are opened
     $('.modal').on('shown.bs.modal', function() {
-        setTimeout(forceTranslateTunnels, 100);
-        setTimeout(forceTranslateTunnels, 500);
+        setTimeout(smartTranslateTunnels, 100);
     });
     
     // Run translation when AJAX requests complete
     $(document).ajaxComplete(function() {
-        setTimeout(forceTranslateTunnels, 100);
-    });
-    
-    // Set up mutation observer to translate new content
-    const observer = new MutationObserver(function(mutations) {
-        let shouldTranslate = false;
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                shouldTranslate = true;
-            }
-        });
-        if (shouldTranslate) {
-            setTimeout(forceTranslateTunnels, 50);
-        }
-    });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+        setTimeout(smartTranslateTunnels, 100);
     });
 });
 </script>
@@ -678,6 +482,12 @@ $(document).ready(function() {
     // Load client list on modal open
     $('#modal_new_tunnel').on('shown.bs.modal', function() {
         loadClientList();
+        // Ensure tunnel config is shown if type is already selected
+        setTimeout(function() {
+            if ($('#tunnel_type').val()) {
+                showTunnelConfig();
+            }
+        }, 100);
     });
 
     // Handle client routing radio button changes
@@ -692,6 +502,11 @@ $(document).ready(function() {
 
     // Start auto-refresh for tunnel statistics
     startTunnelStatsRefresh();
+    
+    // Test jQuery and elements
+    console.log('jQuery loaded:', typeof $ !== 'undefined');
+    console.log('tunnel_type element exists:', $('#tunnel_type').length > 0);
+    console.log('wg_config element exists:', $('#wg_config').length > 0);
 
     // Handle tunnel form submission (create/edit)
     $('#frm_new_tunnel').on('submit', function(e) {
@@ -833,6 +648,7 @@ $(document).ready(function() {
 
 function showTunnelConfig() {
     const tunnelType = $('#tunnel_type').val();
+    console.log('showTunnelConfig called with type:', tunnelType);
     
     // Reset all required attributes first
     $('#wg_remote_endpoint, #wg_remote_public_key, #dokodemo_address, #dokodemo_port, #pf_remote_host, #pf_remote_port').removeAttr('required');
@@ -842,12 +658,18 @@ function showTunnelConfig() {
     
     // Show relevant config section and set required fields
     if (tunnelType === 'wg-to-wg') {
+        console.log('Showing WireGuard config section');
         $('#wg_config').show();
         $('#wg_remote_endpoint, #wg_remote_public_key').attr('required', 'required');
+        
+        // Run translation after showing the config
+        setTimeout(smartTranslateTunnels, 100);
     } else if (tunnelType === 'wg-to-dokodemo') {
+        console.log('Showing Dokodemo config section');
         $('#dokodemo_config').show();
         $('#dokodemo_address, #dokodemo_port').attr('required', 'required');
     } else if (tunnelType === 'port-forward') {
+        console.log('Showing Port Forward config section');
         $('#port_forward_config').show();
         $('#pf_remote_host, #pf_remote_port').attr('required', 'required');
     }

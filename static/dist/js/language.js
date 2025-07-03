@@ -1,6 +1,6 @@
 class LanguageManager {
     constructor() {
-        this.currentLang = localStorage.getItem('language') || 'fa';
+        this.currentLang = localStorage.getItem('language') || 'en';
         this.translations = translations;
         this.init();
     }
@@ -194,19 +194,14 @@ class LanguageManager {
 document.addEventListener('DOMContentLoaded', () => {
     window.langManager = new LanguageManager();
     
-    // Force retranslate every 500ms for the first 5 seconds to catch dynamic content
-    let retranslateCount = 0;
-    const retranslateInterval = setInterval(() => {
+    // Make applyTranslations available globally
+    window.applyTranslations = function() {
         if (window.langManager) {
-            window.langManager.forceRetranslate();
+            window.langManager.translatePage();
         }
-        retranslateCount++;
-        if (retranslateCount >= 10) { // 10 * 500ms = 5 seconds
-            clearInterval(retranslateInterval);
-        }
-    }, 500);
+    };
     
-    // Also retranslate when new content is added to the DOM
+    // Only retranslate when new content is added to the DOM
     const observer = new MutationObserver((mutations) => {
         let shouldRetranslate = false;
         mutations.forEach((mutation) => {
