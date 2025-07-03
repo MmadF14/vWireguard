@@ -1207,5 +1207,110 @@ function refreshTunnelStats(tunnelId) {
         alert('Failed to refresh tunnel statistics');
     });
 }
+
+// Enhanced translation function for tunnels page
+function forceTranslateTunnelsPage() {
+    console.log('Force translating tunnels page...');
+    
+    if (!window.langManager || window.langManager.currentLang === 'en') {
+        return;
+    }
+    
+    const translations = window.langManager.translations.fa;
+    if (!translations) return;
+    
+    // Direct translation mapping for specific elements
+    const directTranslations = {
+        'active': 'فعال',
+        'inactive': 'غیرفعال',
+        'wg-to-wg': 'WG به WG',
+        'STOP TUNNEL FIRST TO EDIT': 'برای ویرایش ابتدا تانل را متوقف کنید',
+        'STOP': 'توقف',
+        'DELETE': 'حذف',
+        'B': 'بایت',
+        'KB': 'کیلوبایت',
+        'MB': 'مگابایت',
+        'GB': 'گیگابایت',
+        'TB': 'ترابایت'
+    };
+    
+    // Apply direct translations
+    Object.entries(directTranslations).forEach(([english, persian]) => {
+        const elements = document.querySelectorAll('*');
+        elements.forEach(element => {
+            if (element.children.length === 0 && element.textContent.trim() === english) {
+                element.textContent = persian;
+            }
+        });
+    });
+    
+    // Translate badges
+    document.querySelectorAll('.badge').forEach(badge => {
+        const text = badge.textContent.trim();
+        if (directTranslations[text]) {
+            badge.textContent = directTranslations[text];
+        }
+    });
+    
+    // Translate button text
+    document.querySelectorAll('.btn').forEach(btn => {
+        if (btn.children.length === 0) {
+            const text = btn.textContent.trim();
+            if (directTranslations[text]) {
+                btn.textContent = directTranslations[text];
+            }
+        }
+    });
+    
+    // Translate card content
+    document.querySelectorAll('.card-body strong').forEach(strong => {
+        const text = strong.textContent.trim();
+        if (translations[text]) {
+            strong.textContent = translations[text];
+        }
+    });
+    
+    // Translate placeholder text
+    document.querySelectorAll('input, textarea').forEach(input => {
+        const placeholder = input.getAttribute('placeholder');
+        if (placeholder && translations[placeholder]) {
+            input.setAttribute('placeholder', translations[placeholder]);
+        }
+    });
+    
+    // Translate modal content
+    document.querySelectorAll('.modal-title, .modal-body p, .modal-body strong').forEach(element => {
+        if (element.children.length === 0) {
+            const text = element.textContent.trim();
+            if (translations[text]) {
+                element.textContent = translations[text];
+            }
+        }
+    });
+    
+    console.log('Tunnels page translation completed');
+}
+
+// Run translation when page loads
+$(document).ready(function() {
+    // Initial translation
+    setTimeout(forceTranslateTunnelsPage, 100);
+    setTimeout(forceTranslateTunnelsPage, 500);
+    setTimeout(forceTranslateTunnelsPage, 1000);
+    setTimeout(forceTranslateTunnelsPage, 2000);
+    
+    // Also run after any AJAX calls complete
+    $(document).ajaxComplete(function() {
+        setTimeout(forceTranslateTunnelsPage, 100);
+    });
+    
+    // Run when modals are shown
+    $('.modal').on('shown.bs.modal', function() {
+        setTimeout(forceTranslateTunnelsPage, 100);
+    });
+    
+    // Start auto-refresh for tunnel stats
+    startTunnelStatsRefresh();
+});
 </script>
 {{end}} 
