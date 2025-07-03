@@ -21,8 +21,8 @@ import (
 
 	// مسیر را متناسب با پروژه‌تان اصلاح کنید
 	"github.com/MmadF14/vwireguard/model"
-	"github.com/MmadF14/vwireguard/util"
 	"github.com/MmadF14/vwireguard/store"
+	"github.com/MmadF14/vwireguard/util"
 	"github.com/MmadF14/vwireguard/zip"
 )
 
@@ -148,13 +148,13 @@ func SystemMonitorPage() echo.HandlerFunc {
 			"baseData": model.BaseData{
 				Active:      "system-monitor",
 				CurrentUser: currentUser(c),
-				Admin:      isAdmin(c),
-				BasePath:   util.BasePath,
+				Admin:       isAdmin(c),
+				BasePath:    util.BasePath,
 			},
 		}
 
 		// حالا سعی می‌کنیم فایل تمپلیت را رندر کنیم
-		if err := c.Render(http.StatusOK, "system_monitor.html", data); err != nil {
+		if err := c.Render(http.StatusOK, "system_monitor.html", createTemplateData(data)); err != nil {
 			c.Logger().Error("Error rendering system_monitor.html:", err)
 			return c.String(http.StatusInternalServerError, "Error rendering system_monitor.html")
 		}
@@ -261,7 +261,7 @@ func BackupSystem() echo.HandlerFunc {
 		// Set headers for file download
 		c.Response().Header().Set("Content-Type", "application/zip")
 		c.Response().Header().Set("Content-Disposition", "attachment; filename=wireguard-backup.zip")
-		
+
 		return c.Blob(http.StatusOK, "application/zip", zipContent)
 	}
 }

@@ -46,11 +46,11 @@ func TunnelsPage(db store.IStore) echo.HandlerFunc {
 		}
 
 		log.Printf("TunnelsPage: Rendering template with %d tunnels", len(tunnels))
-		return c.Render(http.StatusOK, "tunnels.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "tunnels.html", createTemplateData(map[string]interface{}{
 			"baseData": model.BaseData{Active: "tunnels", CurrentUser: username, Admin: isAdmin},
 			"tunnels":  tunnels,
 			"basePath": "/",
-		})
+		}))
 	}
 }
 

@@ -21,7 +21,7 @@ func UtilitiesPage(db store.IStore) echo.HandlerFunc {
 			},
 		}
 
-		return c.Render(http.StatusOK, "utilities.html", data)
+		return c.Render(http.StatusOK, "utilities.html", createTemplateData(data))
 	}
 }
 

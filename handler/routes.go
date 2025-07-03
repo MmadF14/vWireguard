@@ -33,6 +33,15 @@ import (
 
 var usernameRegexp = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9]$")
 
+// Helper function to create template data with cache version
+func createTemplateData(data map[string]interface{}) map[string]interface{} {
+	if data == nil {
+		data = make(map[string]interface{})
+	}
+	data["CacheVersion"] = fmt.Sprintf("%d", time.Now().Unix())
+	return data
+}
+
 // Route represents an internal API route
 type Route struct {
 	Method     string
@@ -82,7 +91,7 @@ func Favicon() echo.HandlerFunc {
 // LoginPage handler
 func LoginPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.Render(http.StatusOK, "login.html", map[string]interface{}{})
+		return c.Render(http.StatusOK, "login.html", createTemplateData(nil))
 	}
 }
 
@@ -216,9 +225,9 @@ func Logout() echo.HandlerFunc {
 func LoadProfile(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		user, _ := db.GetUserByName(currentUser(c))
-		return c.Render(http.StatusOK, "profile.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "profile.html", createTemplateData(map[string]interface{}{
 			"baseData": model.BaseData{Active: "profile", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
-		})
+		}))
 	}
 }
 
@@ -226,9 +235,9 @@ func LoadProfile(db store.IStore) echo.HandlerFunc {
 func UsersSettings(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		user, _ := db.GetUserByName(currentUser(c))
-		return c.Render(http.StatusOK, "users_settings.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "users_settings.html", createTemplateData(map[string]interface{}{
 			"baseData": model.BaseData{Active: "users-settings", CurrentUser: currentUser(c), Admin: user.Role == model.RoleAdmin},
-		})
+		}))
 	}
 }
 
@@ -460,10 +469,10 @@ func WireGuardClients(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		return c.Render(http.StatusOK, "clients.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "clients.html", createTemplateData(map[string]interface{}{
 			"baseData":       model.BaseData{Active: "", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 			"clientDataList": clientDataList,
-		})
+		}))
 	}
 }
 
@@ -626,9 +635,9 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-                client.CreatedBy = currentUser(c)
-                client.CreatedAt = time.Now().UTC()
-                client.UpdatedAt = client.CreatedAt
+		client.CreatedBy = currentUser(c)
+		client.CreatedAt = time.Now().UTC()
+		client.UpdatedAt = client.CreatedAt
 
 		// write client to the database
 		if err := db.SaveClient(client); err != nil {
@@ -1138,11 +1147,11 @@ func WireGuardServer(db store.IStore) echo.HandlerFunc {
 			log.Error("Cannot get server config: ", err)
 		}
 
-		return c.Render(http.StatusOK, "server.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "server.html", createTemplateData(map[string]interface{}{
 			"baseData":        model.BaseData{Active: "wg-server", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 			"serverInterface": server.Interface,
 			"serverKeyPair":   server.KeyPair,
-		})
+		}))
 	}
 }
 
@@ -1211,10 +1220,10 @@ func GlobalSettings(db store.IStore) echo.HandlerFunc {
 			log.Error("Cannot get global settings: ", err)
 		}
 
-		return c.Render(http.StatusOK, "global_settings.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "global_settings.html", createTemplateData(map[string]interface{}{
 			"baseData":       model.BaseData{Active: "global-settings", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 			"globalSettings": globalSettings,
-		})
+		}))
 	}
 }
 
@@ -1223,20 +1232,20 @@ func Status(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		wgClient, err := wgctrl.New()
 		if err != nil {
-			return c.Render(http.StatusInternalServerError, "status.html", map[string]interface{}{
+			return c.Render(http.StatusInternalServerError, "status.html", createTemplateData(map[string]interface{}{
 				"baseData": model.BaseData{Active: "status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 				"error":    err.Error(),
 				"devices":  nil,
-			})
+			}))
 		}
 
 		devices, err := wgClient.Devices()
 		if err != nil {
-			return c.Render(http.StatusInternalServerError, "status.html", map[string]interface{}{
+			return c.Render(http.StatusInternalServerError, "status.html", createTemplateData(map[string]interface{}{
 				"baseData": model.BaseData{Active: "status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 				"error":    err.Error(),
 				"devices":  nil,
-			})
+			}))
 		}
 
 		devicesVm := make([]DeviceVM, 0, len(devices))
@@ -1244,11 +1253,11 @@ func Status(db store.IStore) echo.HandlerFunc {
 			m := make(map[string]*model.Client)
 			clients, err := db.GetClients(false)
 			if err != nil {
-				return c.Render(http.StatusInternalServerError, "status.html", map[string]interface{}{
+				return c.Render(http.StatusInternalServerError, "status.html", createTemplateData(map[string]interface{}{
 					"baseData": model.BaseData{Active: "status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 					"error":    err.Error(),
 					"devices":  nil,
-				})
+				}))
 			}
 			for i := range clients {
 				if clients[i].Client != nil {
@@ -1293,11 +1302,11 @@ func Status(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		return c.Render(http.StatusOK, "status.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "status.html", createTemplateData(map[string]interface{}{
 			"baseData": model.BaseData{Active: "status", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 			"devices":  devicesVm,
 			"error":    "",
-		})
+		}))
 	}
 }
 
@@ -1600,9 +1609,9 @@ func GetHashesChanges(db store.IStore) echo.HandlerFunc {
 // AboutPage handler
 func AboutPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		return c.Render(http.StatusOK, "about.html", map[string]interface{}{
+		return c.Render(http.StatusOK, "about.html", createTemplateData(map[string]interface{}{
 			"baseData": model.BaseData{Active: "about", CurrentUser: currentUser(c), Admin: isAdmin(c)},
-		})
+		}))
 	}
 }
 

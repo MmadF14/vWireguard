@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
 	"github.com/MmadF14/vwireguard/model"
 	"github.com/MmadF14/vwireguard/store"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"github.com/sabhiram/go-wol/wol"
 )
 
@@ -37,11 +37,11 @@ func GetWakeOnLanHosts(db store.IStore) echo.HandlerFunc {
 			return createError(c, err, fmt.Sprintf("wake_on_lan_hosts database error: %s", err))
 		}
 
-		err = c.Render(http.StatusOK, "wake_on_lan_hosts.html", map[string]interface{}{
+		err = c.Render(http.StatusOK, "wake_on_lan_hosts.html", createTemplateData(map[string]interface{}{
 			"baseData": model.BaseData{Active: "wake_on_lan_hosts", CurrentUser: currentUser(c), Admin: isAdmin(c)},
 			"hosts":    hosts,
 			"error":    "",
-		})
+		}))
 		if err != nil {
 			return createError(c, err, fmt.Sprintf("wake_on_lan_hosts.html render error: %s", err))
 		}
