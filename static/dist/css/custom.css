@@ -12,7 +12,31 @@
     --text-light: #ecf0f1;
     --text-dark: #2c3e50;
     --border-radius: 8px;
-    --transition-speed: 0.3s;
+    --transition-speed: 0.2s;
+}
+
+/* Performance Optimizations */
+* {
+    box-sizing: border-box;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Reduce repaints and reflows */
+.card, .btn, .form-control {
+    will-change: transform;
+}
+
+/* Optimize animations */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
 /* General Improvements */
@@ -42,6 +66,8 @@ body {
     text-transform: uppercase;
     font-weight: 600;
     letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary {
@@ -50,9 +76,46 @@ body {
 }
 
 .btn-primary:hover {
-    background-color: darken(var(--primary-color), 10%);
-    border-color: darken(var(--primary-color), 10%);
+    background-color: #357abd;
+    border-color: #357abd;
     transform: translateY(-1px);
+}
+
+/* Fix for disappearing buttons in light mode */
+.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-primary:hover {
+    color: white !important;
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.btn-outline-secondary {
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-secondary:hover {
+    color: white !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+.btn-outline-danger {
+    color: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-danger:hover {
+    color: white !important;
+    background-color: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
 }
 
 /* Sidebar Improvements */
@@ -1197,11 +1260,51 @@ body {
 
 /* Font Adjustments for Persian */
 [lang="fa"] {
-    font-family: 'Inter', 'Vazirmatn', system-ui, -apple-system, sans-serif;
+    font-family: 'Vazirmatn', 'Tahoma', 'Inter', system-ui, -apple-system, sans-serif;
+    direction: rtl;
 }
 
 [lang="fa"] * {
+    font-family: 'Vazirmatn', 'Tahoma', 'Inter', system-ui, -apple-system, sans-serif;
     letter-spacing: 0 !important;
+}
+
+/* RTL improvements for Persian */
+[lang="fa"] .navbar-nav {
+    flex-direction: row-reverse;
+}
+
+[lang="fa"] .breadcrumb {
+    direction: rtl;
+}
+
+[lang="fa"] .card-footer {
+    text-align: left;
+}
+
+[lang="fa"] .btn-group {
+    direction: ltr;
+}
+
+[lang="fa"] .modal-footer {
+    justify-content: flex-start;
+}
+
+[lang="fa"] .form-group label {
+    text-align: right;
+    display: block;
+}
+
+[lang="fa"] .alert {
+    text-align: right;
+}
+
+[lang="fa"] .table {
+    direction: rtl;
+}
+
+[lang="fa"] .dropdown-menu {
+    text-align: right;
 }
 
 /* اطمینان از نمایش همیشگی Apply Config Button - قوی‌ترین حالت */
