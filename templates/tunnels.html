@@ -247,7 +247,7 @@
                                 <small class="form-text text-muted">Enter your private key and public key will be auto-generated</small>
                             </div>
                             <div class="form-group">
-                                <label for="wg_manual_public_key">Local Public Key (Auto-generated)</label>
+                                <label for="wg_manual_public_key" data-translate="Local Public Key (Auto-generated)">Local Public Key (Auto-generated)</label>
                                 <input type="text" class="form-control" id="wg_manual_public_key" readonly placeholder="Will be generated from private key">
                             </div>
                         </div>
@@ -255,42 +255,42 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="wg_remote_endpoint">Remote Endpoint (IP:Port)</label>
+                                    <label for="wg_remote_endpoint" data-translate="Remote Endpoint (IP:Port)">Remote Endpoint (IP:Port)</label>
                                     <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820">
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label for="wg_tunnel_ip">Our Tunnel IP</label>
+                                    <label for="wg_tunnel_ip" data-translate="Our Tunnel IP">Our Tunnel IP</label>
                                     <input type="text" class="form-control" id="wg_tunnel_ip" placeholder="10.0.1.2/24">
                                 </div>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="wg_remote_public_key">Remote Public Key</label>
+                            <label for="wg_remote_public_key" data-translate="Remote Public Key">Remote Public Key</label>
                             <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key"></textarea>
                         </div>
                         <div class="form-group">
-                            <label for="wg_allowed_ips">Allowed IPs (comma separated)</label>
+                            <label for="wg_allowed_ips" data-translate="Allowed IPs (comma separated)">Allowed IPs (comma separated)</label>
                             <input type="text" class="form-control" id="wg_allowed_ips" value="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" placeholder="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16">
                             <small class="form-text text-warning">
                                 <i class="fas fa-exclamation-triangle"></i>
-                                <strong>WARNING:</strong> Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.
+                                <strong data-translate="WARNING:">WARNING:</strong> <span data-translate="Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.">Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.</span>
                             </small>
                         </div>
                         
                         <!-- PreShared Key (Optional) -->
                         <div class="form-group">
-                            <label for="wg_preshared_key">PreShared Key (Optional)</label>
+                            <label for="wg_preshared_key" data-translate="PreShared Key (Optional)">PreShared Key (Optional)</label>
                             <div class="input-group">
                                 <textarea class="form-control" id="wg_preshared_key" rows="2" placeholder="Leave empty or enter PreShared Key for extra security"></textarea>
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-outline-secondary" onclick="generatePreSharedKey()">
-                                        <i class="fas fa-key"></i> Generate
+                                        <i class="fas fa-key"></i> <span data-translate="Generate">Generate</span>
                                     </button>
                                 </div>
                             </div>
-                            <small class="form-text text-muted">Optional: Adds an extra layer of symmetric-key cryptography</small>
+                            <small class="form-text text-muted" data-translate="Optional: Adds an extra layer of symmetric-key cryptography">Optional: Adds an extra layer of symmetric-key cryptography</small>
                         </div>
                     </div>
 

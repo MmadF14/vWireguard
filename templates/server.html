@@ -26,7 +26,7 @@
                     </div>
                     <!-- /.card-header -->
                     <!-- form start -->
-                    <form role="form" id="frm_server_interface" name="frm_server_interface">
+                    <form role="form" id="frm_server_interface" name="frm_server_interface" data-custom-submit="true">
                         <div class="card-body">
                             <div class="form-group">
                                 <label for="addresses" class="control-label" data-translate="Server Interface Addresses">Server Interface Addresses</label>
@@ -144,9 +144,13 @@
     <script>
         function submitServerInterfaceSetting() {
             // Show loading state
-            const submitBtn = $('button[type="submit"]');
+            const submitBtn = $('#frm_server_interface button[type="submit"]');
+            const originalText = submitBtn.html();
             submitBtn.prop('disabled', true);
-            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">در حال پردازش...</span>');
+            
+            // Apply translation to processing text
+            window.langManager.translateElement(submitBtn.find('[data-translate]'));
             
             const addresses = $("#addresses").val()
                 .split(',')
@@ -158,6 +162,8 @@
             const check_interval = parseInt($("#check_interval").val(), 10);
             const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": check_interval};
 
+            console.log('Submitting server interface data:', data);
+
             $.ajax({
                 cache: false,
                 method: 'POST',
@@ -165,23 +171,33 @@
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function(data) {
+                success: function(response) {
+                    console.log('Server interface updated successfully:', response);
                     toastr.success(window.langManager.translate('Updated Wireguard server interface addresses successfully'));
                     // Reset button state
                     submitBtn.prop('disabled', false);
-                    submitBtn.html('<span data-translate="Save">Save</span>');
+                    submitBtn.html('<span data-translate="Save">ذخیره</span>');
+                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
                     // Reload the page to show updated values
                     setTimeout(function() {
                         window.location.reload();
-                    }, 1000);
+                    }, 1500);
                 },
                 error: function(jqXHR, exception) {
+                    console.error('Error updating server interface:', jqXHR, exception);
                     // Reset button state
                     submitBtn.prop('disabled', false);
-                    submitBtn.html('<span data-translate="Save">Save</span>');
+                    submitBtn.html('<span data-translate="Save">ذخیره</span>');
+                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
                     
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(window.langManager.translate(responseJson['message']));
+                    let errorMessage = 'An error occurred';
+                    try {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        errorMessage = responseJson['message'] || errorMessage;
+                    } catch(e) {
+                        console.error('Error parsing response:', e);
+                    }
+                    toastr.error(window.langManager.translate(errorMessage));
                 }
             });
         }
@@ -208,7 +224,7 @@
         // Wireguard Interface Addresses form validation
         $(document).ready(function () {
             $.validator.setDefaults({
-                submitHandler: function () {
+                submitHandler: function (form) {
                     submitServerInterfaceSetting();
                     return false;
                 }

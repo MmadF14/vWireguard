@@ -27,7 +27,7 @@ Global Settings
                     </div>
                     <!-- /.card-header -->
                     <!-- form start -->
-                    <form role="form" id="frm_global_settings" name="frm_global_settings">
+                    <form role="form" id="frm_global_settings" name="frm_global_settings" data-custom-submit="true">
                         <div class="card-body">
                             <!-- Endpoint Address -->
                             <div class="form-group">
@@ -220,19 +220,26 @@ $(document).ready(function() {
         },
         submitHandler: function(form) {
             submitGlobalSettings();
+            return false;
         }
     });
 
     function submitGlobalSettings() {
         // Show loading state
-        const submitBtn = $('button[type="submit"]');
+        const submitBtn = $('#frm_global_settings button[type="submit"]');
         const originalText = submitBtn.html();
         submitBtn.prop('disabled', true);
-        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
+        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">در حال پردازش...</span>');
+        
+        // Apply translation to processing text
+        window.langManager.translateElement(submitBtn.find('[data-translate]'));
+        
+        const dnsServersVal = $("#dns_servers").val();
+        const dnsServersArray = dnsServersVal ? dnsServersVal.split(",").filter(s => s.trim()) : [];
         
         const formData = {
             endpoint_address: $("#endpoint_address").val(),
-            dns_servers: $("#dns_servers").val().split(","),
+            dns_servers: dnsServersArray,
             mtu: $("#mtu").val(),
             persistent_keepalive: $("#persistent_keepalive").val(),
             firewall_mark: $("#firewall_mark").val(),
@@ -240,30 +247,41 @@ $(document).ready(function() {
             config_file_path: $("#config_file_path").val()
         };
 
+        console.log('Submitting global settings:', formData);
+
         $.ajax({
             url: "{{.basePath}}/global-settings",
             method: "POST",
             contentType: "application/json",
             data: JSON.stringify(formData),
             success: function(response) {
+                console.log('Global settings updated successfully:', response);
                 // Reset button state
                 submitBtn.prop('disabled', false);
-                submitBtn.html(originalText);
+                submitBtn.html('<span data-translate="Save">ذخیره</span>');
+                window.langManager.translateElement(submitBtn.find('[data-translate]'));
                 
-                if(response.success) {
-                    toastr.success(translations[langManager.currentLang].msg_success || 'Settings saved successfully');
+                if(response.success !== false) {
+                    toastr.success(window.langManager.translate('Settings saved successfully'));
                 } else {
-                    toastr.error(response.message || translations[langManager.currentLang].msg_error || 'Unknown error');
+                    toastr.error(response.message || window.langManager.translate('Unknown error'));
                 }
             },
             error: function(xhr) {
+                console.error('Error updating global settings:', xhr);
                 // Reset button state
                 submitBtn.prop('disabled', false);
-                submitBtn.html(originalText);
+                submitBtn.html('<span data-translate="Save">ذخیره</span>');
+                window.langManager.translateElement(submitBtn.find('[data-translate]'));
                 
-                const errorMsg = xhr.responseJSON?.message || xhr.statusText;
-                toastr.error(`${translations[langManager.currentLang].msg_error || 'Error'}: ${errorMsg}`);
-                console.error('Full error:', xhr);
+                let errorMessage = 'An error occurred';
+                try {
+                    const responseJson = xhr.responseJSON;
+                    errorMessage = responseJson?.message || xhr.statusText || errorMessage;
+                } catch(e) {
+                    console.error('Error parsing response:', e);
+                }
+                toastr.error(window.langManager.translate(errorMessage));
             }
         });
     }

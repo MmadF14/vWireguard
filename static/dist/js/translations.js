@@ -825,6 +825,39 @@ const translations = {
         "Port must be in range 1..65535": "پورت باید در محدوده 1 تا 65535 باشد",
         "Add More": "افزودن بیشتر",
         "Processing...": "در حال پردازش...",
-        "AllowedIPs of": "آی‌پی‌های مجاز"
+        "AllowedIPs of": "آی‌پی‌های مجاز",
+        
+        // Login Messages
+        "Login successful": "ورود موفقیت‌آمیز بود",
+        "Login is successful": "ورود موفقیت‌آمیز بود",
+        "Login successfully": "ورود موفقیت‌آمیز بود",
+        "Home": "خانه",
+        
+        // Tunnel specific translations that were missing
+        "wg-to-wg": "WG به WG",
+        "active": "فعال",
+        "inactive": "غیرفعال",
+        "STOP TUNNEL FIRST TO EDIT": "برای ویرایش ابتدا تانل را متوقف کنید",
+        "STOP": "توقف",
+        "DELETE": "حذف",
+        
+        // WireGuard Configuration Form
+        "Local Public Key (Auto-generated)": "کلید عمومی محلی (تولید خودکار)",
+        "Remote Endpoint (IP:Port)": "نقطه انتهای راه دور (IP:Port)",
+        "Our Tunnel IP": "آی‌پی تانل ما",
+        "Remote Public Key": "کلید عمومی راه دور",
+        "Allowed IPs (comma separated)": "آی‌پی‌های مجاز (جدا شده با کاما)",
+        "WARNING:": "هشدار:",
+        "Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.": "استفاده از 0.0.0.0/0 تمام ترافیک را از طریق تانل هدایت می‌کند و ممکن است سرور شما را قطع کند! برای امنیت فقط از شبکه‌های خصوصی استفاده کنید.",
+        "PreShared Key (Optional)": "کلید از پیش به اشتراک گذاشته شده (اختیاری)",
+        "Generate": "تولید",
+        "Optional: Adds an extra layer of symmetric-key cryptography": "اختیاری: یک لایه اضافی از رمزنگاری کلید متقارن اضافه می‌کند",
+        
+        // Additional translations for missing parts
+        "Settings saved successfully": "تنظیمات با موفقیت ذخیره شد",
+        "Unknown error": "خطای نامشخص",
+        "An error occurred": "خطایی رخ داد",
+        "Save": "ذخیره",
+        "Updated Wireguard server interface addresses successfully": "آدرس‌های رابط سرور Wireguard با موفقیت به‌روزرسانی شد"
     }
 }; 
