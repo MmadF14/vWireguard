@@ -429,15 +429,109 @@ function smartTranslateTunnels() {
     // Check if current language is Persian
     const currentLang = localStorage.getItem('language') || 'en';
     if (currentLang !== 'fa') {
-        console.log('Not Persian language, skipping force translation');
+        console.log('Not Persian language, skipping additional translation');
         return;
     }
     
     console.log('Smart translating tunnels page for Persian...');
     
-    // Use the existing translation system first
+    // First try to use the global translation system
     if (typeof applyTranslations === 'function') {
+        console.log('Using global applyTranslations function');
         applyTranslations();
+    } else if (window.translations && window.translations.fa) {
+        console.log('Using manual translation with window.translations');
+        // Manual translation fallback
+        const faTranslations = window.translations.fa;
+        document.querySelectorAll('[data-translate]').forEach(element => {
+            const key = element.getAttribute('data-translate');
+            if (faTranslations[key]) {
+                console.log('Translating:', key, '->', faTranslations[key]);
+                element.textContent = faTranslations[key];
+            }
+        });
+    } else {
+        console.log('No translation system available, using hardcoded translations');
+        // Hardcoded translations as last resort
+        const hardcodedTranslations = {
+            'Tunnels': 'تانل‌ها',
+            'Home': 'خانه',
+            'New Tunnel': 'تانل جدید',
+            'Cleanup': 'پاکسازی',
+            'Type': 'نوع',
+            'Remote': 'راه دور',
+            'Tunnel IP': 'آی‌پی تانل',
+            'Target': 'هدف',
+            'Protocol': 'پروتکل',
+            'Clients': 'کلاینت‌ها',
+            'All Clients': 'همه کلاینت‌ها',
+            'Selected': 'انتخاب شده',
+            'In': 'ورودی',
+            'Out': 'خروجی',
+            'Last seen': 'آخرین مشاهده',
+            'Never': 'هرگز',
+            'Stop': 'توقف',
+            'Start': 'شروع',
+            'Edit': 'ویرایش',
+            'Delete': 'حذف',
+            'Tunnel Name': 'نام تانل',
+            'Tunnel Type': 'نوع تانل',
+            'Select tunnel type': 'نوع تانل را انتخاب کنید',
+            'WireGuard to WireGuard': 'WireGuard به WireGuard',
+            'Description (Optional)': 'توضیحات (اختیاری)',
+            'Client Routing': 'مسیریابی کلاینت',
+            'Route all clients through this tunnel': 'همه کلاینت‌ها را از طریق این تانل مسیریابی کن',
+            'Route only selected clients': 'فقط کلاینت‌های انتخاب شده را مسیریابی کن',
+            'Select Clients': 'انتخاب کلاینت‌ها',
+            'WireGuard Configuration': 'پیکربندی WireGuard',
+            'Generate Keypair': 'تولید جفت کلید',
+            'Manual Entry': 'ورود دستی',
+            'Generate or manually enter your keypair': 'جفت کلید خود را تولید کنید یا به صورت دستی وارد کنید',
+            'Local Private Key': 'کلید خصوصی محلی',
+            'Enter your private key and public key will be auto-generated': 'کلید خصوصی خود را وارد کنید و کلید عمومی به طور خودکار تولید می‌شود',
+            'Local Public Key (Auto-generated)': 'کلید عمومی محلی (تولید خودکار)',
+            'Remote Endpoint (IP:Port)': 'نقطه پایانی راه دور (IP:Port)',
+            'Our Tunnel IP': 'آی‌پی تانل ما',
+            'Remote Public Key': 'کلید عمومی راه دور',
+            'Allowed IPs (comma separated)': 'آی‌پی‌های مجاز (جدا شده با کاما)',
+            'WARNING:': 'هشدار:',
+            'PreShared Key (Optional)': 'کلید از پیش تعیین شده (اختیاری)',
+            'Generate': 'تولید',
+            'Optional: Adds an extra layer of symmetric-key cryptography': 'اختیاری: یک لایه اضافی از رمزنگاری کلید متقارن اضافه می‌کند',
+            'Cancel': 'لغو',
+            'Create Tunnel': 'ایجاد تانل',
+            'Cleanup Corrupted Tunnels': 'پاکسازی تانل‌های خراب',
+            'This will remove any corrupted tunnel records that cannot be loaded properly.': 'این عمل تمام رکوردهای تانل خراب که نمی‌توانند به درستی بارگذاری شوند را حذف می‌کند.',
+            'Warning:': 'هشدار:',
+            'This action cannot be undone!': 'این عمل قابل برگشت نیست!',
+            'Smart Cleanup': 'پاکسازی هوشمند',
+            'Delete All': 'حذف همه',
+            'No tunnels configured. Add a new tunnel to get started.': 'هیچ تانلی پیکربندی نشده است. برای شروع یک تانل جدید اضافه کنید.',
+            'Manage network tunnels and routing': 'مدیریت تانل‌های شبکه و مسیریابی',
+            'Tunnel Routing Setup Required': 'راه‌اندازی مسیریابی تانل مورد نیاز است',
+            'For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:': 'برای کارکرد صحیح تانل‌ها، باید قوانین مسیریابی را روی سرور خود تنظیم کنید. این دستور را به عنوان root اجرا کنید:',
+            'This will configure iptables rules for traffic forwarding and enable IP forwarding.': 'این کار قوانین iptables را برای انتقال ترافیک پیکربندی کرده و IP forwarding را فعال می‌کند.',
+            'Important Notes': 'نکات مهم',
+            'Safe Routing:': 'مسیریابی امن:',
+            'AllowedIPs of': 'آی‌پی‌های مجاز',
+            'is automatically replaced with private networks to prevent server disconnection': 'به طور خودکار با شبکه‌های خصوصی جایگزین می‌شود تا از قطع اتصال سرور جلوگیری شود',
+            'Edit Restriction:': 'محدودیت ویرایش:',
+            'Active tunnels cannot be edited - stop the tunnel first': 'تانل‌های فعال قابل ویرایش نیستند - ابتدا تانل را متوقف کنید',
+            'Interface Names:': 'نام‌های رابط:',
+            'Tunnel interfaces use format': 'رابط‌های تانل از فرمت استفاده می‌کنند',
+            'Traffic Forwarding:': 'انتقال ترافیک:',
+            'Ensure your server has proper iptables rules for traffic forwarding': 'اطمینان حاصل کنید که سرور شما قوانین iptables مناسب برای انتقال ترافیک دارد',
+            'Stop tunnel first to edit': 'برای ویرایش ابتدا تانل را متوقف کنید',
+            'Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.': 'استفاده از 0.0.0.0/0 تمام ترافیک را از طریق تانل مسیریابی می‌کند و ممکن است سرور شما را قطع کند! برای امنیت فقط از شبکه‌های خصوصی استفاده کنید.'
+        };
+        
+        document.querySelectorAll('[data-translate]').forEach(element => {
+            const key = element.getAttribute('data-translate');
+            if (hardcodedTranslations[key]) {
+                console.log('Hardcoded translating:', key, '->', hardcodedTranslations[key]);
+                element.textContent = hardcodedTranslations[key];
+            }
+        });
     }
     
     // Additional translations for elements that might not be caught by the main system
@@ -449,7 +543,7 @@ function smartTranslateTunnels() {
         'B': 'بایت'
     };
     
-    // Apply additional translations only to specific elements
+    // Apply additional translations only to specific elements that need it
     document.querySelectorAll('.badge, .card-title').forEach(element => {
         const text = element.textContent.trim();
         if (additionalTranslations[text]) {
@@ -462,18 +556,57 @@ function smartTranslateTunnels() {
 
 // Run smart translation when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Run smart translation only if Persian is selected
-    setTimeout(smartTranslateTunnels, 500);
-    setTimeout(smartTranslateTunnels, 1000);
+    console.log('Tunnels page DOM loaded');
+    
+    // Wait for the main translation system to load first
+    setTimeout(function() {
+        console.log('Running translation check...');
+        console.log('Current language:', localStorage.getItem('language'));
+        console.log('langManager exists:', typeof window.langManager);
+        console.log('translatePage exists:', window.langManager && typeof window.langManager.translatePage);
+        console.log('applyTranslations exists:', typeof applyTranslations);
+        console.log('window.translations exists:', typeof window.translations);
+        
+        // Apply main translation system
+        if (window.langManager && window.langManager.translatePage) {
+            console.log('Applying main translation system');
+            window.langManager.translatePage();
+        } else {
+            console.log('Main translation system not available, trying manual approach');
+            // Fallback: manually call translation if langManager is not ready
+            if (typeof applyTranslations === 'function') {
+                applyTranslations();
+            }
+        }
+        
+        // Then apply additional translations
+        smartTranslateTunnels();
+    }, 200);
+    
+    // Also try earlier
+    setTimeout(function() {
+        console.log('Early translation attempt...');
+        smartTranslateTunnels();
+    }, 50);
     
     // Also run translation when modals are opened
     $('.modal').on('shown.bs.modal', function() {
-        setTimeout(smartTranslateTunnels, 100);
+        setTimeout(function() {
+            if (window.langManager && window.langManager.translatePage) {
+                window.langManager.translatePage();
+            }
+            smartTranslateTunnels();
+        }, 100);
     });
     
     // Run translation when AJAX requests complete
     $(document).ajaxComplete(function() {
-        setTimeout(smartTranslateTunnels, 100);
+        setTimeout(function() {
+            if (window.langManager && window.langManager.translatePage) {
+                window.langManager.translatePage();
+            }
+            smartTranslateTunnels();
+        }, 100);
     });
 });
 </script>
