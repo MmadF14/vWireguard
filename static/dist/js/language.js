@@ -90,28 +90,6 @@ class LanguageManager {
             }
         });
 
-        // Translate elements that contain only text and no children
-        const textOnlyElements = document.querySelectorAll('*:not(script):not(style)');
-        textOnlyElements.forEach(element => {
-            // Skip if element has children
-            if (element.children.length > 0) return;
-            
-            const text = element.textContent?.trim();
-            if (text && this.translations[this.currentLang][text]) {
-                element.textContent = this.translate(text);
-            }
-        });
-
-        // Translate specific badge and button content
-        document.querySelectorAll('.badge, .btn:not([data-translate])').forEach(element => {
-            if (element.children.length === 0) {
-                const text = element.textContent?.trim();
-                if (text && this.translations[this.currentLang][text]) {
-                    element.textContent = this.translate(text);
-                }
-            }
-        });
-
         // Translate validation messages
         if (window.jQuery && jQuery.validator) {
             jQuery.extend(jQuery.validator.messages, {
@@ -216,14 +194,14 @@ class LanguageManager {
 document.addEventListener('DOMContentLoaded', () => {
     window.langManager = new LanguageManager();
     
-    // Force retranslate every 500ms for the first 10 seconds to catch dynamic content
+    // Force retranslate every 500ms for the first 5 seconds to catch dynamic content
     let retranslateCount = 0;
     const retranslateInterval = setInterval(() => {
         if (window.langManager) {
             window.langManager.forceRetranslate();
         }
         retranslateCount++;
-        if (retranslateCount >= 20) { // 20 * 500ms = 10 seconds
+        if (retranslateCount >= 10) { // 10 * 500ms = 5 seconds
             clearInterval(retranslateInterval);
         }
     }, 500);
