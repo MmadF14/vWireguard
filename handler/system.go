@@ -154,7 +154,7 @@ func SystemMonitorPage() echo.HandlerFunc {
 		}
 
 		// حالا سعی می‌کنیم فایل تمپلیت را رندر کنیم
-		if err := c.Render(http.StatusOK, "system_monitor.html", createTemplateData(data)); err != nil {
+		if err := c.Render(http.StatusOK, "system_monitor.html", data); err != nil {
 			c.Logger().Error("Error rendering system_monitor.html:", err)
 			return c.String(http.StatusInternalServerError, "Error rendering system_monitor.html")
 		}
