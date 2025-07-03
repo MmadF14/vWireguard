@@ -118,6 +118,79 @@ body {
     border-color: var(--danger-color) !important;
 }
 
+/* Fix for button visibility issues in light theme */
+.btn-primary {
+    color: white !important;
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    color: white !important;
+    background-color: #357abd !important;
+    border-color: #357abd !important;
+}
+
+.btn-secondary {
+    color: white !important;
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+.btn-secondary:hover, .btn-secondary:focus, .btn-secondary:active {
+    color: white !important;
+    background-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+}
+
+.btn-success {
+    color: white !important;
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+}
+
+.btn-success:hover, .btn-success:focus, .btn-success:active {
+    color: white !important;
+    background-color: #27ae60 !important;
+    border-color: #27ae60 !important;
+}
+
+.btn-danger {
+    color: white !important;
+    background-color: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
+}
+
+.btn-danger:hover, .btn-danger:focus, .btn-danger:active {
+    color: white !important;
+    background-color: #c0392b !important;
+    border-color: #c0392b !important;
+}
+
+.btn-warning {
+    color: #212529 !important;
+    background-color: var(--warning-color) !important;
+    border-color: var(--warning-color) !important;
+}
+
+.btn-warning:hover, .btn-warning:focus, .btn-warning:active {
+    color: #212529 !important;
+    background-color: #e1b500 !important;
+    border-color: #e1b500 !important;
+}
+
+.btn-info {
+    color: white !important;
+    background-color: var(--info-color) !important;
+    border-color: var(--info-color) !important;
+}
+
+.btn-info:hover, .btn-info:focus, .btn-info:active {
+    color: white !important;
+    background-color: #2980b9 !important;
+    border-color: #2980b9 !important;
+}
+
 /* Sidebar Improvements */
 .main-sidebar {
     background-color: var(--secondary-color);
@@ -173,10 +246,177 @@ body {
 [data-theme="dark"] .content-wrapper{
     background-color: var(--dark-bg);
 }
-[data-theme="dark"] .info-box ,
-[data-theme="dark"] .card-body ,
-[data-theme="dark"] .card-footer{
-    background-color: var(--dark-surface);
+
+/* Dark Mode - Cards */
+[data-theme="dark"] .card {
+    background-color: var(--dark-surface) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card-header {
+    background-color: var(--dark-surface-lighter) !important;
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card-body {
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card-footer {
+    background-color: var(--dark-surface-lighter) !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card-title {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card-text {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Fix for all card components */
+[data-theme="dark"] .card * {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .card h1,
+[data-theme="dark"] .card h2,
+[data-theme="dark"] .card h3,
+[data-theme="dark"] .card h4,
+[data-theme="dark"] .card h5,
+[data-theme="dark"] .card h6 {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card p,
+[data-theme="dark"] .card span,
+[data-theme="dark"] .card div {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .card .text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="dark"] .info-box {
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .info-box-icon {
+    background-color: var(--dark-surface-lighter) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .info-box-content {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .info-box-text {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-theme="dark"] .info-box-number {
+    color: var(--text-light) !important;
+    font-weight: bold !important;
+}
+
+/* Specific fixes for system monitor cards */
+[data-theme="dark"] .small-box {
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .small-box h3 {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .small-box p {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-theme="dark"] .small-box .icon {
+    color: rgba(255, 255, 255, 0.3) !important;
+}
+
+[data-theme="dark"] .small-box .small-box-footer {
+    background-color: var(--dark-surface-lighter) !important;
+    color: var(--text-light) !important;
+}
+
+/* Fix for progress bars in dark mode */
+[data-theme="dark"] .progress {
+    background-color: var(--dark-surface-lighter) !important;
+}
+
+[data-theme="dark"] .progress-bar {
+    background-color: var(--primary-color) !important;
+}
+
+/* Fix for alerts in dark mode */
+[data-theme="dark"] .alert {
+    background-color: var(--dark-surface) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .alert-info {
+    background-color: rgba(52, 152, 219, 0.1) !important;
+    border-color: rgba(52, 152, 219, 0.3) !important;
+    color: #3498db !important;
+}
+
+[data-theme="dark"] .alert-warning {
+    background-color: rgba(241, 196, 15, 0.1) !important;
+    border-color: rgba(241, 196, 15, 0.3) !important;
+    color: #f1c40f !important;
+}
+
+[data-theme="dark"] .alert-danger {
+    background-color: rgba(231, 76, 60, 0.1) !important;
+    border-color: rgba(231, 76, 60, 0.3) !important;
+    color: #e74c3c !important;
+}
+
+[data-theme="dark"] .alert-success {
+    background-color: rgba(46, 204, 113, 0.1) !important;
+    border-color: rgba(46, 204, 113, 0.3) !important;
+    color: #2ecc71 !important;
+}
+
+/* Fix for breadcrumbs in dark mode */
+[data-theme="dark"] .breadcrumb {
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .breadcrumb-item {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+[data-theme="dark"] .breadcrumb-item.active {
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .breadcrumb-item a {
+    color: var(--primary-color) !important;
+}
+
+/* Fix for content wrapper */
+[data-theme="dark"] .content-header {
+    background-color: transparent !important;
+    color: var(--text-light) !important;
+}
+
+[data-theme="dark"] .content-header h1 {
+    color: var(--text-light) !important;
 }
 /* Dark Mode - Navbar */
 [data-theme="dark"] .navbar {
@@ -471,15 +711,48 @@ body {
 }
 
 .client-actions .btn-more {
-    background-color: var(--secondary-color);
-    color: #fff;
+    background-color: #6c757d !important;
+    color: #fff !important;
     min-width: auto;
-    border-color: var(--secondary-color);
+    border-color: #6c757d !important;
 }
 
 .client-actions .btn-more:hover {
-    background-color: darken(var(--secondary-color), 10%);
-    border-color: darken(var(--secondary-color), 10%);
+    background-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+    color: #fff !important;
+}
+
+/* Fix for dropdown toggle buttons */
+.dropdown-toggle::after {
+    color: inherit !important;
+    opacity: 1 !important;
+}
+
+.btn-group .dropdown-toggle {
+    background-color: inherit !important;
+    border-color: inherit !important;
+    color: inherit !important;
+}
+
+.btn-group .dropdown-toggle:hover {
+    background-color: inherit !important;
+    border-color: inherit !important;
+    color: inherit !important;
+}
+
+/* Fix for button groups in light theme */
+.btn-group > .btn {
+    position: relative;
+    z-index: 1;
+}
+
+.btn-group > .btn:hover {
+    z-index: 2;
+}
+
+.btn-group > .btn:focus {
+    z-index: 3;
 }
 
 .client-info {
@@ -538,13 +811,99 @@ body {
 }
 
 [data-theme="dark"] .btn-group .btn {
-    background-color: var(--dark-surface-lighter);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: var(--text-light);
+    background-color: var(--dark-surface-lighter) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-light) !important;
 }
 
 [data-theme="dark"] .btn-group .btn:hover {
-    background-color: var(--dark-surface);
+    background-color: var(--dark-surface) !important;
+    color: var(--text-light) !important;
+}
+
+/* Dark mode button fixes */
+[data-theme="dark"] .btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+    background-color: #357abd !important;
+    border-color: #357abd !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-secondary {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+    background-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-success {
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-success:hover {
+    background-color: #27ae60 !important;
+    border-color: #27ae60 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-danger {
+    background-color: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-danger:hover {
+    background-color: #c0392b !important;
+    border-color: #c0392b !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-warning {
+    background-color: var(--warning-color) !important;
+    border-color: var(--warning-color) !important;
+    color: #212529 !important;
+}
+
+[data-theme="dark"] .btn-warning:hover {
+    background-color: #e1b500 !important;
+    border-color: #e1b500 !important;
+    color: #212529 !important;
+}
+
+[data-theme="dark"] .btn-info {
+    background-color: var(--info-color) !important;
+    border-color: var(--info-color) !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .btn-info:hover {
+    background-color: #2980b9 !important;
+    border-color: #2980b9 !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .client-actions .btn-more {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    color: white !important;
+}
+
+[data-theme="dark"] .client-actions .btn-more:hover {
+    background-color: #5a6268 !important;
+    border-color: #5a6268 !important;
+    color: white !important;
 }
 
 [data-theme="dark"] .btn-group .dropdown-menu {
