@@ -399,8 +399,8 @@
                     <!-- Remember Me -->
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <input type="checkbox" id="remember" name="remember" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                            <label for="remember" class="ml-2 rtl:ml-0 rtl:mr-2 block text-sm text-gray-700 dark:text-gray-300">
+                            <input type="checkbox" id="rememberMe" name="rememberMe" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <label for="rememberMe" class="ml-2 rtl:ml-0 rtl:mr-2 block text-sm text-gray-700 dark:text-gray-300">
                                 <span data-translate="Remember me">Remember me</span>
                             </label>
                         </div>
@@ -438,7 +438,7 @@
                 <div class="mt-8 text-center">
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                         <span data-translate="Powered by">Powered by</span> 
-                        <a href="https://github.com/donaldzou/WGDashboard" class="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200">vWireguard</a>
+                        <a href="https://github.com/MmadF14/vWireguard" class="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200">vWireguard</a>
                     </p>
                 </div>
             </div>
@@ -477,15 +477,59 @@
             const submitButton = form.querySelector('button[type="submit"]');
             const originalButtonText = submitButton.innerHTML;
             
-            form.addEventListener('submit', function() {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Prevent default form submission
+                
+                // Disable submit button and show loading state
                 submitButton.disabled = true;
                 submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span data-translate="Signing in...">Signing in...</span>';
                 
-                // Reset button after 5 seconds as fallback
-                setTimeout(() => {
+                // Get form data
+                const formData = new FormData(form);
+                const data = {
+                    username: formData.get('username'),
+                    password: formData.get('password'),
+                    rememberMe: formData.get('rememberMe') === 'on'
+                };
+                
+                // Send JSON request
+                fetch(form.action || window.location.pathname, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // Success - redirect to intended page or dashboard
+                        const basePath = '{{.basePath}}' || '';
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const nextUrl = urlParams.get('next');
+                        
+                        if (nextUrl) {
+                            window.location.href = nextUrl;
+                        } else {
+                            window.location.href = basePath + '/';
+                        }
+                    } else {
+                        // Show error message
+                        showMessage(result.message || 'Login failed', 'error');
+                        
+                        // Reset button
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalButtonText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    showMessage('Network error. Please try again.', 'error');
+                    
+                    // Reset button
                     submitButton.disabled = false;
                     submitButton.innerHTML = originalButtonText;
-                }, 5000);
+                });
             });
             
             // Focus management
@@ -507,6 +551,33 @@
             // Add smooth scroll to page
             document.documentElement.style.scrollBehavior = 'smooth';
         });
+        
+        // Message display function
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('message');
+            const messageClass = type === 'error' ? 
+                'bg-red-50 dark:bg-red-900 border-red-400 text-red-700 dark:text-red-200' :
+                'bg-green-50 dark:bg-green-900 border-green-400 text-green-700 dark:text-green-200';
+            const iconClass = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            
+            messageContainer.innerHTML = `
+                <div class="message-slide-in p-4 rounded-xl border-l-4 ${messageClass}">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="ml-3 rtl:ml-0 rtl:mr-3">
+                            <p class="text-sm font-medium">${message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
         
         // Enhanced keyboard navigation
         document.addEventListener('keydown', function(e) {
