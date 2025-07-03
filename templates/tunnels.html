@@ -140,16 +140,16 @@
                             </button>
                             {{end}}
                             {{if eq .Status "active"}}
-                            <button class="btn btn-sm btn-secondary mr-2" disabled data-translate="Stop tunnel first to edit" title="برای ویرایش ابتدا تانل را متوقف کنید">
-                                <i class="fas fa-edit"></i> <span data-translate="Edit">ویرایش</span>
+                            <button class="btn btn-sm btn-secondary mr-2" disabled data-translate="Stop tunnel first to edit" title="Stop tunnel first to edit">
+                                <i class="fas fa-edit"></i> <span data-translate="Edit">Edit</span>
                             </button>
                             {{else}}
                             <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
-                                <i class="fas fa-edit"></i> <span data-translate="Edit">ویرایش</span>
+                                <i class="fas fa-edit"></i> <span data-translate="Edit">Edit</span>
                             </button>
                             {{end}}
                             <button class="btn btn-sm btn-danger" onclick="deleteTunnel('{{.ID}}')">
-                                <i class="fas fa-trash"></i> <span data-translate="Delete">حذف</span>
+                                <i class="fas fa-trash"></i> <span data-translate="Delete">Delete</span>
                             </button>
                         </div>
                     </div>
@@ -159,7 +159,7 @@
                 <div class="col-12">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        <span data-translate="No tunnels configured. Add a new tunnel to get started.">هیچ تانلی پیکربندی نشده است. برای شروع یک تانل جدید اضافه کنید.</span>
+                        <span data-translate="No tunnels configured. Add a new tunnel to get started.">No tunnels configured. Add a new tunnel to get started.</span>
                     </div>
                 </div>
             {{end}}
@@ -390,8 +390,8 @@
                     </div>
                 </div>
                 <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">لغو</button>
-                    <button type="submit" class="btn btn-primary" data-translate="Create Tunnel">ایجاد تانل</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-translate="Create Tunnel">Create Tunnel</button>
                 </div>
             </form>
         </div>
@@ -403,19 +403,19 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" data-translate="Cleanup Corrupted Tunnels">پاکسازی تانل‌های خراب</h4>
+                <h4 class="modal-title" data-translate="Cleanup Corrupted Tunnels">Cleanup Corrupted Tunnels</h4>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <p data-translate="This will remove any corrupted tunnel records that cannot be loaded properly.">این عمل تمام رکوردهای تانل خراب که نمی‌توانند به درستی بارگذاری شوند را حذف می‌کند.</p>
-                <p><strong data-translate="Warning:">هشدار:</strong> <span data-translate="This action cannot be undone!">این عمل قابل برگشت نیست!</span></p>
+                <p data-translate="This will remove any corrupted tunnel records that cannot be loaded properly.">This will remove any corrupted tunnel records that cannot be loaded properly.</p>
+                <p><strong data-translate="Warning:">Warning:</strong> <span data-translate="This action cannot be undone!">This action cannot be undone!</span></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">لغو</button>
-                <button type="button" class="btn btn-warning" onclick="cleanupTunnels()" data-translate="Smart Cleanup">پاکسازی هوشمند</button>
-                <button type="button" class="btn btn-danger" onclick="deleteAllTunnels()" data-translate="Delete All">حذف همه</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="cleanupTunnels()" data-translate="Smart Cleanup">Smart Cleanup</button>
+                <button type="button" class="btn btn-danger" onclick="deleteAllTunnels()" data-translate="Delete All">Delete All</button>
             </div>
         </div>
     </div>

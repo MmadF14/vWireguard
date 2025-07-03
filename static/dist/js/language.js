@@ -35,8 +35,12 @@ class LanguageManager {
     }
 
     translatePage() {
+        console.log('Translating page to:', this.currentLang);
         // First, translate all elements with data-translate attribute
-        document.querySelectorAll('[data-translate]').forEach(element => {
+        const elementsToTranslate = document.querySelectorAll('[data-translate]');
+        console.log('Found', elementsToTranslate.length, 'elements to translate');
+        
+        elementsToTranslate.forEach(element => {
             const key = element.getAttribute('data-translate');
             if (!key) return;
             
@@ -58,7 +62,10 @@ class LanguageManager {
                 }
             } else {
                 // For other elements, update text content
-                element.textContent = translation;
+                // Only update if the current text is the key or empty
+                if (element.textContent.trim() === key || element.textContent.trim() === '') {
+                    element.textContent = translation;
+                }
             }
 
             // Update title attribute if it exists and matches the key
@@ -112,6 +119,41 @@ class LanguageManager {
         }
     }
 
+    // Method to translate a specific element
+    translateElement(element) {
+        if (!element) return;
+        
+        const key = element.getAttribute('data-translate');
+        if (!key) return;
+        
+        const translation = this.translate(key);
+        
+        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+            if (element.placeholder === key) {
+                element.placeholder = translation;
+            }
+            if (element.value === key) {
+                element.value = translation;
+            }
+        } else if (element.tagName === 'OPTION') {
+            element.textContent = translation;
+            if (element.value === key) {
+                element.value = translation;
+            }
+        } else {
+            element.textContent = translation;
+        }
+
+        if (element.title === key) {
+            element.title = translation;
+        }
+    }
+
+    // Force retranslate the entire page
+    forceRetranslate() {
+        this.translatePage();
+    }
+
     setupLanguageToggle() {
         // Remove existing language toggle if any
         const existingToggle = document.getElementById('language-toggle');
@@ -151,4 +193,44 @@ class LanguageManager {
 // Initialize language manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.langManager = new LanguageManager();
+    
+    // Force retranslate every 500ms for the first 5 seconds to catch dynamic content
+    let retranslateCount = 0;
+    const retranslateInterval = setInterval(() => {
+        if (window.langManager) {
+            window.langManager.forceRetranslate();
+        }
+        retranslateCount++;
+        if (retranslateCount >= 10) { // 10 * 500ms = 5 seconds
+            clearInterval(retranslateInterval);
+        }
+    }, 500);
+    
+    // Also retranslate when new content is added to the DOM
+    const observer = new MutationObserver((mutations) => {
+        let shouldRetranslate = false;
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        if (node.hasAttribute && node.hasAttribute('data-translate')) {
+                            shouldRetranslate = true;
+                        }
+                        if (node.querySelectorAll && node.querySelectorAll('[data-translate]').length > 0) {
+                            shouldRetranslate = true;
+                        }
+                    }
+                });
+            }
+        });
+        
+        if (shouldRetranslate && window.langManager) {
+            setTimeout(() => window.langManager.forceRetranslate(), 100);
+        }
+    });
+    
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
 }); 
