@@ -622,26 +622,26 @@
             <form name="frm_new_client" id="frm_new_client" class="p-6 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <span data-translate="Name">Name</span>
                         </label>
-                        <input type="text" id="client_name" name="client_name" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                        <input type="text" id="client_name" name="client_name" class="input-modern" placeholder="Enter client name">
                     </div>
                     
                     <div>
-                        <label for="client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <label for="client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <span data-translate="Email">Email</span>
                         </label>
-                        <input type="email" id="client_email" name="client_email" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                        <input type="email" id="client_email" name="client_email" class="input-modern" placeholder="Enter email address">
                     </div>
                 </div>
                 
                 <div>
-                    <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <span data-translate="Quota">Quota</span>
                     </label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <select id="quota_preset" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    <div class="grid grid-cols-2 gap-3">
+                        <select id="quota_preset" class="select-modern">
                             <option value="custom" data-translate="Custom">Custom</option>
                             <option value="1073741824">1 GB</option>
                             <option value="5368709120">5 GB</option>
@@ -649,31 +649,31 @@
                             <option value="53687091200">50 GB</option>
                             <option value="107374182400">100 GB</option>
                         </select>
-                        <input type="number" id="client_quota" name="client_quota" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Custom bytes">
-            </div>
-        </div>
+                        <input type="number" id="client_quota" name="client_quota" class="input-modern" placeholder="Custom bytes">
+                    </div>
+                </div>
 
-                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                <div class="flex items-center space-x-6 rtl:space-x-reverse">
                     <div class="flex items-center">
-                        <input type="checkbox" id="use_server_dns" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                        <label for="use_server_dns" class="ml-2 rtl:ml-0 rtl:mr-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" id="use_server_dns" class="checkbox-modern">
+                        <label for="use_server_dns" class="ml-3 rtl:ml-0 rtl:mr-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                             <span data-translate="Use server DNS">Use server DNS</span>
                         </label>
-                        </div>
+                    </div>
                     
                     <div class="flex items-center">
-                        <input type="checkbox" id="enabled" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                        <label for="enabled" class="ml-2 rtl:ml-0 rtl:mr-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" id="enabled" class="checkbox-modern">
+                        <label for="enabled" class="ml-3 rtl:ml-0 rtl:mr-3 text-sm font-medium text-gray-700 dark:text-gray-300">
                             <span data-translate="Enable after creation">Enable after creation</span>
                         </label>
                     </div>
                 </div>
                 
-                <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
-                    <button type="button" onclick="document.getElementById('modal_new_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-6">
+                    <button type="button" onclick="document.getElementById('modal_new_client').style.display='none'" class="btn-secondary">
                         <span data-translate="Cancel">Cancel</span>
                     </button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    <button type="submit" class="btn-primary">
                         <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
                         <span data-translate="Create Client">Create Client</span>
                     </button>
