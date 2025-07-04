@@ -217,6 +217,8 @@ func main() {
 
 	// Serve static files from prepared assets with proper MIME types
 	app.Static(util.BasePath+"/assets", "assets")
+	// Serve static files from static directory
+	app.Static(util.BasePath+"/static", "static")
 	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if strings.HasPrefix(c.Path(), util.BasePath+"/assets/") {
