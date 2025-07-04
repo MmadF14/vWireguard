@@ -494,7 +494,7 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 		// Return as a structured response
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
-			"data":    processedList,
+			"clients": processedList,
 		})
 	}
 }

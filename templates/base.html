@@ -723,9 +723,90 @@
             // Add smooth scrolling behavior
             document.documentElement.style.scrollBehavior = 'smooth';
             
+            // Initialize new client form
+            initializeNewClientForm();
+            
             // Initialize any additional interactive elements
             console.log('vWireguard Dashboard initialized');
         });
+        
+        // New Client Form Functionality
+        function initializeNewClientForm() {
+            const newClientForm = document.getElementById('frm_new_client');
+            const quotaPreset = document.getElementById('quota_preset');
+            const quotaInput = document.getElementById('client_quota');
+            
+            if (quotaPreset && quotaInput) {
+                quotaPreset.addEventListener('change', function() {
+                    if (this.value !== 'custom') {
+                        quotaInput.value = this.value;
+                        quotaInput.disabled = true;
+                    } else {
+                        quotaInput.disabled = false;
+                        quotaInput.value = '';
+                    }
+                });
+            }
+            
+            if (newClientForm) {
+                newClientForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(this);
+                    const clientData = {
+                        name: formData.get('client_name'),
+                        email: formData.get('client_email'),
+                        quota: formData.get('client_quota') ? parseInt(formData.get('client_quota')) : 0,
+                        use_server_dns: document.getElementById('use_server_dns').checked,
+                        enabled: document.getElementById('enabled').checked,
+                    };
+                    
+                    // Validate required fields
+                    if (!clientData.name.trim()) {
+                        alert('Name is required');
+                        return;
+                    }
+                    
+                    fetch('{{.basePath}}/api/clients', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(clientData),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('modal_new_client').style.display = 'none';
+                            newClientForm.reset();
+                            showSuccess('Client created successfully');
+                            
+                            // Reload clients if on clients page
+                            if (typeof loadClients === 'function') {
+                                loadClients();
+                            }
+                        } else {
+                            showError(data.message || 'Failed to create client');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showError('Failed to create client');
+                    });
+                });
+            }
+        }
+        
+        // Utility functions
+        function showSuccess(message) {
+            console.log('Success:', message);
+            alert(message);
+        }
+        
+        function showError(message) {
+            console.error('Error:', message);
+            alert('Error: ' + message);
+        }
     </script>
 </body>
 </html>

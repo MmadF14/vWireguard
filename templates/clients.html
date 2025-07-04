@@ -183,22 +183,22 @@
                     </div>
                     <div class="form-group">
                         <label for="_client_quota" class="control-label" data-translate="Quota">Quota</label>
-                        <select class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_quota_preset" onchange="updateQuotaInput()">
-                            <option value="" data-translate="Select Quota">Select Quota</option>
-                            <option value="10">10 GB</option>
-                            <option value="20">20 GB</option>
-                            <option value="30">30 GB</option>
-                            <option value="40">40 GB</option>
-                            <option value="50">50 GB</option>
-                            <option value="100">100 GB</option>
-                            <option value="200">200 GB</option>
-                            <option value="500">500 GB</option>
-                            <option value="1000">1 TB</option>
-                            <option value="custom" data-translate="Custom">Custom</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <input type="number" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_quota" name="_client_quota" data-translate-placeholder="Enter custom quota in GB" placeholder="Enter custom quota in GB" step="0.1" min="0" />
+                        <div class="grid grid-cols-2 gap-2">
+                            <select class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_quota_preset" onchange="updateQuotaInput()">
+                                <option value="" data-translate="Select Quota">Select Quota</option>
+                                <option value="10">10 GB</option>
+                                <option value="20">20 GB</option>
+                                <option value="30">30 GB</option>
+                                <option value="40">40 GB</option>
+                                <option value="50">50 GB</option>
+                                <option value="100">100 GB</option>
+                                <option value="200">200 GB</option>
+                                <option value="500">500 GB</option>
+                                <option value="1000">1 TB</option>
+                                <option value="custom" data-translate="Custom">Custom</option>
+                            </select>
+                            <input type="number" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_quota" name="_client_quota" data-translate-placeholder="Enter custom quota in GB" placeholder="Enter custom quota in GB" step="0.1" min="0" />
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -398,25 +398,18 @@ const statusFilter = document.getElementById('status-filter');
 const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
 const refreshBtn = document.getElementById('refresh-status-btn');
 
-// Statistics elements
-const totalClientsEl = document.getElementById('total-clients');
-const onlineClientsEl = document.getElementById('online-clients');
-const totalTransferEl = document.getElementById('total-transfer');
-const serverStatusEl = document.getElementById('server-status');
-
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     loadClients();
     bindEvents();
-    updateStats();
 });
 
 // Bind events
 function bindEvents() {
-    searchInput.addEventListener('input', debounce(filterClients, 300));
-    statusFilter.addEventListener('change', filterClients);
-    autoRefreshToggle.addEventListener('change', toggleAutoRefresh);
-    refreshBtn.addEventListener('click', loadClients);
+    if (searchInput) searchInput.addEventListener('input', debounce(filterClients, 300));
+    if (statusFilter) statusFilter.addEventListener('change', filterClients);
+    if (autoRefreshToggle) autoRefreshToggle.addEventListener('change', toggleAutoRefresh);
+    if (refreshBtn) refreshBtn.addEventListener('click', loadClients);
 }
 
 // Load clients from server
@@ -430,10 +423,16 @@ async function loadClients() {
         const response = await fetch(`${basePath}/api/clients`);
         if (response.ok) {
             const data = await response.json();
-            clients = data.clients || [];
+            // Handle both old and new API response formats
+            if (data.data) {
+                clients = data.data || [];
+            } else if (data.clients) {
+                clients = data.clients || [];
+            } else {
+                clients = data || [];
+            }
             filteredClients = [...clients];
             renderClients();
-            updateStats();
         } else {
             throw new Error('Failed to load clients');
         }
@@ -448,31 +447,36 @@ async function loadClients() {
 
 // Show loading state
 function showLoading() {
-    loadingState.classList.remove('hidden');
-    clientsContainer.classList.add('hidden');
-    emptyState.classList.add('hidden');
+    if (loadingState) loadingState.classList.remove('hidden');
+    if (clientsContainer) clientsContainer.classList.add('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
 }
 
 // Hide loading state
 function hideLoading() {
-    loadingState.classList.add('hidden');
-    clientsContainer.classList.remove('hidden');
+    if (loadingState) loadingState.classList.add('hidden');
+    if (clientsContainer) clientsContainer.classList.remove('hidden');
 }
 
 // Filter clients
 function filterClients() {
+    if (!searchInput || !statusFilter) return;
+    
     const searchTerm = searchInput.value.toLowerCase();
     const statusFilterValue = statusFilter.value;
     
     filteredClients = clients.filter(client => {
-        const matchesSearch = client.name.toLowerCase().includes(searchTerm) ||
-                             client.email.toLowerCase().includes(searchTerm) ||
-                             client.allocated_ips.some(ip => ip.includes(searchTerm));
+        const clientData = client.Client || client; // Handle both formats
+        const matchesSearch = clientData.name.toLowerCase().includes(searchTerm) ||
+                             (clientData.email && clientData.email.toLowerCase().includes(searchTerm)) ||
+                             (clientData.allocated_ips && clientData.allocated_ips.some(ip => ip.includes(searchTerm)));
         
-        const matchesStatus = statusFilterValue === 'all' || 
-                             client.status === statusFilterValue ||
-                             (statusFilterValue === 'enabled' && client.enabled) ||
-                             (statusFilterValue === 'disabled' && !client.enabled);
+        const matchesStatus = statusFilterValue === 'All' || 
+                             statusFilterValue === 'all' ||
+                             (statusFilterValue === 'Enabled' && clientData.enabled) ||
+                             (statusFilterValue === 'Disabled' && !clientData.enabled) ||
+                             (statusFilterValue === 'Connected' && clientData.status === 'online') ||
+                             (statusFilterValue === 'Disconnected' && clientData.status !== 'online');
         
         return matchesSearch && matchesStatus;
     });
@@ -482,24 +486,49 @@ function filterClients() {
 
 // Render clients
 function renderClients() {
+    if (!clientsContainer) return;
+    
     if (filteredClients.length === 0) {
         clientsContainer.classList.add('hidden');
-        emptyState.classList.remove('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
         return;
     }
     
     clientsContainer.classList.remove('hidden');
-    emptyState.classList.add('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
     
     clientsContainer.innerHTML = filteredClients.map(client => createClientCard(client)).join('');
 }
 
 // Create client card HTML
 function createClientCard(client) {
-    const isOnline = client.status === 'online';
+    const clientData = client.Client || client; // Handle both formats
+    const isOnline = clientData.status === 'online' || clientData.connected;
     const statusColor = isOnline ? 'bg-green-500' : 'bg-gray-400';
     const statusText = isOnline ? 'Online' : 'Offline';
-    const transferData = formatBytes(client.transfer_rx + client.transfer_tx);
+    const transferData = formatBytes((clientData.transfer_rx || 0) + (clientData.transfer_tx || 0));
+    
+    // Format allocated IPs
+    const allocatedIps = clientData.allocated_ips || [];
+    const allocatedIpsHtml = allocatedIps.map(ip => 
+        `<span class="inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1">${ip}</span>`
+    ).join('');
+    
+    // Format allowed IPs
+    const allowedIps = clientData.allowed_ips || [];
+    const allowedIpsHtml = allowedIps.map(ip => 
+        `<span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded mr-1 mb-1">${ip}</span>`
+    ).join('');
+    
+    // Format last handshake
+    const lastHandshake = clientData.last_handshake || clientData.last_handshake_time || 'Never';
+    const lastHandshakeText = lastHandshake === 'Never' ? 'Never' : prettyDateTime(lastHandshake);
+    
+    // Format quota
+    const quotaText = clientData.quota ? formatBytes(clientData.quota * 1024 * 1024 * 1024) : 'Unlimited';
+    
+    // Format expiration
+    const expirationText = clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration';
     
     return `
         <div class="client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
@@ -509,13 +538,13 @@ function createClientCard(client) {
                     <div class="flex items-center space-x-3">
                         <div class="relative">
                             <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                                ${client.name.charAt(0).toUpperCase()}
+                                ${clientData.name.charAt(0).toUpperCase()}
                             </div>
                             <div class="absolute -bottom-1 -right-1 w-4 h-4 ${statusColor} rounded-full border-2 border-white dark:border-dark-800"></div>
                         </div>
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${client.name}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${client.email}</p>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${clientData.name}</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${clientData.email || 'No email'}</p>
                         </div>
                     </div>
                     
@@ -524,16 +553,19 @@ function createClientCard(client) {
                             ${statusText}
                         </span>
                         <div class="flex items-center space-x-1">
-                            <button onclick="editClient('${client.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700">
+                            <button onclick="editClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="showQRCode('${client.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700">
+                            <button onclick="showQRCode('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="QR Code">
                                 <i class="fas fa-qrcode"></i>
                             </button>
-                            <button onclick="toggleClient('${client.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700">
-                                <i class="fas fa-${client.enabled ? 'pause' : 'play'}"></i>
+                            <button onclick="downloadClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="Download">
+                                <i class="fas fa-download"></i>
                             </button>
-                            <button onclick="deleteClient('${client.id}')" class="action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700">
+                            <button onclick="toggleClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="${clientData.enabled ? 'Disable' : 'Enable'}">
+                                <i class="fas fa-${clientData.enabled ? 'pause' : 'play'}"></i>
+                            </button>
+                            <button onclick="deleteClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="Delete">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -546,7 +578,9 @@ function createClientCard(client) {
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">IP Address</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${client.allocated_ips.join(', ')}</p>
+                        <div class="mt-1">
+                            ${allocatedIpsHtml || '<span class="text-gray-400">No IPs allocated</span>'}
+                        </div>
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Data Transfer</p>
@@ -554,100 +588,149 @@ function createClientCard(client) {
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Last Seen</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${client.last_handshake || 'Never'}</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${lastHandshakeText}</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Quota</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${client.quota ? formatBytes(client.quota) : 'Unlimited'}</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${quotaText}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Expiration</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${expirationText}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">DNS</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">${clientData.use_server_dns ? 'Server DNS' : 'Client DNS'}</p>
                     </div>
                 </div>
                 
-                ${client.notes ? `
-                <div class="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
-                    <p class="text-sm text-gray-700 dark:text-gray-300">${client.notes}</p>
+                ${allowedIps.length > 0 ? `
+                <div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Allowed IPs</p>
+                    <div class="flex flex-wrap">
+                        ${allowedIpsHtml}
+                    </div>
                 </div>
                 ` : ''}
+                
+                ${clientData.additional_notes ? `
+                <div class="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
+                    <p class="text-sm text-gray-700 dark:text-gray-300">${clientData.additional_notes}</p>
+                </div>
+                ` : ''}
+                
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                    <p>Created: ${prettyDateTime(clientData.created_at)}</p>
+                    <p>Updated: ${prettyDateTime(clientData.updated_at)}</p>
+                </div>
             </div>
         </div>
     `;
 }
 
-// Update statistics
-function updateStats() {
-    const totalClients = clients.length;
-    const onlineClients = clients.filter(c => c.status === 'online').length;
-    const totalTransfer = clients.reduce((sum, c) => sum + c.transfer_rx + c.transfer_tx, 0);
-    
-    totalClientsEl.textContent = totalClients;
-    onlineClientsEl.textContent = onlineClients;
-    totalTransferEl.textContent = formatBytes(totalTransfer);
-    
-    // Animate counters
-    animateCounter(totalClientsEl, totalClients);
-    animateCounter(onlineClientsEl, onlineClients);
-}
-
-// Animate counter
-function animateCounter(element, target) {
-    const start = parseInt(element.textContent) || 0;
-    const duration = 1000;
-    const startTime = performance.now();
-    
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const current = Math.floor(start + (target - start) * progress);
-        
-        element.textContent = current;
-        
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        }
-    }
-    
-    requestAnimationFrame(update);
-}
-
 // Toggle auto refresh
 function toggleAutoRefresh() {
-    if (autoRefreshToggle.checked) {
+    if (autoRefreshToggle && autoRefreshToggle.checked) {
         autoRefreshInterval = setInterval(loadClients, 10000); // 10 seconds
     } else {
-        clearInterval(autoRefreshInterval);
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
     }
 }
 
 // Client actions
 function editClient(clientId) {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
     if (!client) return;
     
-    document.getElementById('edit-client-id').value = client.id;
-    document.getElementById('edit-client-name').value = client.name;
-    document.getElementById('edit-client-email').value = client.email;
-    document.getElementById('edit-client-quota').value = client.quota ? client.quota / (1024 * 1024 * 1024) : '';
-    document.getElementById('edit-client-expiry').value = client.expiry_days || '';
-    document.getElementById('edit-client-notes').value = client.notes || '';
-    document.getElementById('edit-client-enabled').checked = client.enabled;
-    document.getElementById('edit-client-dns').checked = client.use_server_dns;
+    const clientData = client.Client || client;
+    
+    // Fill the edit form
+    document.getElementById('_client_id').value = clientData.id;
+    document.getElementById('_client_name').value = clientData.name;
+    document.getElementById('_client_email').value = clientData.email || '';
+    
+    // Handle quota field
+    const quotaGB = clientData.quota ? Math.round(clientData.quota / (1024 * 1024 * 1024)) : 0;
+    document.getElementById('_client_quota').value = quotaGB;
+    
+    // Set quota preset if it matches a preset value
+    const quotaPreset = document.getElementById('_quota_preset');
+    if (quotaPreset) {
+        const presetValue = quotaGB.toString();
+        const presetOption = quotaPreset.querySelector(`option[value="${presetValue}"]`);
+        if (presetOption) {
+            quotaPreset.value = presetValue;
+            document.getElementById('_client_quota').disabled = true;
+        } else {
+            quotaPreset.value = 'custom';
+            document.getElementById('_client_quota').disabled = false;
+        }
+    }
+    
+    document.getElementById('_client_expiration_days').value = clientData.expiration_days || '';
+    document.getElementById('_additional_notes').value = clientData.additional_notes || '';
+    document.getElementById('_enabled').checked = clientData.enabled;
+    document.getElementById('_use_server_dns').checked = clientData.use_server_dns;
+    document.getElementById('_client_telegram_userid').value = clientData.tg_userid || '';
+    document.getElementById('_client_endpoint').value = clientData.endpoint || '';
+    document.getElementById('_client_public_key').value = clientData.public_key || '';
+    document.getElementById('_client_preshared_key').value = clientData.preshared_key || '';
+    
+    // Set allocated IPs
+    if (clientData.allocated_ips && clientData.allocated_ips.length > 0) {
+        document.getElementById('_client_allocated_ips').value = clientData.allocated_ips.join(',');
+    }
+    
+    // Set allowed IPs
+    if (clientData.allowed_ips && clientData.allowed_ips.length > 0) {
+        document.getElementById('_client_allowed_ips').value = clientData.allowed_ips.join(',');
+    }
+    
+    // Set extra allowed IPs
+    if (clientData.extra_allowed_ips && clientData.extra_allowed_ips.length > 0) {
+        document.getElementById('_client_extra_allowed_ips').value = clientData.extra_allowed_ips.join(',');
+    }
     
     document.getElementById('modal_edit_client').style.display = 'block';
 }
 
 function showQRCode(clientId) {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
     if (!client) return;
     
-    document.getElementById('qr-code-image').src = `${basePath}/api/client/${clientId}/qr`;
+    const clientData = client.Client || client;
+    document.getElementById('qr_client_id').value = clientData.id;
+    document.getElementById('qr_code').src = `${basePath}/api/client/${clientData.id}/qr`;
     document.getElementById('modal_qr_code').style.display = 'block';
 }
 
+function downloadClient(clientId) {
+    window.open(`${basePath}/api/client/${clientId}/download`, '_blank');
+}
+
 function toggleClient(clientId) {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
     if (!client) return;
     
+    const clientData = client.Client || client;
+    
     // Toggle client enabled state
-    fetch(`${basePath}/api/client/${clientId}/toggle`, {
+    fetch(`${basePath}/api/client/${clientData.id}/toggle`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -657,7 +740,7 @@ function toggleClient(clientId) {
     .then(data => {
         if (data.success) {
             loadClients();
-            showSuccess(`Client ${client.enabled ? 'disabled' : 'enabled'} successfully`);
+            showSuccess(`Client ${clientData.enabled ? 'disabled' : 'enabled'} successfully`);
         } else {
             showError('Failed to toggle client');
         }
@@ -669,11 +752,17 @@ function toggleClient(clientId) {
 }
 
 function deleteClient(clientId) {
-    const client = clients.find(c => c.id === clientId);
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
     if (!client) return;
     
-    if (confirm(`Are you sure you want to delete client "${client.name}"?`)) {
-        fetch(`${basePath}/api/client/${clientId}`, {
+    const clientData = client.Client || client;
+    
+    if (confirm(`Are you sure you want to delete client "${clientData.name}"?`)) {
+        fetch(`${basePath}/api/client/${clientData.id}`, {
             method: 'DELETE',
         })
         .then(response => response.json())
@@ -713,55 +802,110 @@ function debounce(func, wait) {
     };
 }
 
+function prettyDateTime(timeStr) {
+    if (!timeStr || timeStr === 'Never') return 'Never';
+    const dt = new Date(timeStr);
+    const offsetMs = dt.getTimezoneOffset() * 60 * 1000;
+    const dateLocal = new Date(dt.getTime() - offsetMs);
+    return dateLocal.toISOString().slice(0, 19).replace(/-/g, "/").replace("T", " ");
+}
+
 function showSuccess(message) {
     // You can integrate with a toast library here
     console.log('Success:', message);
+    alert(message);
 }
 
 function showError(message) {
     // You can integrate with a toast library here
     console.error('Error:', message);
+    alert('Error: ' + message);
 }
 
 // Global base path
 const basePath = '{{.basePath}}';
 
 // Handle edit client form submission
-document.getElementById('edit-client-form').addEventListener('submit', function(e) {
-    e.preventDefault();
+document.addEventListener('DOMContentLoaded', function() {
+    const editForm = document.getElementById('frm_edit_client');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const clientId = document.getElementById('_client_id').value;
+            
+            const updateData = {
+                name: document.getElementById('_client_name').value,
+                email: document.getElementById('_client_email').value,
+                quota: document.getElementById('_client_quota').value ? parseFloat(document.getElementById('_client_quota').value) * 1024 * 1024 * 1024 : null,
+                expiration_days: document.getElementById('_client_expiration_days').value ? parseInt(document.getElementById('_client_expiration_days').value) : null,
+                additional_notes: document.getElementById('_additional_notes').value,
+                enabled: document.getElementById('_enabled').checked,
+                use_server_dns: document.getElementById('_use_server_dns').checked,
+                tg_userid: document.getElementById('_client_telegram_userid').value,
+                endpoint: document.getElementById('_client_endpoint').value,
+                public_key: document.getElementById('_client_public_key').value,
+                preshared_key: document.getElementById('_client_preshared_key').value,
+                allocated_ips: document.getElementById('_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
+                allowed_ips: document.getElementById('_client_allowed_ips').value.split(',').filter(ip => ip.trim()),
+                extra_allowed_ips: document.getElementById('_client_extra_allowed_ips').value.split(',').filter(ip => ip.trim()),
+            };
+            
+            fetch(`${basePath}/api/client/${clientId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('modal_edit_client').style.display = 'none';
+                    loadClients();
+                    showSuccess('Client updated successfully');
+                } else {
+                    showError(data.message || 'Failed to update client');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to update client');
+            });
+        });
+    }
     
-    const formData = new FormData(this);
-    const clientId = formData.get('client_id');
+    // Add quota preset functionality
+    const quotaPreset = document.getElementById('_quota_preset');
+    const quotaInput = document.getElementById('_client_quota');
     
-    fetch(`${basePath}/api/client/${clientId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            name: formData.get('client_name'),
-            email: formData.get('client_email'),
-            quota: formData.get('client_quota') ? parseFloat(formData.get('client_quota')) * 1024 * 1024 * 1024 : null,
-            expiry_days: formData.get('client_expiry') ? parseInt(formData.get('client_expiry')) : null,
-            notes: formData.get('client_notes'),
-            enabled: formData.get('client_enabled') === 'on',
-            use_server_dns: formData.get('client_dns') === 'on',
-        }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            document.getElementById('modal_edit_client').style.display = 'none';
-            loadClients();
-            showSuccess('Client updated successfully');
-        } else {
-            showError('Failed to update client');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showError('Failed to update client');
-    });
+    if (quotaPreset && quotaInput) {
+        quotaPreset.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                quotaInput.disabled = false;
+                quotaInput.value = '';
+            } else if (this.value) {
+                quotaInput.disabled = true;
+                quotaInput.value = this.value;
+            }
+        });
+    }
 });
+
+// Update quota input function
+function updateQuotaInput() {
+    const quotaPreset = document.getElementById('_quota_preset');
+    const quotaInput = document.getElementById('_client_quota');
+    
+    if (quotaPreset && quotaInput) {
+        if (quotaPreset.value === 'custom') {
+            quotaInput.disabled = false;
+            quotaInput.value = '';
+        } else if (quotaPreset.value) {
+            quotaInput.disabled = true;
+            quotaInput.value = quotaPreset.value;
+        }
+    }
+}
 </script>
 {{end}}
