@@ -31,42 +31,52 @@ Connected Peers
 <section class="content">
     <div class="container-fluid">
         {{ if .error }}
-        <div class="alert alert-warning" role="alert">{{.error}}</div>
-        {{ end}}
+        <div class="mb-4 px-4 py-3 text-yellow-800 bg-yellow-50 rounded-xl border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200" role="alert">{{.error}}</div>
+        {{ end }}
         {{ range $dev := .devices }}
-            <table class="table table-sm">
-                <caption>List of connected peers for device with name {{ $dev.Name }} </caption>
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Name</th>
-                  <th scope="col">Email</th>
-                  <th scope="col">Allocated IPs</th>
-                  <th scope="col">Endpoint</th>
-                  <th scope="col">Public Key</th>
-                  <th scope="col">Received</th>
-                  <th scope="col">Transmitted</th>
-                  <th scope="col">Connected (Approximation)</th>
-                  <th scope="col">Last Handshake</th>
-                </tr>
-              </thead>
-              <tbody>
-              {{ range $idx, $peer := $dev.Peers }}
-              <tr {{ if $peer.Connected }} class="table-success" {{ end }}>
-                <th scope="row">{{ $idx }}</th>
-                <td>{{ $peer.Name }}</td>
-                <td>{{ $peer.Email }}</td>
-                <td>{{ $peer.AllocatedIP }}</td>
-                <td>{{ $peer.Endpoint }}</td>
-                <td>{{ $peer.PublicKey }}</td>
-                <td title="{{ $peer.ReceivedBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.ReceivedBytes }}))</script></td>
-                <td title="{{ $peer.TransmitBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.TransmitBytes }}))</script></td>
-                <td>{{ if $peer.Connected }}✓{{end}}</td>
-                <td>{{ $peer.LastHandshakeTime.Format "2006-01-02 15:04:05 MST" }}</td>
-               </tr>
-              {{ end }}
-              </tbody>
-            </table>
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 mb-8">
+            <div class="px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-t-2xl">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span>Device: {{ $dev.Name }}</span>
+                </h3>
+            </div>
+            <div class="p-6 overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-dark-600 text-sm text-left rtl:text-right">
+                    <caption class="sr-only">List of connected peers for device {{ $dev.Name }}</caption>
+                    <thead class="bg-gray-50 dark:bg-dark-700">
+                        <tr>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">#</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Allocated IPs</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Endpoint</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Public Key</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Received</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Transmitted</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Connected (Approximation)</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Last Handshake</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-dark-700">
+                    {{ range $idx, $peer := $dev.Peers }}
+                    <tr {{ if $peer.Connected }}class="bg-green-50 dark:bg-green-900/20"{{ end }}>
+                        <th scope="row" class="px-4 py-2 font-medium text-gray-700 dark:text-gray-200">{{ $idx }}</th>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.Name }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.Email }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.AllocatedIP }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.Endpoint }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.PublicKey }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300" title="{{ $peer.ReceivedBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.ReceivedBytes }}))</script></td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300" title="{{ $peer.TransmitBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.TransmitBytes }}))</script></td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ if $peer.Connected }}✓{{end}}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.LastHandshakeTime.Format "2006-01-02 15:04:05 MST" }}</td>
+                    </tr>
+                    {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
         {{ end }}
     </div>
 </section>
