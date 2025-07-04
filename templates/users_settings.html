@@ -55,7 +55,7 @@
             </h3>
             <button onclick="closeUserModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-                </button>
+            </button>
         </div>
         
         <form id="frm_edit_user" class="p-6 space-y-6">
@@ -119,8 +119,8 @@
                         <span data-translate="Admin">Admin</span>
                     </option>
                 </select>
-                </div>
-            </form>
+            </div>
+        </form>
         
         <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
             <button onclick="closeUserModal()" 
@@ -147,8 +147,8 @@
             </h3>
             <button onclick="closeRemoveModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-                </button>
-            </div>
+            </button>
+        </div>
         
         <div class="p-6">
             <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
@@ -160,7 +160,7 @@
                     <p id="remove-user-message" class="text-sm text-red-700 dark:text-red-300 mt-1">
                         <!-- Message will be inserted here -->
                     </p>
-            </div>
+                </div>
             </div>
         </div>
         
@@ -366,12 +366,12 @@
         
         const data = {"username": selectedUserForRemoval};
         
-                $.ajax({
-                    cache: false,
+        $.ajax({
+            cache: false,
             method: 'POST',
             url: '{{.basePath}}/remove-user',
-                    dataType: 'json',
-                    contentType: "application/json",
+            dataType: 'json',
+            contentType: "application/json",
             data: JSON.stringify(data),
             success: function (data) {
                 closeRemoveModal();
@@ -383,9 +383,9 @@
                 setTimeout(() => {
                     populateUsersList();
                 }, 1000);
-                    },
-                    error: function (jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+            },
+            error: function (jqXHR, exception) {
+                const responseJson = jQuery.parseJSON(jqXHR.responseText);
                 showToast(window.langManager.translate(responseJson['message']), 'error');
             },
             complete: function() {
@@ -421,22 +421,22 @@
         const url = previous_username !== "" ? '{{.basePath}}/update-user' : '{{.basePath}}/create-user';
         const successMessage = previous_username !== "" ? 'Updated user information successfully' : 'Created user successfully';
 
-            $.ajax({
-                cache: false,
-                method: 'POST',
+        $.ajax({
+            cache: false,
+            method: 'POST',
             url: url,
-                dataType: 'json',
-                contentType: "application/json",
-                data: JSON.stringify(data),
-                success: function (data) {
+            dataType: 'json',
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function (data) {
                 closeUserModal();
                 showToast(window.langManager.translate(successMessage), 'success');
                 setTimeout(() => {
                     populateUsersList();
                 }, 1000);
-                },
-                error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+            },
+            error: function (jqXHR, exception) {
+                const responseJson = jQuery.parseJSON(jqXHR.responseText);
                 showToast(window.langManager.translate(responseJson['message']), 'error');
             },
             complete: function() {

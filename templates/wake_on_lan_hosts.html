@@ -29,7 +29,7 @@
                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
             <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
             <span data-translate="Add New Host">Add New Host</span>
-                    </button>
+        </button>
     </div>
 
     <!-- Error Alert -->
@@ -68,7 +68,7 @@
                     <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
                         <i class="fas fa-ethernet text-gray-400 w-4"></i>
                         <span class="text-gray-600 dark:text-gray-400" data-translate="MAC Address">MAC Address</span>
-                        </div>
+                    </div>
                     
                     <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
                         <i class="fas fa-clock text-gray-400 w-4"></i>
@@ -84,7 +84,7 @@
                         </span>
                     </div>
                 </div>
-    </div>
+            </div>
 
             <!-- Host Actions -->
             <div class="px-6 pb-6">
@@ -111,7 +111,7 @@
                                 class="inline-flex items-center justify-center px-3 py-2 border border-red-300 dark:border-red-700 text-sm font-medium rounded-lg text-red-700 dark:text-red-400 bg-white dark:bg-dark-700 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
                             <i class="fas fa-trash"></i>
                         </button>
-                </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -148,8 +148,8 @@
             <button onclick="closeHostModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
             </button>
-    </div>
-
+        </div>
+        
         <form id="frm_wake_on_lan_host" name="frm_wake_on_lan_host" class="p-6 space-y-6">
             <input type="hidden" id="frm_wake_on_lan_host_old_mac_address" name="old_mac_address">
             
@@ -183,7 +183,7 @@
                     <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
                     <span data-translate="Enter MAC address in XX:XX:XX:XX:XX:XX format">Enter MAC address in XX:XX:XX:XX:XX:XX format</span>
                 </p>
-                                </div>
+            </div>
         </form>
         
         <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
@@ -196,9 +196,9 @@
                 <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
                 <span data-translate="Submit">Submit</span>
             </button>
-                            </div>
-                        </div>
-                    </div>
+        </div>
+    </div>
+</div>
 
 <!-- Remove Host Modal -->
 <div id="modal_remove_wake_on_lan_host" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
@@ -383,5 +383,5 @@ document.addEventListener('keydown', function(e) {
 {{end}}
 
 {{define "bottom_js"}}
-    <script src="{{.basePath}}/static/custom/js/wake_on_lan_hosts.js"></script>
+<script src="{{.basePath}}/static/custom/js/wake_on_lan_hosts.js"></script>
 {{end}}
