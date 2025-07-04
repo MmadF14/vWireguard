@@ -58,7 +58,12 @@ func BuildClientConfig(client model.Client, server model.Server, setting model.G
 		peerPresharedKey = fmt.Sprintf("PresharedKey = %s\n", client.PresharedKey)
 	}
 
-	peerAllowedIPs := fmt.Sprintf("AllowedIPs = %s\n", strings.Join(client.AllowedIPs, ","))
+	peerAllowedIPs := ""
+	if len(client.AllowedIPs) > 0 {
+		peerAllowedIPs = fmt.Sprintf("AllowedIPs = %s\n", strings.Join(client.AllowedIPs, ","))
+	} else {
+		peerAllowedIPs = "AllowedIPs = 0.0.0.0/0\n"
+	}
 
 	desiredHost := setting.EndpointAddress
 	desiredPort := server.Interface.ListenPort

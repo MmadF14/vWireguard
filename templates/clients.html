@@ -493,130 +493,33 @@ function renderClients() {
 
 // Create client card HTML
 function createClientCard(client) {
-    const clientData = client.Client || client; // Handle both formats
-    const isOnline = clientData.status === 'online' || clientData.connected;
-    const statusColor = isOnline ? 'bg-green-500' : 'bg-gray-400';
-    const statusText = isOnline ? 'Online' : 'Offline';
-    const transferData = formatBytes((clientData.transfer_rx || 0) + (clientData.transfer_tx || 0));
-    
-    // Format allocated IPs
-    const allocatedIps = clientData.allocated_ips || [];
-    const allocatedIpsHtml = allocatedIps.map(ip => 
-        `<span class="inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1">${ip}</span>`
-    ).join('');
-    
-    // Format allowed IPs
-    const allowedIps = clientData.allowed_ips || [];
-    const allowedIpsHtml = allowedIps.map(ip => 
-        `<span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded mr-1 mb-1">${ip}</span>`
-    ).join('');
-    
-    // Format last handshake
-    const lastHandshake = clientData.last_handshake || clientData.last_handshake_time || 'Never';
-    const lastHandshakeText = lastHandshake === 'Never' ? 'Never' : prettyDateTime(lastHandshake);
-    
-    // Format quota
+    const clientData = client.Client || client;
+    // مینیمال: فقط اسم، ایمیل، حجم، زمان، IP Allocation و دکمه‌ها
+    const name = clientData.name || '';
+    const email = clientData.email || '';
     const quotaText = clientData.quota ? formatBytes(clientData.quota * 1024 * 1024 * 1024) : 'Unlimited';
-    
-    // Format expiration
     const expirationText = clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration';
-    
+    const allocatedIps = clientData.allocated_ips || [];
+    const allocatedIpsHtml = allocatedIps.map(ip => `<span class=\"inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1\">${ip}</span>`).join('');
     return `
-        <div class="client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden ${!clientData.enabled ? 'opacity-60' : ''}">
-            <!-- Client Header -->
-            <div class="p-6 border-b border-gray-200 dark:border-dark-700 ${!clientData.enabled ? 'bg-gray-50 dark:bg-dark-700' : ''}">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="relative">
-                            <div class="w-12 h-12 ${clientData.enabled ? 'bg-gradient-to-br from-primary-500 to-primary-600' : 'bg-gray-400'} rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                                ${clientData.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div class="absolute -bottom-1 -right-1 w-4 h-4 ${statusColor} rounded-full border-2 border-white dark:border-dark-800"></div>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-semibold ${clientData.enabled ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}">${clientData.name}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${clientData.email || 'No email'}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center space-x-2">
-                        <span class="status-badge px-3 py-1 text-xs font-medium rounded-full ${isOnline ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}">
-                            ${statusText}
-                        </span>
-                        <span class="status-badge px-3 py-1 text-xs font-medium rounded-full ${clientData.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}">
-                            ${clientData.enabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                        <div class="flex items-center space-x-1">
-                            <button onclick="editClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="showQRCode('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="QR Code">
-                                <i class="fas fa-qrcode"></i>
-                            </button>
-                            <button onclick="downloadClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="Download">
-                                <i class="fas fa-download"></i>
-                            </button>
-                            <button onclick="toggleClient('${clientData.id}')" class="action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="${clientData.enabled ? 'Disable' : 'Enable'}">
-                                <i class="fas fa-${clientData.enabled ? 'pause' : 'play'}"></i>
-                            </button>
-                            <button onclick="deleteClient('${clientData.id}')" class="action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
+        <div class=\"client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden p-4 flex flex-col justify-between\">
+            <div>
+                <div class=\"flex items-center justify-between mb-2\">
+                    <h3 class=\"text-lg font-semibold truncate max-w-[120px] text-gray-900 dark:text-white\" title=\"${name}\">${name}</h3>
+                    <div class=\"flex items-center space-x-1 rtl:space-x-reverse\">
+                        <button onclick=\"editClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Edit\"><i class=\"fas fa-edit\"></i></button>
+                        <button onclick=\"showQRCode('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"QR Code\"><i class=\"fas fa-qrcode\"></i></button>
+                        <button onclick=\"downloadClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Download\"><i class=\"fas fa-download\"></i></button>
+                        <button onclick=\"toggleClient('${clientData.id}')\" class=\"action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"${clientData.enabled ? 'Disable' : 'Enable'}\"><i class=\"fas fa-${clientData.enabled ? 'pause' : 'play'}\"></i></button>
+                        <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
                     </div>
                 </div>
+                <p class=\"text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]\" title=\"${email}\">${email}</p>
+                <div class=\"mt-2\">${allocatedIpsHtml || '<span class=\"text-gray-400\">No IPs allocated</span>'}</div>
             </div>
-            
-            <!-- Client Details -->
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">IP Address</p>
-                        <div class="mt-1">
-                            ${allocatedIpsHtml || '<span class="text-gray-400">No IPs allocated</span>'}
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Data Transfer</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${transferData}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Last Seen</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${lastHandshakeText}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Quota</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${quotaText}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Expiration</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${expirationText}</p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">DNS</p>
-                        <p class="text-sm font-medium text-gray-900 dark:text-white">${clientData.use_server_dns ? 'Server DNS' : 'Client DNS'}</p>
-                    </div>
-                </div>
-                
-                ${allowedIps.length > 0 ? `
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Allowed IPs</p>
-                    <div class="flex flex-wrap">
-                        ${allowedIpsHtml}
-                    </div>
-                </div>
-                ` : ''}
-                
-                ${clientData.additional_notes ? `
-                <div class="bg-gray-50 dark:bg-dark-700 rounded-xl p-3">
-                    <p class="text-sm text-gray-700 dark:text-gray-300">${clientData.additional_notes}</p>
-                </div>
-                ` : ''}
-                
-                <div class="text-xs text-gray-500 dark:text-gray-400">
-                    <p>Created: ${prettyDateTime(clientData.created_at)}</p>
-                    <p>Updated: ${prettyDateTime(clientData.updated_at)}</p>
-                </div>
+            <div class=\"flex justify-between items-center mt-4 text-xs text-gray-600 dark:text-gray-300\">
+                <span><i class=\"fas fa-database mr-1\"></i> ${quotaText}</span>
+                <span><i class=\"fas fa-clock mr-1\"></i> ${expirationText}</span>
             </div>
         </div>
     `;
