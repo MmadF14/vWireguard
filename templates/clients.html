@@ -762,7 +762,7 @@ window.showQRCode = function(clientId) {
 };
 
 window.downloadClient = function(clientId) {
-    window.open(`${basePath}/api/client/${clientId}/download`, '_blank');
+    window.open(`${basePath}/download?clientid=${clientId}`, '_blank');
 };
 
 window.toggleClient = function(clientId) {
@@ -776,7 +776,7 @@ window.toggleClient = function(clientId) {
     const clientData = client.Client || client;
     
     // Toggle client enabled state
-    fetch(`${basePath}/api/client/${clientData.id}/toggle`, {
+    fetch(`${basePath}/api/client/${clientData.id}/status/${!clientData.enabled}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -808,8 +808,12 @@ window.deleteClient = function(clientId) {
     const clientData = client.Client || client;
     
     if (confirm(`Are you sure you want to delete client "${clientData.name}"?`)) {
-        fetch(`${basePath}/api/client/${clientData.id}`, {
-            method: 'DELETE',
+        fetch(`${basePath}/api/client/${clientData.id}/remove`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ id: clientData.id }),
         })
         .then(response => response.json())
         .then(data => {
