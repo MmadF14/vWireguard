@@ -14,583 +14,357 @@
 {{end}}
 
 {{define "page_content"}}
-<div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-            <i class="fas fa-server text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-            <span data-translate="WireGuard Server Configuration">WireGuard Server Configuration</span>
-        </h2>
-        <p class="text-gray-600 dark:text-gray-400">
-            <span data-translate="Configure server interface settings and manage key pairs">Configure server interface settings and manage key pairs</span>
-        </p>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Interface Settings Card -->
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700">
-            <div class="p-6 border-b border-gray-200 dark:border-dark-700">
-                <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <i class="fas fa-network-wired text-white text-lg"></i>
+<section class="content">
+    <div class="container-fluid">
+        <!-- <h5 class="mt-4 mb-2">Wireguard Server</h5> -->
+        <div class="row">
+            <!-- left column -->
+            <div class="col-md-6">
+                <div class="card card-success">
+                    <div class="card-header">
+                        <h3 class="card-title" data-translate="Interface">Interface</h3>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            <span data-translate="Interface">Interface</span>
-                        </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                            <span data-translate="Server network interface configuration">Server network interface configuration</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
+                    <!-- /.card-header -->
+                    <!-- form start -->
+                    <form role="form" id="frm_server_interface" name="frm_server_interface" data-custom-submit="true">
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="addresses" class="control-label" data-translate="Server Interface Addresses">Server Interface Addresses</label>
+                                <input type="text" data-role="tagsinput" class="form-control" id="addresses" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="listen_port" data-translate="Listen Port">Listen Port</label>
+                                <input type="text" class="form-control" id="listen_port" name="listen_port"
+                                    placeholder="Listen Port" value="{{ .serverInterface.ListenPort }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="post_up" data-translate="Post Up Script">Post Up Script</label>
+                                <input type="text" class="form-control" id="post_up" name="post_up"
+                                       placeholder="Post Up Script" value="{{ .serverInterface.PostUp }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="pre_down" data-translate="Pre Down Script">Pre Down Script</label>
+                                <input type="text" class="form-control" id="pre_down" name="pre_down"
+                                       placeholder="Pre Down Script" value="{{ .serverInterface.PreDown }}">
+                            </div>
 
-            <form role="form" id="frm_server_interface" name="frm_server_interface" data-custom-submit="true" class="p-6 space-y-6">
-                <!-- Server Interface Addresses -->
-                <div class="space-y-2">
-                    <label for="addresses" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-map-marker-alt mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Server Interface Addresses">Server Interface Addresses</span>
-                    </label>
-                    <div class="relative">
-                        <input type="text" 
-                               data-role="tagsinput" 
-                               id="addresses" 
-                               value=""
-                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
-                    </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Enter IP addresses for the server interface">Enter IP addresses for the server interface</span>
-                    </p>
-                </div>
-
-                <!-- Listen Port -->
-                <div class="space-y-2">
-                    <label for="listen_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-door-open mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Listen Port">Listen Port</span>
-                    </label>
-                    <input type="text" 
-                           id="listen_port" 
-                           name="listen_port"
-                           placeholder="51820"
-                           value="{{ .serverInterface.ListenPort }}"
-                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Port number for WireGuard to listen on (1-65535)">Port number for WireGuard to listen on (1-65535)</span>
-                    </p>
-                </div>
-
-                <!-- Post Up Script -->
-                <div class="space-y-2">
-                    <label for="post_up" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-arrow-up mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Post Up Script">Post Up Script</span>
-                    </label>
-                    <input type="text" 
-                           id="post_up" 
-                           name="post_up"
-                           placeholder="iptables -A FORWARD -i wg0 -j ACCEPT"
-                           value="{{ .serverInterface.PostUp }}"
-                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 font-mono text-sm">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Commands executed when the interface comes up">Commands executed when the interface comes up</span>
-                    </p>
-                </div>
-
-                <!-- Pre Down Script -->
-                <div class="space-y-2">
-                    <label for="pre_down" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-arrow-down mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Pre Down Script">Pre Down Script</span>
-                    </label>
-                    <input type="text" 
-                           id="pre_down" 
-                           name="pre_down"
-                           placeholder="iptables -D FORWARD -i wg0 -j ACCEPT"
-                           value="{{ .serverInterface.PreDown }}"
-                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 font-mono text-sm">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Commands executed before the interface goes down">Commands executed before the interface goes down</span>
-                    </p>
-                </div>
-
-                <!-- Post Down Script -->
-                <div class="space-y-2">
-                    <label for="post_down" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-times-circle mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Post Down Script">Post Down Script</span>
-                    </label>
-                    <input type="text" 
-                           id="post_down" 
-                           name="post_down"
-                           placeholder="Custom cleanup commands"
-                           value="{{ .serverInterface.PostDown }}"
-                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 font-mono text-sm">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Commands executed after the interface goes down">Commands executed after the interface goes down</span>
-                    </p>
-                </div>
-
-                <!-- Check Interval -->
-                <div class="space-y-2">
-                    <label for="check_interval" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-clock mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Check Interval (minutes)">Check Interval (minutes)</span>
-                    </label>
-                    <select id="check_interval" 
-                            name="check_interval"
-                            class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white transition-all duration-200">
-                        <option value="1" {{if eq .serverInterface.CheckInterval 1}}selected{{end}}>1 <span data-translate="minute">minute</span></option>
-                        <option value="2" {{if eq .serverInterface.CheckInterval 2}}selected{{end}}>2 <span data-translate="minutes">minutes</span></option>
-                        <option value="3" {{if eq .serverInterface.CheckInterval 3}}selected{{end}}>3 <span data-translate="minutes">minutes</span></option>
-                        <option value="4" {{if eq .serverInterface.CheckInterval 4}}selected{{end}}>4 <span data-translate="minutes">minutes</span></option>
-                        <option value="5" {{if eq .serverInterface.CheckInterval 5}}selected{{end}}>5 <span data-translate="minutes">minutes</span></option>
-                    </select>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="How often to check client connections">How often to check client connections</span>
-                    </p>
-                </div>
-
-                <!-- Save Button -->
-                <div class="pt-4">
-                    <button type="submit" 
-                            class="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
-                        <span data-translate="Save">Save</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Key Pair Settings Card -->
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700">
-            <div class="p-6 border-b border-gray-200 dark:border-dark-700">
-                <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                    <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-                        <i class="fas fa-key text-white text-lg"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                            <span data-translate="Key Pair">Key Pair</span>
-                        </h3>
-                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                            <span data-translate="Server cryptographic key management">Server cryptographic key management</span>
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <form role="form" class="p-6 space-y-6">
-                <!-- Private Key -->
-                <div class="space-y-2">
-                    <label for="private_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-user-secret mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Private Key">Private Key</span>
-                    </label>
-                    <div class="relative">
-                        <input type="password" 
-                               id="private_key" 
-                               placeholder="Private Key"
-                               value="{{ .serverKeyPair.PrivateKey }}" 
-                               disabled
-                               class="w-full px-4 py-3 pr-12 rtl:pr-4 rtl:pl-12 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 font-mono text-sm disabled:opacity-70">
-                        <button type="button" 
-                                id="btn_show_private_key"
-                                class="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 px-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-shield-alt mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Server private key - keep this secure">Server private key - keep this secure</span>
-                    </p>
-                </div>
-
-                <!-- Public Key -->
-                <div class="space-y-2">
-                    <label for="public_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-globe mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Public Key">Public Key</span>
-                    </label>
-                    <input type="text" 
-                           id="public_key" 
-                           placeholder="Public Key"
-                           value="{{ .serverKeyPair.PublicKey }}" 
-                           disabled
-                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 font-mono text-sm disabled:opacity-70">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-share-alt mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Server public key - share with clients">Server public key - share with clients</span>
-                    </p>
-                </div>
-
-                <!-- Generate Button -->
-                <div class="pt-4">
-                    <button type="button" 
-                            onclick="openGenerateKeyModal()"
-                            class="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
-                        <i class="fas fa-sync-alt mr-2 rtl:mr-0 rtl:ml-2"></i>
-                        <span data-translate="Generate">Generate</span>
-                    </button>
-                </div>
-
-                <!-- Warning Notice -->
-                <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
-                    <div class="flex items-start space-x-3 rtl:space-x-reverse">
-                        <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
-                        <div>
-                            <h4 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                <span data-translate="Important">Important</span>
-                            </h4>
-                            <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                                <span data-translate="Generating new keys will require updating all client configurations">Generating new keys will require updating all client configurations</span>
-                            </p>
+                            <div class="form-group">
+                                <label for="post_down" data-translate="Post Down Script">Post Down Script</label>
+                                <input type="text" class="form-control" id="post_down" name="post_down"
+                                       placeholder="Post Down Script" value="{{ .serverInterface.PostDown }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="check_interval" data-translate="Check Interval (minutes)">Check Interval (minutes)</label>
+                                <select class="form-control" id="check_interval" name="check_interval">
+                                    <option value="1" {{if eq .serverInterface.CheckInterval 1}}selected{{end}}>1</option>
+                                    <option value="2" {{if eq .serverInterface.CheckInterval 2}}selected{{end}}>2</option>
+                                    <option value="3" {{if eq .serverInterface.CheckInterval 3}}selected{{end}}>3</option>
+                                    <option value="4" {{if eq .serverInterface.CheckInterval 4}}selected{{end}}>4</option>
+                                    <option value="5" {{if eq .serverInterface.CheckInterval 5}}selected{{end}}>5</option>
+                                </select>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+                        <!-- /.card-body -->
 
-<!-- Key Pair Generation Confirmation Modal -->
-<div id="modal_keypair_confirmation" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                <i class="fas fa-key text-yellow-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="KeyPair Generation">KeyPair Generation</span>
-            </h3>
-            <button onclick="closeGenerateKeyModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
-                <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
-        
-        <div class="p-6">
-            <div class="flex items-start space-x-3 rtl:space-x-reverse p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
-                <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl mt-1"></i>
-                <div class="flex-1">
-                    <h4 class="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
-                        <span data-translate="Are you sure?">Are you sure?</span>
-                    </h4>
-                    <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                        <span data-translate="keypair_generation_warning">Are you sure to generate a new key pair for the Wireguard server?<br/>
-                        The existing Client's peer public key need to be updated to keep the connection working.</span>
-                    </p>
+                        <div class="card-footer">
+                            <button type="submit" class="btn btn-success" data-translate="Save" onclick="console.log('Save button clicked')">Save</button>
+                        </div>
+                    </form>
                 </div>
+                <!-- /.card -->
+            </div>
+            <!-- right column -->
+            <div class="col-md-6">
+                <div class="card card-danger">
+                    <div class="card-header">
+                        <h3 class="card-title" data-translate="Key Pair">Key Pair</h3>
+                    </div>
+                    <!-- /.card-header -->
+                    <!-- form start -->
+                    <form role="form">
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="private_key" data-translate="Private Key">Private Key</label>
+                                <div class="input-group input-group">
+                                    <input type="password" class="form-control" id="private_key" placeholder="Private Key"
+                                        value="{{ .serverKeyPair.PrivateKey }}" disabled>
+                                    <span class="input-group-append">
+                                        <button type="button" class="btn btn-danger btn-flat"
+                                            id="btn_show_private_key" data-translate="Show">Show</button>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="public_key" data-translate="Public Key">Public Key</label>
+                                <input type="text" class="form-control" id="public_key" placeholder="Public Key"
+                                    value="{{ .serverKeyPair.PublicKey }}" disabled>
+                            </div>
+                        </div>
+                        <!-- /.card-body -->
+
+                        <div class="card-footer">
+                            <button type="button" class="btn btn-danger" data-toggle="modal"
+                                data-target="#modal_keypair_confirmation" data-translate="Generate">Generate</button>
+                        </div>
+                    </form>
+                </div>
+                <!-- /.card -->
             </div>
         </div>
-        
-        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
-            <button onclick="closeGenerateKeyModal()" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                <span data-translate="Cancel">Cancel</span>
-            </button>
-            <button id="btn_generate_confirm" 
-                    onclick="confirmGenerateKeys()"
-                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-xl hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-sync-alt mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Generate">Generate</span>
-            </button>
-        </div>
+        <!-- /.row -->
     </div>
+</section>
+
+<div class="modal fade" id="modal_keypair_confirmation">
+    <div class="modal-dialog">
+        <div class="modal-content bg-warning">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="KeyPair Generation">KeyPair Generation</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p data-translate="keypair_generation_warning">Are you sure to generate a new key pair for the Wireguard server?<br/>
+                The existing Client's peer public key need to be updated to keep the connection working.</p>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-dark" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-outline-dark" id="btn_generate_confirm" data-translate="Generate">Generate</button>
+            </div>
+        </div>
+        <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
 </div>
-
-<script>
-// Modal management
-function openGenerateKeyModal() {
-    document.getElementById('modal_keypair_confirmation').classList.remove('hidden');
-}
-
-function closeGenerateKeyModal() {
-    document.getElementById('modal_keypair_confirmation').classList.add('hidden');
-}
-
-function confirmGenerateKeys() {
-    document.getElementById('btn_generate_confirm').click();
-}
-
-// Close modal when clicking outside
-document.getElementById('modal_keypair_confirmation').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeGenerateKeyModal();
-    }
-});
-
-// Close modal on escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeGenerateKeyModal();
-    }
-});
-</script>
-
+<!-- /.modal -->
 {{end}}
 
 {{define "bottom_js"}}
-<script>
-    function submitServerInterfaceSetting() {
-        console.log('submitServerInterfaceSetting called');
-        
-        // Show loading state
-        const submitBtn = $('#frm_server_interface button[type="submit"]');
-        const originalText = submitBtn.html();
-        console.log('Original button text:', originalText);
-        
-        submitBtn.prop('disabled', true);
-        submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
-        
-        // Apply translation to processing text
-        if (window.langManager && window.langManager.translateElement) {
-            window.langManager.translateElement(submitBtn.find('[data-translate]'));
-        }
-        
-        const addresses = $("#addresses").val()
-            .split(',')
-            .filter(a => a.trim() !== '');
-        const listen_port = parseInt($("#listen_port").val(), 10);
-        const post_up = $("#post_up").val();
-        const pre_down = $("#pre_down").val();
-        const post_down = $("#post_down").val();
-        const check_interval_val = $("#check_interval").val();
-        const check_interval = parseInt(check_interval_val, 10);
-        // Make sure check_interval is valid, default to 1 if not
-        const final_check_interval = isNaN(check_interval) ? 1 : check_interval;
-        const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": final_check_interval};
-
-        console.log('Submitting server interface data:', data);
-        console.log('Check interval raw value:', check_interval_val);
-        console.log('Check interval parsed:', check_interval);
-        console.log('Check interval is NaN?', isNaN(check_interval));
-        console.log('Final check interval:', final_check_interval);
-
-        $.ajax({
-            cache: false,
-            method: 'POST',
-            url: '{{.basePath}}/wg-server/interfaces',
-            dataType: 'json',
-            contentType: "application/json",
-            data: JSON.stringify(data),
-            success: function(response) {
-                console.log('Server interface updated successfully:', response);
-                // Reset button state first
-                submitBtn.prop('disabled', false);
-                submitBtn.html('<i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Save">Save</span>');
-                if (window.langManager && window.langManager.translateElement) {
-                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
-                }
-                
-                // Show success message - always show success unless explicitly failed
-                if(response && response.success === false) {
-                    if (typeof toastr !== 'undefined') {
-                        toastr.error(response.message || window.langManager.translate('Unknown error'));
-                    } else {
-                        console.error('toastr is not defined');
-                        alert('Error: ' + (response.message || 'Unknown error'));
-                    }
-                } else {
-                    // Show success message
-                    console.log('Showing success message');
-                    if (typeof toastr !== 'undefined') {
-                        const successMessage = (window.langManager && window.langManager.translate) ? 
-                            window.langManager.translate('Updated Wireguard server interface addresses successfully') : 
-                            'Settings updated successfully!';
-                        toastr.success(successMessage);
-                    } else {
-                        console.error('toastr is not defined');
-                        alert('Settings updated successfully!');
-                    }
-                    // Reload the page to show updated values
-                    setTimeout(function() {
-                        window.location.reload();
-                    }, 1500);
-                }
-            },
-            error: function(jqXHR, exception) {
-                console.error('Error updating server interface:', jqXHR, exception);
-                // Reset button state
-                submitBtn.prop('disabled', false);
-                submitBtn.html('<i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Save">Save</span>');
-                if (window.langManager && window.langManager.translateElement) {
-                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
-                }
-                
-                let errorMessage = 'An error occurred';
-                try {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    errorMessage = responseJson['message'] || errorMessage;
-                } catch(e) {
-                    console.error('Error parsing response:', e);
-                }
-                if (typeof toastr !== 'undefined') {
-                    toastr.error(window.langManager.translate(errorMessage));
-                } else {
-                    console.error('toastr is not defined');
-                    alert('Error: ' + errorMessage);
-                }
-            }
-        });
-    }
-</script>
-<script>
-    // Wireguard Interface Addresses tag input
-    $(document).ready(function() {
-        console.log('Document ready - initializing tags input');
-        
-        $("#addresses").tagsInput({
-            'width': '100%',
-            // 'height': '75%',
-            'interactive': true,
-            'defaultText': window.langManager.translate('Add More'),
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'minInputWidth': '100%',
-            'placeholderColor': '#666666'
-        });
-        
-        console.log('Tags input initialized');
-        
-        // Add direct click handler for save button
-        $('#frm_server_interface button[type="submit"]').on('click', function(e) {
-            console.log('Save button clicked directly');
-            e.preventDefault();
-            submitServerInterfaceSetting();
-            return false;
-        });
-    });
-
-    // Load server addresses to the form
-    {{range .serverInterface.Addresses}}
-    $("#addresses").removeTag('{{.}}');
-    $("#addresses").addTag('{{.}}');
-    {{end}}
-
-    // Wireguard Interface Addresses form validation
-    $(document).ready(function () {
-        console.log('Setting up form validation for server interface');
-        
-        // Also add a direct submit handler as backup
-        $('#frm_server_interface').on('submit', function(e) {
-            console.log('Form submit event triggered');
-            e.preventDefault();
-            if ($(this).valid()) {
-                console.log('Form is valid, calling submitServerInterfaceSetting');
-                submitServerInterfaceSetting();
-            } else {
-                console.log('Form is not valid');
-            }
-            return false;
-        });
-        
-        $("#frm_server_interface").validate({
-            rules: {
-                listen_port: {
-                    required: true,
-                    digits: true,
-                    range: [1, 65535]
-                }
-            },
-            messages: {
-                listen_port: {
-                    required: window.langManager.translate("Please enter a port"),
-                    digits: window.langManager.translate("Port must be an integer"),
-                    range: window.langManager.translate("Port must be in range 1..65535")
-                }
-            },
-            errorElement: 'span',
-            errorPlacement: function (error, element) {
-                error.addClass('invalid-feedback');
-                element.closest('.form-group').append(error);
-            },
-            highlight: function (element, errorClass, validClass) {
-                $(element).addClass('is-invalid');
-            },
-            unhighlight: function (element, errorClass, validClass) {
-                $(element).removeClass('is-invalid');
-            },
-            submitHandler: function (form) {
-                submitServerInterfaceSetting();
-                return false;
-            }
-        });
-    });
-
-    // Wireguard Key Pair generation confirmation button
-    $(document).ready(function () {
-        $("#btn_generate_confirm").click(function () {
-            // Show loading state
-            const btn = $(this);
-            const originalText = btn.html();
-            btn.prop('disabled', true);
-            btn.html('<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Generating...">Generating...</span>');
+    <script>
+        function submitServerInterfaceSetting() {
+            console.log('submitServerInterfaceSetting called');
             
+            // Show loading state
+            const submitBtn = $('#frm_server_interface button[type="submit"]');
+            const originalText = submitBtn.html();
+            console.log('Original button text:', originalText);
+            
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
+            
+            // Apply translation to processing text
+            if (window.langManager && window.langManager.translateElement) {
+                window.langManager.translateElement(submitBtn.find('[data-translate]'));
+            }
+            
+            const addresses = $("#addresses").val()
+                .split(',')
+                .filter(a => a.trim() !== '');
+            const listen_port = parseInt($("#listen_port").val(), 10);
+            const post_up = $("#post_up").val();
+            const pre_down = $("#pre_down").val();
+            const post_down = $("#post_down").val();
+            const check_interval_val = $("#check_interval").val();
+            const check_interval = parseInt(check_interval_val, 10);
+            // Make sure check_interval is valid, default to 1 if not
+            const final_check_interval = isNaN(check_interval) ? 1 : check_interval;
+            const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": final_check_interval};
+
+            console.log('Submitting server interface data:', data);
+            console.log('Check interval raw value:', check_interval_val);
+            console.log('Check interval parsed:', check_interval);
+            console.log('Check interval is NaN?', isNaN(check_interval));
+            console.log('Final check interval:', final_check_interval);
+
             $.ajax({
                 cache: false,
                 method: 'POST',
-                url: '{{.basePath}}/wg-server/keypair',
+                url: '{{.basePath}}/wg-server/interfaces',
                 dataType: 'json',
                 contentType: "application/json",
-                success: function(data) {
-                    closeGenerateKeyModal();
-                    if (typeof toastr !== 'undefined') {
-                        toastr.success(window.langManager.translate('Generate new key pair successfully'));
-                    } else {
-                        alert('New key pair generated successfully!');
+                data: JSON.stringify(data),
+                success: function(response) {
+                    console.log('Server interface updated successfully:', response);
+                    // Reset button state first
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html('<span data-translate="Save">Save</span>');
+                    if (window.langManager && window.langManager.translateElement) {
+                        window.langManager.translateElement(submitBtn.find('[data-translate]'));
                     }
-                    // update the UI
-                    $("#private_key").val(data['private_key']);
-                    $("#public_key").val(data['public_key']);
                     
-                    // Reset button state
-                    btn.prop('disabled', false);
-                    btn.html('<i class="fas fa-sync-alt mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Generate">Generate</span>');
+                    // Show success message - always show success unless explicitly failed
+                    if(response && response.success === false) {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error(response.message || window.langManager.translate('Unknown error'));
+                        } else {
+                            console.error('toastr is not defined');
+                            alert('Error: ' + (response.message || 'Unknown error'));
+                        }
+                    } else {
+                        // Show success message
+                        console.log('Showing success message');
+                        if (typeof toastr !== 'undefined') {
+                            const successMessage = (window.langManager && window.langManager.translate) ? 
+                                window.langManager.translate('Updated Wireguard server interface addresses successfully') : 
+                                'Settings updated successfully!';
+                            toastr.success(successMessage);
+                        } else {
+                            console.error('toastr is not defined');
+                            alert('Settings updated successfully!');
+                        }
+                        // Reload the page to show updated values
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1500);
+                    }
                 },
                 error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    if (typeof toastr !== 'undefined') {
-                        toastr.error(window.langManager.translate(responseJson['message']));
-                    } else {
-                        alert('Error: ' + responseJson['message']);
+                    console.error('Error updating server interface:', jqXHR, exception);
+                    // Reset button state
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html('<span data-translate="Save">Save</span>');
+                    if (window.langManager && window.langManager.translateElement) {
+                        window.langManager.translateElement(submitBtn.find('[data-translate]'));
                     }
                     
-                    // Reset button state
-                    btn.prop('disabled', false);
-                    btn.html('<i class="fas fa-sync-alt mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Generate">Generate</span>');
+                    let errorMessage = 'An error occurred';
+                    try {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        errorMessage = responseJson['message'] || errorMessage;
+                    } catch(e) {
+                        console.error('Error parsing response:', e);
+                    }
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error(window.langManager.translate(errorMessage));
+                    } else {
+                        console.error('toastr is not defined');
+                        alert('Error: ' + errorMessage);
+                    }
+                }
+            });
+        }
+    </script>
+    <script>
+        // Wireguard Interface Addresses tag input
+        $(document).ready(function() {
+            console.log('Document ready - initializing tags input');
+            
+            $("#addresses").tagsInput({
+                'width': '100%',
+                // 'height': '75%',
+                'interactive': true,
+                'defaultText': window.langManager.translate('Add More'),
+                'removeWithBackspace': true,
+                'minChars': 0,
+                'minInputWidth': '100%',
+                'placeholderColor': '#666666'
+            });
+            
+            console.log('Tags input initialized');
+            
+            // Add direct click handler for save button
+            $('#frm_server_interface button[type="submit"]').on('click', function(e) {
+                console.log('Save button clicked directly');
+                e.preventDefault();
+                submitServerInterfaceSetting();
+                return false;
+            });
+        });
+
+        // Load server addresses to the form
+        {{range .serverInterface.Addresses}}
+        $("#addresses").removeTag('{{.}}');
+        $("#addresses").addTag('{{.}}');
+        {{end}}
+
+        // Wireguard Interface Addresses form validation
+        $(document).ready(function () {
+            console.log('Setting up form validation for server interface');
+            
+            // Also add a direct submit handler as backup
+            $('#frm_server_interface').on('submit', function(e) {
+                console.log('Form submit event triggered');
+                e.preventDefault();
+                if ($(this).valid()) {
+                    console.log('Form is valid, calling submitServerInterfaceSetting');
+                    submitServerInterfaceSetting();
+                } else {
+                    console.log('Form is not valid');
+                }
+                return false;
+            });
+            
+            $("#frm_server_interface").validate({
+                rules: {
+                    listen_port: {
+                        required: true,
+                        digits: true,
+                        range: [1, 65535]
+                    }
+                },
+                messages: {
+                    listen_port: {
+                        required: window.langManager.translate("Please enter a port"),
+                        digits: window.langManager.translate("Port must be an integer"),
+                        range: window.langManager.translate("Port must be in range 1..65535")
+                    }
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                },
+                submitHandler: function (form) {
+                    submitServerInterfaceSetting();
+                    return false;
                 }
             });
         });
-    });
 
-    // Show private key button event
-    $(document).ready(function () {
-        $("#btn_show_private_key").click(function () {
-            const privateElement = document.getElementById("private_key");
-            const btnElement = document.getElementById("btn_show_private_key");
-            const iconElement = btnElement.querySelector('i');
-            
-            if (privateElement.type === 'password') {
-                privateElement.type = 'text';
-                iconElement.className = 'fas fa-eye-slash';
-                btnElement.setAttribute('data-translate', 'Hide');
-            } else {
-                privateElement.type = 'password';
-                iconElement.className = 'fas fa-eye';
-                btnElement.setAttribute('data-translate', 'Show');
-            }
-            
-            // Apply translation
-            if (window.langManager && window.langManager.translateElement) {
-                window.langManager.translateElement($(btnElement));
-            }
+        // Wireguard Key Pair generation confirmation button
+        $(document).ready(function () {
+            $("#btn_generate_confirm").click(function () {
+                $.ajax({
+                    cache: false,
+                    method: 'POST',
+                    url: '{{.basePath}}/wg-server/keypair',
+                    dataType: 'json',
+                    contentType: "application/json",
+                    success: function(data) {
+                        $("#modal_keypair_confirmation").modal('hide');
+                        toastr.success(window.langManager.translate('Generate new key pair successfully'));
+                        // update the UI
+                        $("#private_key").val(data['private_key']);
+                        $("#public_key").val(data['public_key']);
+                    },
+                    error: function(jqXHR, exception) {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        toastr.error(window.langManager.translate(responseJson['message']));
+                    }
+                });
+            });
         });
-    });
-</script>
+
+        // Show private key button event
+        $(document).ready(function () {
+            $("#btn_show_private_key").click(function () {
+                const privateElement = document.getElementById("private_key");
+                const btnElement = document.getElementById("btn_show_private_key");
+                if (privateElement.type === 'password') {
+                    privateElement.type = 'text';
+                    btnElement.innerText = 'Hide';
+                } else {
+                    privateElement.type = 'password';
+                    btnElement.innerText = 'Show';
+                }
+            });
+        });
+    </script>
 {{end}}

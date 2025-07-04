@@ -14,197 +14,72 @@
 {{ end }}
 
 {{ define "page_content"}}
-<div class="max-w-4xl mx-auto">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- About vWireguard Card -->
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden card-hover">
-            <!-- Card Header -->
-            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
-                <h3 class="text-lg font-semibold text-white flex items-center">
-                    <i class="fas fa-info-circle mr-3 rtl:mr-0 rtl:ml-3"></i>
-                    <span data-translate="About vWireguard">About vWireguard</span>
-                </h3>
-            </div>
-            
-            <!-- Card Body -->
-            <div class="p-6 space-y-6">
-                <!-- Current Version -->
-                <div class="space-y-2">
-                    <label for="version" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Current version">Current version</span>
-                    </label>
-                    <input type="text" 
-                           id="version" 
-                           value="{{ .appVersion }}" 
-                           readonly 
-                           class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200">
-                </div>
-
-                {{ if .gitCommit }}
-                <!-- Git Commit Hash -->
-                <div class="space-y-2">
-                    <label for="gitCommit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="git commit hash">git commit hash</span>
-                    </label>
-                    <input type="text" 
-                           id="gitCommit" 
-                           value="{{ .gitCommit }}" 
-                           readonly 
-                           class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 font-mono text-sm">
-                </div>
-                {{ end }}
-
-                <!-- Current Release Date -->
-                <div class="space-y-2">
-                    <label for="currentReleaseDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Current version release date">Current version release date</span>
-                    </label>
-                    <input type="text" 
-                           id="currentReleaseDate" 
-                           readonly 
-                           class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200">
-                </div>
-
-                <!-- Latest Release -->
-                <div class="space-y-2">
-                    <label for="latestRelease" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Latest release">Latest release</span>
-                    </label>
-                    <input type="text" 
-                           id="latestRelease" 
-                           readonly 
-                           class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200">
-                </div>
-
-                <!-- Latest Release Date -->
-                <div class="space-y-2">
-                    <label for="latestReleaseDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Latest release date">Latest release date</span>
-                    </label>
-                    <input type="text" 
-                           id="latestReleaseDate" 
-                           readonly 
-                           class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200">
-                </div>
-
-                <!-- Author -->
-                <div class="space-y-2">
-                    <label for="author" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Author">Author</span>
-                    </label>
-                    <div id="author" class="flex items-center space-x-3 rtl:space-x-reverse">
-                        <a id="authorLink" target="_blank" rel="noopener noreferrer">
-                            <img id="authorImage" 
-                                 alt="Author"
-                                 class="w-12 h-12 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md">
-                        </a>
-                        <div id="authorName" class="text-sm font-medium text-gray-900 dark:text-gray-100"></div>
+<section class="content">
+    <div class="container-fluid">
+        <!-- <h5 class="mt-4 mb-2">Global Settings</h5> -->
+        <div class="row">
+            <!-- left column -->
+            <div class="col-md-6">
+                <div class="card card-success">
+                    <div class="card-header">
+                        <h3 class="card-title" data-translate="About vWireguard">About vWireguard</h3>
                     </div>
-                </div>
-
-                <!-- Contributors -->
-                <div class="space-y-2">
-                    <label for="contributors" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Contributors">Contributors</span>
-                    </label>
-                    <div id="contributors" class="flex flex-wrap gap-2"></div>
-                </div>
-
-                <!-- Copyright -->
-                <div class="mt-8 pt-6 border-t border-gray-200 dark:border-dark-700">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        <strong>
-                            <span data-translate="Copyright">Copyright</span> &copy;
+                    <!-- /.card-header -->
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="version" class="control-label" data-translate="Current version">Current version</label>
+                            <input type="text" class="form-control" id="version" value="{{ .appVersion }}" readonly>
+                        </div>
+{{ if .gitCommit }}
+                        <div class="form-group">
+                            <label for="version" class="control-label" data-translate="git commit hash">git commit hash</label>
+                            <input type="text" class="form-control" id="version" value="{{ .gitCommit }}" readonly>
+                        </div>
+{{ end }}
+                        <div class="form-group">
+                            <label for="currentReleaseDate" class="control-label" data-translate="Current version release date">Current version release date</label>
+                            <input type="text" class="form-control" id="currentReleaseDate" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="latestRelease" class="control-label" data-translate="Latest release">Latest release</label>
+                            <input type="text" class="form-control" id="latestRelease" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="latestReleaseDate" class="control-label" data-translate="Latest release date">Latest release date</label>
+                            <input type="text" class="form-control" id="latestReleaseDate" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="author" class="control-label" data-translate="Author">Author</label>
+                            <div id="author">
+                                <a id="authorLink">
+                                    <img id="authorImage"
+                                         style="width: 50px; height: 50px; border-radius: 50%; border: 1px solid #000;">
+                                </a>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="contributors" class="control-label" data-translate="Contributors">Contributors</label>
+                            <div id="contributors"></div>
+                        </div>
+                        <strong><span data-translate="Copyright">Copyright</span> &copy;
                             <script>document.write(new Date().getFullYear())</script>
-                            <a href="https://github.com/MmadF14/vwireguard" 
-                               target="_blank" 
-                               rel="noopener noreferrer"
-                               class="text-primary-600 hover:text-primary-500 transition-colors duration-200">
-                                vWireguard
-                            </a>.
-                        </strong> 
-                        <span data-translate="All rights reserved">All rights reserved</span>.
-                    </p>
+                            <a href="https://github.com/MmadF14/vwireguard">vWireguard</a>.
+                        </strong> <span data-translate="All rights reserved">All rights reserved</span>.
+
+                    </div>
                 </div>
+                <!-- /.card -->
             </div>
         </div>
-
-        <!-- System Information Card -->
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden card-hover">
-            <!-- Card Header -->
-            <div class="bg-gradient-to-r from-secondary-500 to-secondary-600 px-6 py-4">
-                <h3 class="text-lg font-semibold text-white flex items-center">
-                    <i class="fas fa-server mr-3 rtl:mr-0 rtl:ml-3"></i>
-                    <span data-translate="System Information">System Information</span>
-                </h3>
-            </div>
-            
-            <!-- Card Body -->
-            <div class="p-6 space-y-4">
-                <!-- Status Indicator -->
-                <div class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
-                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                        <div class="w-3 h-3 bg-green-500 rounded-full status-dot online"></div>
-                        <span class="text-sm font-medium text-green-800 dark:text-green-200">
-                            <span data-translate="System Online">System Online</span>
-                        </span>
-                    </div>
-                    <i class="fas fa-check-circle text-green-500"></i>
-                </div>
-
-                <!-- Update Status -->
-                <div id="updateStatus" class="hidden p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
-                    <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                        <i class="fas fa-exclamation-triangle text-orange-500"></i>
-                        <span class="text-sm font-medium text-orange-800 dark:text-orange-200">
-                            <span data-translate="Current version is out of date">Current version is out of date</span>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Quick Actions -->
-                <div class="space-y-3">
-                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <span data-translate="Quick Actions">Quick Actions</span>
-                    </h4>
-                    <div class="grid grid-cols-1 gap-3">
-                        <a href="https://github.com/MmadF14/vwireguard" 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           class="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-600 transition-all duration-200 group">
-                            <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                <i class="fab fa-github text-gray-600 dark:text-gray-400 group-hover:text-primary-500"></i>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    <span data-translate="View on GitHub">View on GitHub</span>
-                                </span>
-                            </div>
-                            <i class="fas fa-external-link-alt text-gray-400 group-hover:text-primary-500"></i>
-                        </a>
-                        
-                        <a href="https://github.com/MmadF14/vwireguard/releases" 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           class="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-600 transition-all duration-200 group">
-                            <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                                <i class="fas fa-download text-gray-600 dark:text-gray-400 group-hover:text-primary-500"></i>
-                                <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    <span data-translate="Download Updates">Download Updates</span>
-                                </span>
-                            </div>
-                            <i class="fas fa-external-link-alt text-gray-400 group-hover:text-primary-500"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <!-- /.row -->
     </div>
-</div>
+</section>
 {{ end }}
 
 {{ define "bottom_js"}}
 <script>
     $(document).ready(function () {
-        // Current version release date
+
         $.ajax({
             cache: false,
             method: 'GET',
@@ -212,14 +87,15 @@
             dataType: 'json',
             contentType: "application/json",
             success: function (data) {
-                $("#currentReleaseDate").val(data.published_at.split("T")[0]);
+                $("#currentReleaseDate").attr("value", data.published_at.split("T")[0]);
+
             },
             error: function (jqXHR, exception) {
-                $("#currentReleaseDate").val(window.langManager.translate("Could not find this version on GitHub.com"));
+                $("#currentReleaseDate").attr("value", window.langManager.translate("Could not find this version on GitHub.com"));
             }
         });
 
-        // Latest release information
+
         $.ajax({
             cache: false,
             method: 'GET',
@@ -227,20 +103,21 @@
             dataType: 'json',
             contentType: "application/json",
             success: function (data) {
-                $("#latestRelease").val(data.tag_name);
-                $("#latestReleaseDate").val(data.published_at.split("T")[0]);
+                $("#latestRelease").attr("value", data.tag_name);
+                $("#latestReleaseDate").attr("value", data.published_at.split("T")[0]);
+                $("#author").attr("value", data.author.login);
                 $("#authorImage").attr("src", data.author.avatar_url);
-                $("#authorName").text(data.author.login);
+                $("#authorImage").after("<b>  " + data.author.login + "</b>");
                 $("#authorLink").attr("href", data.author.html_url);
+
             },
             error: function (jqXHR, exception) {
-                $("#latestRelease").val(window.langManager.translate("Could not connect to GitHub.com"));
-                $("#latestReleaseDate").val(window.langManager.translate("Could not connect to GitHub.com"));
-                $("#authorName").text(window.langManager.translate("Could not connect to GitHub.com"));
+                $("#latestRelease").attr("value", window.langManager.translate("Could not connect to GitHub.com"));
+                $("#latestReleaseDate").attr("value", window.langManager.translate("Could not connect to GitHub.com"));
+                $("#author").attr("value", window.langManager.translate("Could not connect to GitHub.com"));
             }
         });
 
-        // Contributors
         $.ajax({
             cache: false,
             method: 'GET',
@@ -248,40 +125,21 @@
             dataType: 'json',
             contentType: "application/json",
             success: function (data) {
-                data.forEach(contributor => {
-                    $("#contributors").append(`
-                        <a href="${contributor.html_url}" 
-                           title="${contributor.login}" 
-                           target="_blank" 
-                           rel="noopener noreferrer"
-                           class="block transition-transform duration-200 hover:scale-110">
-                            <img src="${contributor.avatar_url}" 
-                                 alt="${contributor.login}"
-                                 class="w-10 h-10 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 transition-all duration-200 shadow-sm hover:shadow-md"/>
-                        </a>
-                    `);
-                });
+                data.forEach(contributor => $("#contributors").append("<a href=\"" + contributor.html_url + "\" title=\"" + contributor.login + "\">" +
+                    "<img src=\"" + contributor.avatar_url + "\" style=\"width: 50px; height: 50px; border-radius: 50%; border: 1px solid #000; margin: 5px;\"/></a>"));
             },
             error: function (jqXHR, exception) {
-                $("#contributors").html(`
-                    <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
-                        <p class="text-sm text-red-800 dark:text-red-200">
-                            ${window.langManager.translate("Could not connect to GitHub.com")}
-                        </p>
-                    </div>
-                `);
+                $("#contributors").html("<p>" + window.langManager.translate("Could not connect to GitHub.com") + "</p>");
             }
         });
     });
 
-    // Check for updates
     $(document).ajaxStop(function () {
-        const currentDate = Date.parse($("#currentReleaseDate").val());
-        const latestDate = Date.parse($("#latestReleaseDate").val());
-        
-        if (currentDate && latestDate && currentDate < latestDate) {
-            $("#updateStatus").removeClass("hidden");
+        if (Date.parse($("#currentReleaseDate").val()) < Date.parse($("#latestReleaseDate").val())) {
+            $("#currentReleaseDate").after("<p style=\"color:red\">" + window.langManager.translate("Current version is out of date") + "</p>")
         }
     });
+
+
 </script>
 {{ end }}

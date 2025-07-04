@@ -14,163 +14,76 @@
 {{end}}
 
 {{define "page_content"}}
-<div class="max-w-6xl mx-auto space-y-8">
-    <!-- System Tools Card -->
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden card-hover">
-        <!-- Card Header -->
-        <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
-            <h3 class="text-lg font-semibold text-white flex items-center">
-                <i class="fas fa-tools mr-3 rtl:mr-0 rtl:ml-3"></i>
-                <span data-translate="System Tools">System Tools</span>
-            </h3>
-        </div>
-        
-        <!-- Card Body -->
-        <div class="p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Restart WireGuard Service -->
-                <button id="restart-service" 
-                        class="group flex flex-col items-center justify-center p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    <div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                        <i class="fas fa-sync-alt text-white text-lg"></i>
-                    </div>
-                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200 text-center" data-translate="Restart WireGuard Service">
-                        Restart WireGuard Service
-                    </span>
-                </button>
-
-                <!-- Flush DNS Cache -->
-                <button id="flush-dns" 
-                        class="group flex flex-col items-center justify-center p-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
-                    <div class="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                        <i class="fas fa-broom text-white text-lg"></i>
-                    </div>
-                    <span class="text-sm font-medium text-orange-800 dark:text-orange-200 text-center" data-translate="Flush DNS Cache">
-                        Flush DNS Cache
-                    </span>
-                </button>
-
-                <!-- Check for Updates -->
-                <button id="check-updates" 
-                        class="group flex flex-col items-center justify-center p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                    <div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                        <i class="fas fa-download text-white text-lg"></i>
-                    </div>
-                    <span class="text-sm font-medium text-green-800 dark:text-green-200 text-center" data-translate="Check for Updates">
-                        Check for Updates
-                    </span>
-                </button>
-
-                <!-- Generate System Report -->
-                <button id="generate-report" 
-                        class="group flex flex-col items-center justify-center p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
-                    <div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-200">
-                        <i class="fas fa-file-alt text-white text-lg"></i>
-                    </div>
-                    <span class="text-sm font-medium text-purple-800 dark:text-purple-200 text-center" data-translate="Generate System Report">
-                        Generate System Report
-                    </span>
-                </button>
+<section class="content">
+    <div class="container-fluid">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title" data-translate="System Tools">System Tools</h3>
             </div>
-        </div>
-    </div>
-
-    <!-- System Logs Card -->
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden">
-        <!-- Card Header -->
-        <div class="bg-gradient-to-r from-secondary-500 to-secondary-600 px-6 py-4">
-            <h3 class="text-lg font-semibold text-white flex items-center">
-                <i class="fas fa-file-code mr-3 rtl:mr-0 rtl:ml-3"></i>
-                <span data-translate="Logs">Logs</span>
-            </h3>
-        </div>
-        
-        <!-- Card Body -->
-        <div class="p-6 space-y-6">
-            <!-- Log Level Selector -->
-            <div class="space-y-2">
-                <label for="log-level" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <i class="fas fa-filter mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                    <span data-translate="Log Level">Log Level</span>
-                </label>
-                <select id="log-level" 
-                        class="w-full md:w-48 px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
-                    <option value="error" data-translate="Errors Only">Errors Only</option>
-                    <option value="info" data-translate="All Logs" selected>All Logs</option>
-                </select>
-            </div>
-
-            <!-- Log Output -->
-            <div class="space-y-2">
-                <label for="log-output" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <i class="fas fa-terminal mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                    <span data-translate="System Logs">System Logs</span>
-                </label>
-                <div class="relative">
-                    <textarea id="log-output" 
-                              readonly 
-                              rows="12"
-                              class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white font-mono text-sm resize-none custom-scrollbar"
-                              placeholder="System logs will appear here..."></textarea>
-                    <div id="log-loading" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-dark-700 rounded-xl hidden">
-                        <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                            <i class="fas fa-spinner fa-spin text-primary-500"></i>
-                            <span class="text-gray-600 dark:text-gray-400">
-                                <span data-translate="Loading logs...">Loading logs...</span>
-                            </span>
-                        </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary mb-3" id="restart-service" data-translate="Restart WireGuard Service">
+                            Restart WireGuard Service
+                        </button>
+                        <button class="btn btn-warning mb-3" id="flush-dns" data-translate="Flush DNS Cache">
+                            Flush DNS Cache
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-info mb-3" id="check-updates" data-translate="Check for Updates">
+                            Check for Updates
+                        </button>
+                        <button class="btn btn-secondary mb-3" id="generate-report" data-translate="Generate System Report">
+                            Generate System Report
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Log Actions -->
-            <div class="flex flex-wrap gap-3">
-                <button id="refresh-logs" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
-                    <i class="fas fa-sync-alt mr-2 rtl:mr-0 rtl:ml-2"></i>
-                    <span data-translate="Refresh Logs">Refresh Logs</span>
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title" data-translate="Logs">Logs</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="log-level" data-translate="Log Level">Log Level:</label>
+                    <select class="form-control" id="log-level">
+                        <option value="error" data-translate="Errors Only">Errors Only</option>
+                        <option value="info" data-translate="All Logs" selected>All Logs</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="log-output" data-translate="System Logs">System Logs:</label>
+                    <textarea class="form-control" id="log-output" rows="10" readonly></textarea>
+                </div>
+                <button class="btn btn-primary" id="refresh-logs" data-translate="Refresh Logs">
+                    Refresh Logs
                 </button>
-
-                <button id="clear-logs" 
-                        class="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-700 text-sm font-medium rounded-xl text-red-700 dark:text-red-300 bg-white dark:bg-dark-700 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
-                    <i class="fas fa-trash mr-2 rtl:mr-0 rtl:ml-2"></i>
-                    <span data-translate="Clear Logs">Clear Logs</span>
-                </button>
-
-                <button id="download-logs" 
-                        class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
-                    <i class="fas fa-download mr-2 rtl:mr-0 rtl:ml-2"></i>
-                    <span data-translate="Download Logs">Download Logs</span>
+                <button class="btn btn-danger" id="clear-logs" data-translate="Clear Logs">
+                    Clear Logs
                 </button>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<!-- Status Modal -->
-<div id="statusModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-            <h3 id="statusModalLabel" class="text-lg font-semibold text-gray-900 dark:text-white">
-                <i class="fas fa-info-circle text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Operation Status">Operation Status</span>
-            </h3>
-            <button onclick="closeStatusModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
-                <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
-        
-        <div class="p-6">
-            <div id="statusModalBody" class="text-center py-4">
-                <!-- Status content will be injected here -->
+<!-- Status Update Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1" role="dialog" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="statusModalLabel" data-translate="Operation Status">Operation Status</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-        </div>
-        
-        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
-            <button onclick="closeStatusModal()" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                <span data-translate="Close">Close</span>
-            </button>
+            <div class="modal-body" id="statusModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" data-translate="Close">Close</button>
+            </div>
         </div>
     </div>
 </div>
@@ -179,35 +92,16 @@
 {{define "bottom_js"}}
 <script>
 $(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
     // Utility functions
     function showStatus(message, isError = false) {
         const modalBody = document.getElementById('statusModalBody');
-        const iconClass = isError ? 'fas fa-exclamation-circle text-red-500' : 'fas fa-check-circle text-green-500';
-        const textClass = isError ? 'text-red-800 dark:text-red-200' : 'text-green-800 dark:text-green-200';
-        const bgClass = isError ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
-        
-        modalBody.innerHTML = `
-            <div class="p-4 ${bgClass} rounded-xl border">
-                <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                    <i class="${iconClass} text-2xl"></i>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium ${textClass}">
-                            ${window.langManager.translate(message)}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.getElementById('statusModal').classList.remove('hidden');
+        modalBody.textContent = window.langManager.translate(message);
+        modalBody.className = isError ? 'text-danger' : 'text-success';
+        $('#statusModal').modal('show');
     }
-
-    function closeStatusModal() {
-        document.getElementById('statusModal').classList.add('hidden');
-    }
-
-    // Make closeStatusModal global
-    window.closeStatusModal = closeStatusModal;
 
     function showError(message) {
         showStatus(message, true);
@@ -217,25 +111,9 @@ $(document).ready(function() {
         showStatus(message, false);
     }
 
-    function setButtonLoading(buttonId, loading = true) {
-        const button = document.getElementById(buttonId);
-        if (loading) {
-            button.disabled = true;
-            const originalText = button.innerHTML;
-            button.setAttribute('data-original-text', originalText);
-            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Processing...">Processing...</span>';
-        } else {
-            button.disabled = false;
-            button.innerHTML = button.getAttribute('data-original-text') || button.innerHTML;
-        }
-    }
-
     function refreshLogs() {
         const level = $('#log-level').val();
         const basePath = '{{.basePath}}' || window.basePath || '';
-        
-        document.getElementById('log-loading').classList.remove('hidden');
-        
         $.ajax({
             url: basePath + '/api/utilities/logs?level=' + level,
             method: 'GET',
@@ -251,31 +129,12 @@ $(document).ready(function() {
         .fail(function(xhr, status, error) {
             console.error('Failed to refresh logs:', xhr.responseText);
             showError('Failed to refresh logs: ' + error);
-        })
-        .always(function() {
-            document.getElementById('log-loading').classList.add('hidden');
         });
     }
-
-    // Auto-refresh logs every 10 seconds
-    function autoRefreshLogs() {
-        refreshLogs();
-        setTimeout(autoRefreshLogs, 10000);
-    }
-
-    // Initial load and start auto-refresh
-    autoRefreshLogs();
-
-    // Log level change handler
-    $('#log-level').change(function() {
-        refreshLogs();
-    });
 
     // Button click handlers
     $('#restart-service').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        setButtonLoading('restart-service', true);
-        
         $.ajax({
             url: basePath + '/api/utilities/restart-service',
             method: 'POST',
@@ -292,16 +151,11 @@ $(document).ready(function() {
         .fail(function(xhr, status, error) {
             console.error('Failed to restart service:', xhr.responseText);
             showError('Failed to restart service: ' + error);
-        })
-        .always(function() {
-            setButtonLoading('restart-service', false);
         });
     });
 
     $('#flush-dns').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        setButtonLoading('flush-dns', true);
-        
         $.ajax({
             url: basePath + '/api/utilities/flush-dns',
             method: 'POST',
@@ -318,16 +172,11 @@ $(document).ready(function() {
         .fail(function(xhr, status, error) {
             console.error('Failed to flush DNS cache:', xhr.responseText);
             showError('Failed to flush DNS cache: ' + error);
-        })
-        .always(function() {
-            setButtonLoading('flush-dns', false);
         });
     });
 
     $('#check-updates').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        setButtonLoading('check-updates', true);
-        
         $.ajax({
             url: basePath + '/api/utilities/check-updates',
             method: 'POST',
@@ -344,36 +193,52 @@ $(document).ready(function() {
         .fail(function(xhr, status, error) {
             console.error('Failed to check for updates:', xhr.responseText);
             showError('Failed to check for updates: ' + error);
-        })
-        .always(function() {
-            setButtonLoading('check-updates', false);
         });
     });
 
     $('#generate-report').click(function() {
         const basePath = '{{.basePath}}' || window.basePath || '';
-        setButtonLoading('generate-report', true);
-        
         $.ajax({
             url: basePath + '/api/utilities/generate-report',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({})
         })
-        .done(function(response) {
-            if (response.success) {
-                showSuccess(response.message);
-            } else {
-                showError(response.message);
-            }
-        })
-        .fail(function(xhr, status, error) {
-            console.error('Failed to generate report:', xhr.responseText);
-            showError('Failed to generate report: ' + error);
-        })
-        .always(function() {
-            setButtonLoading('generate-report', false);
-        });
+            .done(function(response) {
+                if (response.success) {
+                    // Create a formatted report
+                    const report = response.message;
+                    let formattedReport = '';
+                    
+                    if (report.uptime) {
+                        formattedReport += 'System Uptime:\n' + report.uptime + '\n\n';
+                    }
+                    if (report.memory) {
+                        formattedReport += 'Memory Usage:\n' + report.memory + '\n\n';
+                    }
+                    if (report.disk) {
+                        formattedReport += 'Disk Usage:\n' + report.disk + '\n\n';
+                    }
+                    if (report.wireguard_status) {
+                        formattedReport += 'WireGuard Status:\n' + report.wireguard_status + '\n\n';
+                    }
+                    if (report.system_logs) {
+                        formattedReport += 'Recent System Logs:\n' + report.system_logs;
+                    }
+
+                    // Show report in a modal
+                    const modalBody = document.getElementById('statusModalBody');
+                    modalBody.innerHTML = '<pre>' + formattedReport + '</pre>';
+                    modalBody.className = '';
+                    $('#statusModal').modal('show');
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Failed to generate system report:', xhr.responseText);
+                showError('Failed to generate system report: ' + error);
+            });
     });
 
     $('#refresh-logs').click(function() {
@@ -381,65 +246,33 @@ $(document).ready(function() {
     });
 
     $('#clear-logs').click(function() {
-        const basePath = '{{.basePath}}' || window.basePath || '';
-        setButtonLoading('clear-logs', true);
-        
-        $.ajax({
-            url: basePath + '/api/utilities/clear-logs',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({})
-        })
-        .done(function(response) {
-            if (response.success) {
-                showSuccess(response.message);
-                $('#log-output').val('');
-            } else {
-                showError(response.message);
-            }
-        })
-        .fail(function(xhr, status, error) {
-            console.error('Failed to clear logs:', xhr.responseText);
-            showError('Failed to clear logs: ' + error);
-        })
-        .always(function() {
-            setButtonLoading('clear-logs', false);
-        });
-    });
-
-    $('#download-logs').click(function() {
-        const logs = $('#log-output').val();
-        if (!logs.trim()) {
-            showError('No logs to download');
-            return;
-        }
-        
-        const blob = new Blob([logs], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'system_logs_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-        
-        showSuccess('Logs downloaded successfully');
-    });
-
-    // Close modal when clicking outside
-    document.getElementById('statusModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeStatusModal();
+        if (confirm(window.langManager.translate('Are you sure you want to clear all logs?'))) {
+            const basePath = '{{.basePath}}' || window.basePath || '';
+            $.ajax({
+                url: basePath + '/api/utilities/clear-logs',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({})
+            })
+            .done(function(response) {
+                if (response.success) {
+                    showSuccess(response.message);
+                    refreshLogs();
+                } else {
+                    showError(response.message);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                console.error('Failed to clear logs:', xhr.responseText);
+                showError('Failed to clear logs: ' + error);
+            });
         }
     });
 
-    // Close modal on escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeStatusModal();
-        }
-    });
+    // Initial logs refresh
+    refreshLogs();
+    // Refresh logs every 30 seconds
+    setInterval(refreshLogs, 30000);
 });
 </script>
 {{end}} 

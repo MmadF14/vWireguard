@@ -1,38 +1,8 @@
 {{define "title"}}
-<span data-translate="Connected Peers">Connected Peers</span>
+Connected Peers
 {{end}}
 
 {{define "top_css"}}
-<style>
-    .peer-table {
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
-    }
-    
-    .dark .peer-table {
-        background: linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(51,65,85,0.6) 100%);
-        border: 1px solid rgba(71,85,105,0.3);
-    }
-    
-    .peer-row {
-        transition: all 0.3s ease;
-    }
-    
-    .peer-row:hover {
-        background: rgba(249,115,22,0.1);
-        transform: translateX(4px);
-    }
-    
-    .connected-peer {
-        background: rgba(34,197,94,0.1);
-        border-left: 4px solid #22c55e;
-    }
-    
-    .connected-peer:hover {
-        background: rgba(34,197,94,0.2);
-    }
-</style>
 {{end}}
 
 {{define "username"}}
@@ -40,233 +10,66 @@
 {{end}}
 
 {{define "page_title"}}
-<span data-translate="Connected Peers">Connected Peers</span>
+Connected Peers
 {{end}}
 
 {{define "page_content"}}
-<div class="space-y-6">
-    {{ if .error }}
-    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-4">
-        <div class="flex items-center">
-            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mr-3"></i>
-            <div>
-                <h4 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Warning</h4>
-                <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">{{.error}}</p>
-            </div>
-        </div>
-    </div>
-    {{ end}}
-    
-    {{ range $dev := .devices }}
-    <div class="peer-table bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
-        <!-- Table Header -->
-        <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
-            <h3 class="text-lg font-semibold text-white flex items-center">
-                <i class="fas fa-network-wired mr-3"></i>
-                <span>Connected peers for device: {{ $dev.Name }}</span>
-            </h3>
-        </div>
-        
-        <!-- Table Content -->
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50 dark:bg-dark-700">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">#</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Name">Name</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Email">Email</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Allocated IPs">Allocated IPs</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Endpoint">Endpoint</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Public Key">Public Key</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Received">Received</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Transmitted">Transmitted</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Connected">Connected</span>
-                        </th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span data-translate="Last Handshake">Last Handshake</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-dark-800 divide-y divide-gray-200 dark:divide-dark-700">
-                    {{ range $idx, $peer := $dev.Peers }}
-                    <tr class="peer-row {{ if $peer.Connected }}connected-peer{{ end }}">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{ $idx }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 h-8 w-8">
-                                                                         <div class="h-8 w-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center text-white font-bold text-sm uppercase">
-                                         {{if $peer.Name}}{{printf "%.1s" $peer.Name}}{{else}}?{{end}}
-                                     </div>
-                                </div>
-                                <div class="ml-3">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $peer.Name }}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 dark:text-white">{{ $peer.Email }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex flex-wrap gap-1">
-                                {{range $ip := $peer.AllocatedIP}}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
-                                    {{ $ip }}
-                                </span>
-                                {{end}}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-mono">{{ $peer.Endpoint }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-xs font-mono text-gray-600 dark:text-gray-400 max-w-xs truncate" title="{{ $peer.PublicKey }}">
-                                {{ $peer.PublicKey }}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white" title="{{ $peer.ReceivedBytes }} Bytes">
-                            <div class="flex items-center">
-                                <i class="fas fa-download text-blue-500 mr-2"></i>
-                                <span class="received-bytes" data-bytes="{{ $peer.ReceivedBytes }}">{{ $peer.ReceivedBytes }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white" title="{{ $peer.TransmitBytes }} Bytes">
-                            <div class="flex items-center">
-                                <i class="fas fa-upload text-green-500 mr-2"></i>
-                                <span class="transmit-bytes" data-bytes="{{ $peer.TransmitBytes }}">{{ $peer.TransmitBytes }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {{ if $peer.Connected }}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                                <i class="fas fa-circle text-green-500 mr-1"></i>
-                                <span data-translate="Connected">Connected</span>
-                            </span>
-                            {{else}}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
-                                <i class="fas fa-circle text-gray-400 mr-1"></i>
-                                <span data-translate="Disconnected">Disconnected</span>
-                            </span>
-                            {{end}}
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                            <div class="flex items-center">
-                                <i class="fas fa-clock text-gray-400 mr-2"></i>
-                                {{ $peer.LastHandshakeTime.Format "2006-01-02 15:04:05 MST" }}
-                            </div>
-                        </td>
-                    </tr>
-                    {{ end }}
-                </tbody>
-            </table>
-        </div>
-        
-        {{if not $dev.Peers}}
-        <div class="text-center py-12">
-            <div class="w-24 h-24 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-users text-white text-3xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                <span data-translate="No Connected Peers">No Connected Peers</span>
-            </h3>
-            <p class="text-gray-500 dark:text-gray-400">
-                <span data-translate="No clients are currently connected to this device">No clients are currently connected to this device</span>
-            </p>
-        </div>
-        {{end}}
-    </div>
-    {{ end }}
-    
-    {{if not .devices}}
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden">
-        <div class="text-center py-12">
-            <div class="w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class="fas fa-exclamation-triangle text-white text-3xl"></i>
-            </div>
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                <span data-translate="No Devices Found">No Devices Found</span>
-            </h3>
-            <p class="text-gray-500 dark:text-gray-400">
-                <span data-translate="No WireGuard devices are currently configured or running">No WireGuard devices are currently configured or running</span>
-            </p>
-        </div>
-    </div>
-    {{end}}
-    
-    <!-- Auto-refresh Notice -->
-    <div class="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-200 dark:border-blue-800">
-        <div class="flex items-center space-x-3">
-            <i class="fas fa-sync-alt text-blue-600 dark:text-blue-400"></i>
-            <div>
-                <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    <span data-translate="Real-time Status">Real-time Status</span>
-                </h4>
-                <p class="text-sm text-blue-700 dark:text-blue-300">
-                    <span data-translate="This page shows the current status of connected WireGuard peers">This page shows the current status of connected WireGuard peers</span>
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
-{{end}}
-
-{{define "bottom_js"}}
 <script>
-    function bytesToHumanReadable(temporal) {
-        const units = [" ", " K", " M", " G", " T", " P", " E", " Z", " Y"];
-        let pow = 0;
+  function bytesToHumanReadable(temporal) {
+    const units = [" ", " K", " M", " G", " T", " P", " E", " Z", " Y"]
+    let pow = 0
 
-        while (temporal > 1024) {
-            temporal /= 1024;
-            pow++;
-            if (pow == units.length - 1) break;
-        }
-
-        return parseFloat(temporal.toFixed(2)) + units[pow] + "B";
+    while (temporal > 1024) {
+      temporal /= 1024
+      pow ++
+      if (pow == units.length-1) break
     }
 
-    // Auto-refresh functionality (optional)
-    document.addEventListener('DOMContentLoaded', function() {
-        // Format bytes to human readable
-        document.querySelectorAll('.received-bytes, .transmit-bytes').forEach(function(element) {
-            const bytes = parseInt(element.getAttribute('data-bytes'));
-            element.textContent = bytesToHumanReadable(bytes);
-        });
-        
-        // Add tooltips for long public keys
-        const publicKeyElements = document.querySelectorAll('.font-mono.max-w-xs');
-        publicKeyElements.forEach(function(element) {
-            element.addEventListener('click', function() {
-                navigator.clipboard.writeText(element.getAttribute('title')).then(function() {
-                    // Show a temporary notification
-                    const originalText = element.textContent;
-                    element.textContent = 'Copied!';
-                    element.classList.add('text-green-600');
-                    
-                    setTimeout(function() {
-                        element.textContent = originalText;
-                        element.classList.remove('text-green-600');
-                    }, 2000);
-                });
-            });
-        });
-        
-        // Example: Auto-refresh every 30 seconds
-        // setInterval(function() {
-        //     window.location.reload();
-        // }, 30000);
-    });
+    return parseFloat(temporal.toFixed(2)) + units[pow]+"B"
+  }
 </script>
+<section class="content">
+    <div class="container-fluid">
+        {{ if .error }}
+        <div class="alert alert-warning" role="alert">{{.error}}</div>
+        {{ end}}
+        {{ range $dev := .devices }}
+            <table class="table table-sm">
+                <caption>List of connected peers for device with name {{ $dev.Name }} </caption>
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Allocated IPs</th>
+                  <th scope="col">Endpoint</th>
+                  <th scope="col">Public Key</th>
+                  <th scope="col">Received</th>
+                  <th scope="col">Transmitted</th>
+                  <th scope="col">Connected (Approximation)</th>
+                  <th scope="col">Last Handshake</th>
+                </tr>
+              </thead>
+              <tbody>
+              {{ range $idx, $peer := $dev.Peers }}
+              <tr {{ if $peer.Connected }} class="table-success" {{ end }}>
+                <th scope="row">{{ $idx }}</th>
+                <td>{{ $peer.Name }}</td>
+                <td>{{ $peer.Email }}</td>
+                <td>{{ $peer.AllocatedIP }}</td>
+                <td>{{ $peer.Endpoint }}</td>
+                <td>{{ $peer.PublicKey }}</td>
+                <td title="{{ $peer.ReceivedBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.ReceivedBytes }}))</script></td>
+                <td title="{{ $peer.TransmitBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.TransmitBytes }}))</script></td>
+                <td>{{ if $peer.Connected }}✓{{end}}</td>
+                <td>{{ $peer.LastHandshakeTime.Format "2006-01-02 15:04:05 MST" }}</td>
+               </tr>
+              {{ end }}
+              </tbody>
+            </table>
+        {{ end }}
+    </div>
+</section>
+{{end}}
+{{define "bottom_js"}}
 {{end}}

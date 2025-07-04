@@ -9,54 +9,6 @@
         cursor: pointer;
     }
     i[class^="paused-client"]:hover { transform: scale(1.5); }
-    
-    .client-card {
-        background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.1);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .client-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
-        border-color: rgba(249,115,22,0.3);
-    }
-    
-    .dark .client-card {
-        background: linear-gradient(135deg, rgba(30,41,59,0.8) 0%, rgba(51,65,85,0.6) 100%);
-        border: 1px solid rgba(71,85,105,0.3);
-    }
-    
-    .dark .client-card:hover {
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        border-color: rgba(249,115,22,0.4);
-    }
-    
-    .client-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 1rem;
-        backdrop-filter: blur(4px);
-    }
-    
-    .client-overlay i {
-        color: white;
-        font-size: 3rem;
-        transition: all 0.3s ease;
-    }
-    
-    .client-overlay i:hover {
-        transform: scale(1.2);
-        color: #f97316;
-    }
 </style>
 {{end}}
 
@@ -69,680 +21,288 @@
 {{end}}
 
 {{define "page_content"}}
-<div class="space-y-6">
-    <!-- Statistics Dashboard -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        <span data-translate="Total Clients">Total Clients</span>
-                    </h3>
-                    <p class="text-3xl font-bold text-gray-900 dark:text-white" id="total-clients">0</p>
-                </div>
-                <div class="p-3 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl">
-                    <i class="fas fa-users text-white text-2xl"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        <span data-translate="Online Clients">Online Clients</span>
-                    </h3>
-                    <p class="text-3xl font-bold text-green-600 dark:text-green-400" id="online-clients">0</p>
-                </div>
-                <div class="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
-                    <i class="fas fa-circle text-white text-2xl"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        <span data-translate="Total Transfer">Total Transfer</span>
-                    </h3>
-                    <p class="text-3xl font-bold text-blue-600 dark:text-blue-400" id="total-transfer">0 B</p>
-                </div>
-                <div class="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
-                    <i class="fas fa-exchange-alt text-white text-2xl"></i>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-                        <span data-translate="Server Status">Server Status</span>
-                    </h3>
-                    <p class="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                        <span data-translate="Online">Online</span>
-                    </p>
-                </div>
-                <div class="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-                    <i class="fas fa-server text-white text-2xl"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Controls -->
-    <div class="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-        <div class="flex items-center space-x-4">
-            <div class="flex items-center space-x-2">
-                <input type="checkbox" id="auto-refresh-toggle" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                <label for="auto-refresh-toggle" class="text-sm font-medium text-gray-900 dark:text-gray-300">
-                    <span data-translate="Auto Refresh">Auto Refresh</span>
-                </label>
-            </div>
-            <select id="refresh-interval" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" disabled>
-                <option value="5" data-translate="5 seconds">5 seconds</option>
-                <option value="10" data-translate="10 seconds">10 seconds</option>
-                <option value="30" data-translate="30 seconds">30 seconds</option>
-                <option value="60" data-translate="60 seconds">60 seconds</option>
-            </select>
-        </div>
-        <button type="button" id="refresh-status-btn" class="flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-300 dark:focus:ring-primary-800 transition-all duration-200">
-            <i class="fas fa-sync-alt mr-2"></i>
-            <span data-translate="Refresh Status">Refresh Status</span>
-        </button>
-    </div>
-    
-    <!-- Clients Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="client-list">
-        <!-- Clients will be populated here -->
-    </div>
-</div>
-
-<!-- Modals -->
-<div class="modal fade" id="modal_edit_client" tabindex="-1" role="dialog" aria-labelledby="modal_edit_client_title" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 rounded-t-2xl">
-                <h5 class="modal-title text-lg font-semibold text-white" id="modal_edit_client_title">
-                    <i class="fas fa-edit mr-2"></i>
-                    <span data-translate="Edit Client">Edit Client</span>
-                </h5>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form role="form" id="frm_edit_client" action="javascript:void(0);">
-                <div class="modal-body p-6">
-                    <input type="hidden" id="_client_id" name="client_id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-group">
-                            <label for="_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Client Name">Client Name</span>
-                            </label>
-                            <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_name" name="client_name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Email">Email</span>
-                            </label>
-                            <input type="email" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_email" name="client_email">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Telegram UserID">Telegram UserID</span>
-                            </label>
-                            <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_telegram_userid" name="client_telegram_userid">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Allocated IPs">Allocated IPs</span>
-                            </label>
-                            <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_allocated_ips" name="client_allocated_ips">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Allowed IPs">Allowed IPs</span>
-                            </label>
-                            <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_allowed_ips" name="client_allowed_ips">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_extra_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Extra Allowed IPs">Extra Allowed IPs</span>
-                            </label>
-                            <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_extra_allowed_ips" name="client_extra_allowed_ips">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Endpoint">Endpoint</span>
-                            </label>
-                            <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_endpoint" name="client_endpoint">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Quota (GB)">Quota (GB)</span>
-                            </label>
-                            <input type="number" step="0.1" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_quota" name="client_quota">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_expiration_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Expiration Days">Expiration Days</span>
-                            </label>
-                            <input type="number" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_expiration_days" name="client_expiration_days">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                        <div class="form-group">
-                            <label for="_client_public_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Public Key">Public Key</span>
-                            </label>
-                            <textarea class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_public_key" name="client_public_key" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_preshared_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                <span data-translate="Preshared Key">Preshared Key</span>
-                            </label>
-                            <textarea class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_client_preshared_key" name="client_preshared_key" rows="3"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-group mt-6">
-                        <label for="_additional_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <span data-translate="Additional Notes">Additional Notes</span>
-                        </label>
-                        <textarea class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="_additional_notes" name="additional_notes" rows="3"></textarea>
-                    </div>
-                    <div class="flex items-center space-x-4 mt-6">
-                        <div class="flex items-center">
-                            <input type="checkbox" id="_use_server_dns" name="use_server_dns" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="_use_server_dns" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                <span data-translate="Use Server DNS">Use Server DNS</span>
-                            </label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="_enabled" name="enabled" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 rounded focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="_enabled" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
-                                <span data-translate="Enabled">Enabled</span>
-                            </label>
-                        </div>
+<section class="content">
+    <div class="container-fluid">
+        <!-- <h5 class="mt-4 mb-2">Wireguard Clients</h5> -->
+        <div class="row mb-2">
+            <div class="col-12 d-flex justify-content-end align-items-center">
+                <div class="mr-3">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="auto-refresh-toggle">
+                        <label class="custom-control-label" for="auto-refresh-toggle" data-translate="Auto Refresh">Auto Refresh</label>
                     </div>
                 </div>
-                <div class="modal-footer px-6 py-4 bg-gray-50 dark:bg-dark-700 rounded-b-2xl">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white" data-dismiss="modal">
-                        <span data-translate="Close">Close</span>
-                    </button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-300 dark:focus:ring-primary-800">
-                        <span data-translate="Save changes">Save changes</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Email Client Modal -->
-<div class="modal fade" id="modal_email_client" tabindex="-1" role="dialog" aria-labelledby="modal_email_client_title" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 rounded-t-2xl">
-                <h5 class="modal-title text-lg font-semibold text-white" id="modal_email_client_title">
-                    <i class="fas fa-envelope mr-2"></i>
-                    <span data-translate="Email Configuration">Email Configuration</span>
-                </h5>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form name="frm_email_client" id="frm_email_client" action="javascript:void(0);">
-                <div class="modal-body p-6">
-                    <input type="hidden" id="e_client_id" name="e_client_id">
-                    <div class="form-group">
-                        <label for="e_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <span data-translate="Email address">Email address</span>
-                        </label>
-                        <input type="email" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="e_client_email" name="e_client_email">
-                    </div>
-                </div>
-                <div class="modal-footer px-6 py-4 bg-gray-50 dark:bg-dark-700 rounded-b-2xl">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white" data-dismiss="modal">
-                        <span data-translate="Close">Close</span>
-                    </button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-300 dark:focus:ring-primary-800">
-                        <span data-translate="Send">Send</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- QR Code Modal -->
-<div class="modal fade" id="modal_qr_client" tabindex="-1" role="dialog" aria-labelledby="modal_qr_client_title" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 rounded-t-2xl">
-                <h5 class="modal-title text-lg font-semibold text-white" id="modal_qr_client_title">
-                    <i class="fas fa-qrcode mr-2"></i>
-                    <span data-translate="QR Code">QR Code</span>
-                </h5>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body p-6 text-center">
-                <input type="hidden" id="qr_client_id" name="qr_client_id">
-                <img id="qr_code" class="mx-auto rounded-lg shadow-lg" src="" alt="QR Code">
-            </div>
-            <div class="modal-footer px-6 py-4 bg-gray-50 dark:bg-dark-700 rounded-b-2xl">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white" data-dismiss="modal">
-                    <span data-translate="Close">Close</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Telegram Modal -->
-<div class="modal fade" id="modal_telegram_client" tabindex="-1" role="dialog" aria-labelledby="modal_telegram_client_title" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4 rounded-t-2xl">
-                <h5 class="modal-title text-lg font-semibold text-white" id="modal_telegram_client_title">
-                    <i class="fab fa-telegram mr-2"></i>
-                    <span data-translate="Telegram">Telegram</span>
-                </h5>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <form name="frm_telegram_client" id="frm_telegram_client" action="javascript:void(0);">
-                <div class="modal-body p-6">
-                    <input type="hidden" id="tg_client_id" name="tg_client_id">
-                    <div class="form-group">
-                        <label for="tg_client_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <span data-translate="Telegram UserID">Telegram UserID</span>
-                        </label>
-                        <input type="text" class="form-control bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" id="tg_client_userid" name="tg_client_userid">
-                    </div>
-                </div>
-                <div class="modal-footer px-6 py-4 bg-gray-50 dark:bg-dark-700 rounded-b-2xl">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white" data-dismiss="modal">
-                        <span data-translate="Close">Close</span>
-                    </button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 rounded-lg hover:from-primary-600 hover:to-primary-700 focus:ring-4 focus:ring-primary-300 dark:focus:ring-primary-800">
-                        <span data-translate="Send">Send</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Pause Client Modal -->
-<div class="modal fade" id="modal_pause_client" tabindex="-1" role="dialog" aria-labelledby="modal_pause_client_title" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
-            <div class="modal-header bg-gradient-to-r from-yellow-500 to-orange-600 px-6 py-4 rounded-t-2xl">
-                <h5 class="modal-title text-lg font-semibold text-white" id="modal_pause_client_title">
-                    <i class="fas fa-pause mr-2"></i>
-                    <span data-translate="Disable Client">Disable Client</span>
-                </h5>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body p-6">
-                <p class="text-gray-700 dark:text-gray-300">
-                    <span data-translate="Are you sure you want to disable this client?">Are you sure you want to disable this client?</span>
-                </p>
-            </div>
-            <div class="modal-footer px-6 py-4 bg-gray-50 dark:bg-dark-700 rounded-b-2xl">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white" data-dismiss="modal">
-                    <span data-translate="Cancel">Cancel</span>
-                </button>
-                <button type="button" id="pause_client_confirm" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg hover:from-yellow-600 hover:to-orange-700 focus:ring-4 focus:ring-yellow-300 dark:focus:ring-yellow-800">
-                    <span data-translate="Disable">Disable</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Remove Client Modal -->
-<div class="modal fade" id="modal_remove_client" tabindex="-1" role="dialog" aria-labelledby="modal_remove_client_title" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-dark-700">
-            <div class="modal-header bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 rounded-t-2xl">
-                <h5 class="modal-title text-lg font-semibold text-white" id="modal_remove_client_title">
-                    <i class="fas fa-trash mr-2"></i>
-                    <span data-translate="Remove Client">Remove Client</span>
-                </h5>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body p-6">
-                <p class="text-gray-700 dark:text-gray-300">
-                    <span data-translate="Are you sure you want to remove this client?">Are you sure you want to remove this client?</span>
-                </p>
-            </div>
-            <div class="modal-footer px-6 py-4 bg-gray-50 dark:bg-dark-700 rounded-b-2xl">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700 dark:hover:text-white" data-dismiss="modal">
-                    <span data-translate="Cancel">Cancel</span>
-                </button>
-                <button type="button" id="remove_client_confirm" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 rounded-lg hover:from-red-600 hover:to-red-700 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800">
-                    <span data-translate="Remove">Remove</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-    <!-- Auto Refresh Controls -->
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-dark-700">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div class="flex flex-col sm:flex-row gap-4">
-                <!-- Search -->
-                <div class="relative" id="search-form" style="display: none;">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fas fa-search text-gray-400"></i>
-                    </div>
-                    <input type="text" id="search-input" class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl leading-5 bg-white dark:bg-dark-700 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white" placeholder="Search clients..." data-translate-placeholder="Search clients...">
-                </div>
-                
-                <!-- Status Filter -->
-                <select id="status-selector" class="block w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                    <option value="All" data-translate="All Status">All Status</option>
-                </select>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <!-- Auto Refresh Toggle -->
-                <div class="flex items-center">
-                    <label for="auto-refresh-toggle" class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="auto-refresh-toggle" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
-                        <span class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Auto Refresh">Auto Refresh</span>
-                    </label>
-                </div>
-                
-                <!-- Refresh Interval -->
-                <select id="refresh-interval" class="block w-auto px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" disabled>
+                <select id="refresh-interval" class="form-control mr-2" style="width: auto;" disabled>
                     <option value="5" data-translate="5 seconds">5 seconds</option>
                     <option value="10" data-translate="10 seconds">10 seconds</option>
                     <option value="30" data-translate="30 seconds">30 seconds</option>
                     <option value="60" data-translate="60 seconds">60 seconds</option>
                 </select>
-                
-                <!-- Refresh Button -->
-                <button type="button" id="refresh-status-btn" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
-                    <i class="fas fa-sync-alt mr-2"></i>
-                    <span data-translate="Refresh Status">Refresh Status</span>
+                <button type="button" id="refresh-status-btn" class="btn btn-outline-secondary">
+                    <i class="fas fa-sync-alt"></i> <span data-translate="Refresh Status">Refresh Status</span>
                 </button>
             </div>
         </div>
+        <div class="row" id="client-list">
+        </div>
+        <!-- /.row -->
     </div>
-    
-    <!-- Clients Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="client-list">
-        <!-- Clients will be loaded here via JavaScript -->
-    </div>
-</div>
+</section>
 
-<!-- Email Configuration Modal -->
 <div class="modal fade" id="modal_email_client">
     <div class="modal-dialog">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl border-0 shadow-2xl">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-t-2xl">
-                <h4 class="modal-title font-semibold" data-translate="Email Configuration">Email Configuration</h4>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Email Configuration">Email Configuration</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <form name="frm_email_client" id="frm_email_client">
-                <div class="modal-body p-6">
+                <div class="modal-body">
                     <input type="hidden" id="e_client_id" name="e_client_id">
                     <div class="form-group">
-                        <label for="e_client_email" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Email address">Email address</label>
-                        <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="e_client_email" name="e_client_email">
+                        <label for="e_client_email" class="control-label" data-translate="Email address">Email address</label>
+                        <input type="text" class="form-control" id="e_client_email" name="e_client_email">
                     </div>
                 </div>
-                <div class="modal-footer flex justify-between p-6 border-t border-gray-200 dark:border-dark-700">
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                    <button type="submit" class="btn btn-success px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 border border-transparent rounded-xl hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl" data-translate="Send">Send</button>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-success" data-translate="Send">Send</button>
                 </div>
             </form>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 
-<!-- QR Code Modal -->
 <div class="modal fade" id="modal_qr_client">
     <div class="modal-dialog">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl border-0 shadow-2xl">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-t-2xl">
-                <h4 class="modal-title font-semibold" data-translate="QR Code">QR Code</h4>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="QR Code">QR Code</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body p-6 text-center">
+            <div class="modal-body">
                 <input type="hidden" id="qr_client_id" name="qr_client_id">
-                <img id="qr_code" class="w-full max-w-xs mx-auto rounded-xl shadow-lg" style="image-rendering: pixelated;" src="" alt="QR code" />
+                <img id="qr_code" class="w-100" style="image-rendering: pixelated;" src="" alt="QR code" />
+                <!-- do not include FwMark in any client configs: it is INVALID. -->
             </div>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 
-<!-- Telegram Configuration Modal -->
 <div class="modal fade" id="modal_telegram_client">
     <div class="modal-dialog">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl border-0 shadow-2xl">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-t-2xl">
-                <h4 class="modal-title font-semibold" data-translate="Telegram Configuration">Telegram Configuration</h4>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Telegram Configuration">Telegram Configuration</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <form name="frm_telegram_client" id="frm_telegram_client">
-                <div class="modal-body p-6">
+                <div class="modal-body">
                     <input type="hidden" id="tg_client_id" name="tg_client_id">
                     <div class="form-group">
-                        <label for="tg_client_userid" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Telegram userid">Telegram userid</label>
-                        <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="tg_client_userid" name="tg_client_userid">
+                        <label for="tg_client_userid" class="control-label" data-translate="Telegram userid">Telegram userid</label>
+                        <input type="text" class="form-control" id="tg_client_userid" name="tg_client_userid">
                     </div>
                 </div>
-                <div class="modal-footer flex justify-between p-6 border-t border-gray-200 dark:border-dark-700">
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                    <button type="submit" class="btn btn-success px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 border border-transparent rounded-xl hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl" data-translate="Send">Send</button>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-success" data-translate="Send">Send</button>
                 </div>
             </form>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 
-<!-- Edit Client Modal -->
 <div class="modal fade" id="modal_edit_client">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content bg-white dark:bg-dark-800 rounded-2xl border-0 shadow-2xl">
-            <div class="modal-header bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-t-2xl">
-                <h4 class="modal-title font-semibold" data-translate="Edit Client">Edit Client</h4>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Edit Client">Edit Client</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <form name="frm_edit_client" id="frm_edit_client">
-                <div class="modal-body p-6 space-y-6">
+                <div class="modal-body">
                     <input type="hidden" id="_client_id" name="_client_id">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-group">
-                            <label for="_client_name" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Name">Name</label>
-                            <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_name" name="_client_name">
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_email" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Email">Email</label>
-                            <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_email" name="client_email">
-                        </div>
+                    <div class="form-group">
+                        <label for="_client_name" class="control-label" data-translate="Name">Name</label>
+                        <input type="text" class="form-control" id="_client_name" name="_client_name">
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-group">
-                            <label for="_client_quota" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Quota">Quota</label>
-                            <select class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white mb-3" id="_quota_preset" onchange="updateQuotaInput()">
-                                <option value="" data-translate="Select Quota">Select Quota</option>
-                                <option value="10">10 GB</option>
-                                <option value="20">20 GB</option>
-                                <option value="30">30 GB</option>
-                                <option value="40">40 GB</option>
-                                <option value="50">50 GB</option>
-                                <option value="100">100 GB</option>
-                                <option value="200">200 GB</option>
-                                <option value="500">500 GB</option>
-                                <option value="1000">1 TB</option>
-                                <option value="custom" data-translate="Custom">Custom</option>
-                            </select>
-                            <input type="number" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_quota" name="_client_quota" data-translate-placeholder="Enter custom quota in GB" placeholder="Enter custom quota in GB" step="0.1" min="0" />
-                        </div>
-                        <div class="form-group">
-                            <label for="_client_expiration_days" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Expiration Days">Expiration Days</label>
-                            <input type="number" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_expiration_days" name="_client_expiration_days" placeholder="e.g. 30" min="0" />
-                        </div>
+                    <div class="form-group">
+                        <label for="_client_email" class="control-label" data-translate="Email">Email</label>
+                        <input type="text" class="form-control" id="_client_email" name="client_email">
+                    </div>
+                    <div class="form-group">
+                        <label for="_client_quota" class="control-label" data-translate="Quota">Quota</label>
+                        <select class="form-control" id="_quota_preset" onchange="updateQuotaInput()">
+                            <option value="" data-translate="Select Quota">Select Quota</option>
+                            <option value="10">10 GB</option>
+                            <option value="20">20 GB</option>
+                            <option value="30">30 GB</option>
+                            <option value="40">40 GB</option>
+                            <option value="50">50 GB</option>
+                            <option value="100">100 GB</option>
+                            <option value="200">200 GB</option>
+                            <option value="500">500 GB</option>
+                            <option value="1000">1 TB</option>
+                            <option value="custom" data-translate="Custom">Custom</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="number" class="form-control" id="_client_quota" name="_client_quota" data-translate-placeholder="Enter custom quota in GB" placeholder="Enter custom quota in GB" step="0.1" min="0" />
                     </div>
 
                     <div class="form-group">
-                        <label for="_client_allocated_ips" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="IP Allocation">IP Allocation</label>
-                        <input type="text" data-role="tagsinput" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_allocated_ips">
+                        <label for="_client_expiration_days" class="control-label" data-translate="Expiration Days">Expiration Days</label>
+                        <input type="number" class="form-control" id="_client_expiration_days" name="_client_expiration_days" placeholder="e.g. 30" min="0" />
                     </div>
-                    
+
                     <div class="form-group">
-                        <label for="_client_endpoint" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Endpoint">Endpoint</label>
-                        <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_endpoint" name="client_endpoint">
+                        <label for="_client_allocated_ips" class="control-label" data-translate="IP Allocation">IP Allocation</label>
+                        <input type="text" data-role="tagsinput" class="form-control" id="_client_allocated_ips">
                     </div>
-                    
                     <div class="form-group">
-                        <label for="_client_telegram_userid" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Telegram userid">Telegram userid</label>
-                        <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_telegram_userid" name="_client_telegram_userid">
+                        <label for="_client_endpoint" class="control-label" data-translate="Endpoint">Endpoint</label>
+                        <input type="text" class="form-control" id="_client_endpoint" name="client_endpoint">
                     </div>
-                    
+                    <div class="form-group" style="margin-top: 0.5rem;">
+                        <label for="_client_telegram_userid" class="control-label" data-translate="Telegram userid">Telegram userid</label>
+                        <input type="text" class="form-control" id="_client_telegram_userid" name="_client_telegram_userid">
+                    </div>
                     <div class="form-group">
-                        <label for="_additional_notes" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Notes">Notes</label>
-                        <textarea class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white resize-none" style="min-height: 6rem;" id="_additional_notes" name="_additional_notes" data-translate-placeholder="Additional notes about this client" placeholder="Additional notes about this client"></textarea>
+                        <label for="_additional_notes" class="control-label" data-translate="Notes">Notes</label>
+                        <textarea class="form-control" style="min-height: 6rem;" id="_additional_notes" name="_additional_notes" data-translate-placeholder="Additional notes about this client" placeholder="Additional notes about this client"></textarea>
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" id="_use_server_dns">
-                                <label for="_use_server_dns" class="ml-2 text-sm text-gray-700 dark:text-gray-300" data-translate="Use server DNS">Use server DNS</label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <div class="flex items-center">
-                                <input type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" id="_enabled">
-                                <label for="_enabled" class="ml-2 text-sm text-gray-700 dark:text-gray-300" data-translate="Enable this client">Enable this client</label>
-                            </div>
+                    <div class="form-group">
+                        <div class="icheck-primary d-inline">
+                            <input type="checkbox" id="_use_server_dns">
+                            <label for="_use_server_dns" data-translate="Use server DNS">
+                                Use server DNS
+                            </label>
                         </div>
                     </div>
-                    
-                    <details class="bg-gray-50 dark:bg-dark-700 rounded-xl p-4">
-                        <summary class="cursor-pointer">
-                            <strong class="text-gray-700 dark:text-gray-300" data-translate="Public and Preshared Keys">Public and Preshared Keys</strong>
+                    <div class="form-group">
+                        <div class="icheck-primary d-inline">
+                            <input type="checkbox" id="_enabled">
+                            <label for="_enabled" data-translate="Enable this client">
+                                Enable this client
+                            </label>
+                        </div>
+                    </div>
+                    <details>
+                        <summary>
+                            <strong data-translate="Public and Preshared Keys">Public and Preshared Keys</strong>
+                            <i class="fas fa-info-circle" data-toggle="tooltip"
+                               data-translate-title="Update the server stored client Public and Preshared keys."
+                               data-original-title="Update the server stored client Public and Preshared keys.">
+                            </i>
                         </summary>
-                        <div class="mt-4 space-y-4">
-                            <div class="form-group">
-                                <label for="_client_public_key" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Public Key">Public Key</label>
-                                <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_public_key" name="_client_public_key" aria-invalid="false">
-                            </div>
-                            <div class="form-group">
-                                <label for="_client_preshared_key" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Preshared Key">Preshared Key</label>
-                                <input type="text" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_preshared_key" name="_client_preshared_key">
-                            </div>
+                        <div class="form-group" style="margin-top: 1rem">
+                            <label for="_client_public_key" class="control-label" data-translate="Public Key">
+                                Public Key
+                            </label>
+                            <input type="text" class="form-control" id="_client_public_key" name="_client_public_key" aria-invalid="false">
+                        </div>
+                        <div class="form-group">
+                            <label for="_client_preshared_key" class="control-label" data-translate="Preshared Key">
+                                Preshared Key
+                            </label>
+                            <input type="text" class="form-control" id="_client_preshared_key" name="_client_preshared_key">
                         </div>
                     </details>
-                    
-                    <details class="bg-gray-50 dark:bg-dark-700 rounded-xl p-4">
-                        <summary class="cursor-pointer">
-                            <strong class="text-gray-700 dark:text-gray-300" data-translate="Additional configuration">Additional configuration</strong>
+                    <details style="margin-top: 0.5rem;">
+                        <summary>
+                            <strong data-translate="Additional configuration">Additional configuration</strong>
                         </summary>
-                        <div class="mt-4 space-y-4">
-                            <div class="form-group">
-                                <label for="_client_allowed_ips" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Allowed IPs">Allowed IPs</label>
-                                <input type="text" data-role="tagsinput" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_allowed_ips">
-                            </div>
-                            <div class="form-group">
-                                <label for="_client_extra_allowed_ips" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Extra Allowed IPs">Extra Allowed IPs</label>
-                                <input type="text" data-role="tagsinput" class="form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="_client_extra_allowed_ips">
-                            </div>
-                            <div class="form-group">
-                                <label for="_subnet_ranges" class="control-label text-gray-700 dark:text-gray-300 font-medium mb-2" data-translate="Subnet range">Subnet range</label>
-                                <select id="_subnet_ranges" class="select2 form-control block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" data-translate-placeholder="Select a subnet range" data-placeholder="Select a subnet range">
-                                </select>
-                            </div>
+                        <div class="form-group">
+                            <label for="_client_allowed_ips" class="control-label" data-translate="Allowed IPs">Allowed IPs</label>
+                            <input type="text" data-role="tagsinput" class="form-control" id="_client_allowed_ips">
+                        </div>
+                        <div class="form-group">
+                            <label for="_client_extra_allowed_ips" class="control-label" data-translate="Extra Allowed IPs">Extra Allowed IPs</label>
+                            <input type="text" data-role="tagsinput" class="form-control"
+                                   id="_client_extra_allowed_ips">
+                        </div>
+                        <div class="form-group">
+                            <label for="_subnet_ranges" class="control-label" data-translate="Subnet range">Subnet range</label>
+                            <select id="_subnet_ranges" class="select2"
+                                    data-translate-placeholder="Select a subnet range"
+                                    data-placeholder="Select a subnet range" style="width: 100%;">
+                            </select>
                         </div>
                     </details>
                 </div>
-                <div class="modal-footer flex justify-between p-6 border-t border-gray-200 dark:border-dark-700">
-                    <button type="button" class="btn btn-outline-secondary px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                    <button type="submit" class="btn btn-success px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-500 to-green-600 border border-transparent rounded-xl hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl" data-translate="Save">Save</button>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-success" data-translate="Save">Save</button>
                 </div>
             </form>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 
-<!-- Pause Client Modal -->
 <div class="modal fade" id="modal_pause_client">
     <div class="modal-dialog">
-        <div class="modal-content bg-yellow-50 dark:bg-yellow-900 border-yellow-200 dark:border-yellow-700 rounded-2xl border-2 shadow-2xl">
-            <div class="modal-header bg-yellow-500 text-white rounded-t-2xl">
-                <h4 class="modal-title font-semibold" data-translate="Disable">Disable</h4>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content bg-warning">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Disable">Disable</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body p-6 text-yellow-800 dark:text-yellow-200">
+            <div class="modal-body">
             </div>
-            <div class="modal-footer flex justify-between p-6 border-t border-yellow-200 dark:border-yellow-700">
-                <button type="button" class="btn btn-outline-dark px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-white dark:bg-yellow-800 border border-yellow-300 dark:border-yellow-600 rounded-xl hover:bg-yellow-50 dark:hover:bg-yellow-700" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                <button type="button" class="btn btn-outline-dark px-4 py-2 text-sm font-medium text-white bg-yellow-500 border border-transparent rounded-xl hover:bg-yellow-600 shadow-lg hover:shadow-xl" id="pause_client_confirm" data-translate="Apply">Apply</button>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-dark" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-outline-dark" id="pause_client_confirm" data-translate="Apply">Apply</button>
             </div>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 
-<!-- Remove Client Modal -->
 <div class="modal fade" id="modal_remove_client">
     <div class="modal-dialog">
-        <div class="modal-content bg-red-50 dark:bg-red-900 border-red-200 dark:border-red-700 rounded-2xl border-2 shadow-2xl">
-            <div class="modal-header bg-red-500 text-white rounded-t-2xl">
-                <h4 class="modal-title font-semibold" data-translate="Remove">Remove</h4>
-                <button type="button" class="close text-white hover:text-gray-200" data-dismiss="modal" aria-label="Close">
+        <div class="modal-content bg-danger">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Remove">Remove</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body p-6 text-red-800 dark:text-red-200">
+            <div class="modal-body">
             </div>
-            <div class="modal-footer flex justify-between p-6 border-t border-red-200 dark:border-red-700">
-                <button type="button" class="btn btn-outline-dark px-4 py-2 text-sm font-medium text-red-700 dark:text-red-300 bg-white dark:bg-red-800 border border-red-300 dark:border-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-700" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                <button type="button" class="btn btn-outline-dark px-4 py-2 text-sm font-medium text-white bg-red-500 border border-transparent rounded-xl hover:bg-red-600 shadow-lg hover:shadow-xl" id="remove_client_confirm" data-translate="Apply">Apply</button>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-dark" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-outline-dark" id="remove_client_confirm" data-translate="Apply">Apply</button>
             </div>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
-                <span data-translate="QR Code">QR Code</span>
-            </h3>
-            <button onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
-                <i class="fas fa-times text-gray-400"></i>
-                </button>
-            </div>
-        
-        <div class="p-6 text-center">
-            <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
-                <img id="qr-code-image" src="" alt="QR Code" class="w-full h-auto max-w-xs mx-auto">
-            </div>
-            <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="Scan this QR code with your Wireguard client">Scan this QR code with your Wireguard client</p>
-            </div>
-        </div>
-    </div>
+<!-- /.modal -->
 {{end}}
 
 {{define "bottom_js"}}
@@ -763,10 +323,11 @@
                         
                         if (!response) {
                             console.log('No response from server');
-                            $("#client-list").html('<div class="col-12 text-center"><p class="text-gray-500 dark:text-gray-400">No clients found</p></div>');
+                            $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                             return;
                         }
 
+                        // اگر پاسخ به صورت رشته JSON باشد، آن را پارس کنیم
                         let data = response;
                         if (typeof response === 'string') {
                             try {
@@ -778,36 +339,40 @@
                             }
                         }
 
+                        // اگر داده‌ها آرایه باشند، مستقیماً آنها را رندر کنیم
                         if (Array.isArray(data)) {
                             console.log('Rendering array of clients:', data);
                             renderClientList(data);
-                            refreshConnectionStatus();
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
+                        // اگر داده‌ها یک آبجکت باشند که شامل آرایه clients است
                         if (data.clients && Array.isArray(data.clients)) {
                             console.log('Rendering clients from data.clients:', data.clients);
                             renderClientList(data.clients);
-                            refreshConnectionStatus();
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
+                        // اگر داده‌ها یک آبجکت باشند که شامل آرایه data است
                         if (data.data && Array.isArray(data.data)) {
                             console.log('Rendering clients from data.data:', data.data);
                             renderClientList(data.data);
-                            refreshConnectionStatus();
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
+                        // اگر داده‌ها یک کلاینت منفرد باشند
                         if (data.Client || (data.name && data.id)) {
                             console.log('Rendering single client:', data);
                             renderClientList([data]);
-                            refreshConnectionStatus();
+                            refreshConnectionStatus(); // Refresh connection status after rendering
                             return;
                         }
 
                         console.log('No valid client data found in response');
-                        $("#client-list").html('<div class="col-12 text-center"><p class="text-gray-500 dark:text-gray-400">No clients found</p></div>');
+                        $("#client-list").html('<div class="col-12 text-center"><p>No clients found</p></div>');
                     },
                     error: function(jqXHR) {
                         console.error('Error fetching clients:', {
@@ -832,7 +397,7 @@
                         }
                         
                         toastr.error(errorMessage);
-                        $("#client-list").html('<div class="col-12 text-center"><p class="text-red-500 dark:text-red-400">Error loading clients</p></div>');
+                        $("#client-list").html('<div class="col-12 text-center"><p>Error loading clients</p></div>');
                     }
                 });
             };
@@ -840,218 +405,8 @@
             tryFetchClients();
         }
 
-        function renderClientList(clients) {
-            console.log('Rendering clients:', clients);
-            const clientList = $("#client-list");
-            clientList.empty();
-
-            if (!clients || !Array.isArray(clients) || clients.length === 0) {
-                clientList.html('<div class="col-12 text-center"><p class="text-gray-500 dark:text-gray-400">No clients found</p></div>');
-                return;
-            }
-
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/status-data',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(statusData) {
-                    const connectionMap = {};
-                    if (statusData && statusData.devices) {
-                        statusData.devices.forEach(device => {
-                            if (device.Peers) {
-                                device.Peers.forEach(peer => {
-                                    if (peer.PublicKey) {
-                                        connectionMap[peer.PublicKey] = {
-                                            connected: peer.LastHandshakeTime ? 
-                                                (new Date() - new Date(peer.LastHandshakeTime)) < 180000 : false,
-                                            lastHandshake: peer.LastHandshakeTime,
-                                            receivedBytes: peer.ReceivedBytes,
-                                            transmitBytes: peer.TransmitBytes
-                                        };
-                                    }
-                                });
-                            }
-                        });
-                    }
-                    
-                    renderClientsWithStatus(clients, connectionMap);
-                },
-                error: function() {
-                    renderClientsWithStatus(clients, {});
-                }
-            });
-        }
-
-        function renderClientsWithStatus(clients, connectionMap) {
-            const clientList = $("#client-list");
-            
-            clients.forEach(function(data) {
-                try {
-                    let client = data;
-                    
-                    if (data.Client) {
-                        client = data.Client;
-                    }
-
-                    const connectionStatus = connectionMap[client.public_key] || {};
-                    const isConnected = connectionStatus.connected || false;
-                    const lastHandshake = connectionStatus.lastHandshake ? new Date(connectionStatus.lastHandshake) : null;
-                    const lastHandshakeText = lastHandshake ? 
-                        `Last seen: ${formatTimeAgo(lastHandshake)}` : 
-                        'Never connected';
-
-                    let statusClass = isConnected ? 'text-green-500' : 'text-gray-500';
-                    let statusText = isConnected ? 'Connected' : 'Disconnected';
-                    
-                    let html = `
-                        <div class="client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 p-6 relative" id="client_${client.id}">
-                            <div class="client-overlay ${client.enabled ? 'hidden' : ''}" id="paused_${client.id}">
-                                <i class="paused-client fas fa-3x fa-play cursor-pointer" onclick="resumeClient('${client.id}')"></i>
-                            </div>
-                            
-                            <div class="flex items-center justify-between mb-4">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
-                                        ${client.name.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div>
-                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">${client.name}</h3>
-                                        <p class="text-sm ${statusClass} font-medium">${statusText}</p>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex items-center space-x-2">
-                                    <div class="relative">
-                                        <button class="action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 dropdown-toggle" data-toggle="dropdown">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-                                        <div class="dropdown-menu dropdown-menu-right bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-gray-200 dark:border-dark-700 min-w-48">
-                                            <a href="download?clientid=${client.id}" class="dropdown-item px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center">
-                                                <i class="fas fa-download mr-2"></i> Download
-                                            </a>
-                                            <a href="#" class="dropdown-item px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center" data-toggle="modal" data-target="#modal_qr_client" data-clientid="${client.id}">
-                                                <i class="fas fa-qrcode mr-2"></i> QR Code
-                                            </a>`;
-                    
-                    if (client.email) {
-                        html += `
-                                            <a href="#" class="dropdown-item px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center" data-toggle="modal" data-target="#modal_email_client" data-clientid="${client.id}">
-                                                <i class="fas fa-envelope mr-2"></i> Email
-                                            </a>`;
-                    }
-                    
-                    if (client.telegram_userid) {
-                        html += `
-                                            <a href="#" class="dropdown-item px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center" data-toggle="modal" data-target="#modal_telegram_client" data-clientid="${client.id}">
-                                                <i class="fab fa-telegram mr-2"></i> Telegram
-                                            </a>`;
-                    }
-                    
-                    html += `
-                                            <div class="dropdown-divider"></div>
-                                            <a href="#" class="dropdown-item px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center" data-toggle="modal" data-target="#modal_edit_client" data-clientid="${client.id}">
-                                                <i class="fas fa-edit mr-2"></i> Edit
-                                            </a>
-                                            <a href="#" class="dropdown-item px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center" data-toggle="modal" data-target="#modal_pause_client" data-clientid="${client.id}" data-clientname="${client.name}">
-                                                <i class="fas fa-pause mr-2"></i> Disable
-                                            </a>
-                                            <a href="#" class="dropdown-item px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 flex items-center" data-toggle="modal" data-target="#modal_remove_client" data-clientid="${client.id}" data-clientname="${client.name}">
-                                                <i class="fas fa-trash mr-2"></i> Delete
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="space-y-3">`;
-                
-                    if (client.email) {
-                        html += `<div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                    <i class="fas fa-envelope mr-2"></i> ${client.email}
-                                </div>`;
-                    }
-
-                    html += `<div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                <i class="fas fa-clock mr-2"></i> ${lastHandshakeText}
-                            </div>`;
-                
-                    if (connectionStatus.receivedBytes || connectionStatus.transmitBytes) {
-                        html += `<div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                    <i class="fas fa-exchange-alt mr-2"></i>
-                                    <span class="mr-3">↓ ${formatBytes(connectionStatus.receivedBytes || 0)}</span>
-                                    <span>↑ ${formatBytes(connectionStatus.transmitBytes || 0)}</span>
-                                </div>`;
-                    }
-                    
-                    if (client.allocated_ips && Array.isArray(client.allocated_ips) && client.allocated_ips.length > 0) {
-                        html += `<div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
-                                    <i class="fas fa-network-wired mr-2"></i>
-                                    <span>${client.allocated_ips.join(', ')}</span>
-                                </div>`;
-                    }
-                    
-                    if (client.quota && client.quota > 0) {
-                        const usedQuota = client.used_quota || 0;
-                        const quotaPercentage = Math.min(100, Math.round((usedQuota / client.quota) * 100));
-                        
-                        html += `<div class="mt-3">
-                                    <div class="flex items-center justify-between text-sm mb-1">
-                                        <span class="text-gray-600 dark:text-gray-400">Quota Usage</span>
-                                        <span class="text-gray-900 dark:text-white">${quotaPercentage}%</span>
-                                    </div>
-                                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                        <div class="bg-gradient-to-r from-primary-500 to-primary-600 h-2 rounded-full transition-all duration-300" style="width: ${quotaPercentage}%"></div>
-                                    </div>
-                                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        <span>${formatBytes(usedQuota)}</span>
-                                        <span>${formatBytes(client.quota)}</span>
-                                    </div>
-                                </div>`;
-                    }
-                    
-                    if (client.additional_notes) {
-                        html += `<div class="mt-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                                    <p class="text-sm text-gray-700 dark:text-gray-300">${client.additional_notes}</p>
-                                </div>`;
-                    }
-                    
-                    html += `</div>
-                        </div>`;
-                    
-                    clientList.append(html);
-                } catch (error) {
-                    console.error('Error rendering client:', error, data);
-                }
-            });
-        }
-
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function formatTimeAgo(date) {
-            const now = new Date();
-            const diffMs = now - date;
-            const diffSec = Math.round(diffMs / 1000);
-            const diffMin = Math.round(diffSec / 60);
-            const diffHour = Math.round(diffMin / 60);
-            const diffDay = Math.round(diffHour / 24);
-            
-            if (diffSec < 60) {
-                return diffSec + ' seconds ago';
-            } else if (diffMin < 60) {
-                return diffMin + ' minutes ago';
-            } else if (diffHour < 24) {
-                return diffHour + ' hours ago';
-            } else {
-                return diffDay + ' days ago';
-            }
+        function autoApplyConfig() {
+            $("#apply_config_confirm").click();
         }
 
         let disableInProgress = false;
@@ -1085,11 +440,7 @@
                         
                         const divElement = document.getElementById("paused_" + clientID);
                         if (divElement) {
-                            if (status) {
-                                divElement.classList.add('hidden');
-                            } else {
-                                divElement.classList.remove('hidden');
-                            }
+                            divElement.style.visibility = status ? "hidden" : "visible";
                         }
 
                         if (!status && isAutomatic) {
@@ -1121,6 +472,35 @@
             trySetStatus();
         }
 
+        function applyWireGuardConfig(retryCount = 0) {
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/api/apply-wg-config',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(data) {
+                    toastr.success('Configuration applied successfully');
+                    populateClientList();
+                },
+                error: function(jqXHR) {
+                    console.error('Error applying config:', jqXHR.status);
+                    if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                        setTimeout(() => applyWireGuardConfig(retryCount + 1), 1000 * (retryCount + 1));
+                    } else {
+                        let errorMessage = 'Error applying configuration';
+                        try {
+                            const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                            errorMessage = responseJson.message || errorMessage;
+                        } catch (e) {
+                            console.error('Error parsing error response:', e);
+                        }
+                        toastr.error(errorMessage);
+                    }
+                }
+            });
+        }
+
         function pauseClient(clientID) {
             setClientStatus(clientID, false);
         }
@@ -1129,58 +509,294 @@
             setClientStatus(clientID, true);
         }
 
-        function refreshConnectionStatus() {
-            console.log('Refreshing connection status...');
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/status-data',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(statusData) {
-                    if (statusData && statusData.devices) {
-                        updateClientConnectionStatus(statusData.devices);
+        function updateIPAllocationSuggestion() {
+            const selectedSubnet = $('#subnet_ranges').val() || '__default_any__';
+            
+            // اگر درخواست قبلی هنوز در حال اجراست، از درخواست جدید جلوگیری کن
+            if (updateIPAllocationSuggestion.isRunning) {
+                console.log('Previous request is still running, skipping...');
+                return;
+            }
+
+            console.log('Getting IP suggestions for subnet:', selectedSubnet);
+
+            // Clear previous IPs
+            $('#client_allocated_ips').importTags('');
+
+            // تنظیم وضعیت درخواست
+            updateIPAllocationSuggestion.isRunning = true;
+
+            // Get IP suggestion from API with retry logic
+            const tryGetSuggestions = (retryCount = 0) => {
+                $.ajax({
+                    cache: false,
+                    method: 'GET',
+                    url: '{{.basePath}}/api/suggest-client-ips',
+                    data: { sr: selectedSubnet },
+                    dataType: 'json',
+                    contentType: "application/json",
+                    success: function(response) {
+                        console.log('Received IP suggestions:', response);
+                        if (response && Array.isArray(response)) {
+                            response.forEach(function(ip) {
+                                if (ip) {
+                                    $('#client_allocated_ips').addTag(ip);
+                                }
+                            });
+                        } else {
+                            console.warn('Invalid response format or no IPs available');
+                        }
+                        // پایان درخواست
+                        updateIPAllocationSuggestion.isRunning = false;
+                    },
+                    error: function(jqXHR) {
+                        console.error('Error getting IP suggestions:', jqXHR.status);
+                        if (retryCount < 3 && (jqXHR.status === 503 || jqXHR.status === 0)) {
+                            setTimeout(() => tryGetSuggestions(retryCount + 1), 1000 * (retryCount + 1));
+                        } else {
+                            let errorMessage = 'Failed to get IP suggestions';
+                            try {
+                                const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                errorMessage = responseJson.message || errorMessage;
+                            } catch (e) {
+                                console.error('Error parsing error response:', e);
+                            }
+                            toastr.error(errorMessage);
+                            // پایان درخواست در صورت خطا
+                            updateIPAllocationSuggestion.isRunning = false;
+                        }
                     }
-                },
-                error: function(jqXHR) {
-                    console.error('Error refreshing connection status:', jqXHR.status);
-                }
+                });
+            };
+
+            tryGetSuggestions();
+        }
+
+        // مقداردهی اولیه وضعیت درخواست
+        updateIPAllocationSuggestion.isRunning = false;
+
+        function updateSubnetRangesList(elementID, preselectedVal) {
+            $.getJSON("{{.basePath}}/api/subnet-ranges", null, function(data) {
+                $(`${elementID} option`).remove();
+                $(elementID).append(
+                    $("<option></option>")
+                        .text("Any")
+                        .val("__default_any__")
+                );
+                $.each(data, function(index, item) {
+                    $(elementID).append(
+                        $("<option></option>")
+                            .text(item)
+                            .val(item)
+                    );
+                    if (item === preselectedVal) {
+                        console.log(preselectedVal);
+                        $(elementID).val(preselectedVal).trigger('change')
+                    }
+                });
             });
         }
 
-        function updateClientConnectionStatus(devices) {
-            const connectionMap = {};
+        function updateSearchList() {
+            $.getJSON("{{.basePath}}/api/subnet-ranges", null, function(data) {
+                $("#status-selector option").remove();
+                $("#status-selector").append(
+                    $("<option></option>")
+                        .text("All")
+                        .val("All"),
+                    $("<option></option>")
+                        .text("Enabled")
+                        .val("Enabled"),
+                    $("<option></option>")
+                        .text("Disabled")
+                        .val("Disabled"),
+                    $("<option></option>")
+                        .text("Connected")
+                        .val("Connected"),
+                    $("<option></option>")
+                        .text("Disconnected")
+                        .val("Disconnected")
+                );
+                $.each(data, function(index, item) {
+                    $("#status-selector").append(
+                        $("<option></option>")
+                            .text(item)
+                            .val(item)
+                    );
+                });
+            });
+        }
+    </script>
+    <script>
+        // load client list
+        $(document).ready(function () {
+            updateSearchList();
+            populateClientList();
             
-            devices.forEach(device => {
-                if (device.Peers) {
-                    device.Peers.forEach(peer => {
-                        if (peer.PublicKey) {
-                            connectionMap[peer.PublicKey] = {
-                                connected: peer.LastHandshakeTime ? 
-                                    (new Date() - new Date(peer.LastHandshakeTime)) < 180000 : false,
-                                lastHandshake: peer.LastHandshakeTime,
-                                receivedBytes: peer.ReceivedBytes,
-                                transmitBytes: peer.TransmitBytes
-                            };
+            let autoRefreshInterval;
+            
+            // Handle auto-refresh toggle
+            $("#auto-refresh-toggle").change(function() {
+                const isChecked = $(this).prop('checked');
+                $("#refresh-interval").prop('disabled', !isChecked);
+                
+                if (isChecked) {
+                    startAutoRefresh();
+                } else {
+                    stopAutoRefresh();
+                }
+            });
+            
+            // Handle refresh interval change
+            $("#refresh-interval").change(function() {
+                if ($("#auto-refresh-toggle").prop('checked')) {
+                    startAutoRefresh();
+                }
+            });
+            
+            function startAutoRefresh() {
+                // Clear any existing interval
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                }
+                
+                // Get interval in seconds and convert to milliseconds
+                const intervalSeconds = parseInt($("#refresh-interval").val());
+                const intervalMs = intervalSeconds * 1000;
+                
+                // Start new interval
+                autoRefreshInterval = setInterval(function() {
+                    refreshConnectionStatus();
+                }, intervalMs);
+            }
+            
+            function stopAutoRefresh() {
+                if (autoRefreshInterval) {
+                    clearInterval(autoRefreshInterval);
+                    autoRefreshInterval = null;
+                }
+            }
+            
+            // Manual refresh button
+            $("#refresh-status-btn").click(function() {
+                $(this).find('i').addClass('fa-spin');
+                refreshConnectionStatus();
+                setTimeout(() => {
+                    $(this).find('i').removeClass('fa-spin');
+                }, 1000);
+            });
+        })
+
+        // show search bar and override :contains to be case-insensitive
+        $(document).ready(function () {
+            $("#search-form").show();
+            jQuery.expr[':'].contains = function(a, i, m) {
+                return jQuery(a).text().toUpperCase()
+                    .indexOf(m[3].toUpperCase()) >= 0;
+            };
+        })
+
+        // hide all clients and display only the ones that meet the search criteria (name, email, IP)
+        $('#search-input').keyup(function () {
+            $("#status-selector").val("All");
+            let query = $(this).val().trim();
+            $('.col-lg-4').hide();
+            $(".info-box-text").each(function() {
+                if($(this).children('i.fa-user').length > 0 || $(this).children('i.fa-envelope').length > 0)
+                {
+                    $(this).filter(':contains("' + query + '")').parent().parent().parent().show();
+                }
+                })
+            $(".badge-secondary").filter(':contains("' + query + '")').parent().parent().parent().show();
+            $(".fa-tguserid").each(function () {
+                if ($(this).parent().text().trim().indexOf(query) != -1) {
+                    $(this).closest('.col-lg-4').show();
+                }
+            })
+            let upperQuery = query.toUpperCase()
+            $(".fa-additional_notes").each(function () {
+                if ($(this).parent().text().trim().indexOf(upperQuery) != -1) {
+                    $(this).closest('.col-lg-4').show();
+                }
+            })
+        })
+
+        $("#status-selector").on('change', function () {
+            $('#search-input').val("");
+            switch ($("#status-selector").val()) {
+                case "All":
+                    $('.col-lg-4').show();
+                    break;
+                case "Enabled":
+                    $('.col-lg-4').hide();
+                    $('[id^="paused_"]').each(function () {
+                        if ($(this).css("visibility") === "hidden") {
+                            $(this).parent().parent().show();
                         }
                     });
-                }
-            });
-            
-            // Update status for each client card
-            $("[data-public-key]").each(function() {
-                const cardElement = $(this);
-                const publicKey = cardElement.data("public-key");
-                
-                if (connectionMap[publicKey]) {
-                    const connectionInfo = connectionMap[publicKey];
-                    // Update connection status display
-                    // This would need to be implemented based on the card structure
-                }
-            });
-        }
+                    break;
+                case "Disabled":
+                    $('.col-lg-4').hide();
+                    $('[id^="paused_"]').each(function () {
+                        if ($(this).css("visibility") !== "hidden") {
+                            $(this).parent().parent().show();
+                        }
+                    });
+                    break;
+                case "Connected":
+                    $('.col-lg-4').hide();
+                    $.ajax({
+                        cache: false,
+                        method: 'GET',
+                        url: '{{.basePath}}/status',
+                        success: function (data) {
+                            const returnedHTML = $(data).find(".table-success").get();
+                            var returnedString = "";
+                            returnedHTML.forEach(entry => returnedString += entry.outerHTML);
+                            $(".fa-key").each(function () {
+                                if (returnedString.indexOf($(this).parent().text().trim()) != -1) {
+                                    $(this).closest('.col-lg-4').show();
+                                }
+                            })
+                        }
+                    });
+                    break;
+                case "Disconnected":
+                    $('.col-lg-4').show();
+                    $.ajax({
+                        cache: false,
+                        method: 'GET',
+                        url: '{{.basePath}}/status',
+                        success: function (data) {
+                            const returnedHTML = $(data).find(".table-success").get();
+                            var returnedString = "";
+                            returnedHTML.forEach(entry => returnedString += entry.outerHTML);
+                            $(".fa-key").each(function () {
+                                if (returnedString.indexOf($(this).parent().text().trim()) != -1) {
+                                    $(this).closest('.col-lg-4').hide();
+                                }
+                            })
+                        }
+                    });
+                    break;
+                default:
+                    $('.col-lg-4').hide();
+                    const selectedSR = $("#status-selector").val()
+                    $(".fa-subnetrange").each(function () {
+                        const srs = $(this).parent().text().trim().split(',')
+                        for (const sr of srs) {
+                            if (sr === selectedSR) {
+                                $(this).closest('.col-lg-4').show();
+                                break
+                            }                            
+                        }
+                    })
+                    // $('.col-lg-4').show();
+                    break;
+            }
+        });
 
-        // Modal event handlers
+        // modal_pause_client modal event
         $("#modal_pause_client").on('show.bs.modal', function (event) {
             const button = $(event.relatedTarget);
             const client_id = button.data('clientid');
@@ -1188,14 +804,18 @@
             const modal = $(this);
             modal.find('.modal-body').text("You are about to disable client " + client_name);
             modal.find('#pause_client_confirm').val(client_id);
+        })
+
+        // pause_client_confirm button event
+        $(document).ready(function () {
+            $("#pause_client_confirm").click(function () {
+                const client_id = $(this).val();
+                pauseClient(client_id);
+                $("#modal_pause_client").modal('hide');
+            });
         });
 
-        $("#pause_client_confirm").click(function () {
-            const client_id = $(this).val();
-            pauseClient(client_id);
-            $("#modal_pause_client").modal('hide');
-        });
-
+        // modal_remove_client modal event
         $("#modal_remove_client").on('show.bs.modal', function (event) {
             const button = $(event.relatedTarget);
             const client_id = button.data('clientid');
@@ -1203,227 +823,269 @@
             const modal = $(this);
             modal.find('.modal-body').text("You are about to remove client " + client_name);
             modal.find('#remove_client_confirm').val(client_id);
+        })
+
+        // remove_client_confirm button event
+        $(document).ready(function () {
+            $("#remove_client_confirm").click(function () {
+                const client_id = $(this).val();
+                const data = {"id": client_id};
+                $.ajax({
+                    cache: false,
+                    method: 'POST',
+                    url: '{{.basePath}}/remove-client',
+                    dataType: 'json',
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function(data) {
+                        $("#modal_remove_client").modal('hide');
+                        toastr.success('Removed client successfully');
+                        const divElement = document.getElementById('client_' + client_id);
+                        divElement.style.display = "none";
+                    },
+                    error: function(jqXHR, exception) {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        toastr.error(responseJson['message']);
+                    }
+                });
+            });
         });
 
-        $("#remove_client_confirm").click(function () {
-            const client_id = $(this).val();
-            const data = {"id": client_id};
+
+
+        // Edit client modal event
+        // This fills the modal dialogue with data from the DB when we open the edit menu
+        $(document).ready(function () {
+            $("#modal_edit_client").on('show.bs.modal', function (event) {
+                let modal = $(this);
+                const button = $(event.relatedTarget);
+                const client_id = button.data('clientid');
+
+                // IP Allocation tag input
+                modal.find("#_client_allocated_ips").tagsInput({
+                    'width': '100%',
+                    'height': '75%',
+                    'interactive': true,
+                    'defaultText': 'Add More',
+                    'removeWithBackspace': true,
+                    'minChars': 0,
+                    'minInputWidth': '100%',
+                    'placeholderColor': '#666666'
+                });
+
+                // AllowedIPs tag input
+                modal.find("#_client_allowed_ips").tagsInput({
+                    'width': '100%',
+                    'height': '75%',
+                    'interactive': true,
+                    'defaultText': 'Add More',
+                    'removeWithBackspace': true,
+                    'minChars': 0,
+                    'minInputWidth': '100%',
+                    'placeholderColor': '#666666'
+                });
+
+                modal.find("#_client_extra_allowed_ips").tagsInput({
+                    'width': '100%',
+                    'height': '75%',
+                    'interactive': true,
+                    'defaultText': 'Add More',
+                    'removeWithBackspace': true,
+                    'minChars': 0,
+                    'minInputWidth': '100%',
+                    'placeholderColor': '#666666'
+                })
+
+                // دریافت اطلاعات کلاینت از سرور
+                $.ajax({
+                    cache: false,
+                    method: 'GET',
+                    url: '{{.basePath}}/api/client/' + client_id,
+                    dataType: 'json',
+                    contentType: "application/json",
+                    success: function (resp) {
+                        const client = resp.Client;
+
+                        // مقداردهی عنوان مدال
+                        modal.find(".modal-title").text("Edit Client " + client.name);
+
+                        // مقداردهی فیلدهای پنهان
+                        modal.find("#_client_id").val(client.id);
+                        modal.find("#_client_telegram_userid").val(client.telegram_userid);
+
+                        // مقداردهی فیلدهای ساده
+                        modal.find("#_client_name").val(client.name);
+                        modal.find("#_client_email").val(client.email);
+                        modal.find("#_client_endpoint").val(client.endpoint);
+                        modal.find("#_client_public_key").val(client.public_key);
+                        modal.find("#_client_preshared_key").val(client.preshared_key);
+                        modal.find("#_additional_notes").val(client.additional_notes);
+
+                        // مقداردهی Quota
+                        modal.find("#_client_quota").val(client.quota ? (client.quota / (1024 * 1024 * 1024)).toFixed(1) : "");     
+                        // مقداردهی Expiration (تبدیل تاریخ UTC به فرمت datetime-local)
+                        if (client.expiration_days) {
+                            modal.find("#_client_expiration_days").val(client.expiration_days);
+                        } else {
+                            modal.find("#_client_expiration_days").val("");
+                        }
+
+                        // مقداردهی Subnet range
+                        let preselectedEl;
+                        if (client.subnet_ranges && client.subnet_ranges.length > 0) {
+                            preselectedEl = client.subnet_ranges[0];
+                        }
+                        updateSubnetRangesList("#_subnet_ranges", preselectedEl);
+
+                        // مقداردهی Allocated IPs
+                        modal.find("#_client_allocated_ips").importTags('');
+                        client.allocated_ips.forEach(function (obj) {
+                            modal.find("#_client_allocated_ips").addTag(obj);
+                        });
+
+                        // مقداردهی Allowed IPs
+                        modal.find("#_client_allowed_ips").importTags('');
+                        client.allowed_ips.forEach(function (obj) {
+                            modal.find("#_client_allowed_ips").addTag(obj);
+                        });
+
+                        // مقداردهی Extra Allowed IPs
+                        modal.find("#_client_extra_allowed_ips").importTags('');
+                        client.extra_allowed_ips.forEach(function (obj) {
+                            modal.find("#_client_extra_allowed_ips").addTag(obj);
+                        });
+
+                        // مقداردهی Use server DNS و Enable
+                        modal.find("#_use_server_dns").prop("checked", client.use_server_dns);
+                        modal.find("#_enabled").prop("checked", client.enabled);
+
+                        // اگر subnet range تغییر کرد، IP Allocation جدید پیشنهاد بده
+                        $('#_subnet_ranges').on('select2:select', function (e) {
+                            updateIPAllocationSuggestion();
+                        });
+                    },
+                    error: function (jqXHR, exception) {
+                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                        toastr.error(responseJson['message']);
+                    }
+                });
+            });
+        });
+
+        // regenerateQRCode function for regenerating QR Code adding/removing some parts of configuration because of compatibility issues with some clients
+        function regenerateQRCode() {
+            const client_id = $("#qr_client_id").val();
+            const QRCodeImg = $("#qr_code");
+            const QRCodeA = $("#qr_code_a");
+            QRCodeImg.hide();
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/client/' + client_id,
+                data: {
+
+                },
+                dataType: 'json',
+                contentType: "application/json",
+                success: function (resp) {
+                    const client = resp.Client;
+
+                    $(".modal-title").text("Scan QR Code for " + client.name + " profile");
+                    QRCodeImg.attr('src', resp.QRCode).show();
+                    QRCodeA.attr('download', resp.Client.name);
+                    QRCodeA.attr('href', resp.QRCode).show();
+                },
+                error: function (jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
+        }
+
+        // submitEmailClient function for sending an email with the configuration to the client
+        function submitEmailClient() {
+            const client_id = $("#e_client_id").val();
+            const email = $("#e_client_email").val();
+            const data = {"id": client_id, "email": email};
             $.ajax({
                 cache: false,
                 method: 'POST',
-                url: '{{.basePath}}/remove-client',
+                url: '{{.basePath}}/email-client',
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
-                success: function(data) {
-                    $("#modal_remove_client").modal('hide');
-                    toastr.success('Removed client successfully');
-                    const divElement = document.getElementById('client_' + client_id);
-                    if (divElement) {
-                        divElement.style.display = "none";
-                    }
-                    populateClientList();
+                success: function(resp) {
+                    $("#modal_email_client").modal('hide');
+                    toastr.success('Sent email to client successfully');
                 },
                 error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
-        });
+        }
 
-        // Edit client modal
-        $("#modal_edit_client").on('show.bs.modal', function (event) {
-            let modal = $(this);
-            const button = $(event.relatedTarget);
-            const client_id = button.data('clientid');
-
-            // IP Allocation tag input
-            modal.find("#_client_allocated_ips").tagsInput({
-                'width': '100%',
-                'height': '75%',
-                'interactive': true,
-                'defaultText': 'Add More',
-                'removeWithBackspace': true,
-                'minChars': 0,
-                'minInputWidth': '100%',
-                'placeholderColor': '#666666'
-            });
-
-            // AllowedIPs tag input
-            modal.find("#_client_allowed_ips").tagsInput({
-                'width': '100%',
-                'height': '75%',
-                'interactive': true,
-                'defaultText': 'Add More',
-                'removeWithBackspace': true,
-                'minChars': 0,
-                'minInputWidth': '100%',
-                'placeholderColor': '#666666'
-            });
-
-            modal.find("#_client_extra_allowed_ips").tagsInput({
-                'width': '100%',
-                'height': '75%',
-                'interactive': true,
-                'defaultText': 'Add More',
-                'removeWithBackspace': true,
-                'minChars': 0,
-                'minInputWidth': '100%',
-                'placeholderColor': '#666666'
-            });
-
-            // Fetch client data
+        // submitTelegramClient function for sending a telegram message with the configuration to the client
+        function submitTelegramClient() {
+            const client_id = $("#tg_client_id").val();
+            const userid = $("#tg_client_userid").val();
+            const data = {"id": client_id, "userid": userid};
             $.ajax({
                 cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/client/' + client_id,
+                method: 'POST',
+                url: '{{.basePath}}/send-telegram-client',
                 dataType: 'json',
                 contentType: "application/json",
-                success: function (resp) {
-                    const client = resp.Client;
-
-                    modal.find(".modal-title").text("Edit Client " + client.name);
-                    modal.find("#_client_id").val(client.id);
-                    modal.find("#_client_telegram_userid").val(client.telegram_userid);
-                    modal.find("#_client_name").val(client.name);
-                    modal.find("#_client_email").val(client.email);
-                    modal.find("#_client_endpoint").val(client.endpoint);
-                    modal.find("#_client_public_key").val(client.public_key);
-                    modal.find("#_client_preshared_key").val(client.preshared_key);
-                    modal.find("#_additional_notes").val(client.additional_notes);
-                    modal.find("#_client_quota").val(client.quota ? (client.quota / (1024 * 1024 * 1024)).toFixed(1) : "");
-                    
-                    if (client.expiration_days) {
-                        modal.find("#_client_expiration_days").val(client.expiration_days);
-                    }
-
-                    // Allocated IPs
-                    modal.find("#_client_allocated_ips").importTags('');
-                    if (client.allocated_ips) {
-                        client.allocated_ips.forEach(function (obj) {
-                            modal.find("#_client_allocated_ips").addTag(obj);
-                        });
-                    }
-
-                    // Allowed IPs
-                    modal.find("#_client_allowed_ips").importTags('');
-                    if (client.allowed_ips) {
-                        client.allowed_ips.forEach(function (obj) {
-                            modal.find("#_client_allowed_ips").addTag(obj);
-                        });
-                    }
-
-                    // Extra Allowed IPs
-                    modal.find("#_client_extra_allowed_ips").importTags('');
-                    if (client.extra_allowed_ips) {
-                        client.extra_allowed_ips.forEach(function (obj) {
-                            modal.find("#_client_extra_allowed_ips").addTag(obj);
-                        });
-                    }
-
-                    modal.find("#_use_server_dns").prop("checked", client.use_server_dns);
-                    modal.find("#_enabled").prop("checked", client.enabled);
+                data: JSON.stringify(data),
+                success: function(resp) {
+                    $("#modal_telegram_client").modal('hide');
+                    toastr.success('Sent config via telegram to client successfully');
                 },
-                error: function (jqXHR, exception) {
+                error: function(jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
                     toastr.error(responseJson['message']);
                 }
             });
-        });
+        }
 
-        // Other modal handlers
-        $("#modal_email_client").on('show.bs.modal', function (event) {
-            let modal = $(this);
-            const button = $(event.relatedTarget);
-            const client_id = button.data('clientid');
-            
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/client/' + client_id,
-                dataType: 'json',
-                contentType: "application/json",
-                success: function (resp) {
-                    const client = resp.Client;
-                    modal.find(".modal-title").text("Send config to client " + client.name);
-                    modal.find("#e_client_id").val(client.id);
-                    modal.find("#e_client_email").val(client.email);
-                },
-                error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        });
-
-        $("#modal_qr_client").on('show.bs.modal', function (event) {
-            let modal = $(this);
-            const button = $(event.relatedTarget);
-            const client_id = button.data('clientid');
-            
-            modal.find("#qr_client_id").val(client_id);
-            
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/client/' + client_id,
-                dataType: 'json',
-                contentType: "application/json",
-                success: function (resp) {
-                    const client = resp.Client;
-                    modal.find(".modal-title").text("Scan QR Code for " + client.name + " profile");
-                    modal.find("#qr_code").attr('src', resp.QRCode);
-                },
-                error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        });
-
-        $("#modal_telegram_client").on('show.bs.modal', function (event) {
-            let modal = $(this);
-            const button = $(event.relatedTarget);
-            const client_id = button.data('clientid');
-            
-            $.ajax({
-                cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/client/' + client_id,
-                dataType: 'json',
-                contentType: "application/json",
-                success: function (resp) {
-                    const client = resp.Client;
-                    modal.find(".modal-title").text("Send config to client " + client.name);
-                    modal.find("#tg_client_id").val(client.id);
-                    modal.find("#tg_client_userid").val(client.telegram_userid);
-                },
-                error: function (jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        });
-
-        // Form submission handlers
+        //  function for updating an existing client
+        // This sends dialogue data to the back-end when user presses "Save"
+        // See e.g. routes.go:UpdateClient for where data is processed/verified.
         function submitEditClient() {
             const client_id = $("#_client_id").val();
             const name = $("#_client_name").val();
             const email = $("#_client_email").val();
             const telegram_userid = $("#_client_telegram_userid").val();
-            const allocated_ips = $("#_client_allocated_ips").val().split(",").filter(Boolean);
-            const allowed_ips = $("#_client_allowed_ips").val().split(",").filter(Boolean);
-            const extra_allowed_ips = $("#_client_extra_allowed_ips").val().split(",").filter(Boolean);
-            const endpoint = $("#_client_endpoint").val();
+            const allocated_ips = $("#_client_allocated_ips").val().split(",");
+            const allowed_ips = $("#_client_allowed_ips").val().split(",");
+            let use_server_dns = false;
+            let extra_allowed_ips = [];
             const public_key = $("#_client_public_key").val();
             const preshared_key = $("#_client_preshared_key").val();
-            const additional_notes = $("#_additional_notes").val();
-            const use_server_dns = $("#_use_server_dns").is(':checked');
-            const enabled = $("#_enabled").is(':checked');
 
+            // اضافه کردن Quota
             const quotaGB = parseFloat($("#_client_quota").val()) || 0;
             const quotaBytes = Math.floor(quotaGB * 1024 * 1024 * 1024);
-            const expirationDays = parseInt($("#_client_expiration_days").val()) || 0;
+
+            // اضافه کردن Expiration Days
+            let expirationDaysValue = $("#_client_expiration_days").val();
+            let expirationDays = parseInt(expirationDaysValue) || 0;
+
+            if ($("#_client_extra_allowed_ips").val() !== "") {
+                extra_allowed_ips = $("#_client_extra_allowed_ips").val().split(",");
+            }
+            const endpoint = $("#_client_endpoint").val();
+
+            if ($("#_use_server_dns").is(':checked')) {
+                use_server_dns = true;
+            }
+
+            let enabled = false;
+            if ($("#_enabled").is(':checked')) {
+                enabled = true;
+            }
+
+            const additional_notes = $("#_additional_notes").val();
 
             const data = {
                 "id": client_id,
@@ -1462,52 +1124,7 @@
             });
         }
 
-        function submitEmailClient() {
-            const client_id = $("#e_client_id").val();
-            const email = $("#e_client_email").val();
-            const data = {"id": client_id, "email": email};
-            
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/email-client',
-                dataType: 'json',
-                contentType: "application/json",
-                data: JSON.stringify(data),
-                success: function(resp) {
-                    $("#modal_email_client").modal('hide');
-                    toastr.success('Sent email to client successfully');
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        }
-
-        function submitTelegramClient() {
-            const client_id = $("#tg_client_id").val();
-            const userid = $("#tg_client_userid").val();
-            const data = {"id": client_id, "userid": userid};
-            
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '{{.basePath}}/send-telegram-client',
-                dataType: 'json',
-                contentType: "application/json",
-                data: JSON.stringify(data),
-                success: function(resp) {
-                    $("#modal_telegram_client").modal('hide');
-                    toastr.success('Sent config via telegram to client successfully');
-                },
-                error: function(jqXHR, exception) {
-                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    toastr.error(responseJson['message']);
-                }
-            });
-        }
-
+        // submitHandler
         function submitHandler(form) {
             const formId = $(form).attr('id');
             if (formId === "frm_edit_client") {
@@ -1519,6 +1136,436 @@
             }
         }
 
+        $("#modal_email_client").on('show.bs.modal', function (event) {
+            let modal = $(this);
+            const button = $(event.relatedTarget);
+            const client_id = button.data('clientid');
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/client/' + client_id,
+                dataType: 'json',
+                contentType: "application/json",
+                success: function (resp) {
+                    const client = resp.Client;
+
+                    modal.find(".modal-title").text("Send config to client " + client.name);
+                    modal.find("#e_client_id").val(client.id);
+                    modal.find("#e_client_email").val(client.email);
+                },
+                error: function (jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
+        });
+
+        $("#modal_qr_client").on('show.bs.modal', function (event) {
+            let modal = $(this);
+            const button = $(event.relatedTarget);
+            const client_id = button.data('clientid');
+
+            modal.find("#qr_client_id").val(client_id);
+            regenerateQRCode();
+        });
+
+        $("#modal_telegram_client").on('show.bs.modal', function (event) {
+            let modal = $(this);
+            const button = $(event.relatedTarget);
+            const client_id = button.data('clientid');
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/client/' + client_id,
+                dataType: 'json',
+                contentType: "application/json",
+                success: function (resp) {
+                    const client = resp.Client;
+
+                    modal.find(".modal-title").text("Send config to client " + client.name);
+                    modal.find("#tg_client_id").val(client.id);
+                    modal.find("#tg_client_userid").val(client.telegram_userid);
+                },
+                error: function (jqXHR, exception) {
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(responseJson['message']);
+                }
+            });
+        });
+
+        $(document).ready(function () {
+            $.validator.setDefaults({
+                submitHandler: function (form) {
+                    submitHandler(form);
+                }
+            });
+            // Edit client form validation
+            $("#frm_edit_client").validate({
+                rules: {
+                    client_name: {
+                        required: true,
+                    },
+                },
+                messages: {
+                    client_name: {
+                        required: "Please enter a name"
+                    },
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                }
+            });
+            // Email client form validation
+            $("#frm_email_client").validate({
+                rules: {
+                    e_client_email: {
+                        required: true,
+                        email: true,
+                    },
+                },
+                messages: {
+                    e_client_email: {
+                        required: "Please enter an email"
+                    },
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                }
+            });
+            // Telegram client form validation
+            $("#frm_telegram_client").validate({
+                rules: {
+                    tg_client_userid: {
+                        required: true,
+                        number: true,
+                    },
+                },
+                messages: {
+                    tg_client_userid: {
+                        required: "Please enter a telegram userid",
+                        number: "Please enter a valid telegram userid"
+                    },
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                }
+            });
+            // 
+        });
+    </script>
+    <script>
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function renderClientList(clients) {
+            console.log('Rendering clients:', clients);
+            const clientList = $("#client-list");
+            clientList.empty();
+
+            if (!clients || !Array.isArray(clients) || clients.length === 0) {
+                clientList.html('<div class="col-12 text-center"><p>No clients found</p></div>');
+                return;
+            }
+
+            // Fetch connection status data first
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/status-data',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(statusData) {
+                    // Create a map of public key to connection status
+                    const connectionMap = {};
+                    if (statusData && statusData.devices) {
+                        statusData.devices.forEach(device => {
+                            if (device.peers) {
+                                device.peers.forEach(peer => {
+                                    connectionMap[peer.publicKey] = {
+                                        connected: peer.lastHandshakeTime ? 
+                                            (new Date() - new Date(peer.lastHandshakeTime)) < 180000 : false, // Consider connected if handshake within last 3 minutes
+                                            lastHandshake: peer.lastHandshakeTime,
+                                            receivedBytes: peer.receivedBytes,
+                                            transmitBytes: peer.transmitBytes
+                                    };
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Now render clients with status info
+                    renderClientsWithStatus(clients, connectionMap);
+                },
+                error: function() {
+                    // If status fetch fails, render without status data
+                    renderClientsWithStatus(clients, {});
+                }
+            });
+        }
+
+        function renderClientsWithStatus(clients, connectionMap) {
+            const clientList = $("#client-list");
+            
+            clients.forEach(function(data) {
+                try {
+                    let client = data;
+                    
+                    // Handle different data structures
+                    if (data.Client) {
+                        client = data.Client;
+                    }
+
+                    const connectionStatus = connectionMap[client.public_key] || {};
+                    const isConnected = connectionStatus.connected || false;
+                    const lastHandshake = connectionStatus.lastHandshake ? new Date(connectionStatus.lastHandshake) : null;
+                    const lastHandshakeText = lastHandshake ? 
+                        `Last seen: ${formatTimeAgo(lastHandshake)}` : 
+                        'Never connected';
+
+                    // Client status class
+                    let statusClass = isConnected ? 'client-status enabled' : 'client-status disabled';
+                    let statusText = isConnected ? 'Connected' : 'Disconnected';
+                    
+                    let html = `
+                        <div class="col-sm-6 col-md-6 col-lg-4" id="client_${client.id}">
+                            <div class="client-box" data-public-key="${client.public_key}">
+                                <div class="overlay" id="paused_${client.id}"${client.enabled ? ' style="visibility: hidden;"' : ''}>
+                                    <i class="paused-client fas fa-3x fa-play" onclick="resumeClient('${client.id}')"></i>
+                                </div>
+                                <div class="client-actions">
+                                    <a href="download?clientid=${client.id}" class="btn btn-outline-primary">DOWNLOAD</a>
+                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal"
+                                        data-target="#modal_qr_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}" ${data.QRCode ? '' : ' disabled'}>QR CODE</button>`;
+
+                    // Add Email button if applicable
+                    if (client.email) {
+                        html += `
+                                    <button type="button" class="btn btn-outline-primary" data-toggle="modal"
+                                        data-target="#modal_email_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">EMAIL</button>`;
+                    }
+                
+                    // Add Telegram button if applicable
+                    if (client.telegram_userid) {
+                        html += `
+                                <button type="button" class="btn btn-outline-primary" data-toggle="modal"
+                                    data-target="#modal_telegram_client" data-clientid="${client.id}"
+                                    data-clientname="${client.name}">TELEGRAM</button>`;
+                    }
+                    
+                    html += `
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-more">MORE</button>
+                                    <button type="button" class="btn btn-more dropdown-toggle dropdown-icon" 
+                                        data-toggle="dropdown">
+                                    </button>
+                                    <div class="dropdown-menu" role="menu">
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal_edit_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Edit</a>
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal_pause_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Disable</a>
+                                        <a class="dropdown-item" href="#" data-toggle="modal"
+                                        data-target="#modal_remove_client" data-clientid="${client.id}"
+                                        data-clientname="${client.name}">Delete</a>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="client-info">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="m-0">${client.name}</h5>
+                                    <div class="${statusClass}">${statusText}</div>
+                                </div>`;
+                
+                    if (client.email) {
+                        html += `<div class="mb-1"><i class="fas fa-envelope"></i> ${client.email}</div>`;
+                    }
+
+                    html += `<div class="connection-details mb-2">
+                                <div class="last-handshake"><i class="fas fa-clock"></i> ${lastHandshakeText}</div>`;
+                
+                    // Show bandwidth details if connected previously
+                    if (connectionStatus.received || connectionStatus.transmitted) {
+                        html += `
+                                    <div class="bandwidth-info">
+                                        <i class="fas fa-download"></i> ${formatBytes(connectionStatus.received || 0)}
+                                        <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionStatus.transmitted || 0)}
+                                    </div>`;
+                    }
+                    
+                    html += `</div>`;
+
+                    // Show creation and update time
+                    html += `<div class="client-dates">`;
+                    if (client.created_at) {
+                        html += `<div><i class="fas fa-calendar-plus"></i> Created: ${formatDate(new Date(client.created_at))}</div>`;
+                    }
+                    if (client.created_by) {
+                        html += `<div><i class="fas fa-user"></i> Created by: ${client.created_by}</div>`;
+                    }
+                    if (client.updated_at) {
+                        html += `<div><i class="fas fa-history"></i> Updated: ${formatDate(new Date(client.updated_at))}</div>`;
+                    }
+                    html += `</div>`;
+                    
+                    // Show quota if set
+                    if (client.quota && client.quota > 0) {
+                        const usedQuota = client.used_quota || 0;
+                        const quotaPercentage = Math.min(100, Math.round((usedQuota / client.quota) * 100));
+                        const remainingBytes = Math.max(0, client.quota - usedQuota);
+                        
+                        html += `
+                                    <div class="client-quota mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <span><i class="fas fa-database"></i> Quota: ${formatBytes(usedQuota)} / ${formatBytes(client.quota)}</span>
+                                            <span>${quotaPercentage}%</span>
+                                        </div>
+                                        <div class="progress progress-sm">
+                                            <div class="progress-bar ${quotaPercentage > 80 ? 'bg-danger' : 'bg-primary'}" style="width: ${quotaPercentage}%"></div>
+                                        </div>
+                                        <small class="text-muted">Remaining: ${formatBytes(remainingBytes)}</small>
+                                    </div>`;
+                    } else {
+                        html += `<div class="mt-2"><i class="fas fa-database"></i> <span class="text-success">Unlimited</span></div>`;
+                    }
+                    
+                    // Show expiration if set
+                    if (client.expiration_days && client.expiration_days > 0) {
+                        if (client.first_connected_at && client.first_connected_at !== "0001-01-01T00:00:00Z") {
+                            const expirationDate = new Date(client.expiration);
+                            const now = new Date();
+                            const isExpired = expirationDate < now;
+
+                            const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+                            const expiryText = daysRemaining > 0 ?
+                                `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` :
+                                `Expired: ${formatDate(expirationDate)}`;
+
+                            html += `
+                                        <div class="client-expiry mt-2">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span class="${isExpired ? 'text-danger' : ''}">
+                                                ${expiryText}
+                                            </span>
+                                        </div>`;
+                        } else {
+                            html += `<div class="mt-2"><i class="fas fa-calendar-alt"></i> Expires ${client.expiration_days} days after first connection</div>`;
+                        }
+                    } else if (client.expiration && client.expiration !== "0001-01-01T00:00:00Z") {
+                        const expirationDate = new Date(client.expiration);
+                        const now = new Date();
+                        const isExpired = expirationDate < now;
+
+                        const daysRemaining = Math.ceil((expirationDate - now) / (1000 * 60 * 60 * 24));
+                        const expiryText = daysRemaining > 0 ?
+                            `Expires: ${formatDate(expirationDate)} (${daysRemaining} days left)` :
+                            `Expired: ${formatDate(expirationDate)}`;
+
+                        html += `
+                                    <div class="client-expiry mt-2">
+                                        <i class="fas fa-calendar-alt"></i>
+                                        <span class="${isExpired ? 'text-danger' : ''}">
+                                            ${expiryText}
+                                        </span>
+                                    </div>`;
+                    } else {
+                        html += `<div class="mt-2"><i class="fas fa-calendar-alt"></i> <span class="text-success">Never expires</span></div>`;
+                    }
+                    
+                    // Show DNS setting
+                    html += `<div class="mt-2"><i class="fas fa-server" style="opacity: ${client.use_server_dns ? '1.0' : '0.5'}"></i> DNS ${client.use_server_dns ? 'enabled' : 'disabled'}</div>`;
+                    
+                    // Additional notes
+                    if (client.additional_notes) {
+                        html += `
+                                    <div class="mt-2">
+                                        <i class="fas fa-sticky-note"></i> ${client.additional_notes}
+                                    </div>`;
+                    }
+                    
+                    // IP allocation 
+                    if (client.allocated_ips && Array.isArray(client.allocated_ips) && client.allocated_ips.length > 0) {
+                        html += `<div class="mt-3"><strong>IP Allocation</strong></div>`;
+                        client.allocated_ips.forEach(function(ip) {
+                            if (ip) {
+                                html += `<span class="ip-allocation">${ip}</span>`;
+                            }
+                        });
+                    }
+                    
+                    html += `
+                                </div>
+                            </div>
+                        </div>`;
+                    
+                    clientList.append(html);
+                } catch (error) {
+                    console.error('Error rendering client:', error, data);
+                }
+            });
+        }
+
+        function formatTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffSec = Math.round(diffMs / 1000);
+            const diffMin = Math.round(diffSec / 60);
+            const diffHour = Math.round(diffMin / 60);
+            const diffDay = Math.round(diffHour / 24);
+            
+            if (diffSec < 60) {
+                return diffSec + ' seconds ago';
+            } else if (diffMin < 60) {
+                return diffMin + ' minutes ago';
+            } else if (diffHour < 24) {
+                return diffHour + ' hours ago';
+            } else {
+                return diffDay + ' days ago';
+            }
+        }
+
+        function formatDate(date) {
+            return date.toLocaleDateString() + ' ' + 
+                   date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+    </script>
+    <script>
         function updateQuotaInput() {
             const preset = $("#_quota_preset").val();
             const quotaInput = $("#_client_quota");
@@ -1535,193 +1582,298 @@
             }
         }
 
-        // Search functionality
-        $('#search-input').keyup(function () {
-            $("#status-selector").val("All");
-            let query = $(this).val().trim();
-            $('.client-card').hide();
+        $(document).ready(function() {
+            updateQuotaInput();
+        });
+    </script>
+    <script>
+        // New Client modal event
+        $(document).ready(function () {
+            let newClientModal = $("#modal_new_client");
             
-            if (query === '') {
-                $('.client-card').show();
+            // تنظیم IP Allocation tag input برای مدال جدید
+            $("#client_allocated_ips").tagsInput({
+                'width': '100%',
+                'height': '75%',
+                'interactive': true,
+                'defaultText': 'Add More',
+                'removeWithBackspace': true,
+                'minChars': 0,
+                'minInputWidth': '100%',
+                'placeholderColor': '#666666'
+            });
+
+            // تنظیم Extra Allowed IPs tag input برای مدال جدید
+            $("#client_extra_allowed_ips").tagsInput({
+                'width': '100%',
+                'height': '75%',
+                'interactive': true,
+                'defaultText': 'Add More',
+                'removeWithBackspace': true,
+                'minChars': 0,
+                'minInputWidth': '100%',
+                'placeholderColor': '#666666'
+            });
+            
+            newClientModal.on('shown.bs.modal', function (e) {
+                $("#client_name").val("");
+                $("#client_email").val("");
+                $("#client_public_key").val("");
+                $("#client_preshared_key").val("");
+                $("#client_allocated_ips").importTags('');
+                $("#client_extra_allowed_ips").importTags('');
+                $("#client_endpoint").val('');
+                $("#client_telegram_userid").val('');
+                $("#additional_notes").val('');
+                $("#client_quota").val("");
+                $("#client_expiration_days").val("");
+                
+                // تنظیم مقادیر پیش‌فرض
+                $("#use_server_dns").prop("checked", true);
+                $("#enabled").prop("checked", true);
+                
+                // اول subnet ranges رو بگیریم
+                $.getJSON("{{.basePath}}/api/subnet-ranges", null, function(data) {
+                    $("#subnet_ranges option").remove();
+                    $("#subnet_ranges").append(
+                        $("<option></option>")
+                            .text("Any")
+                            .val("__default_any__")
+                    );
+                    $.each(data, function(index, item) {
+                        $("#subnet_ranges").append(
+                            $("<option></option>")
+                                .text(item)
+                                .val(item)
+                        );
+                    });
+                    // مقدار پیش‌فرض رو تنظیم می‌کنیم
+                    $("#subnet_ranges").val("__default_any__");
+                    // فقط یک بار updateIPAllocationSuggestion رو صدا میزنیم
+                    updateIPAllocationSuggestion();
+                });
+            });
+
+            // فقط وقتی subnet range تغییر میکنه، IP پیشنهادی جدید بگیریم
+            $("#subnet_ranges").on('change', function(e) {
+                // فقط اگر تغییر توسط کاربر بود، IP جدید بگیریم
+                if (e.originalEvent) {
+                    updateIPAllocationSuggestion();
+                }
+            });
+
+            // Form validation and submission
+            $("#frm_new_client").validate({
+                rules: {
+                    client_name: {
+                        required: true
+                    }
+                },
+                messages: {
+                    client_name: {
+                        required: "Please enter a name"
+                    }
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                },
+                submitHandler: function(form, event) {
+                    event.preventDefault();
+                    
+                    const name = $("#client_name").val();
+                    const quotaGB = parseFloat($("#client_quota").val()) || 0;
+                    const quotaBytes = quotaGB > 0 ? Math.floor(quotaGB * 1024 * 1024 * 1024) : 0;
+
+                    let expirationDaysValue = $("#client_expiration_days").val();
+                    let expirationDays = parseInt(expirationDaysValue) || 0;
+
+                    const formData = {
+                        name: name,
+                        email: $("#client_email").val() || "",
+                        public_key: $("#client_public_key").val() || "",
+                        preshared_key: $("#client_preshared_key").val() || "",
+                        allocated_ips: $("#client_allocated_ips").val() ? $("#client_allocated_ips").val().split(",").filter(Boolean) : [],
+                        allowed_ips: ["0.0.0.0/0", "::/0"],
+                        extra_allowed_ips: $("#client_extra_allowed_ips").val() ? $("#client_extra_allowed_ips").val().split(",").filter(Boolean) : [],
+                        endpoint: $("#client_endpoint").val() || "",
+                        telegram_userid: $("#client_telegram_userid").val() || "",
+                        additional_notes: $("#additional_notes").val() || "",
+                        use_server_dns: $("#use_server_dns").is(":checked"),
+                        enabled: true,
+                        quota: quotaBytes,
+                        expiration_days: expirationDays,
+                        subnet_ranges: ["__default_any__"]
+                    };
+
+                    const tryCreateClient = (retryCount = 0) => {
+                        $.ajax({
+                            cache: false,
+                            method: 'POST',
+                            url: '{{.basePath}}/new-client',
+                            dataType: 'json',
+                            contentType: "application/json",
+                            data: JSON.stringify(formData),
+                            success: function(response) {
+                                newClientModal.modal('hide');
+                                toastr.success('Created client successfully');
+                                populateClientList();
+                            },
+                            error: function(jqXHR) {
+                                console.error('Error creating client:', jqXHR.status);
+                                if (retryCount < 3 && (jqXHR.status === 500 || jqXHR.status === 0)) {
+                                    setTimeout(() => tryCreateClient(retryCount + 1), 1000 * (retryCount + 1));
+                                } else {
+                                    let errorMessage = 'Error creating client';
+                                    try {
+                                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                                        errorMessage = responseJson.message || errorMessage;
+                                    } catch (e) {
+                                        console.error('Error parsing error response:', e);
+                                    }
+                                    toastr.error(errorMessage);
+                                }
+                            }
+                        });
+                    };
+
+                    tryCreateClient();
+                }
+            });
+        });
+    </script>
+    <script>
+        // Function to refresh only connection status without reloading all clients
+        function refreshConnectionStatus() {
+            console.log('Refreshing connection status...');
+            $.ajax({
+                cache: false,
+                method: 'GET',
+                url: '{{.basePath}}/api/status-data',
+                dataType: 'json',
+                contentType: "application/json",
+                success: function(statusData) {
+                    console.log('Status data received:', statusData); // Debug log
+                    if (statusData && statusData.devices) {
+                        updateClientConnectionStatus(statusData.devices);
+                    } else {
+                        console.error('Invalid status data format:', statusData);
+                    }
+                },
+                error: function(jqXHR) {
+                    console.error('Error refreshing connection status:', jqXHR.status);
+                }
+            });
+        }
+
+        // Update only connection status elements without redrawing the entire client list
+        function updateClientConnectionStatus(devices) {
+            console.log('Updating client connection status with devices:', devices); // Debug log
+            const connectionMap = {};
+            
+            if (!devices || !Array.isArray(devices)) {
+                console.error('Invalid devices data received:', devices);
+                toastr.error('Error: Invalid status data received from server');
                 return;
             }
             
-            $('.client-card').each(function() {
-                const clientName = $(this).find('h3').text().toLowerCase();
-                const clientEmail = $(this).find('i.fa-envelope').siblings().text().toLowerCase();
-                const clientIPs = $(this).find('i.fa-network-wired').siblings().text().toLowerCase();
-                
-                if (clientName.includes(query.toLowerCase()) || 
-                    clientEmail.includes(query.toLowerCase()) || 
-                    clientIPs.includes(query.toLowerCase())) {
-                    $(this).show();
+            devices.forEach(device => {
+                if (!device.Peers) {
+                    console.warn('Device has no peers:', device);
+                    return;
                 }
-            });
-        });
-
-        // Status filter
-        $("#status-selector").on('change', function () {
-            $('#search-input').val("");
-            const filterValue = $(this).val();
-            
-            if (filterValue === "All") {
-                $('.client-card').show();
-            } else {
-                $('.client-card').each(function() {
-                    const isEnabled = !$(this).find('#paused_' + $(this).attr('id').split('_')[1]).hasClass('hidden');
+                
+                device.Peers.forEach(peer => {
+                    if (!peer.PublicKey) {
+                        console.warn('Peer missing public key:', peer);
+                        return;
+                    }
                     
-                    if (filterValue === "Enabled" && isEnabled) {
-                        $(this).show();
-                    } else if (filterValue === "Disabled" && !isEnabled) {
-                        $(this).show();
-                    } else {
-                        $(this).hide();
-                    }
+                    // Store connection info by public key
+                    connectionMap[peer.PublicKey] = {
+                        connected: peer.LastHandshakeTime ? 
+                            (new Date() - new Date(peer.LastHandshakeTime)) < 180000 : false, // Consider connected if handshake within last 3 minutes
+                        lastHandshake: peer.LastHandshakeTime,
+                        receivedBytes: peer.ReceivedBytes,
+                        transmitBytes: peer.TransmitBytes
+                    };
+                    console.log('Peer status:', peer.PublicKey, connectionMap[peer.PublicKey]); // Debug log
                 });
-            }
-        });
-
-        function updateSearchList() {
-            $("#status-selector option").remove();
-            $("#status-selector").append(
-                $("<option></option>").text("All").val("All"),
-                $("<option></option>").text("Enabled").val("Enabled"),
-                $("<option></option>").text("Disabled").val("Disabled"),
-                $("<option></option>").text("Connected").val("Connected"),
-                $("<option></option>").text("Disconnected").val("Disconnected")
-            );
-        }
-
-        // Initialize
-        $(document).ready(function () {
-            updateSearchList();
-            populateClientList();
+            });
             
-            // Auto-refresh functionality
-            let autoRefreshInterval;
-            
-            $("#auto-refresh-toggle").change(function() {
-                const isChecked = $(this).prop('checked');
-                $("#refresh-interval").prop('disabled', !isChecked);
+            let updatedCount = 0;
+            // Update status for each client card
+            $("[data-public-key]").each(function() {
+                const cardElement = $(this);
+                const publicKey = cardElement.data("public-key");
+                console.log('Checking client:', publicKey); // Debug log
                 
-                if (isChecked) {
-                    startAutoRefresh();
-                } else {
-                    stopAutoRefresh();
-                }
-            });
-            
-            $("#refresh-interval").change(function() {
-                if ($("#auto-refresh-toggle").prop('checked')) {
-                    startAutoRefresh();
-                }
-            });
-            
-            function startAutoRefresh() {
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
+                if (!publicKey) {
+                    console.warn('Client card missing public key attribute');
+                    return;
                 }
                 
-                const intervalSeconds = parseInt($("#refresh-interval").val());
-                const intervalMs = intervalSeconds * 1000;
-                
-                autoRefreshInterval = setInterval(function() {
-                    refreshConnectionStatus();
-                }, intervalMs);
-            }
-            
-            function stopAutoRefresh() {
-                if (autoRefreshInterval) {
-                    clearInterval(autoRefreshInterval);
-                    autoRefreshInterval = null;
-                }
-            }
-            
-            $("#refresh-status-btn").click(function() {
-                $(this).find('i').addClass('fa-spin');
-                refreshConnectionStatus();
-                setTimeout(() => {
-                    $(this).find('i').removeClass('fa-spin');
-                }, 1000);
-            });
-
-            // Show search bar
-            $("#search-form").show();
-            
-            // Make search case-insensitive
-            jQuery.expr[':'].contains = function(a, i, m) {
-                return jQuery(a).text().toUpperCase().indexOf(m[3].toUpperCase()) >= 0;
-            };
-
-            // Form validation
-            $.validator.setDefaults({
-                submitHandler: function (form) {
-                    submitHandler(form);
-                }
-            });
-            
-            $("#frm_edit_client").validate({
-                rules: {
-                    client_name: { required: true }
-                },
-                messages: {
-                    client_name: { required: "Please enter a name" }
-                },
-                errorElement: 'span',
-                errorPlacement: function (error, element) {
-                    error.addClass('invalid-feedback');
-                    element.closest('.form-group').append(error);
-                },
-                highlight: function (element, errorClass, validClass) {
-                    $(element).addClass('is-invalid');
-                },
-                unhighlight: function (element, errorClass, validClass) {
-                    $(element).removeClass('is-invalid');
-                }
-            });
-            
-            $("#frm_email_client").validate({
-                rules: {
-                    e_client_email: { required: true, email: true }
-                },
-                messages: {
-                    e_client_email: { required: "Please enter an email" }
-                },
-                errorElement: 'span',
-                errorPlacement: function (error, element) {
-                    error.addClass('invalid-feedback');
-                    element.closest('.form-group').append(error);
-                },
-                highlight: function (element, errorClass, validClass) {
-                    $(element).addClass('is-invalid');
-                },
-                unhighlight: function (element, errorClass, validClass) {
-                    $(element).removeClass('is-invalid');
-                }
-            });
-            
-            $("#frm_telegram_client").validate({
-                rules: {
-                    tg_client_userid: { required: true, number: true }
-                },
-                messages: {
-                    tg_client_userid: { 
-                        required: "Please enter a telegram userid",
-                        number: "Please enter a valid telegram userid"
+                if (connectionMap[publicKey]) {
+                    const connectionInfo = connectionMap[publicKey];
+                    const statusElement = cardElement.find(".client-status");
+                    const connectionDetailsElement = cardElement.find(".connection-details");
+                    
+                    if (!statusElement.length || !connectionDetailsElement.length) {
+                        console.warn('Missing required elements for client:', publicKey);
+                        return;
                     }
-                },
-                errorElement: 'span',
-                errorPlacement: function (error, element) {
-                    error.addClass('invalid-feedback');
-                    element.closest('.form-group').append(error);
-                },
-                highlight: function (element, errorClass, validClass) {
-                    $(element).addClass('is-invalid');
-                },
-                unhighlight: function (element, errorClass, validClass) {
-                    $(element).removeClass('is-invalid');
+                    
+                    // Update connection status
+                    if (connectionInfo.connected) {
+                        statusElement.removeClass("disabled").addClass("enabled");
+                        statusElement.text("Connected");
+                    } else {
+                        statusElement.removeClass("enabled").addClass("disabled");
+                        statusElement.text("Disconnected");
+                    }
+                    
+                    // Update last handshake text
+                    if (connectionInfo.lastHandshake) {
+                        const lastHandshake = new Date(connectionInfo.lastHandshake);
+                        const lastHandshakeText = `Last seen: ${formatTimeAgo(lastHandshake)}`;
+                        connectionDetailsElement.find(".last-handshake").html(`<i class="fas fa-clock"></i> ${lastHandshakeText}`);
+                        
+                        // Update bandwidth info
+                        let bandwidthHtml = '';
+                        if (connectionInfo.receivedBytes || connectionInfo.transmitBytes) {
+                            bandwidthHtml = `
+                                <div class="bandwidth-info">
+                                    <i class="fas fa-download"></i> ${formatBytes(connectionInfo.receivedBytes || 0)}
+                                    <i class="fas fa-upload ml-2"></i> ${formatBytes(connectionInfo.transmitBytes || 0)}
+                                </div>`;
+                        }
+                        
+                        // Update or add bandwidth info
+                        const bandwidthElement = connectionDetailsElement.find(".bandwidth-info");
+                        if (bandwidthElement.length) {
+                            bandwidthElement.replaceWith(bandwidthHtml);
+                        } else if (bandwidthHtml) {
+                            connectionDetailsElement.append(bandwidthHtml);
+                        }
+                    }
+                    updatedCount++;
+                } else {
+                    console.log('No connection info for client:', publicKey); // Debug log
                 }
             });
-        });
+            
+            console.log(`Updated ${updatedCount} clients`);
+            if (updatedCount === 0) {
+                console.warn('No clients were updated');
+                toastr.warning('No client status information available');
+            }
+        }
     </script>
 {{end}}

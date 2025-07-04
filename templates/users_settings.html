@@ -3,6 +3,30 @@
 {{end}}
 
 {{define "top_css"}}
+<style>
+    .loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.6;
+    }
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
 {{end}}
 
 {{define "username"}}
@@ -14,179 +38,84 @@
 {{end}}
 
 {{define "page_content"}}
-<div class="max-w-7xl mx-auto">
-    <!-- Header with New User Button -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                <span data-translate="User Management">User Management</span>
-            </h2>
-            <p class="text-gray-600 dark:text-gray-400">
-                <span data-translate="Manage system users and their permissions">Manage system users and their permissions</span>
-            </p>
-        </div>
-        <button id="btn_new_user" 
-                onclick="openUserModal('')"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
-            <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
-            <span data-translate="New User">New User</span>
-        </button>
-    </div>
-
-    <!-- Users Grid -->
-    <div id="users-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <!-- Loading state -->
-        <div id="users-loading" class="col-span-full text-center py-12">
-            <i class="fas fa-spinner fa-spin text-primary-500 text-2xl mb-4"></i>
-            <p class="text-gray-600 dark:text-gray-400">
-                <span data-translate="Loading users...">Loading users...</span>
-            </p>
+<section class="content">
+    <div class="container-fluid">
+        <div class="row" id="users-list">
         </div>
     </div>
-</div>
+</section>
 
-<!-- Edit User Modal -->
-<div id="modal_edit_user" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-            <h3 id="edit-user-title" class="text-lg font-semibold text-gray-900 dark:text-white">
-                <i class="fas fa-user-edit text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Edit User">Edit User</span>
-            </h3>
-            <button onclick="closeUserModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
-                <i class="fas fa-times text-gray-400"></i>
+<div class="modal fade" id="modal_edit_user">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Edit User">Edit User</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
-        </div>
-        
-        <form id="frm_edit_user" class="p-6 space-y-6">
-            <input type="hidden" id="_previous_user_name" name="_previous_user_name">
-            
-            <!-- Username Field -->
-            <div class="space-y-2">
-                <label for="_user_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <i class="fas fa-user mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                    <span data-translate="Name">Name</span>
-                </label>
-                <input type="text" 
-                       id="_user_name" 
-                       name="_user_name"
-                       class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                       placeholder="Enter username">
-                <div id="username-error" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
             </div>
-
-            <!-- Password Field -->
-            <div class="space-y-2">
-                <label for="_user_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <i class="fas fa-lock mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                    <span data-translate="Password">Password</span>
-                </label>
-                <div class="relative">
-                    <input type="password" 
-                           id="_user_password" 
-                           name="_user_password"
-                           class="w-full px-4 py-3 pr-12 rtl:pr-4 rtl:pl-12 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                           placeholder="Enter password">
-                    <button type="button" 
-                            onclick="togglePasswordVisibility('_user_password')" 
-                            class="absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 pr-3 rtl:pr-0 rtl:pl-3 flex items-center">
-                        <i id="password-toggle-icon" class="fas fa-eye text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"></i>
-                    </button>
+            <form name="frm_edit_user" id="frm_edit_user">
+                <div class="modal-body">
+                    <div class="form-group" style="display:none">
+                        <input type="text" style="display:none" class="form-control" id="_previous_user_name"
+                               name="_previous_user_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="_user_name" class="control-label" data-translate="Name">Name</label>
+                        <input type="text" class="form-control" id="_user_name" name="_user_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="_user_password" class="control-label" data-translate="Password">Password</label>
+                        <input type="password" class="form-control" id="_user_password" name="_user_password" value=""
+                               data-translate-placeholder="Leave empty to keep the password unchanged" placeholder="Leave empty to keep the password unchanged">
+                    </div>
+                    <div class="form-group">
+                        <label for="_user_role" class="control-label" data-translate="Role">Role</label>
+                        <select class="form-control" id="_user_role" name="_user_role">
+                            <option value="user" data-translate="User">User</option>
+                            <option value="manager" data-translate="Manager">Manager</option>
+                            <option value="admin" data-translate="Admin">Admin</option>
+                        </select>
+                    </div>
                 </div>
-                <div id="password-error" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                    <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                    <span data-translate="Leave empty to keep the password unchanged">Leave empty to keep the password unchanged</span>
-                </p>
-            </div>
-
-            <!-- Role Field -->
-            <div class="space-y-2">
-                <label for="_user_role" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <i class="fas fa-user-shield mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                    <span data-translate="Role">Role</span>
-                </label>
-                <select id="_user_role" 
-                        name="_user_role"
-                        class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
-                    <option value="user">
-                        <span data-translate="User">User</span>
-                    </option>
-                    <option value="manager">
-                        <span data-translate="Manager">Manager</span>
-                    </option>
-                    <option value="admin">
-                        <span data-translate="Admin">Admin</span>
-                    </option>
-                </select>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="btn_save" data-translate="Save">Save</button>
                 </div>
             </form>
-        
-        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
-            <button onclick="closeUserModal()" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                <span data-translate="Cancel">Cancel</span>
-            </button>
-            <button id="btn_save" 
-                    onclick="updateUserInfo()"
-                    class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Save">Save</span>
-            </button>
         </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 
-<!-- Remove User Modal -->
-<div id="modal_remove_user" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
-        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                <i class="fas fa-exclamation-triangle text-red-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Remove User">Remove User</span>
-            </h3>
-            <button onclick="closeRemoveModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
-                <i class="fas fa-times text-gray-400"></i>
+<div class="modal fade" id="modal_remove_user">
+    <div class="modal-dialog">
+        <div class="modal-content bg-danger">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Remove">Remove</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-        
-        <div class="p-6">
-            <div class="flex items-center space-x-3 rtl:space-x-reverse p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
-                <i class="fas fa-user-times text-red-500 text-2xl"></i>
-                <div class="flex-1">
-                    <h4 class="text-sm font-medium text-red-800 dark:text-red-200">
-                        <span data-translate="Are you sure?">Are you sure?</span>
-                    </h4>
-                    <p id="remove-user-message" class="text-sm text-red-700 dark:text-red-300 mt-1">
-                        <!-- Message will be inserted here -->
-                    </p>
+            <div class="modal-body">
             </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-outline-dark" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-outline-dark" id="remove_user_confirm" data-translate="Apply">Apply</button>
             </div>
         </div>
-        
-        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
-            <button onclick="closeRemoveModal()" 
-                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                <span data-translate="Cancel">Cancel</span>
-            </button>
-            <button id="remove_user_confirm" 
-                    onclick="confirmRemoveUser()"
-                    class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-xl hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-                <i class="fas fa-trash mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Remove">Remove</span>
-            </button>
-        </div>
+        <!-- /.modal-content -->
     </div>
+    <!-- /.modal-dialog -->
 </div>
+<!-- /.modal -->
 {{end}}
 
 {{define "bottom_js"}}
 <script>
-    let selectedUserForRemoval = '';
-
     function populateUsersList() {
-        document.getElementById('users-loading').style.display = 'block';
-        
         $.ajax({
             cache: false,
             method: 'GET',
@@ -198,10 +127,7 @@
             },
             error: function (jqXHR, exception) {
                 const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                showToast(window.langManager.translate(responseJson['message']), 'error');
-            },
-            complete: function() {
-                document.getElementById('users-loading').style.display = 'none';
+                toastr.error(window.langManager.translate(responseJson['message']));
             }
         });
     }
@@ -210,57 +136,23 @@
         const usersList = $('#users-list');
         usersList.empty();
 
-        if (users.length === 0) {
-            usersList.html(`
-                <div class="col-span-full text-center py-12">
-                    <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
-                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                        <span data-translate="No users found">No users found</span>
-                    </h3>
-                    <p class="text-gray-600 dark:text-gray-400">
-                        <span data-translate="Create your first user to get started">Create your first user to get started</span>
-                    </p>
-                </div>
-            `);
-            return;
-        }
-
         users.forEach(user => {
-            const roleColor = getRoleColor(user.role);
-            const roleIcon = getRoleIcon(user.role);
-            
             const userCard = `
-                <div id="user_${user.username}" class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden card-hover">
-                    <!-- User Avatar Section -->
-                    <div class="p-6 pb-4">
-                        <div class="flex items-center space-x-4 rtl:space-x-reverse">
-                            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
-                                <i class="fas fa-user text-white text-lg"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                                    ${user.username}
-                                </h3>
-                                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${roleColor}">
-                                    <i class="${roleIcon} mr-1 rtl:mr-0 rtl:ml-1"></i>
-                                    <span data-translate="${user.role}">${user.role}</span>
-                                </div>
+                <div class="col-md-4" id="user_${user.username}">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">${user.username}</h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modal_edit_user" data-username="${user.username}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-tool" data-toggle="modal" data-target="#modal_remove_user" data-username="${user.username}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- User Actions -->
-                    <div class="px-6 pb-6">
-                        <div class="flex space-x-2 rtl:space-x-reverse">
-                            <button onclick="openUserModal('${user.username}')" 
-                                    class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
-                                <i class="fas fa-edit mr-2 rtl:mr-0 rtl:ml-2"></i>
-                                <span data-translate="Edit">Edit</span>
-                            </button>
-                            <button onclick="openRemoveModal('${user.username}')" 
-                                    class="inline-flex items-center justify-center px-3 py-2 border border-red-300 dark:border-red-700 text-sm font-medium rounded-lg text-red-700 dark:text-red-400 bg-white dark:bg-dark-700 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                        <div class="card-body">
+                            <p><strong data-translate="Role">Role</strong>: ${user.role}</p>
                         </div>
                     </div>
                 </div>
@@ -268,144 +160,100 @@
             usersList.append(userCard);
         });
     }
+</script>
+<script>
+    // load user list
+    $(document).ready(function () {
+        populateUsersList();
+        let newUserHtml = '<div class="col-sm-2 offset-md-4" style=" text-align: right;">' +
+            '<button style="" id="btn_new_user" type="button" class="btn btn-outline-primary btn-sm" ' +
+            'data-toggle="modal" data-target="#modal_edit_user" data-username="">' +
+            '<i class="nav-icon fas fa-plus"></i> <span data-translate="New User">New User</span></button></div>';
+        $('h1').parents(".row").append(newUserHtml);
+    })
 
-    function getRoleColor(role) {
-        switch(role) {
-            case 'admin':
-                return 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200';
-            case 'manager':
-                return 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200';
-            default:
-                return 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200';
-        }
-    }
+    // modal_remove_user modal event
+    $("#modal_remove_user").on('show.bs.modal', function (event) {
+        const button = $(event.relatedTarget);
+        const user_name = button.data('username');
+        const modal = $(this);
+        modal.find('.modal-body').html(`<span data-translate="You are about to remove user">You are about to remove user</span> ${user_name}`);
+        modal.find('#remove_user_confirm').val(user_name);
+    })
 
-    function getRoleIcon(role) {
-        switch(role) {
-            case 'admin':
-                return 'fas fa-crown';
-            case 'manager':
-                return 'fas fa-user-shield';
-            default:
-                return 'fas fa-user';
-        }
-    }
-
-    function openUserModal(username) {
-        const modal = document.getElementById('modal_edit_user');
-        const title = document.getElementById('edit-user-title');
-        
-        if (username !== "") {
-            // Edit existing user
+    // remove_user_confirm button event
+    $(document).ready(function () {
+        $("#remove_user_confirm").click(function () {
+            const user_name = $(this).val();
+            const data = {"username": user_name};
             $.ajax({
                 cache: false,
-                method: 'GET',
-                url: '{{.basePath}}/api/user/' + username,
+                method: 'POST',
+                url: '{{.basePath}}/remove-user',
                 dataType: 'json',
                 contentType: "application/json",
-                success: function (user) {
-                    title.innerHTML = `
-                        <i class="fas fa-user-edit text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-                        <span data-translate="Edit user">Edit user</span> ${user.username}
-                    `;
-                    document.getElementById('_user_name').value = user.username;
-                    document.getElementById('_previous_user_name').value = user.username;
-                    document.getElementById('_user_password').value = "";
-                    document.getElementById('_user_password').placeholder = window.langManager.translate("Leave empty to keep the password unchanged");
-                    document.getElementById('_user_role').value = user.role;
+                data: JSON.stringify(data),
+                success: function (data) {
+                    $("#modal_remove_user").modal('hide');
+                    toastr.success(window.langManager.translate('Removed user successfully'));
+                    const divElement = document.getElementById('user_' + user_name);
+                    divElement.style.display = "none";
+                    location.reload()
                 },
                 error: function (jqXHR, exception) {
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                    showToast(window.langManager.translate(responseJson['message']), 'error');
+                    toastr.error(window.langManager.translate(responseJson['message']));
                 }
             });
-        } else {
-            // Add new user
-            title.innerHTML = `
-                <i class="fas fa-user-plus text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
-                <span data-translate="Add new user">Add new user</span>
-            `;
-            document.getElementById('_user_name').value = "";
-            document.getElementById('_previous_user_name').value = "";
-            document.getElementById('_user_password').value = "";
-            document.getElementById('_user_password').placeholder = "";
-            document.getElementById('_user_role').value = "user";
-        }
-        
-        // Clear previous errors
-        clearValidationErrors();
-        
-        modal.classList.remove('hidden');
-    }
+        });
+    });
 
-    function closeUserModal() {
-        document.getElementById('modal_edit_user').classList.add('hidden');
-        clearValidationErrors();
-    }
+    // Edit user modal event
+    $(document).ready(function () {
+        $("#modal_edit_user").on('show.bs.modal', function (event) {
+            let modal = $(this);
+            const button = $(event.relatedTarget);
+            const user_name = button.data('username');
 
-    function openRemoveModal(username) {
-        selectedUserForRemoval = username;
-        document.getElementById('remove-user-message').innerHTML = `
-            <span data-translate="You are about to remove user">You are about to remove user</span> <strong>${username}</strong>
-        `;
-        document.getElementById('modal_remove_user').classList.remove('hidden');
-    }
-
-    function closeRemoveModal() {
-        document.getElementById('modal_remove_user').classList.add('hidden');
-        selectedUserForRemoval = '';
-    }
-
-    function confirmRemoveUser() {
-        if (!selectedUserForRemoval) return;
-        
-        const button = document.getElementById('remove_user_confirm');
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Removing...">Removing...</span>';
-        
-        const data = {"username": selectedUserForRemoval};
-        
+            // update user modal data
+            if (user_name !== "") {
                 $.ajax({
                     cache: false,
-            method: 'POST',
-            url: '{{.basePath}}/remove-user',
+                    method: 'GET',
+                    url: '{{.basePath}}/api/user/' + user_name,
                     dataType: 'json',
                     contentType: "application/json",
-            data: JSON.stringify(data),
-            success: function (data) {
-                closeRemoveModal();
-                showToast(window.langManager.translate('Removed user successfully'), 'success');
-                const userElement = document.getElementById('user_' + selectedUserForRemoval);
-                if (userElement) {
-                    userElement.style.display = "none";
-                }
-                setTimeout(() => {
-                    populateUsersList();
-                }, 1000);
+                    success: function (resp) {
+                        const user = resp;
+
+                        modal.find(".modal-title").html(`<span data-translate="Edit user">Edit user</span> ${user.username}`);
+                        modal.find("#_user_name").val(user.username);
+                        modal.find("#_previous_user_name").val(user.username);
+                        modal.find("#_user_password").val("");
+                        modal.find("#_user_password").prop("placeholder", window.langManager.translate("Leave empty to keep the password unchanged"));
+                        modal.find("#_user_role").val(user.role);
                     },
                     error: function (jqXHR, exception) {
                         const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                showToast(window.langManager.translate(responseJson['message']), 'error');
-            },
-            complete: function() {
-                button.disabled = false;
-                button.innerHTML = originalText;
+                        toastr.error(window.langManager.translate(responseJson['message']));
+                    }
+                });
+            } else {
+                modal.find(".modal-title").html(`<span data-translate="Add new user">Add new user</span>`);
+                modal.find("#_user_name").val("");
+                modal.find("#_previous_user_name").val("");
+                modal.find("#_user_password").val("");
+                modal.find("#_user_password").prop("placeholder", "")
+                modal.find("#_user_role").val("user");
             }
         });
-    }
+    });
 
     function updateUserInfo() {
-        // Validate form
-        if (!validateForm()) {
-            return;
-        }
-        
-        const username = document.getElementById('_user_name').value;
-        const previous_username = document.getElementById('_previous_user_name').value;
-        const password = document.getElementById('_user_password').value;
-        const role = document.getElementById('_user_role').value;
-        
+        const username = $("#_user_name").val();
+        const previous_username = $("#_previous_user_name").val();
+        const password = $("#_user_password").val();
+        const role = $("#_user_role").val();
         const data = {
             "username": username,
             "password": password,
@@ -413,182 +261,100 @@
             "role": role
         };
 
-        const button = document.getElementById('btn_save');
-        const originalText = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Saving...">Saving...</span>';
+        // اضافه کردن نشانگر loading
+        const form = $("#frm_edit_user");
+        form.addClass('loading');
+        $("#btn_save").prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
-        const url = previous_username !== "" ? '{{.basePath}}/update-user' : '{{.basePath}}/create-user';
-        const successMessage = previous_username !== "" ? 'Updated user information successfully' : 'Created user successfully';
-
+        if (previous_username !== "") {
             $.ajax({
                 cache: false,
                 method: 'POST',
-            url: url,
+                url: '{{.basePath}}/update-user',
                 dataType: 'json',
                 contentType: "application/json",
                 data: JSON.stringify(data),
                 success: function (data) {
-                closeUserModal();
-                showToast(window.langManager.translate(successMessage), 'success');
-                setTimeout(() => {
-                    populateUsersList();
-                }, 1000);
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
+                    $("#modal_edit_user").modal('hide');
+                    toastr.success(window.langManager.translate("Updated user information successfully"));
+                    location.reload();
                 },
                 error: function (jqXHR, exception) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
                     const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                showToast(window.langManager.translate(responseJson['message']), 'error');
-            },
-            complete: function() {
-                button.disabled = false;
-                button.innerHTML = originalText;
-            }
-        });
-    }
-
-    function validateForm() {
-        const username = document.getElementById('_user_name').value.trim();
-        const password = document.getElementById('_user_password').value;
-        const previousUsername = document.getElementById('_previous_user_name').value;
-        
-        let isValid = true;
-        
-        // Clear previous errors
-        clearValidationErrors();
-        
-        // Username validation
-        if (!username) {
-            showFieldError('_user_name', 'Please enter a username');
-            isValid = false;
-        } else if (username.length < 3) {
-            showFieldError('_user_name', 'Username must be at least 3 characters long');
-            isValid = false;
-        } else if (username.length > 32) {
-            showFieldError('_user_name', 'Username cannot be longer than 32 characters');
-            isValid = false;
-        }
-        
-        // Password validation (only for new users or when changing password)
-        if (!previousUsername || password) {
-            if (!password && !previousUsername) {
-                showFieldError('_user_password', 'Password is required for new users');
-                isValid = false;
-            } else if (password && password.length < 6) {
-                showFieldError('_user_password', 'Password must be at least 6 characters long');
-                isValid = false;
-            } else if (password && password.length > 32) {
-                showFieldError('_user_password', 'Password cannot be longer than 32 characters');
-                isValid = false;
-            }
-        }
-        
-        return isValid;
-    }
-
-    function showFieldError(fieldId, message) {
-        const field = document.getElementById(fieldId);
-        const errorId = fieldId === '_user_name' ? 'username-error' : 'password-error';
-        const errorElement = document.getElementById(errorId);
-        
-        field.classList.add('border-red-500', 'focus:ring-red-500');
-        field.classList.remove('border-gray-300', 'dark:border-dark-600', 'focus:ring-primary-500');
-        
-        errorElement.textContent = window.langManager.translate(message);
-        errorElement.classList.remove('hidden');
-    }
-
-    function clearValidationErrors() {
-        const fields = ['_user_name', '_user_password'];
-        const errors = ['username-error', 'password-error'];
-        
-        fields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            field.classList.remove('border-red-500', 'focus:ring-red-500');
-            field.classList.add('border-gray-300', 'dark:border-dark-600', 'focus:ring-primary-500');
-        });
-        
-        errors.forEach(errorId => {
-            const errorElement = document.getElementById(errorId);
-            errorElement.classList.add('hidden');
-        });
-    }
-
-    function togglePasswordVisibility(fieldId) {
-        const passwordInput = document.getElementById(fieldId);
-        const toggleIcon = document.getElementById('password-toggle-icon');
-        
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            toggleIcon.className = 'fas fa-eye-slash text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200';
+                    toastr.error(window.langManager.translate(responseJson['message']));
+                }
+            });
         } else {
-            passwordInput.type = 'password';
-            toggleIcon.className = 'fas fa-eye text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200';
+            $.ajax({
+                cache: false,
+                method: 'POST',
+                url: '{{.basePath}}/create-user',
+                dataType: 'json',
+                contentType: "application/json",
+                data: JSON.stringify(data),
+                success: function (data) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
+                    $("#modal_edit_user").modal('hide');
+                    toastr.success(window.langManager.translate("Created user successfully"));
+                    location.reload();
+                },
+                error: function (jqXHR, exception) {
+                    form.removeClass('loading');
+                    $("#btn_save").prop('disabled', false).html('Save');
+                    const responseJson = jQuery.parseJSON(jqXHR.responseText);
+                    toastr.error(window.langManager.translate(responseJson['message']));
+                }
+            });
         }
     }
 
-    // Custom toast function
-    function showToast(message, type) {
-        const toastContainer = document.getElementById('toast-container') || createToastContainer();
-        const toast = document.createElement('div');
-        const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
-        
-        toast.className = `fixed top-4 right-4 rtl:right-auto rtl:left-4 ${bgColor} text-white px-6 py-4 rounded-xl shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
-        toast.innerHTML = `
-            <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i>
-                <span>${message}</span>
-            </div>
-        `;
-        
-        toastContainer.appendChild(toast);
-        
-        // Show toast
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 100);
-        
-        // Hide toast after 3 seconds
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => {
-                toast.remove();
-            }, 300);
-        }, 3000);
-    }
-
-    function createToastContainer() {
-        const container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'fixed top-0 right-0 p-4 z-50';
-        document.body.appendChild(container);
-        return container;
-    }
-
-    // Initialize
+    // فرم validation
     $(document).ready(function () {
-        populateUsersList();
-        
-        // Close modals when clicking outside
-        document.getElementById('modal_edit_user').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeUserModal();
+        $.validator.setDefaults({
+            submitHandler: function () {
+                updateUserInfo();
             }
         });
-        
-        document.getElementById('modal_remove_user').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeRemoveModal();
-            }
-        });
-        
-        // Close modals on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeUserModal();
-                closeRemoveModal();
+        $("#frm_edit_user").validate({
+            rules: {
+                _user_name: {
+                    required: true,
+                    minlength: 3,
+                    maxlength: 32
+                },
+                _user_password: {
+                    minlength: 6,
+                    maxlength: 32
+                }
+            },
+            messages: {
+                _user_name: {
+                    required: "لطفا نام کاربری را وارد کنید",
+                    minlength: "نام کاربری باید حداقل 3 کاراکتر باشد",
+                    maxlength: "نام کاربری نمی‌تواند بیشتر از 32 کاراکتر باشد"
+                },
+                _user_password: {
+                    minlength: "رمز عبور باید حداقل 6 کاراکتر باشد",
+                    maxlength: "رمز عبور نمی‌تواند بیشتر از 32 کاراکتر باشد"
+                }
+            },
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group').append(error);
+            },
+            highlight: function (element, errorClass, validClass) {
+                $(element).addClass('is-invalid');
+            },
+            unhighlight: function (element, errorClass, validClass) {
+                $(element).removeClass('is-invalid');
             }
         });
     });
 </script>
 {{end}}
-
