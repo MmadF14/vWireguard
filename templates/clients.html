@@ -678,36 +678,48 @@ const basePath = '{{.basePath}}';
 
 // Apply config function
 window.applyConfig = function() {
-    showInfo('Applying configuration...');
-    
-    fetch(`${basePath}/api/apply`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    showConfirmation(
+        'Apply WireGuard Config',
+        'Are you sure you want to apply the WireGuard configuration? This will restart the service.',
+        () => {
+            showInfo('Applying configuration...');
+            fetch(`${basePath}/api/apply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Configuration applied successfully');
+                } else {
+                    showError(data.message || 'Failed to apply configuration');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to apply configuration');
+            });
         },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccess('Configuration applied successfully');
-        } else {
-            showError(data.message || 'Failed to apply configuration');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showError('Failed to apply configuration');
-    });
+        'Apply',
+        'confirm'
+    );
 };
 
 // Make functions globally available
 window.editClient = function(clientId) {
+    console.log('editClient called with', clientId); // Debug log
     const client = clients.find(c => {
         const clientData = c.Client || c;
         return clientData.id === clientId;
     });
     
-    if (!client) return;
+    if (!client) {
+        console.error('Client not found:', clientId);
+        showError('Client not found!');
+        return;
+    }
     
     const clientData = client.Client || client;
     
@@ -763,6 +775,9 @@ window.editClient = function(clientId) {
     if (modal) {
         modal.style.display = 'flex';
         modal.classList.remove('hidden');
+    } else {
+        console.error('modal_edit_client not found in DOM');
+        showError('Edit modal not found!');
     }
 };
 
