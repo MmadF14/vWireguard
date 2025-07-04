@@ -780,8 +780,18 @@
             // Add smooth scrolling behavior
             document.documentElement.style.scrollBehavior = 'smooth';
             
-            // Initialize new client form
-            initializeNewClientForm();
+                    // Initialize new client form
+        initializeNewClientForm();
+        
+        // Load suggested IPs when new client modal opens
+        const newClientButton = document.querySelector('[onclick*="modal_new_client"]');
+        if (newClientButton) {
+            newClientButton.addEventListener('click', function() {
+                setTimeout(() => {
+                    loadSuggestedIPs();
+                }, 100);
+            });
+        }
             
             // Initialize any additional interactive elements
             console.log('vWireguard Dashboard initialized');
@@ -880,6 +890,28 @@
             }
         }
         
+        // Load suggested IPs function
+        function loadSuggestedIPs() {
+            fetch('{{.basePath}}/api/suggest-client-ips', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.suggested_ips) {
+                    const allocatedIpsInput = document.getElementById('client_allocated_ips');
+                    if (allocatedIpsInput && data.suggested_ips.length > 0) {
+                        allocatedIpsInput.value = data.suggested_ips[0];
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading suggested IPs:', error);
+            });
+        }
+        
         // Update new client quota function
         function updateNewClientQuota() {
             const quotaPreset = document.getElementById('quota_preset');
@@ -895,6 +927,30 @@
                 }
             }
         }
+        
+        // Apply config function
+        window.applyConfig = function() {
+            if (confirm('Are you sure you want to apply the WireGuard configuration? This will restart the service.')) {
+                fetch('{{.basePath}}/api/apply-wg-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showSuccess('Configuration applied successfully');
+                    } else {
+                        showError(data.message || 'Failed to apply configuration');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError('Failed to apply configuration');
+                });
+            }
+        };
         
         // Utility functions
         function showSuccess(message) {

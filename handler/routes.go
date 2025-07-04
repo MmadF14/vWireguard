@@ -523,6 +523,47 @@ func GetClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
+// GetClientQRCode handler returns QR code image for a client
+func GetClientQRCode(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		clientID := c.Param("id")
+
+		if _, err := xid.FromString(clientID); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
+		}
+
+		qrCodeSettings := model.QRCodeSettings{
+			Enabled:    true,
+			IncludeDNS: true,
+			IncludeMTU: true,
+		}
+
+		clientData, err := db.GetClientByID(clientID, qrCodeSettings)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
+		}
+
+		if clientData.QRCode == "" {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "QR code not available"})
+		}
+
+		// Remove data:image/png;base64, prefix if present
+		qrData := strings.TrimPrefix(clientData.QRCode, "data:image/png;base64,")
+
+		// Decode base64 to bytes
+		qrBytes, err := base64.StdEncoding.DecodeString(qrData)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid QR code data"})
+		}
+
+		// Set response headers for image
+		c.Response().Header().Set(echo.HeaderContentType, "image/png")
+		c.Response().Header().Set(echo.HeaderCacheControl, "public, max-age=3600")
+
+		return c.Blob(http.StatusOK, "image/png", qrBytes)
+	}
+}
+
 // NewClient handler
 func NewClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
