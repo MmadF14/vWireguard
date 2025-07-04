@@ -1,573 +1,569 @@
 {{define "title"}}System Monitor{{end}}
 
 {{define "top_css"}}
-<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-    body {
-        overflow-y: auto;
-        height: 100vh;
-        background-color: #f3f4f6;
-    }
-    .dark body {
-        background-color: #111827;
-    }
-    .content {
-        min-height: calc(100vh - 64px);
-        overflow-y: auto;
-    }
-    .metric-card {
-        background: white;
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        margin-bottom: 15px;
-        height: 100%;
-        transition: all 0.3s ease;
-    }
-    .metric-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    }
-    .dark .metric-card {
-        background: #1f2937;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-    }
-    .status-tag {
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 14px;
-        display: inline-block;
-        margin: 2px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    .status-running { 
-        background: #ecfdf5; 
-        color: #047857;
-        border: 1px solid #059669;
-    }
-    .status-version { 
-        background: #f5f3ff; 
-        color: #6d28d9;
-        border: 1px solid #7c3aed;
-    }
-    .dark .status-running { 
-        background: #064e3b; 
-        color: #6ee7b7;
-        border: 1px solid #34d399;
-    }
-    .dark .status-version { 
-        background: #4c1d95; 
-        color: #ddd6fe;
-        border: 1px solid #8b5cf6;
-    }
-    .metric-value { 
-        font-size: 28px; 
-        font-weight: 600;
-        background: linear-gradient(45deg, #059669, #10b981);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .dark .metric-value {
-        background: linear-gradient(45deg, #34d399, #6ee7b7);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .chart-container {
-        position: relative;
-        height: 200px;
-        width: 100%;
-    }
-    .dark .text-gray-600 { color: #d1d5db; }
-    .dark .text-gray-500 { color: #9ca3af; }
-    .dark .text-gray-700 { color: #e5e7eb; }
-    
-    .backup-restore-section {
-        background: linear-gradient(135deg, #f0fdf4 0%, #f0f9ff 100%);
-        border-radius: 20px;
-        padding: 2rem;
-        margin-top: 1rem;
-    }
-    .dark .backup-restore-section {
-        background: linear-gradient(135deg, #064e3b 0%, #075985 100%);
-    }
+{{end}}
 
-    .backup-card, .restore-card {
-        background: white;
-        border-radius: 1rem;
-        padding: 2rem;
-        height: 100%;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    .dark .backup-card, .dark .restore-card {
-        background: #1f2937;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    }
-
-    .file-input-wrapper {
-        margin-top: 1.5rem;
-        position: relative;
-    }
-
-    .custom-file-input {
-        width: 100%;
-        padding: 1rem;
-        border: 2px dashed #d1d5db;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        color: #374151;
-        background: white;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .custom-file-input::file-selector-button {
-        font-weight: 500;
-        color: white;
-        background: #059669;
-        padding: 0.5em 1em;
-        border: none;
-        border-radius: 0.5rem;
-        margin-right: 1rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .custom-file-input:hover::file-selector-button {
-        background: #047857;
-    }
-
-    .dark .custom-file-input {
-        border-color: #4b5563;
-        background: #1f2937;
-        color: #d1d5db;
-    }
-
-    .dark .custom-file-input::file-selector-button {
-        background: #059669;
-        color: white;
-    }
-
-    .dark .custom-file-input:hover::file-selector-button {
-        background: #047857;
-    }
-
-    .action-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        border-radius: 0.5rem;
-        width: 100%;
-        transition: all 0.2s ease;
-        margin-top: 1.5rem;
-    }
-
-    .backup-button {
-        background: #059669;
-        color: white;
-    }
-
-    .backup-button:hover {
-        background: #047857;
-    }
-
-    .restore-button {
-        background: #d97706;
-        color: white;
-    }
-
-    .restore-button:hover {
-        background: #b45309;
-    }
-
-    #restoreMessage {
-        margin-top: 1rem;
-        padding: 0.75rem;
-        border-radius: 0.5rem;
-        text-align: center;
-        font-weight: 500;
-    }
-
-    #restoreMessage.success {
-        background: #ecfdf5;
-        color: #047857;
-    }
-
-    .dark #restoreMessage.success {
-        background: #064e3b;
-        color: #34d399;
-    }
-
-    #restoreMessage.error {
-        background: #fef2f2;
-        color: #dc2626;
-    }
-
-    .dark #restoreMessage.error {
-        background: #7f1d1d;
-        color: #fca5a5;
-    }
-</style>
+{{define "username"}}
+{{ .username }}
 {{end}}
 
 {{define "page_title"}}<span data-translate="System Monitor">System Monitor</span>{{end}}
 
 {{define "page_content"}}
-<div class="content">
-    <div class="container mx-auto p-6">
-        <!-- System Resource Metrics -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div class="metric-card">
-                <div class="chart-container">
-                    <canvas id="cpuChart"></canvas>
-                </div>
-                <div class="text-center mt-4">
-                    <div class="text-gray-600" data-translate="CPU">CPU</div>
-                    <div class="metric-value cpu-usage">0%</div>
-                    <div class="text-sm text-gray-500 cores-info"><span data-translate="Cores">Cores</span> 6</div>
-                </div>
-            </div>
-            <div class="metric-card">
-                <div class="chart-container">
-                    <canvas id="ramChart"></canvas>
-                </div>
-                <div class="text-center mt-4">
-                    <div class="text-gray-600" data-translate="RAM">RAM</div>
-                    <div class="metric-value ram-usage">0 GB</div>
-                    <div class="text-sm text-gray-500 ram-total"><span data-translate="Total">Total</span>: 0 <span data-translate="GB">GB</span></div>
-                </div>
-            </div>
-            <div class="metric-card">
-                <div class="chart-container">
-                    <canvas id="swapChart"></canvas>
-                </div>
-                <div class="text-center mt-4">
-                    <div class="text-gray-600" data-translate="Swap">Swap</div>
-                    <div class="metric-value swap-usage">0 MB</div>
-                    <div class="text-sm text-gray-500 swap-total"><span data-translate="Total">Total</span>: 0 <span data-translate="MB">MB</span></div>
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <i class="fas fa-tachometer-alt text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+            <span data-translate="System Monitor">System Monitor</span>
+        </h2>
+        <p class="text-gray-600 dark:text-gray-400">
+            <span data-translate="Real-time system resource monitoring and management">Real-time system resource monitoring and management</span>
+        </p>
+    </div>
+
+    <!-- System Resource Metrics -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- CPU Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-6 card-hover">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-microchip text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400" data-translate="CPU">CPU</h3>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white cpu-usage">0%</p>
+                    </div>
                 </div>
             </div>
-            <div class="metric-card">
-                <div class="chart-container">
-                    <canvas id="diskChart"></canvas>
-                </div>
-                <div class="text-center mt-4">
-                    <div class="text-gray-600" data-translate="Disk">Disk</div>
-                    <div class="metric-value disk-usage">0 GB</div>
-                    <div class="text-sm text-gray-500 disk-total"><span data-translate="Total">Total</span>: 0 <span data-translate="GB">GB</span></div>
-                </div>
+            <div class="relative w-24 h-24 mx-auto mb-4">
+                <canvas id="cpuChart" class="w-full h-full"></canvas>
+            </div>
+            <div class="text-center">
+                <p class="text-sm text-gray-500 dark:text-gray-400 cores-info">
+                    <span data-translate="Cores">Cores</span>: 6
+                </p>
             </div>
         </div>
 
-        <!-- System Info & Network -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <!-- System Status Card -->
-            <div class="metric-card">
-                <h3 class="text-lg font-semibold mb-3 dark:text-white" data-translate="System Status">System Status</h3>
-                <div class="mb-4">
-                    <span class="status-tag status-version">vWireguard</span>
-                    <span class="status-tag status-running" data-translate="Running">Running</span>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <div class="text-sm text-gray-600" data-translate="System Load">System Load</div>
-                        <div class="system-load dark:text-white">0 | 0 | 0</div>
+        <!-- RAM Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-6 card-hover">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-memory text-white text-sm"></i>
                     </div>
                     <div>
-                        <div class="text-sm text-gray-600" data-translate="Uptime">Uptime</div>
-                        <div class="uptime dark:text-white">0h 0m</div>
+                        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400" data-translate="RAM">RAM</h3>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white ram-usage">0 GB</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative w-24 h-24 mx-auto mb-4">
+                <canvas id="ramChart" class="w-full h-full"></canvas>
+            </div>
+            <div class="text-center">
+                <p class="text-sm text-gray-500 dark:text-gray-400 ram-total">
+                    <span data-translate="Total">Total</span>: 0 <span data-translate="GB">GB</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Swap Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-6 card-hover">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-exchange-alt text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400" data-translate="Swap">Swap</h3>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white swap-usage">0 MB</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative w-24 h-24 mx-auto mb-4">
+                <canvas id="swapChart" class="w-full h-full"></canvas>
+            </div>
+            <div class="text-center">
+                <p class="text-sm text-gray-500 dark:text-gray-400 swap-total">
+                    <span data-translate="Total">Total</span>: 0 <span data-translate="MB">MB</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Disk Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-6 card-hover">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-hdd text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-medium text-gray-600 dark:text-gray-400" data-translate="Disk">Disk</h3>
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white disk-usage">0 GB</p>
+                    </div>
+                </div>
+            </div>
+            <div class="relative w-24 h-24 mx-auto mb-4">
+                <canvas id="diskChart" class="w-full h-full"></canvas>
+            </div>
+            <div class="text-center">
+                <p class="text-sm text-gray-500 dark:text-gray-400 disk-total">
+                    <span data-translate="Total">Total</span>: 0 <span data-translate="GB">GB</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status & Network -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- System Status Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700">
+            <div class="p-6 border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fas fa-server text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            <span data-translate="System Status">System Status</span>
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="Current system information">Current system information</span>
+                        </p>
                     </div>
                 </div>
             </div>
             
-            <!-- Network Card -->
-            <div class="metric-card">
-                <h3 class="text-lg font-semibold mb-3 dark:text-white" data-translate="Network">Network</h3>
+            <div class="p-6 space-y-6">
+                <!-- Status Badges -->
+                <div class="flex flex-wrap gap-2">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
+                        <i class="fas fa-shield-alt mr-1 rtl:mr-0 rtl:ml-1"></i>
+                        vWireguard
+                    </span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                        <i class="fas fa-circle mr-1 rtl:mr-0 rtl:ml-1 text-xs"></i>
+                        <span data-translate="Running">Running</span>
+                    </span>
+                </div>
+                
+                <!-- System Metrics -->
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <div class="text-sm text-gray-600" data-translate="Upload">Upload</div>
-                        <div class="upload-speed dark:text-white">0 KB/s</div>
+                    <div class="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                            <i class="fas fa-weight-hanging text-gray-500 dark:text-gray-400"></i>
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="System Load">System Load</h4>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white system-load">0 | 0 | 0</p>
                     </div>
-                    <div>
-                        <div class="text-sm text-gray-600" data-translate="Download">Download</div>
-                        <div class="download-speed dark:text-white">0 KB/s</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-600" data-translate="Total Out">Total Out</div>
-                        <div class="total-out dark:text-white">0 MB</div>
-                    </div>
-                    <div>
-                        <div class="text-sm text-gray-600" data-translate="Total In">Total In</div>
-                        <div class="total-in dark:text-white">0 GB</div>
+                    <div class="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                            <i class="fas fa-clock text-gray-500 dark:text-gray-400"></i>
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Uptime">Uptime</h4>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white uptime">0h 0m</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Backup & Restore -->
-        <div class="grid grid-cols-1 gap-6">
-            <div class="backup-restore-section">
-                <h3 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white" data-translate="System Backup & Restore">System Backup & Restore</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="backup-card">
-                        <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white" data-translate="Create Backup">Create Backup</h4>
-                        <p class="text-gray-600 dark:text-gray-300 mb-6" data-translate="Download a complete backup of your system configuration and database.">Download a complete backup of your system configuration and database.</p>
-                        <button onclick="backupSystem()" class="action-button backup-button">
-                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                            </svg>
-                            <span data-translate="Download Backup">Download Backup</span>
-                        </button>
+        <!-- Network Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700">
+            <div class="p-6 border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <i class="fas fa-network-wired text-white text-lg"></i>
                     </div>
-                    
-                    <div class="restore-card">
-                        <h4 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white" data-translate="Restore Backup">Restore Backup</h4>
-                        <p class="text-gray-600 dark:text-gray-300" data-translate="Select a backup file to restore your system configuration and database.">Select a backup file to restore your system configuration and database.</p>
-                        <form id="restoreForm">
-                            <div class="file-input-wrapper">
-                                <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Choose backup file:">Choose backup file:</label>
-                                <input type="file" id="backupFile" name="backup" accept=".zip" class="custom-file-input" required>
-                            </div>
-                            <button type="submit" class="action-button restore-button">
-                                <span class="flex items-center justify-center">
-                                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span data-translate="Restoring...">Restoring...</span>
-                                </span>
-                            </button>
-                        </form>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            <span data-translate="Network">Network</span>
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="Network usage statistics">Network usage statistics</span>
+                        </p>
                     </div>
                 </div>
-                <div id="restoreMessage" class="mt-4 text-center py-2 px-4 rounded-lg font-medium hidden"></div>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                            <i class="fas fa-arrow-up text-green-500"></i>
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Upload">Upload</h4>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white upload-speed">0 KB/s</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                            <i class="fas fa-arrow-down text-blue-500"></i>
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Download">Download</h4>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white download-speed">0 KB/s</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                            <i class="fas fa-cloud-upload-alt text-orange-500"></i>
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Total Out">Total Out</h4>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white total-out">0 MB</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse mb-2">
+                            <i class="fas fa-cloud-download-alt text-purple-500"></i>
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Total In">Total In</h4>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-900 dark:text-white total-in">0 GB</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Backup & Restore Section -->
+    <div class="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 p-8">
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fas fa-shield-alt text-white text-xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                <span data-translate="System Backup & Restore">System Backup & Restore</span>
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400">
+                <span data-translate="Manage your system configuration backups">Manage your system configuration backups</span>
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Backup Card -->
+            <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-6">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-download text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Create Backup">Create Backup</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="System configuration">System configuration</p>
+                    </div>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    <span data-translate="Download a complete backup of your system configuration and database.">Download a complete backup of your system configuration and database.</span>
+                </p>
+                
+                <button onclick="backupSystem()" 
+                        class="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    <i class="fas fa-download mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span data-translate="Download Backup">Download Backup</span>
+                </button>
+            </div>
+
+            <!-- Restore Card -->
+            <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-6">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse mb-4">
+                    <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-upload text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Restore Backup">Restore Backup</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="From backup file">From backup file</p>
+                    </div>
+                </div>
+                
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    <span data-translate="Select a backup file to restore your system configuration and database.">Select a backup file to restore your system configuration and database.</span>
+                </p>
+                
+                <form id="restoreForm" class="space-y-4">
+                    <div>
+                        <label for="backupFile" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-file-archive mr-1 rtl:mr-0 rtl:ml-1"></i>
+                            <span data-translate="Choose backup file:">Choose backup file:</span>
+                        </label>
+                        <input type="file" 
+                               id="backupFile" 
+                               name="backup" 
+                               accept=".zip" 
+                               required
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 dark:file:bg-primary-900/20 dark:file:text-primary-300">
+                    </div>
+                    
+                    <button type="submit" 
+                            class="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-upload mr-2 rtl:mr-0 rtl:ml-2"></i>
+                        <span data-translate="Restore Backup">Restore Backup</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Restore Message -->
+        <div id="restoreMessage" class="mt-6 p-4 rounded-xl text-center font-medium hidden"></div>
+    </div>
 </div>
+
+<script>
+// Chart configuration
+let charts = {
+    cpu: null,
+    ram: null,
+    swap: null,
+    disk: null
+};
+
+// Function to create circular charts
+function createChart(elementId, value, color) {
+    const ctx = document.getElementById(elementId + 'Chart').getContext('2d');
+    return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            datasets: [{
+                data: [value, 100 - value],
+                backgroundColor: [color, '#f3f4f6'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            cutout: '75%',
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+                duration: 750,
+                easing: 'easeInOutQuart'
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+// Function to update chart data smoothly
+function updateChartData(chart, value) {
+    if (chart && chart.data && chart.data.datasets) {
+        chart.data.datasets[0].data = [value, 100 - value];
+        chart.update('none');
+    }
+}
+
+// Create initial charts
+document.addEventListener('DOMContentLoaded', function() {
+    charts.cpu = createChart('cpu', 0, '#3b82f6');
+    charts.ram = createChart('ram', 0, '#10b981');
+    charts.swap = createChart('swap', 0, '#f59e0b');
+    charts.disk = createChart('disk', 0, '#8b5cf6');
+});
+
+// Function to format bytes to human readable format
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+let updateInProgress = false;
+let lastData = null;
+</script>
+
 {{end}}
 
 {{define "bottom_js"}}
 <script>
-    let charts = {
-        cpu: null,
-        ram: null,
-        swap: null,
-        disk: null
-    };
+// Function to update system metrics
+async function updateMetrics() {
+    if (updateInProgress) return;
+    updateInProgress = true;
 
-    // Function to create circular charts
-    function createChart(elementId, value, color) {
-        const ctx = document.getElementById(elementId + 'Chart').getContext('2d');
-        return new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [value, 100 - value],
-                    backgroundColor: [color, '#f3f4f6'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                cutout: '80%',
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: {
-                    duration: 750,
-                    easing: 'easeInOutQuart'
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
+    try {
+        const response = await fetch('{{.basePath}}/api/system-metrics');
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+
+        // Update CPU
+        const cpuUsage = data.cpu.usage.toFixed(1);
+        document.querySelector('.cpu-usage').textContent = cpuUsage + '%';
+        document.querySelector('.cores-info').innerHTML = `<span data-translate="Cores">Cores</span>: ${data.cpu.cores}`;
+        updateChartData(charts.cpu, parseFloat(cpuUsage));
+
+        // Update RAM
+        const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
+        const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
+        const ramUsagePercent = (ramUsedGB / ramTotalGB) * 100;
+        document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' GB';
+        document.querySelector('.ram-total').innerHTML = `<span data-translate="Total">Total</span>: ${ramTotalGB.toFixed(1)} GB`;
+        updateChartData(charts.ram, ramUsagePercent);
+
+        // Update Swap
+        const swapUsedMB = data.swap.used / (1024 * 1024);
+        const swapTotalMB = data.swap.total / (1024 * 1024);
+        const swapUsagePercent = swapTotalMB > 0 ? (swapUsedMB / swapTotalMB) * 100 : 0;
+        document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' MB';
+        document.querySelector('.swap-total').innerHTML = `<span data-translate="Total">Total</span>: ${swapTotalMB.toFixed(1)} MB`;
+        updateChartData(charts.swap, swapUsagePercent);
+
+        // Update Disk
+        const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
+        const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
+        const diskUsagePercent = (diskUsedGB / diskTotalGB) * 100;
+        document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' GB';
+        document.querySelector('.disk-total').innerHTML = `<span data-translate="Total">Total</span>: ${diskTotalGB.toFixed(1)} GB`;
+        updateChartData(charts.disk, diskUsagePercent);
+        
+        // Update system info
+        document.querySelector('.system-load').textContent = data.systemLoad;
+        document.querySelector('.uptime').textContent = data.uptime;
+        
+        // Update network info
+        document.querySelector('.upload-speed').textContent = `${data.network.uploadSpeed.toFixed(1)} KB/s`;
+        document.querySelector('.download-speed').textContent = `${data.network.downloadSpeed.toFixed(1)} KB/s`;
+        document.querySelector('.total-out').textContent = formatBytes(data.network.totalOut * 1024 * 1024);
+        document.querySelector('.total-in').textContent = formatBytes(data.network.totalIn * 1024 * 1024);
+
+        lastData = data;
+
+        // Translate all elements after updating
+        if (window.langManager) {
+            window.langManager.translatePage();
+        }
+    } catch (error) {
+        console.error('Error fetching system metrics:', error);
+    } finally {
+        updateInProgress = false;
+    }
+}
+
+// Update metrics every 2 seconds
+const updateInterval = setInterval(updateMetrics, 2000);
+
+// Initial update
+updateMetrics();
+
+// Cleanup on page unload
+window.addEventListener('unload', () => {
+    clearInterval(updateInterval);
+});
+
+// Function to handle system backup
+async function backupSystem() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    
+    // Show loading state
+    button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Downloading...">Downloading...</span>';
+    
+    try {
+        const response = await fetch('{{.basePath}}/api/backup');
+        if (!response.ok) {
+            throw new Error('Error downloading backup file');
+        }
+        
+        // Get the filename from the Content-Disposition header
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
+        const filename = filenameMatch ? filenameMatch[1] : 'wireguard-backup.zip';
+        
+        // Create a blob from the response
+        const blob = await response.blob();
+        
+        // Create a temporary link and trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        
+        // Show success message
+        if (typeof toastr !== 'undefined') {
+            toastr.success(window.langManager.translate('Backup downloaded successfully'));
+        }
+    } catch (error) {
+        console.error('Error during backup:', error);
+        if (typeof toastr !== 'undefined') {
+            toastr.error(window.langManager.translate('Error during backup: ') + error.message);
+        } else {
+            alert('Error during backup: ' + error.message);
+        }
+    } finally {
+        // Reset button state
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+// Function to show restore message
+function showRestoreMessage(message, isError = false) {
+    const messageDiv = document.getElementById('restoreMessage');
+    messageDiv.textContent = window.langManager.translate(message);
+    messageDiv.classList.remove('hidden');
+    
+    if (isError) {
+        messageDiv.className = 'mt-6 p-4 rounded-xl text-center font-medium bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800';
+    } else {
+        messageDiv.className = 'mt-6 p-4 rounded-xl text-center font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800';
+    }
+    
+    setTimeout(() => {
+        messageDiv.classList.add('hidden');
+    }, 5000);
+}
+
+// Handle restore form submission
+document.getElementById('restoreForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    const originalButtonContent = submitButton.innerHTML;
+    
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Restoring...">Restoring...</span>';
+    
+    try {
+        const response = await fetch('{{.basePath}}/api/restore', {
+            method: 'POST',
+            body: formData
         });
-    }
-
-    // Function to update chart data smoothly
-    function updateChartData(chart, value) {
-        if (chart && chart.data && chart.data.datasets) {
-            chart.data.datasets[0].data = [value, 100 - value];
-            chart.update('none'); // Update without animation
-        }
-    }
-
-    // Create initial charts
-    charts.cpu = createChart('cpu', 0, '#059669');
-    charts.ram = createChart('ram', 0, '#059669');
-    charts.swap = createChart('swap', 0, '#059669');
-    charts.disk = createChart('disk', 0, '#f97316');
-
-    // Function to format bytes to human readable format
-    function formatBytes(bytes, decimals = 2) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const dm = decimals < 0 ? 0 : decimals;
-        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    }
-
-    let updateInProgress = false;
-    let lastData = null;
-
-    // Function to update system metrics
-    async function updateMetrics() {
-        if (updateInProgress) return;
-        updateInProgress = true;
-
-        try {
-            const response = await fetch('{{.baseData.BasePath}}/api/system-metrics');
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data = await response.json();
-
-            // Update CPU
-            document.querySelector('.cpu-usage').textContent = data.cpu.usage.toFixed(1) + '%';
-            document.querySelector('.cores-info').innerHTML = `<span data-translate="Cores">Cores</span>: ${data.cpu.cores}`;
-
-            // Update RAM
-            const ramUsedGB = data.ram.used / (1024 * 1024 * 1024);
-            const ramTotalGB = data.ram.total / (1024 * 1024 * 1024);
-            document.querySelector('.ram-usage').textContent = ramUsedGB.toFixed(1) + ' ' + window.langManager.translate('GB');
-            document.querySelector('.ram-total').innerHTML = `<span data-translate="Total">Total</span>: ${ramTotalGB.toFixed(1)} <span data-translate="GB">GB</span>`;
-
-            // Update Swap
-            const swapUsedMB = data.swap.used / (1024 * 1024);
-            const swapTotalGB = data.swap.total / (1024 * 1024 * 1024);
-            document.querySelector('.swap-usage').textContent = swapUsedMB.toFixed(1) + ' ' + window.langManager.translate('MB');
-            document.querySelector('.swap-total').innerHTML = `<span data-translate="Total">Total</span>: ${swapTotalGB.toFixed(1)} <span data-translate="MB">MB</span>`;
-
-            // Update Disk
-            const diskUsedGB = data.disk.used / (1024 * 1024 * 1024);
-            const diskTotalGB = data.disk.total / (1024 * 1024 * 1024);
-            document.querySelector('.disk-usage').textContent = diskUsedGB.toFixed(1) + ' ' + window.langManager.translate('GB');
-            document.querySelector('.disk-total').innerHTML = `<span data-translate="Total">Total</span>: ${diskTotalGB.toFixed(1)} <span data-translate="GB">GB</span>`;
-            
-            // Update system info
-            document.querySelector('.system-load').textContent = data.systemLoad;
-            document.querySelector('.uptime').textContent = data.uptime;
-            
-            // Update network info
-            document.querySelector('.upload-speed').innerHTML = `${data.network.uploadSpeed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
-            document.querySelector('.download-speed').innerHTML = `${data.network.downloadSpeed.toFixed(1)} <span data-translate="KB/s">KB/s</span>`;
-            document.querySelector('.total-out').innerHTML = `${formatBytes(data.network.totalOut * 1024 * 1024)} <span data-translate="MB">MB</span>`;
-            document.querySelector('.total-in').innerHTML = `${formatBytes(data.network.totalIn * 1024 * 1024)} <span data-translate="GB">GB</span>`;
-
-            lastData = data;
-
-            // Translate all elements after updating
-            if (window.langManager) {
-                window.langManager.translatePage();
-            }
-        } catch (error) {
-            console.error('Error fetching system metrics:', error);
-        } finally {
-            updateInProgress = false;
-        }
-    }
-
-    // Update metrics every 2 seconds
-    const updateInterval = setInterval(updateMetrics, 2000);
-
-    // Initial update
-    updateMetrics();
-
-    // Cleanup on page unload
-    window.addEventListener('unload', () => {
-        clearInterval(updateInterval);
-    });
-
-    // Function to handle system backup
-    async function backupSystem() {
-        try {
-            const response = await fetch('{{.baseData.BasePath}}/api/backup');
-            if (!response.ok) {
-                throw new Error('خطا در دریافت فایل پشتیبان');
-            }
-            
-            // Get the filename from the Content-Disposition header
-            const contentDisposition = response.headers.get('Content-Disposition');
-            const filenameMatch = contentDisposition && contentDisposition.match(/filename="(.+)"/);
-            const filename = filenameMatch ? filenameMatch[1] : 'wireguard-backup.zip';
-            
-            // Create a blob from the response
-            const blob = await response.blob();
-            
-            // Create a temporary link and trigger download
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        } catch (error) {
-            console.error('Error during backup:', error);
-            alert('خطا در پشتیبان‌گیری: ' + error.message);
-        }
-    }
-
-    // Function to show restore message
-    function showRestoreMessage(message, isError = false) {
-        const messageDiv = document.getElementById('restoreMessage');
-        messageDiv.textContent = window.langManager.translate(message);
-        messageDiv.classList.remove('hidden', 'error', 'success');
-        messageDiv.classList.add(isError ? 'error' : 'success');
         
-        setTimeout(() => {
-            messageDiv.classList.add('hidden');
-            messageDiv.classList.remove('error', 'success');
-        }, 5000);
-    }
-
-    // Handle restore form submission
-    document.getElementById('restoreForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+        const result = await response.json();
         
-        const formData = new FormData(e.target);
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        const originalButtonContent = submitButton.innerHTML;
-        
-        submitButton.disabled = true;
-        submitButton.innerHTML = `
-            <span class="flex items-center justify-center">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Restoring...
-            </span>
-        `;
-        
-        try {
-            const response = await fetch('{{.baseData.BasePath}}/api/restore', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const result = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(result.error || 'Error restoring backup file');
-            }
-            
-            showRestoreMessage(result.message || 'Restore completed successfully');
-            e.target.reset();
-        } catch (error) {
-            console.error('Error during restore:', error);
-            showRestoreMessage(error.message, true);
-        } finally {
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalButtonContent;
+        if (!response.ok) {
+            throw new Error(result.error || 'Error restoring backup file');
         }
-    });
+        
+        showRestoreMessage(result.message || 'Restore completed successfully');
+        e.target.reset();
+        
+        // Show success toast
+        if (typeof toastr !== 'undefined') {
+            toastr.success(window.langManager.translate('Restore completed successfully'));
+        }
+    } catch (error) {
+        console.error('Error during restore:', error);
+        showRestoreMessage(error.message, true);
+        
+        // Show error toast
+        if (typeof toastr !== 'undefined') {
+            toastr.error(window.langManager.translate('Error during restore: ') + error.message);
+        }
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonContent;
+    }
+});
 </script>
 {{end}}

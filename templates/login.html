@@ -1,344 +1,593 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en" dir="ltr">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>vWireguard</title>
-    <!-- Tell the browser to be responsive to screen width -->
+    <title>vWireguard - Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Favicon -->
     <link rel="icon" href="{{.basePath}}/favicon">
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/fontawesome-free/css/all.min.css">
-    <!-- Ionicons -->
-    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-    <!-- icheck bootstrap -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
-    <!-- Theme style -->
-    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/adminlte.min.css">
-    <!-- Google Font: Source Sans Pro -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- TailwindCSS Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'Vazirmatn', 'system-ui', 'sans-serif'],
+                        'persian': ['Vazirmatn', 'system-ui', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'xl': '0.75rem',
+                        '2xl': '1rem',
+                        '3xl': '1.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
     <style>
-        :root {
-            --primary-color: #1976d2;
-            --primary-light: #2196f3;
-            --primary-dark: #0d47a1;
-            --text-color: #2c3e50;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --input-bg: #ffffff;
-            --input-border: #e0e0e0;
-            --shadow-color: rgba(0, 0, 0, 0.1);
+        /* RTL Support */
+        [dir="rtl"] {
+            font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif;
         }
-
-        [data-theme="dark"] {
-            --text-color: #ecf0f1;
-            --bg-color: #1a1a1a;
-            --card-bg: #2c2c2c;
-            --input-bg: #3c3c3c;
-            --input-border: #4c4c4c;
-            --shadow-color: rgba(0, 0, 0, 0.3);
+        
+        /* Animated Background */
+        .login-bg {
+            background: linear-gradient(-45deg, #fff7ed, #ffedd5, #fed7aa, #fdba74);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
         }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-color);
-            color: var(--text-color);
-            transition: all 0.3s ease;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0;
-            background-image: 
-                radial-gradient(circle at 100% 0%, rgba(25,118,210,0.1) 0%, transparent 50%),
-                radial-gradient(circle at 0% 100%, rgba(13,71,161,0.1) 0%, transparent 50%);
+        
+        .dark .login-bg {
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
         }
-
-        .login-box {
-            width: 400px;
-            margin: 0 auto;
-            padding: 0 20px;
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
-
-        .login-logo {
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-
-        .login-logo a {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            color: var(--primary-color);
-            font-size: 2rem;
-            font-weight: 700;
-            text-decoration: none;
-            margin-bottom: 1rem;
-        }
-
-        .login-logo i {
-            font-size: 2rem;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .card {
-            background: var(--card-bg);
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 8px 30px var(--shadow-color);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-        }
-
-        .login-card-body {
-            padding: 2rem;
-        }
-
-        .login-box-msg {
-            color: var(--text-color);
-            font-size: 1.1rem;
-            font-weight: 500;
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-
-        .input-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-control {
-            height: 48px;
-            background: var(--input-bg);
-            border: 2px solid var(--input-border);
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            font-size: 1rem;
-            color: var(--text-color);
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(25,118,210,0.25);
-        }
-
-        .input-group-text {
-            background: var(--input-bg);
-            border: 2px solid var(--input-border);
-            border-left: none;
-            border-radius: 0 12px 12px 0;
-            color: var(--text-color);
-        }
-
-        .input-group .form-control {
-            border-right: none;
-            border-radius: 12px 0 0 12px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            border: none;
-            border-radius: 12px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(25,118,210,0.4);
-        }
-
-        .icheck-primary {
-            margin-top: 0.5rem;
-        }
-
-        #message {
-            margin-top: 1rem;
-            font-weight: 500;
-        }
-
-        #message p {
-            padding: 0.75rem;
-            border-radius: 8px;
-            margin: 0;
-        }
-
-        #message p[style*="color:green"] {
-            background: rgba(76,175,80,0.1);
-            color: #4caf50 !important;
-        }
-
-        #message p[style*="color:#ff0000"] {
-            background: rgba(244,67,54,0.1);
-            color: #f44336 !important;
-        }
-
-        /* Theme Toggle Button */
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--card-bg);
-            border: 2px solid var(--input-border);
+        
+        /* Floating Elements */
+        .floating-element {
+            position: absolute;
             border-radius: 50%;
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-element:nth-child(1) {
+            top: 10%;
+            left: 10%;
+            width: 80px;
+            height: 80px;
+            animation-delay: 0s;
+        }
+        
+        .floating-element:nth-child(2) {
+            top: 20%;
+            right: 20%;
+            width: 120px;
+            height: 120px;
+            animation-delay: 2s;
+        }
+        
+        .floating-element:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+            width: 100px;
+            height: 100px;
+            animation-delay: 4s;
+        }
+        
+        .floating-element:nth-child(4) {
+            bottom: 10%;
+            right: 10%;
+            width: 60px;
+            height: 60px;
+            animation-delay: 1s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            33% { transform: translateY(-20px) rotate(120deg); }
+            66% { transform: translateY(10px) rotate(240deg); }
+        }
+        
+        /* Login Card Animation */
+        .login-card {
+            animation: slideInUp 0.8s ease-out;
+        }
+        
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Input Focus Effect */
+        .input-focus-effect {
+            position: relative;
+        }
+        
+        .input-focus-effect::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(to right, #f97316, #ea580c);
+            transition: width 0.3s ease;
+        }
+        
+        .input-focus-effect:focus-within::after {
+            width: 100%;
+        }
+        
+        /* Button Hover Effect */
+        .btn-gradient {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px var(--shadow-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-gradient::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn-gradient:hover::before {
+            left: 100%;
+        }
+        
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(249,115,22,0.4);
+        }
+        
+        /* Logo Animation */
+        .logo-pulse {
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Theme Toggle Animation */
+        .theme-toggle {
+            transition: all 0.3s ease;
         }
 
         .theme-toggle:hover {
-            transform: scale(1.1);
+            transform: rotate(180deg) scale(1.1);
         }
-
-        .theme-toggle i {
-            font-size: 1.25rem;
-            color: var(--text-color);
-            transition: all 0.3s ease;
+        
+        /* Message Animations */
+        .message-slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
     </style>
+    
+    <!-- Theme Management -->
+    <script>
+        // Theme management
+        const themeManager = {
+            theme: localStorage.getItem('theme') || 'light',
+            
+            init() {
+                this.setTheme(this.theme);
+                this.bindEvents();
+            },
+            
+            setTheme(theme) {
+                this.theme = theme;
+                localStorage.setItem('theme', theme);
+                
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                
+                // Update theme toggle button
+                const toggleBtn = document.getElementById('theme-toggle');
+                if (toggleBtn) {
+                    const icon = toggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                    }
+                }
+            },
+            
+            toggleTheme() {
+                this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleTheme());
+                    }
+                });
+            }
+        };
+        
+        // Language management
+        const languageManager = {
+            currentLang: localStorage.getItem('language') || 'en',
+            
+            init() {
+                this.setLanguage(this.currentLang);
+                this.bindEvents();
+            },
+            
+            setLanguage(lang) {
+                this.currentLang = lang;
+                localStorage.setItem('language', lang);
+                
+                // Update HTML attributes
+                document.documentElement.lang = lang === 'fa' ? 'fa' : 'en';
+                document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+                
+                // Update language toggle button
+                const toggleBtn = document.getElementById('language-toggle');
+                if (toggleBtn) {
+                    const text = toggleBtn.querySelector('span');
+                    if (text) {
+                        text.textContent = lang === 'fa' ? 'EN' : 'فا';
+                    }
+                }
+            },
+            
+            toggleLanguage() {
+                this.setLanguage(this.currentLang === 'fa' ? 'en' : 'fa');
+                // Reload page to apply RTL/LTR changes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100);
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toggleBtn = document.getElementById('language-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleLanguage());
+                    }
+                });
+            }
+        };
+        
+        // Initialize managers
+        themeManager.init();
+        languageManager.init();
+    </script>
 </head>
 
-<body class="login-page">
-    <button class="theme-toggle" id="theme-toggle">
+<body class="min-h-screen login-bg flex items-center justify-center p-4 font-sans antialiased">
+    <!-- Floating Background Elements -->
+    <div class="floating-element bg-gradient-to-br from-primary-500 to-primary-600"></div>
+    <div class="floating-element bg-gradient-to-br from-blue-500 to-cyan-600"></div>
+    <div class="floating-element bg-gradient-to-br from-green-500 to-emerald-600"></div>
+    <div class="floating-element bg-gradient-to-br from-purple-500 to-indigo-600"></div>
+    
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle fixed top-6 right-6 z-20 bg-white dark:bg-dark-800 p-3 rounded-xl shadow-lg hover:shadow-xl border border-gray-200 dark:border-dark-700 text-gray-700 dark:text-gray-300">
         <i class="fas fa-moon"></i>
     </button>
 
-    <div class="login-box">
-        <div class="login-logo">
-            <a href="https://github.com/MmadF14/vwireguard">
-                <i class="fas fa-shield-alt"></i>
-                vWireguard
-            </a>
+    <!-- Language Toggle -->
+    <button id="language-toggle" class="fixed top-6 left-6 z-20 bg-white dark:bg-dark-800 px-4 py-3 rounded-xl shadow-lg hover:shadow-xl border border-gray-200 dark:border-dark-700 text-gray-700 dark:text-gray-300 font-medium transition-all duration-200 hover:scale-105">
+        <i class="fas fa-language mr-2 rtl:mr-0 rtl:ml-2"></i>
+        <span>فا</span>
+    </button>
+    
+    <!-- Login Container -->
+    <div class="w-full max-w-md">
+        <!-- Logo Section -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-3xl shadow-xl mb-6 logo-pulse">
+                <i class="fas fa-shield-alt text-white text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">vWireguard</h1>
+            <p class="text-gray-600 dark:text-gray-400 text-lg">VPN Management Platform</p>
         </div>
-        <div class="card">
-            <div class="card-body login-card-body">
-                <p class="login-box-msg" data-translate="Sign in to start your session">Sign in to start your session</p>
-                <form action="" method="post">
-                    <div class="input-group">
-                        <input id="username" type="text" class="form-control" data-translate="Username" placeholder="Username">
-                        <div class="input-group-append">
-                            <div class="input-group-text">
-                                <span class="fas fa-user"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group">
-                        <input id="password" type="password" class="form-control" data-translate="Password" placeholder="Password">
-                        <div class="input-group-append">
-                            <div class="input-group-text">
-                                <span class="fas fa-lock"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-8">
-                            <div class="icheck-primary">
-                                <input type="checkbox" id="remember">
-                                <label for="remember" data-translate="Remember Me">
-                                    Remember Me
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-4">
-                            <button id="btn_login" type="submit" class="btn btn-primary btn-block" data-translate="Sign In">Sign In</button>
-                        </div>
-                    </div>
-                </form>
-                <div class="text-center">
-                    <p id="message"></p>
+        
+        <!-- Login Card -->
+        <div class="login-card bg-white dark:bg-dark-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-dark-700 backdrop-blur-lg bg-opacity-80 dark:bg-opacity-80">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2" data-translate="Welcome Back">Welcome Back</h2>
+                    <p class="text-gray-600 dark:text-gray-400" data-translate="Sign in to your account">Sign in to your account</p>
                 </div>
+                
+                <!-- Login Form -->
+                <form method="POST" action="" class="space-y-6">
+                    <!-- Username Field -->
+                    <div class="input-focus-effect">
+                        <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <span data-translate="Username">Username</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-user text-gray-400"></i>
+                            </div>
+                            <input type="text" id="username" name="username" required 
+                                   class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-dark-600 rounded-xl leading-5 bg-white dark:bg-dark-700 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white transition-all duration-200"
+                                   placeholder="Enter your username" data-translate-placeholder="Enter your username">
+                        </div>
+                    </div>
+                    
+                    <!-- Password Field -->
+                    <div class="input-focus-effect">
+                        <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <span data-translate="Password">Password</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" id="password" name="password" required 
+                                   class="block w-full pl-10 pr-12 py-3 border border-gray-300 dark:border-dark-600 rounded-xl leading-5 bg-white dark:bg-dark-700 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-white transition-all duration-200"
+                                   placeholder="Enter your password" data-translate-placeholder="Enter your password">
+                            <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <i id="password-toggle-icon" class="fas fa-eye text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Remember Me -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="rememberMe" name="rememberMe" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <label for="rememberMe" class="ml-2 rtl:ml-0 rtl:mr-2 block text-sm text-gray-700 dark:text-gray-300">
+                                <span data-translate="Remember me">Remember me</span>
+                                </label>
+                        </div>
+                        <div class="text-sm">
+                            <a href="#" class="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200" data-translate="Forgot password?">
+                                Forgot password?
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Login Button -->
+                    <button type="submit" class="btn-gradient w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 relative overflow-hidden">
+                        <i class="fas fa-sign-in-alt mr-2 rtl:mr-0 rtl:ml-2"></i>
+                        <span data-translate="Sign In">Sign In</span>
+                    </button>
+                </form>
+                
+                <!-- Messages -->
+                <div id="message" class="mt-6">
+                    {{if .message}}
+                    <div class="message-slide-in p-4 rounded-xl border-l-4 {{if eq .messageType "error"}}bg-red-50 dark:bg-red-900 border-red-400 text-red-700 dark:text-red-200{{else}}bg-green-50 dark:bg-green-900 border-green-400 text-green-700 dark:text-green-200{{end}}">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="{{if eq .messageType "error"}}fas fa-exclamation-circle{{else}}fas fa-check-circle{{end}}"></i>
+                            </div>
+                            <div class="ml-3 rtl:ml-0 rtl:mr-3">
+                                <p class="text-sm font-medium">{{.message}}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                
+                <!-- Footer -->
+                <div class="mt-8 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        <span data-translate="Powered by">Powered by</span> 
+                        <a href="https://github.com/MmadF14/vWireguard" class="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200">vWireguard</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Notice -->
+        <div class="mt-6 text-center">
+            <div class="inline-flex items-center px-4 py-2 bg-yellow-50 dark:bg-yellow-900 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+                <i class="fas fa-shield-alt text-yellow-600 dark:text-yellow-400 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span class="text-sm text-yellow-800 dark:text-yellow-200" data-translate="Secure connection">
+                    Secure connection
+                </span>
             </div>
         </div>
     </div>
 
-    <script src="{{.basePath}}/static/plugins/jquery/jquery.min.js"></script>
-    <script src="{{.basePath}}/static/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="{{.basePath}}/static/dist/js/adminlte.min.js"></script>
-    <script src="{{.basePath}}/static/dist/js/translations.js"></script>
-    <script src="{{.basePath}}/static/dist/js/language.js"></script>
-
+    <!-- JavaScript -->
     <script>
-        // Theme Toggle Functionality
-        const themeToggle = document.getElementById('theme-toggle');
-        const icon = themeToggle.querySelector('i');
-        
-        // Check for saved theme preference
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
-        
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        // Password toggle functionality
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('password-toggle-icon');
             
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-        
-        function updateThemeIcon(theme) {
-            icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-        }
-
-        // Redirect Function
-        function redirectNext() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const nextURL = urlParams.get('next');
-            if (nextURL && /(?:^\/[a-zA-Z_])|(?:^\/$)/.test(nextURL.trim())) {
-                window.location.href = nextURL;
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.className = 'fas fa-eye-slash text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200';
             } else {
-                window.location.href = '/{{.basePath}}';
-            } 
+                passwordInput.type = 'password';
+                toggleIcon.className = 'fas fa-eye text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200';
+            }
         }
-
-        // Login Form Handling
-        $(document).ready(function () {
-            $('form').on('submit', function(e) {
-                e.preventDefault();
-                $("#btn_login").trigger('click');
-            });
-
-            $("#btn_login").click(function () {
-                const username = $("#username").val();
-                const password = $("#password").val();
-                let rememberMe = $("#remember").is(':checked');
+        
+        // Form enhancements
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Prevent default form submission
+                
+                // Disable submit button and show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span data-translate="Signing in...">Signing in...</span>';
+                
+                // Get form data
+                const formData = new FormData(form);
                 const data = {
-                    "username": username,
-                    "password": password,
-                    "rememberMe": rememberMe
-                }
-
-                $.ajax({
-                    cache: false,
+                    username: formData.get('username'),
+                    password: formData.get('password'),
+                    rememberMe: formData.get('rememberMe') === 'on'
+                };
+                
+                // Send JSON request
+                fetch(form.action || window.location.pathname, {
                     method: 'POST',
-                    url: '{{.basePath}}/login',
-                    dataType: 'json',
-                    contentType: "application/json",
-                    data: JSON.stringify(data),
-                    success: function(data) {
-                        document.getElementById("message").innerHTML = `<p style="color:green">${data['message']}</p>`;
-                        redirectNext();
+                    headers: {
+                        'Content-Type': 'application/json',
                     },
-                    error: function(jqXHR, exception) {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        document.getElementById("message").innerHTML = `<p style="color:#ff0000">${responseJson['message']}</p>`;
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // Success - redirect to intended page or dashboard
+                        const basePath = '{{.basePath}}' || '';
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const nextUrl = urlParams.get('next');
+                        
+                        if (nextUrl) {
+                            window.location.href = nextUrl;
+                        } else {
+                            window.location.href = basePath + '/';
+                        }
+                    } else {
+                        // Show error message
+                        showMessage(result.message || 'Login failed', 'error');
+                        
+                        // Reset button
+                        submitButton.disabled = false;
+                        submitButton.innerHTML = originalButtonText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Login error:', error);
+                    showMessage('Network error. Please try again.', 'error');
+                    
+                    // Reset button
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalButtonText;
+                });
+            });
+            
+            // Focus management
+            const inputs = form.querySelectorAll('input');
+            inputs.forEach((input, index) => {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && index < inputs.length - 1) {
+                        e.preventDefault();
+                        inputs[index + 1].focus();
                     }
                 });
             });
+            
+            // Auto-focus first input
+            if (inputs.length > 0) {
+                inputs[0].focus();
+            }
+            
+            // Add smooth scroll to page
+            document.documentElement.style.scrollBehavior = 'smooth';
+        });
+        
+        // Message display function
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('message');
+            const messageClass = type === 'error' ? 
+                'bg-red-50 dark:bg-red-900 border-red-400 text-red-700 dark:text-red-200' :
+                'bg-green-50 dark:bg-green-900 border-green-400 text-green-700 dark:text-green-200';
+            const iconClass = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            
+            messageContainer.innerHTML = `
+                <div class="message-slide-in p-4 rounded-xl border-l-4 ${messageClass}">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="ml-3 rtl:ml-0 rtl:mr-3">
+                            <p class="text-sm font-medium">${message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 5000);
+        }
+        
+        // Enhanced keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Clear form or close any modals
+                const activeElement = document.activeElement;
+                if (activeElement && activeElement.tagName === 'INPUT') {
+                    activeElement.blur();
+                }
+            }
         });
     </script>
 </body>

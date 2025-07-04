@@ -5,165 +5,295 @@
 {{define "top_css"}}
 {{end}}
 
+{{define "username"}}
+{{ .username }}
+{{end}}
+
 {{define "page_title"}}
 <span data-translate="Tunnels">Tunnels</span>
 {{end}}
 
 {{define "page_content"}}
-<!-- Page Header -->
-<section class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1><i class="fas fa-exchange-alt"></i> <span data-translate="Tunnels">Tunnels</span></h1>
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex-1">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    <i class="fas fa-exchange-alt text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span data-translate="Tunnels">Tunnels</span>
+                </h2>
+                <p class="text-gray-600 dark:text-gray-400">
+                    <span data-translate="Manage network tunnels and routing">Manage network tunnels and routing</span>
+                </p>
             </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="{{.basePath}}" data-translate="Home">Home</a></li>
-                    <li class="breadcrumb-item active" data-translate="Tunnels">Tunnels</li>
-                </ol>
+            <div class="flex space-x-3 rtl:space-x-reverse mt-4 sm:mt-0">
+                <button onclick="openNewTunnelModal()" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                    <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span data-translate="New Tunnel">New Tunnel</span>
+                </button>
+                <button onclick="openCleanupModal()" 
+                        class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                    <i class="fas fa-broom mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span data-translate="Cleanup">Cleanup</span>
+                </button>
             </div>
         </div>
     </div>
-</section>
 
-<!-- Warning about routing setup -->
-<section class="content">
-    <div class="container-fluid">
-        <div class="alert alert-info">
-            <h5><i class="icon fas fa-info"></i> <span data-translate="Tunnel Routing Setup Required">Tunnel Routing Setup Required</span></h5>
-            <p data-translate="For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:">For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:</p>
-            <code>sudo bash setup_tunnel_routing.sh</code>
-            <p class="mt-2 mb-0" data-translate="This will configure iptables rules for traffic forwarding and enable IP forwarding.">This will configure iptables rules for traffic forwarding and enable IP forwarding.</p>
-        </div>
-        
-        <div class="alert alert-warning">
-            <h5><i class="icon fas fa-exclamation-triangle"></i> <span data-translate="Important Notes">Important Notes</span></h5>
-            <ul class="mb-0">
-                <li><strong data-translate="Safe Routing:">Safe Routing:</strong> <span data-translate="AllowedIPs of">AllowedIPs of</span> <code>0.0.0.0/0</code> <span data-translate="is automatically replaced with private networks to prevent server disconnection">is automatically replaced with private networks to prevent server disconnection</span></li>
-                <li><strong data-translate="Edit Restriction:">Edit Restriction:</strong> <span data-translate="Active tunnels cannot be edited - stop the tunnel first">Active tunnels cannot be edited - stop the tunnel first</span></li>
-                <li><strong data-translate="Interface Names:">Interface Names:</strong> <span data-translate="Tunnel interfaces use format">Tunnel interfaces use format</span> <code>wg{suffix}</code> (e.g., wg123)</li>
-                <li><strong data-translate="Traffic Forwarding:">Traffic Forwarding:</strong> <span data-translate="Ensure your server has proper iptables rules for traffic forwarding">Ensure your server has proper iptables rules for traffic forwarding</span></li>
-            </ul>
-        </div>
-    </div>
-</section>
-
-<section class="content">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0" data-translate="Tunnels">Tunnels</h1>
-                <p class="text-muted" data-translate="Manage network tunnels and routing">Manage network tunnels and routing</p>
-            </div>
-            <div class="col-sm-6">
-                <div class="float-right">
-                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#modal_new_tunnel">
-                        <i class="fas fa-plus"></i> <span data-translate="New Tunnel">New Tunnel</span>
-                    </button>
-                    <button type="button" class="btn btn-warning ml-2" data-toggle="modal" data-target="#modal_cleanup_tunnels">
-                        <i class="fas fa-broom"></i> <span data-translate="Cleanup">Cleanup</span>
-                    </button>
+    <!-- Warning Alerts -->
+    <div class="space-y-4 mb-8">
+        <!-- Routing Setup Alert -->
+        <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-6">
+            <div class="flex items-start space-x-3 rtl:space-x-reverse">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-600 dark:text-blue-400 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-blue-900 dark:text-blue-200 mb-2">
+                        <span data-translate="Tunnel Routing Setup Required">Tunnel Routing Setup Required</span>
+                    </h3>
+                    <div class="text-blue-800 dark:text-blue-300 space-y-2">
+                        <p data-translate="For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:">For tunnels to work properly, you need to set up routing rules on your server. Run this command as root:</p>
+                        <div class="bg-blue-100 dark:bg-blue-800/50 rounded-lg p-3 font-mono text-sm">
+                            sudo bash setup_tunnel_routing.sh
+                        </div>
+                        <p class="text-sm" data-translate="This will configure iptables rules for traffic forwarding and enable IP forwarding.">This will configure iptables rules for traffic forwarding and enable IP forwarding.</p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="row" id="tunnel-list">
-            {{if .tunnels}}
-                {{range .tunnels}}
-                <div class="col-lg-4 col-md-6 mb-3">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">{{.Name}}</h5>
-                            <span class="badge badge-{{if eq .Status "active"}}success{{else}}secondary{{end}}">{{.Status}}</span>
+        <!-- Important Notes Alert -->
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800 p-6">
+            <div class="flex items-start space-x-3 rtl:space-x-reverse">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-yellow-900 dark:text-yellow-200 mb-3">
+                        <span data-translate="Important Notes">Important Notes</span>
+                    </h3>
+                    <div class="text-yellow-800 dark:text-yellow-300 space-y-2 text-sm">
+                        <div class="flex items-start space-x-2 rtl:space-x-reverse">
+                            <i class="fas fa-shield-alt text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
+                            <div>
+                                <strong data-translate="Safe Routing:">Safe Routing:</strong> 
+                                <span data-translate="AllowedIPs of">AllowedIPs of</span> 
+                                <code class="bg-yellow-100 dark:bg-yellow-800/50 px-1 rounded">0.0.0.0/0</code> 
+                                <span data-translate="is automatically replaced with private networks to prevent server disconnection">is automatically replaced with private networks to prevent server disconnection</span>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <p class="card-text">
-                                <strong data-translate="Type">Type:</strong> {{.Type}}<br>
-                                {{if eq .Type "wg-to-wg"}}
-                                    {{if .WGConfig}}
-                                        <strong data-translate="Remote">Remote:</strong> {{.WGConfig.RemoteEndpoint}}<br>
-                                        <strong data-translate="Tunnel IP">Tunnel IP:</strong> {{.WGConfig.TunnelIP}}
-                                    {{end}}
-                                {{else if eq .Type "wg-to-dokodemo"}}
-                                    {{if .DokodemoConfig}}
-                                        <strong data-translate="Target">Target:</strong> {{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}<br>
-                                        <strong data-translate="Protocol">Protocol:</strong> {{.DokodemoConfig.Network}}
-                                    {{end}}
-                                {{else if eq .Type "port-forward"}}
-                                    {{if .PortForwardConfig}}
-                                        <strong data-translate="Protocol">Protocol:</strong> {{.PortForwardConfig.Protocol}}<br>
-                                        <strong data-translate="Target">Target:</strong> {{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}
-                                    {{end}}
-                                {{end}}
-                                <strong data-translate="Clients">Clients:</strong> 
+                        <div class="flex items-start space-x-2 rtl:space-x-reverse">
+                            <i class="fas fa-edit text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
+                            <div>
+                                <strong data-translate="Edit Restriction:">Edit Restriction:</strong> 
+                                <span data-translate="Active tunnels cannot be edited - stop the tunnel first">Active tunnels cannot be edited - stop the tunnel first</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-2 rtl:space-x-reverse">
+                            <i class="fas fa-network-wired text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
+                            <div>
+                                <strong data-translate="Interface Names:">Interface Names:</strong> 
+                                <span data-translate="Tunnel interfaces use format">Tunnel interfaces use format</span> 
+                                <code class="bg-yellow-100 dark:bg-yellow-800/50 px-1 rounded">wg{suffix}</code> (e.g., wg123)
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-2 rtl:space-x-reverse">
+                            <i class="fas fa-route text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
+                            <div>
+                                <strong data-translate="Traffic Forwarding:">Traffic Forwarding:</strong> 
+                                <span data-translate="Ensure your server has proper iptables rules for traffic forwarding">Ensure your server has proper iptables rules for traffic forwarding</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tunnels Grid -->
+    <div id="tunnel-list">
+        {{if .tunnels}}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {{range .tunnels}}
+            <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden card-hover">
+                <!-- Tunnel Header -->
+                <div class="p-6 border-b border-gray-200 dark:border-dark-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                            <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-exchange-alt text-white text-sm"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{.Name}}</h3>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">{{.Type}}</p>
+                            </div>
+                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{if eq .Status "active"}}bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300{{else}}bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300{{end}}">
+                            <i class="fas fa-circle mr-1 rtl:mr-0 rtl:ml-1 text-xs"></i>
+                            {{.Status}}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Tunnel Details -->
+                <div class="p-6 space-y-4">
+                    <!-- Configuration Details -->
+                    <div class="space-y-3">
+                        {{if eq .Type "wg-to-wg"}}
+                            {{if .WGConfig}}
+                            <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                                <i class="fas fa-globe text-gray-400 w-4"></i>
+                                <span class="text-gray-600 dark:text-gray-400" data-translate="Remote">Remote:</span>
+                                <span class="text-gray-900 dark:text-white font-mono">{{.WGConfig.RemoteEndpoint}}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                                <i class="fas fa-network-wired text-gray-400 w-4"></i>
+                                <span class="text-gray-600 dark:text-gray-400" data-translate="Tunnel IP">Tunnel IP:</span>
+                                <span class="text-gray-900 dark:text-white font-mono">{{.WGConfig.TunnelIP}}</span>
+                            </div>
+                            {{end}}
+                        {{else if eq .Type "wg-to-dokodemo"}}
+                            {{if .DokodemoConfig}}
+                            <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                                <i class="fas fa-bullseye text-gray-400 w-4"></i>
+                                <span class="text-gray-600 dark:text-gray-400" data-translate="Target">Target:</span>
+                                <span class="text-gray-900 dark:text-white font-mono">{{.DokodemoConfig.Address}}:{{.DokodemoConfig.Port}}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                                <i class="fas fa-layer-group text-gray-400 w-4"></i>
+                                <span class="text-gray-600 dark:text-gray-400" data-translate="Protocol">Protocol:</span>
+                                <span class="text-gray-900 dark:text-white">{{.DokodemoConfig.Network}}</span>
+                            </div>
+                            {{end}}
+                        {{else if eq .Type "port-forward"}}
+                            {{if .PortForwardConfig}}
+                            <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                                <i class="fas fa-layer-group text-gray-400 w-4"></i>
+                                <span class="text-gray-600 dark:text-gray-400" data-translate="Protocol">Protocol:</span>
+                                <span class="text-gray-900 dark:text-white">{{.PortForwardConfig.Protocol}}</span>
+                            </div>
+                            <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                                <i class="fas fa-bullseye text-gray-400 w-4"></i>
+                                <span class="text-gray-600 dark:text-gray-400" data-translate="Target">Target:</span>
+                                <span class="text-gray-900 dark:text-white font-mono">{{.PortForwardConfig.RemoteHost}}:{{.PortForwardConfig.RemotePort}}</span>
+                            </div>
+                            {{end}}
+                        {{end}}
+                        
+                        <div class="flex items-center space-x-2 rtl:space-x-reverse text-sm">
+                            <i class="fas fa-users text-gray-400 w-4"></i>
+                            <span class="text-gray-600 dark:text-gray-400" data-translate="Clients">Clients:</span>
+                            <span class="text-gray-900 dark:text-white">
                                 {{if .RouteAll}}<span data-translate="All Clients">All Clients</span>{{else}}{{len .ClientIDs}} <span data-translate="Selected">Selected</span>{{end}}
-                            </p>
-                            {{if .Description}}
-                            <p class="text-muted">{{.Description}}</p>
-                            {{end}}
-                            
-                            <!-- Traffic Stats -->
-                            <div class="row mt-2">
-                                <div class="col-6">
-                                    <small class="text-muted">
-                                        <i class="fas fa-download"></i> <span data-translate="In">In</span>: 
-                                        <span class="text-success" data-tunnel-id="{{.ID}}" data-stat="bytes_in">{{.BytesIn | formatBytes}}</span>
-                                    </small>
-                                </div>
-                                <div class="col-6">
-                                    <small class="text-muted">
-                                        <i class="fas fa-upload"></i> <span data-translate="Out">Out</span>: 
-                                        <span class="text-primary" data-tunnel-id="{{.ID}}" data-stat="bytes_out">{{.BytesOut | formatBytes}}</span>
-                                    </small>
-                                </div>
-                            </div>
-                            {{if eq .Status "active"}}
-                            <div class="row mt-1">
-                                <div class="col-12">
-                                    <small class="text-muted">
-                                        <i class="fas fa-clock"></i> <span data-translate="Last seen">Last seen</span>: 
-                                        <span data-tunnel-id="{{.ID}}" data-stat="last_seen">{{if .LastSeen.IsZero}}<span data-translate="Never">Never</span>{{else}}{{.LastSeen.Format "2006-01-02 15:04:05"}}{{end}}</span>
-                                    </small>
-                                </div>
-                            </div>
-                            {{end}}
-                        </div>
-                        <div class="card-footer">
-                            {{if eq .Status "active"}}
-                            <button class="btn btn-sm btn-warning mr-2" onclick="stopTunnel('{{.ID}}')">
-                                <i class="fas fa-stop"></i> <span data-translate="Stop">Stop</span>
-                            </button>
-                            {{else}}
-                            <button class="btn btn-sm btn-success mr-2" onclick="startTunnel('{{.ID}}')">
-                                <i class="fas fa-play"></i> <span data-translate="Start">Start</span>
-                            </button>
-                            {{end}}
-                            {{if eq .Status "active"}}
-                            <button class="btn btn-sm btn-secondary mr-2" disabled data-translate="Stop tunnel first to edit" title="Stop tunnel first to edit">
-                                <i class="fas fa-edit"></i> <span data-translate="Edit">Edit</span>
-                            </button>
-                            {{else}}
-                            <button class="btn btn-sm btn-secondary mr-2" onclick="editTunnel('{{.ID}}')">
-                                <i class="fas fa-edit"></i> <span data-translate="Edit">Edit</span>
-                            </button>
-                            {{end}}
-                            <button class="btn btn-sm btn-danger" onclick="deleteTunnel('{{.ID}}')">
-                                <i class="fas fa-trash"></i> <span data-translate="Delete">Delete</span>
-                            </button>
+                            </span>
                         </div>
                     </div>
-                </div>
-                {{end}}
-            {{else}}
-                <div class="col-12">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i>
-                        <span data-translate="No tunnels configured. Add a new tunnel to get started.">No tunnels configured. Add a new tunnel to get started.</span>
+
+                    {{if .Description}}
+                    <div class="p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                        <p class="text-sm text-gray-700 dark:text-gray-300">{{.Description}}</p>
+                    </div>
+                    {{end}}
+
+                    <!-- Traffic Statistics -->
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="text-center">
+                                <div class="flex items-center justify-center space-x-1 rtl:space-x-reverse mb-1">
+                                    <i class="fas fa-download text-green-500 text-xs"></i>
+                                    <span class="text-xs text-gray-600 dark:text-gray-400" data-translate="In">In</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-white" data-tunnel-id="{{.ID}}" data-stat="bytes_in">
+                                    {{.BytesIn | formatBytes}}
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <div class="flex items-center justify-center space-x-1 rtl:space-x-reverse mb-1">
+                                    <i class="fas fa-upload text-blue-500 text-xs"></i>
+                                    <span class="text-xs text-gray-600 dark:text-gray-400" data-translate="Out">Out</span>
+                                </div>
+                                <div class="text-sm font-semibold text-gray-900 dark:text-white" data-tunnel-id="{{.ID}}" data-stat="bytes_out">
+                                    {{.BytesOut | formatBytes}}
+                                </div>
+                            </div>
+                        </div>
+                        {{if eq .Status "active"}}
+                        <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center justify-center space-x-1 rtl:space-x-reverse">
+                                <i class="fas fa-clock text-gray-400 text-xs"></i>
+                                <span class="text-xs text-gray-600 dark:text-gray-400" data-translate="Last seen">Last seen:</span>
+                                <span class="text-xs text-gray-900 dark:text-white" data-tunnel-id="{{.ID}}" data-stat="last_seen">
+                                    {{if .LastSeen.IsZero}}<span data-translate="Never">Never</span>{{else}}{{.LastSeen.Format "2006-01-02 15:04:05"}}{{end}}
+                                </span>
+                            </div>
+                        </div>
+                        {{end}}
                     </div>
                 </div>
+
+                <!-- Action Buttons -->
+                <div class="px-6 pb-6">
+                    <div class="flex space-x-2 rtl:space-x-reverse">
+                        {{if eq .Status "active"}}
+                        <button onclick="stopTunnel('{{.ID}}')" 
+                                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                            <i class="fas fa-stop mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="Stop">Stop</span>
+                        </button>
+                        {{else}}
+                        <button onclick="startTunnel('{{.ID}}')" 
+                                class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200">
+                            <i class="fas fa-play mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="Start">Start</span>
+                        </button>
+                        {{end}}
+                        
+                        {{if eq .Status "active"}}
+                        <button disabled 
+                                title="Stop tunnel first to edit"
+                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-lg text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-dark-600 cursor-not-allowed">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        {{else}}
+                        <button onclick="editTunnel('{{.ID}}')" 
+                                class="inline-flex items-center justify-center px-3 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        {{end}}
+                        
+                        <button onclick="deleteTunnel('{{.ID}}')" 
+                                class="inline-flex items-center justify-center px-3 py-2 border border-red-300 dark:border-red-700 text-sm font-medium rounded-lg text-red-700 dark:text-red-400 bg-white dark:bg-dark-700 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
             {{end}}
         </div>
+        {{else}}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <div class="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exchange-alt text-white text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                <span data-translate="No tunnels configured">No tunnels configured</span>
+            </h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">
+                <span data-translate="Add a new tunnel to get started.">Add a new tunnel to get started.</span>
+            </p>
+            <button onclick="openNewTunnelModal()" 
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="New Tunnel">New Tunnel</span>
+            </button>
+        </div>
+        {{end}}
+    </div>
+</div>
     </div>
 </section>
 
@@ -424,6 +554,145 @@
 
 {{define "bottom_js"}}
 <script>
+// Modern modal system for tunnels page
+function openNewTunnelModal() {
+    // Create modal HTML
+    const modalHTML = `
+        <div id="newTunnelModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeNewTunnelModal()"></div>
+                
+                <div class="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-dark-800 shadow-xl rounded-2xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                            <i class="fas fa-plus-circle text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="New Tunnel">New Tunnel</span>
+                        </h3>
+                        <button onclick="closeNewTunnelModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="frm_new_tunnel" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Tunnel Name">Tunnel Name</label>
+                            <input type="text" id="tunnel_name" name="name" required
+                                   class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Tunnel Type">Tunnel Type</label>
+                            <select id="tunnel_type" name="type" required onchange="showTunnelConfig()"
+                                    class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                                <option value="" data-translate="Select tunnel type">Select tunnel type</option>
+                                <option value="wg-to-wg" data-translate="WireGuard to WireGuard">WireGuard to WireGuard</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Description (Optional)">Description (Optional)</label>
+                            <textarea id="description" name="description" rows="2"
+                                      class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white resize-none"></textarea>
+                        </div>
+                        
+                        <div class="flex space-x-3 rtl:space-x-reverse pt-4">
+                            <button type="button" onclick="closeNewTunnelModal()"
+                                    class="flex-1 px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                                <span data-translate="Cancel">Cancel</span>
+                            </button>
+                            <button type="submit"
+                                    class="flex-1 px-4 py-2 border border-transparent rounded-lg text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                                <span data-translate="Create Tunnel">Create Tunnel</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Show modal
+    document.getElementById('newTunnelModal').style.display = 'block';
+    
+    // Translate modal content
+    if (window.langManager) {
+        window.langManager.translatePage();
+    }
+}
+
+function closeNewTunnelModal() {
+    const modal = document.getElementById('newTunnelModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function openCleanupModal() {
+    const modalHTML = `
+        <div id="cleanupModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+                <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeCleanupModal()"></div>
+                
+                <div class="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-dark-800 shadow-xl rounded-2xl">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                            <i class="fas fa-broom text-yellow-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="Cleanup Corrupted Tunnels">Cleanup Corrupted Tunnels</span>
+                        </h3>
+                        <button onclick="closeCleanupModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+                            <div class="flex items-start space-x-3 rtl:space-x-reverse">
+                                <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 mt-0.5"></i>
+                                <div class="text-sm text-yellow-800 dark:text-yellow-200">
+                                    <p data-translate="This will remove any corrupted tunnel records that cannot be loaded properly.">This will remove any corrupted tunnel records that cannot be loaded properly.</p>
+                                    <p class="mt-2 font-medium" data-translate="Warning: This action cannot be undone!">Warning: This action cannot be undone!</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-3 rtl:space-x-reverse">
+                            <button onclick="closeCleanupModal()"
+                                    class="flex-1 px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                                <span data-translate="Cancel">Cancel</span>
+                            </button>
+                            <button onclick="cleanupTunnels()"
+                                    class="px-4 py-2 border border-transparent rounded-lg text-white bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 transition-all duration-200">
+                                <span data-translate="Smart Cleanup">Smart Cleanup</span>
+                            </button>
+                            <button onclick="deleteAllTunnels()"
+                                    class="px-4 py-2 border border-transparent rounded-lg text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
+                                <span data-translate="Delete All">Delete All</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    document.getElementById('cleanupModal').style.display = 'block';
+    
+    if (window.langManager) {
+        window.langManager.translatePage();
+    }
+}
+
+function closeCleanupModal() {
+    const modal = document.getElementById('cleanupModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
 // Smart translation for tunnels page - only when Persian is selected
 function smartTranslateTunnels() {
     // Check if current language is Persian
@@ -1122,49 +1391,55 @@ function startTunnel(tunnelId) {
     const startBtn = event.target;
     const originalText = startBtn.innerHTML;
     startBtn.disabled = true;
-    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+    startBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Starting...">Starting...</span>';
     
-    $.ajax({
-        url: '{{.basePath}}/api/tunnel/' + tunnelId + '/start',
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+    
+    fetch('{{.basePath}}/api/tunnel/' + tunnelId + '/start', {
         method: 'POST',
-        contentType: 'application/json',
-        timeout: 60000, // 60 seconds timeout
-        beforeSend: function() {
-            console.log('Sending start tunnel request...');
-        }
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        signal: controller.signal
     })
-    .done(function(response) {
-        console.log('Start tunnel response:', response);
-        if (response.success) {
-            alert('Tunnel started successfully!');
+    .then(response => {
+        clearTimeout(timeoutId);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success toast
+            if (typeof toastr !== 'undefined') {
+                toastr.success('Tunnel started successfully!');
+            } else {
+                alert('Tunnel started successfully!');
+            }
             location.reload();
         } else {
-            alert('Error: ' + (response.message || 'Unknown error'));
+            throw new Error(data.message || 'Unknown error');
         }
     })
-    .fail(function(xhr, status, error) {
-        console.error('Start tunnel failed:', {
-            status: xhr.status,
-            statusText: xhr.statusText,
-            responseText: xhr.responseText,
-            error: error
-        });
+    .catch(error => {
+        clearTimeout(timeoutId);
+        console.error('Start tunnel failed:', error);
         
         let errorMessage = 'Error starting tunnel';
-        if (status === 'timeout') {
+        if (error.name === 'AbortError') {
             errorMessage = 'Request timeout - tunnel start is taking too long';
-        } else if (xhr.responseText) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                errorMessage = response.message || errorMessage;
-            } catch(e) {
-                errorMessage = xhr.responseText || errorMessage;
-            }
+        } else if (error.message) {
+            errorMessage = error.message;
         }
         
-        alert(errorMessage);
+        // Show error toast
+        if (typeof toastr !== 'undefined') {
+            toastr.error(errorMessage);
+        } else {
+            alert(errorMessage);
+        }
     })
-    .always(function() {
+    .finally(() => {
         // Re-enable button
         startBtn.disabled = false;
         startBtn.innerHTML = originalText;
@@ -1178,49 +1453,55 @@ function stopTunnel(tunnelId) {
     const stopBtn = event.target;
     const originalText = stopBtn.innerHTML;
     stopBtn.disabled = true;
-    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+    stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Stopping...">Stopping...</span>';
     
-    $.ajax({
-        url: '{{.basePath}}/api/tunnel/' + tunnelId + '/stop',
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+    
+    fetch('{{.basePath}}/api/tunnel/' + tunnelId + '/stop', {
         method: 'POST',
-        contentType: 'application/json',
-        timeout: 30000, // 30 seconds timeout
-        beforeSend: function() {
-            console.log('Sending stop tunnel request...');
-        }
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        signal: controller.signal
     })
-    .done(function(response) {
-        console.log('Stop tunnel response:', response);
-        if (response.success) {
-            alert('Tunnel stopped successfully!');
+    .then(response => {
+        clearTimeout(timeoutId);
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Show success toast
+            if (typeof toastr !== 'undefined') {
+                toastr.success('Tunnel stopped successfully!');
+            } else {
+                alert('Tunnel stopped successfully!');
+            }
             location.reload();
         } else {
-            alert('Error: ' + (response.message || 'Unknown error'));
+            throw new Error(data.message || 'Unknown error');
         }
     })
-    .fail(function(xhr, status, error) {
-        console.error('Stop tunnel failed:', {
-            status: xhr.status,
-            statusText: xhr.statusText,
-            responseText: xhr.responseText,
-            error: error
-        });
+    .catch(error => {
+        clearTimeout(timeoutId);
+        console.error('Stop tunnel failed:', error);
         
         let errorMessage = 'Error stopping tunnel';
-        if (status === 'timeout') {
+        if (error.name === 'AbortError') {
             errorMessage = 'Request timeout - tunnel stop is taking too long';
-        } else if (xhr.responseText) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                errorMessage = response.message || errorMessage;
-            } catch(e) {
-                errorMessage = xhr.responseText || errorMessage;
-            }
+        } else if (error.message) {
+            errorMessage = error.message;
         }
         
-        alert(errorMessage);
+        // Show error toast
+        if (typeof toastr !== 'undefined') {
+            toastr.error(errorMessage);
+        } else {
+            alert(errorMessage);
+        }
     })
-    .always(function() {
+    .finally(() => {
         // Re-enable button
         stopBtn.disabled = false;
         stopBtn.innerHTML = originalText;
@@ -1229,23 +1510,34 @@ function stopTunnel(tunnelId) {
 
 function cleanupTunnels() {
     if (confirm('Are you sure you want to cleanup corrupted tunnels? This action cannot be undone!')) {
-        $.ajax({
-            url: '{{.basePath}}/api/tunnel/cleanup',
+        fetch('{{.basePath}}/api/tunnel/cleanup', {
             method: 'POST',
-            contentType: 'application/json'
-        })
-        .done(function(response) {
-            if (response.success) {
-                alert('Tunnel cleanup completed successfully!');
-                $('#modal_cleanup_tunnels').modal('hide');
-                location.reload();
-            } else {
-                alert('Error: ' + response.message);
+            headers: {
+                'Content-Type': 'application/json'
             }
         })
-        .fail(function(xhr, status, error) {
-            console.error('Cleanup failed:', xhr, status, error);
-            alert('Error cleaning up tunnels: ' + (xhr.responseText || error));
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success toast
+                if (typeof toastr !== 'undefined') {
+                    toastr.success('Tunnel cleanup completed successfully!');
+                } else {
+                    alert('Tunnel cleanup completed successfully!');
+                }
+                closeCleanupModal();
+                location.reload();
+            } else {
+                throw new Error(data.message || 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Cleanup failed:', error);
+            if (typeof toastr !== 'undefined') {
+                toastr.error('Error cleaning up tunnels: ' + error.message);
+            } else {
+                alert('Error cleaning up tunnels: ' + error.message);
+            }
         });
     }
 }
@@ -1253,23 +1545,34 @@ function cleanupTunnels() {
 function deleteAllTunnels() {
     if (confirm('⚠️ WARNING: This will delete ALL tunnels permanently!\n\nThis action cannot be undone. Are you sure?')) {
         if (confirm('⚠️ FINAL CONFIRMATION: Delete ALL tunnel records?')) {
-            $.ajax({
-                url: '{{.basePath}}/api/tunnel/cleanup/all',
+            fetch('{{.basePath}}/api/tunnel/cleanup/all', {
                 method: 'DELETE',
-                contentType: 'application/json'
-            })
-            .done(function(response) {
-                if (response.success) {
-                    alert('All tunnels deleted successfully!');
-                    $('#modal_cleanup_tunnels').modal('hide');
-                    location.reload();
-                } else {
-                    alert('Error: ' + response.message);
+                headers: {
+                    'Content-Type': 'application/json'
                 }
             })
-            .fail(function(xhr, status, error) {
-                console.error('Delete all failed:', xhr, status, error);
-                alert('Error deleting tunnels: ' + (xhr.responseText || error));
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success toast
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('All tunnels deleted successfully!');
+                    } else {
+                        alert('All tunnels deleted successfully!');
+                    }
+                    closeCleanupModal();
+                    location.reload();
+                } else {
+                    throw new Error(data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Delete all failed:', error);
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Error deleting tunnels: ' + error.message);
+                } else {
+                    alert('Error deleting tunnels: ' + error.message);
+                }
             });
         }
     }
@@ -1294,54 +1597,100 @@ function startTunnelStatsRefresh() {
 
 // Refresh statistics for active tunnels
 function refreshActiveTunnelStats() {
-    $('.badge-success').each(function() {
-        const card = $(this).closest('.card');
-        const tunnelId = card.find('[data-tunnel-id]').first().attr('data-tunnel-id');
-        
-        if (tunnelId) {
-            $.ajax({
-                url: '{{.basePath}}/api/tunnel/' + tunnelId + '/stats',
-                method: 'GET',
-                dataType: 'json'
-            })
-            .done(function(stats) {
-                // Update bytes in
-                card.find('[data-stat="bytes_in"]').text(formatBytes(stats.bytes_in));
-                // Update bytes out
-                card.find('[data-stat="bytes_out"]').text(formatBytes(stats.bytes_out));
-                // Update last seen
-                if (stats.last_seen) {
-                    const lastSeen = new Date(stats.last_seen).toLocaleString();
-                    card.find('[data-stat="last_seen"]').text(lastSeen);
-                }
-            })
-            .fail(function(xhr, status, error) {
-                console.error('Failed to refresh tunnel stats for ' + tunnelId + ':', error);
-            });
+    // Find all active tunnel elements (those with green status badges)
+    document.querySelectorAll('.bg-green-100, .dark\\:bg-green-900\\/20').forEach(badge => {
+        const tunnelCard = badge.closest('[data-tunnel-id]') || badge.closest('div').querySelector('[data-tunnel-id]');
+        if (tunnelCard) {
+            const tunnelId = tunnelCard.getAttribute('data-tunnel-id');
+            
+            if (tunnelId) {
+                fetch('{{.basePath}}/api/tunnel/' + tunnelId + '/stats', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(stats => {
+                    // Find the parent card container
+                    const card = tunnelCard.closest('.bg-white, .dark\\:bg-dark-800');
+                    if (card) {
+                        // Update bytes in
+                        const bytesInElement = card.querySelector('[data-stat="bytes_in"]');
+                        if (bytesInElement) {
+                            bytesInElement.textContent = formatBytes(stats.bytes_in);
+                        }
+                        
+                        // Update bytes out
+                        const bytesOutElement = card.querySelector('[data-stat="bytes_out"]');
+                        if (bytesOutElement) {
+                            bytesOutElement.textContent = formatBytes(stats.bytes_out);
+                        }
+                        
+                        // Update last seen
+                        if (stats.last_seen) {
+                            const lastSeenElement = card.querySelector('[data-stat="last_seen"]');
+                            if (lastSeenElement) {
+                                const lastSeen = new Date(stats.last_seen).toLocaleString();
+                                lastSeenElement.textContent = lastSeen;
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to refresh tunnel stats for ' + tunnelId + ':', error);
+                });
+            }
         }
     });
 }
 
 // Manual refresh button for tunnel stats
 function refreshTunnelStats(tunnelId) {
-    $.ajax({
-        url: '{{.basePath}}/api/tunnel/' + tunnelId + '/stats',
+    fetch('{{.basePath}}/api/tunnel/' + tunnelId + '/stats', {
         method: 'GET',
-        dataType: 'json'
+        headers: {
+            'Content-Type': 'application/json'
+        }
     })
-    .done(function(stats) {
-        const card = $('[data-tunnel-id="' + tunnelId + '"]').closest('.card');
-        card.find('[data-stat="bytes_in"]').text(formatBytes(stats.bytes_in));
-        card.find('[data-stat="bytes_out"]').text(formatBytes(stats.bytes_out));
-        if (stats.last_seen) {
-            const lastSeen = new Date(stats.last_seen).toLocaleString();
-            card.find('[data-stat="last_seen"]').text(lastSeen);
+    .then(response => response.json())
+    .then(stats => {
+        // Find the tunnel card
+        const tunnelElement = document.querySelector('[data-tunnel-id="' + tunnelId + '"]');
+        if (tunnelElement) {
+            const card = tunnelElement.closest('.bg-white, .dark\\:bg-dark-800');
+            if (card) {
+                // Update bytes in
+                const bytesInElement = card.querySelector('[data-stat="bytes_in"]');
+                if (bytesInElement) {
+                    bytesInElement.textContent = formatBytes(stats.bytes_in);
+                }
+                
+                // Update bytes out
+                const bytesOutElement = card.querySelector('[data-stat="bytes_out"]');
+                if (bytesOutElement) {
+                    bytesOutElement.textContent = formatBytes(stats.bytes_out);
+                }
+                
+                // Update last seen
+                if (stats.last_seen) {
+                    const lastSeenElement = card.querySelector('[data-stat="last_seen"]');
+                    if (lastSeenElement) {
+                        const lastSeen = new Date(stats.last_seen).toLocaleString();
+                        lastSeenElement.textContent = lastSeen;
+                    }
+                }
+            }
         }
         console.log('Tunnel stats refreshed for', tunnelId);
     })
-    .fail(function(xhr, status, error) {
+    .catch(error => {
         console.error('Failed to refresh tunnel stats:', error);
-        alert('Failed to refresh tunnel statistics');
+        if (typeof toastr !== 'undefined') {
+            toastr.error('Failed to refresh tunnel statistics');
+        } else {
+            alert('Failed to refresh tunnel statistics');
+        }
     });
 }
 </script>

@@ -1,139 +1,376 @@
 {{define "base.html"}}
 <!DOCTYPE html>
-
-
-<html lang="en" class="scroll-smooth">
-
-<html>
-
-
-
-<html>
-
-
+<html lang="{{if .isRTL}}fa{{else}}en{{end}}" dir="{{if .isRTL}}rtl{{else}}ltr{{end}}">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title data-translate="Wireguard VPN">Wireguard VPN</title>
-    <!-- Tell the browser to be responsive to screen width -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Favicon -->
     <link rel="icon" href="{{.basePath}}/favicon">
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/fontawesome-free/css/all.min.css">
-    <!-- iCheck for checkboxes and radio inputs -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
-
-
-
-    <!-- Select2 -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/select2/css/select2.min.css">
-    <!-- Toastr -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/toastr/toastr.min.css">
-    <!-- Jquery Tags Input -->
-    <link rel="stylesheet" href="{{.basePath}}/static/plugins/jquery-tags-input/dist/jquery.tagsinput.min.css">
-
-    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/tailwind.css">
-    <!-- Custom CSS for compatibility -->
-    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Ionicons -->
-    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-    <!-- overlayScrollbars -->
-    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/adminlte.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{.basePath}}/static/dist/css/custom.css">
-    <!-- Google Font: Source Sans Pro and Inter (optimized) -->
-    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&family=Inter:wght@400;600&family=Vazirmatn:wght@400;600&display=swap" rel="stylesheet">
-
-
+    
+    <!-- TailwindCSS Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'Vazirmatn', 'system-ui', 'sans-serif'],
+                        'persian': ['Vazirmatn', 'system-ui', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'xl': '0.75rem',
+                        '2xl': '1rem',
+                        '3xl': '1.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
+    <style>
+        /* RTL Support */
+        [dir="rtl"] {
+            font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif;
+        }
+        
+        /* Smooth transitions */
+        * {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Scrollbar styling */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.1);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+        
+        /* Dark mode scrollbar */
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(71, 85, 105, 0.1);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.3);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 0.5);
+        }
+        
+        /* Gradient animations */
+        .gradient-animation {
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Sidebar animations */
+        .sidebar-enter {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+        
+        .sidebar-enter-active {
+            transform: translateX(0);
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        [dir="rtl"] .sidebar-enter {
+            transform: translateX(100%);
+        }
+        
+        [dir="rtl"] .sidebar-enter-active {
+            transform: translateX(0);
+        }
+        
+        /* Mobile menu overlay */
+        .mobile-menu-overlay {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        /* Card hover effects */
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .dark .card-hover:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Button animations */
+        .btn-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Status indicators */
+        .status-dot {
+            position: relative;
+        }
+        
+        .status-dot::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        
+        .status-dot.online::before {
+            background: rgba(34, 197, 94, 0.4);
+        }
+        
+        .status-dot.offline::before {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        
+        @keyframes ping {
+            75%, 100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
 
     <!-- Language Support -->
     <script src="{{.basePath}}/static/dist/js/translations.js"></script>
     <script src="{{.basePath}}/static/dist/js/language.js"></script>
-    <!-- Theme and Language Manager -->
-    <script src="{{.basePath}}/static/dist/js/theme-manager.js"></script>
     
-    <!-- Debug Script -->
+    <!-- Theme Management -->
     <script>
-        console.log('Base.html loaded, checking translations...');
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, translations object:', typeof translations !== 'undefined' ? translations : 'NOT FOUND');
-            console.log('Language manager:', typeof window.langManager !== 'undefined' ? window.langManager : 'NOT FOUND');
+        // Theme management
+        const themeManager = {
+            theme: localStorage.getItem('theme') || 'light',
             
-            // Force translation test
-            setTimeout(function() {
-                console.log('Running force translation test...');
-                if (window.langManager) {
-                    console.log('Current language:', window.langManager.currentLang);
-                    window.langManager.forceRetranslate();
+            init() {
+                this.setTheme(this.theme);
+                this.bindEvents();
+            },
+            
+            setTheme(theme) {
+                this.theme = theme;
+                localStorage.setItem('theme', theme);
+                
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
                 } else {
-                    console.error('Language manager not found!');
-                }
-            }, 2000);
-        });
-    </script>
-    
-    <!-- Performance Optimization -->
-    <script>
-        // Lazy load images
-        document.addEventListener('DOMContentLoaded', function() {
-            const images = document.querySelectorAll('img[data-src]');
-            const imageObserver = new IntersectionObserver((entries, observer) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const img = entry.target;
-                        img.src = img.dataset.src;
-                        img.classList.remove('lazy');
-                        imageObserver.unobserve(img);
-                    }
-                });
-            });
-            images.forEach(img => imageObserver.observe(img));
-        });
-        
-        // Debounce function for better performance
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-        
-        // Optimize form submissions - but don't interfere with custom handlers
-        document.addEventListener('DOMContentLoaded', function() {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                // Skip forms that have custom submit handlers
-                if (form.hasAttribute('data-custom-submit') || 
-                    form.id === 'frm_server_interface' || 
-                    form.id === 'frm_global_settings') {
-                    return;
+                    document.documentElement.classList.remove('dark');
                 }
                 
-                form.addEventListener('submit', function(e) {
-                    const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn && !submitBtn.disabled) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                        
-                        // Reset after 5 seconds as fallback
-                        setTimeout(() => {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = submitBtn.getAttribute('data-original-text') || 'Submit';
-                        }, 5000);
+                // Update theme toggle button
+                const toggleBtn = document.getElementById('theme-toggle');
+                if (toggleBtn) {
+                    const icon = toggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                    }
+                }
+            },
+            
+            toggleTheme() {
+                this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleTheme());
                     }
                 });
+            }
+        };
+        
+        // Language management
+        const languageManager = {
+            currentLang: localStorage.getItem('language') || 'en',
+            
+            init() {
+                this.setLanguage(this.currentLang);
+                this.bindEvents();
+            },
+            
+            setLanguage(lang) {
+                this.currentLang = lang;
+                localStorage.setItem('language', lang);
+                
+                // Update HTML attributes
+                document.documentElement.lang = lang === 'fa' ? 'fa' : 'en';
+                document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+                
+                // Update language toggle button
+                const toggleBtn = document.getElementById('language-toggle');
+                if (toggleBtn) {
+                    const text = toggleBtn.querySelector('span');
+                    if (text) {
+                        text.textContent = lang === 'fa' ? 'EN' : 'فا';
+                    }
+                }
+                
+                // Apply translations if available
+                if (window.langManager && window.langManager.forceRetranslate) {
+                    window.langManager.forceRetranslate();
+                }
+            },
+            
+            toggleLanguage() {
+                this.setLanguage(this.currentLang === 'fa' ? 'en' : 'fa');
+                // Reload page to apply RTL/LTR changes
+                        setTimeout(() => {
+                    window.location.reload();
+                }, 100);
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toggleBtn = document.getElementById('language-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleLanguage());
+                    }
+                });
+            }
+        };
+        
+        // Sidebar management
+        const sidebarManager = {
+            isOpen: false,
+            
+            init() {
+                this.bindEvents();
+            },
+            
+            toggle() {
+                this.isOpen = !this.isOpen;
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (sidebar) {
+                    if (this.isOpen) {
+                        sidebar.classList.remove('-translate-x-full');
+                        sidebar.classList.add('translate-x-0');
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                        }
+                    } else {
+                        sidebar.classList.add('-translate-x-full');
+                        sidebar.classList.remove('translate-x-0');
+                        if (overlay) {
+                            overlay.classList.add('hidden');
+                        }
+                    }
+                }
+            },
+            
+            close() {
+                this.isOpen = false;
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (sidebar) {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                }
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                }
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const menuBtn = document.getElementById('menu-toggle');
+                    const overlay = document.getElementById('mobile-overlay');
+                    
+                    if (menuBtn) {
+                        menuBtn.addEventListener('click', () => this.toggle());
+                    }
+                    
+                    if (overlay) {
+                        overlay.addEventListener('click', () => this.close());
+                    }
+                    
+                    // Close sidebar on escape key
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.isOpen) {
+                            this.close();
+                        }
             });
         });
+            }
+        };
+        
+        // Initialize managers
+        themeManager.init();
+        languageManager.init();
+        sidebarManager.init();
     </script>
 
     <!-- START: On page css -->
@@ -141,1044 +378,355 @@
     <!-- END: On page css -->
 </head>
 
-
-
-<body class="min-h-screen bg-gray-50 dark:bg-dark-900 font-sans transition-all duration-300 ltr" data-theme="light">
-    <!-- Modern Layout Wrapper -->
+<body class="min-h-screen bg-gray-50 dark:bg-dark-900 font-sans antialiased">
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 mobile-menu-overlay z-40 lg:hidden hidden"></div>
+    
+    <!-- Main Container -->
     <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
-        <aside class="sidebar-modern w-64 lg:w-64 bg-white dark:bg-dark-800 shadow-2xl border-r border-gray-200 dark:border-dark-700 z-50">
-            <!-- Brand -->
-            <div class="header-brand px-6 py-4 border-b border-gray-200 dark:border-dark-700">
-                <a href="{{.basePath}}" class="flex items-center space-x-3 rtl:space-x-reverse">
-                    <div class="header-brand-icon">
-                        <i class="fas fa-shield-alt text-primary-500"></i>
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-800 shadow-xl transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 rtl:right-0 rtl:left-auto rtl:translate-x-full rtl:lg:translate-x-0 custom-scrollbar overflow-y-auto">
+            <!-- Logo Section -->
+            <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg">
+                        <i class="fas fa-shield-alt text-white text-lg"></i>
                     </div>
-                    <span class="header-brand-text text-gradient">vWireguard</span>
-                </a>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">vWireguard</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">VPN Management</p>
+                    </div>
+                </div>
+                <button id="sidebar-close" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 lg:hidden">
+                    <i class="fas fa-times text-gray-400"></i>
+                </button>
             </div>
             
             <!-- User Info -->
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-dark-700">
+            <div class="p-6 border-b border-gray-200 dark:border-dark-700">
                 <div class="flex items-center space-x-3 rtl:space-x-reverse">
-                    <div class="flex-shrink-0">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center">
-                            <i class="fas fa-user-shield text-white text-sm"></i>
+                    <div class="relative">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-user-shield text-white text-lg"></i>
                         </div>
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-dark-800 status-dot online"></div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        {{if .baseData.CurrentUser}}
-                        {{if .baseData.Admin}}
-                        <div class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {{.baseData.CurrentUser}}
+                            {{if .baseData.CurrentUser}}
+                        <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-3 py-1 rounded-full text-xs font-medium mb-1">
+                            {{if .baseData.Admin}}
+                            <span data-translate="Administrator">Administrator</span>
+                            {{else}}
+                            <span data-translate="Manager">Manager</span>
+                            {{end}}
                         </div>
-                        <div class="text-xs text-primary-500 font-medium" data-translate="Administrator">Administrator</div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{.baseData.CurrentUser}}</p>
                         {{else}}
-                        <div class="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {{.baseData.CurrentUser}}
+                        <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-3 py-1 rounded-full text-xs font-medium mb-1">
+                            <span data-translate="Administrator">Administrator</span>
                         </div>
-                        <div class="text-xs text-blue-500 font-medium" data-translate="Manager">Manager</div>
-                        {{end}}
-                        {{else}}
-                        <div class="text-sm font-medium text-gray-900 dark:text-white" data-translate="Administrator">Administrator</div>
-                        {{end}}
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">Admin</p>
+                            {{end}}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Navigation -->
-            <nav class="sidebar-nav-modern flex-1 px-4 py-6 overflow-y-auto">
+            <!-- Navigation Menu -->
+            <nav class="flex-1 px-4 py-6 space-y-2">
                 <!-- Main Section -->
-                <div class="mb-8">
-                    <div class="flex items-center mb-4">
-                        <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span class="mr-2">⚡</span>
-                            <span data-translate="MAIN">MAIN</span>
+                <div class="mb-6">
+                    <div class="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3 rtl:mr-0 rtl:ml-3">
+                            <i class="fas fa-bolt text-white text-xs"></i>
                         </div>
+                        <span data-translate="MAIN">MAIN</span>
                     </div>
-                    <div class="space-y-2">
-                        <a href="{{.basePath}}/system-monitor" class="sidebar-nav-item {{if eq .baseData.Active "system-monitor"}}active{{end}}">
-                            <i class="nav-icon fas fa-chart-line"></i>
+                    <div class="space-y-1">
+                        <a href="{{.basePath}}/system-monitor" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "system-monitor"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-chart-line w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "system-monitor"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="System Monitor">System Monitor</span>
                         </a>
-                        <a href="{{.basePath}}/" class="sidebar-nav-item {{if eq .baseData.Active ""}}active{{end}}">
-                            <i class="nav-icon fas fa-user-secret"></i>
+                        
+                        <a href="{{.basePath}}/" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active ""}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-user-secret w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active ""}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Wireguard Clients">Wireguard Clients</span>
                         </a>
-                        <a href="{{.basePath}}/tunnels" class="sidebar-nav-item {{if eq .baseData.Active "tunnels"}}active{{end}}">
-                            <i class="nav-icon fas fa-network-wired"></i>
+                        
+                        <a href="{{.basePath}}/tunnels" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "tunnels"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-network-wired w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "tunnels"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Tunnels">Tunnels</span>
                         </a>
+
                         {{if .baseData.Admin}}
-                        <a href="{{.basePath}}/wg-server" class="sidebar-nav-item {{if eq .baseData.Active "wg-server"}}active{{end}}">
-                            <i class="nav-icon fas fa-server"></i>
+                        <a href="{{.basePath}}/wg-server" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "wg-server"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-server w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "wg-server"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Wireguard Server">Wireguard Server</span>
                         </a>
                         {{end}}
                     </div>
                 </div>
-
-                {{if .baseData.Admin}}
+                
                 <!-- Settings Section -->
-                <div class="mb-8">
-                    <div class="flex items-center mb-4">
-                        <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span class="mr-2">⚙️</span>
-                            <span data-translate="SETTINGS">SETTINGS</span>
+                {{if .baseData.Admin}}
+                <div class="mb-6">
+                    <div class="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3 rtl:mr-0 rtl:ml-3">
+                            <i class="fas fa-cog text-white text-xs"></i>
                         </div>
+                        <span data-translate="SETTINGS">SETTINGS</span>
                     </div>
-                    <div class="space-y-2">
-                        <a href="{{.basePath}}/global-settings" class="sidebar-nav-item {{if eq .baseData.Active "global-settings"}}active{{end}}">
-                            <i class="nav-icon fas fa-cog"></i>
+                    <div class="space-y-1">
+                        <a href="{{.basePath}}/global-settings" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "global-settings"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-cog w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "global-settings"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Global Settings">Global Settings</span>
                         </a>
+                        
                         {{if not .loginDisabled}}
-                        <a href="{{.basePath}}/users-settings" class="sidebar-nav-item {{if eq .baseData.Active "users-settings"}}active{{end}}">
-                            <i class="nav-icon fas fa-users-cog"></i>
+                        <a href="{{.basePath}}/users-settings" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "users-settings"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-users-cog w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "users-settings"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Users Settings">Users Settings</span>
                         </a>
                         {{end}}
                     </div>
                 </div>
-                {{end}}
+                        {{end}}
 
                 <!-- Utilities Section -->
-                <div class="mb-8">
-                    <div class="flex items-center mb-4">
-                        <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <span class="mr-2">🔧</span>
-                            <span data-translate="UTILITIES">UTILITIES</span>
+                <div class="mb-6">
+                    <div class="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3 rtl:mr-0 rtl:ml-3">
+                            <i class="fas fa-tools text-white text-xs"></i>
                         </div>
+                        <span data-translate="UTILITIES">UTILITIES</span>
                     </div>
-                    <div class="space-y-2">
-                        <a href="{{.basePath}}/utilities" class="sidebar-nav-item {{if eq .baseData.Active "utilities"}}active{{end}}">
-                            <i class="nav-icon fas fa-tools"></i>
+                    <div class="space-y-1">
+                        <a href="{{.basePath}}/utilities" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "utilities"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-tools w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "utilities"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="System Utilities">System Utilities</span>
                         </a>
-                        <a href="{{.basePath}}/status" class="sidebar-nav-item {{if eq .baseData.Active "status"}}active{{end}}">
-                            <i class="nav-icon fas fa-signal"></i>
+                        
+                        <a href="{{.basePath}}/status" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "status"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-signal w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "status"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Status">Status</span>
                         </a>
                     </div>
                 </div>
-            </nav>
+                </nav>
         </aside>
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col overflow-hidden">
             <!-- Header -->
-            <header class="header-modern bg-white dark:bg-dark-800 shadow-lg border-b border-gray-200 dark:border-dark-700">
-                <div class="header-content px-6 py-4">
+            <header class="bg-white dark:bg-dark-800 shadow-sm border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center justify-between h-16 px-6">
                     <!-- Left Side -->
                     <div class="flex items-center space-x-4 rtl:space-x-reverse">
-                        <!-- Mobile Menu Toggle -->
-                        <button type="button" class="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-700 transition-colors" 
-                                data-widget="pushmenu">
-                            <i class="fas fa-bars"></i>
+                        <button id="menu-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 lg:hidden">
+                            <i class="fas fa-bars text-gray-600 dark:text-gray-400"></i>
                         </button>
                         
-                        <!-- Search Form -->
-                        <form class="hidden lg:flex items-center space-x-2 rtl:space-x-reverse" id="search-form" style="display: none">
-                            <div class="relative">
-                                <input type="text" id="search-input" class="input-modern w-64" placeholder="Search..." />
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <button type="submit" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300" disabled>
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <select name="status-selector" id="status-selector" class="select-modern w-32">
-                                <option value="All">All</option>
-                                <option value="Enabled">Enabled</option>
-                                <option value="Disabled">Disabled</option>
-                                <option value="Connected">Connected</option>
-                                <option value="Disconnected">Disconnected</option>
-                            </select>
-                        </form>
+                        <!-- Page Title -->
+                        <div class="hidden md:block">
+                            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+                                {{template "page_title" .}}
+                            </h1>
+                        </div>
                     </div>
-
+                    
                     <!-- Right Side -->
-                    <div class="header-actions">
+                    <div class="flex items-center space-x-4 rtl:space-x-reverse">
                         {{if eq .baseData.Active ""}}
-                        <button type="button" class="btn-primary" data-toggle="modal" data-target="#modal_new_client">
-                            <i class="fas fa-plus mr-2"></i>
+                        <button onclick="document.getElementById('modal_new_client').style.display='block'" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                            <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
                             <span data-translate="New Client">New Client</span>
                         </button>
                         {{end}}
                         
                         <!-- Apply Config Button -->
-                        <button id="apply-config-button" onclick="window.applyConfig()" type="button" class="btn-danger">
-                            <i class="fas fa-check mr-2"></i>
+                        <button id="apply-config-button" onclick="window.applyConfig()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 btn-pulse">
+                            <i class="fas fa-check mr-2 rtl:mr-0 rtl:ml-2"></i>
                             <span data-translate="Apply Config">Apply Config</span>
                         </button>
                         
                         <!-- Language Toggle -->
-                        <button id="language-toggle" type="button" class="btn-secondary">
-                            <i class="fas fa-globe mr-2"></i>
-                            <span>EN</span>
+                        <button id="language-toggle" class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm hover:shadow-md transition-all duration-200">
+                            <i class="fas fa-language mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span>{{if .isRTL}}EN{{else}}فا{{end}}</span>
                         </button>
                         
                         <!-- Theme Toggle -->
-                        <button id="theme-toggle" type="button" class="btn-secondary">
+                        <button id="theme-toggle" class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm hover:shadow-md transition-all duration-200">
                             <i class="fas fa-moon"></i>
                         </button>
                         
+                        <!-- Profile/Logout -->
                         {{if .baseData.CurrentUser}}
-                        <button onclick="location.href='{{.basePath}}/logout';" type="button" class="btn-danger">
-                            <i class="fas fa-sign-out-alt mr-2"></i>
-                            <span data-translate="Logout">Logout</span>
-                        </button>
+                        <div class="relative">
+                            <button onclick="document.getElementById('profile-menu').classList.toggle('hidden')" class="flex items-center space-x-3 rtl:space-x-reverse px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-700 transition-all duration-200">
+                                <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </div>
+                                <div class="hidden md:block text-left rtl:text-right">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{.baseData.CurrentUser}}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{if .baseData.Admin}}Admin{{else}}Manager{{end}}</p>
+                                </div>
+                                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="profile-menu" class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 bg-white dark:bg-dark-700 rounded-xl shadow-lg ring-1 ring-black ring-opacity-5 hidden z-50">
+                                <div class="py-1">
+                                    <a href="{{.basePath}}/profile" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-600">
+                                        <i class="fas fa-user mr-3 rtl:mr-0 rtl:ml-3"></i>
+                                        <span data-translate="Profile">Profile</span>
+                                    </a>
+                                    <a href="{{.basePath}}/about" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-600">
+                                        <i class="fas fa-info-circle mr-3 rtl:mr-0 rtl:ml-3"></i>
+                                        <span data-translate="About">About</span>
+                                    </a>
+                                    <hr class="my-1 border-gray-200 dark:border-dark-600">
+                                    <a href="{{.basePath}}/logout" class="flex items-center px-4 py-2 text-sm text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900">
+                                        <i class="fas fa-sign-out-alt mr-3 rtl:mr-0 rtl:ml-3"></i>
+                                        <span data-translate="Logout">Logout</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                         {{end}}
-                    </div>
+                        </div>
                 </div>
             </header>
-
+            
             <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-dark-900">
-                <!-- Page Header -->
-                <div class="bg-white dark:bg-dark-800 shadow-sm border-b border-gray-200 dark:border-dark-700">
-                    <div class="px-6 py-4">
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{template "page_title" .}}</h1>
-                    </div>
-                </div>
-                
-                <!-- Page Content -->
-                <div class="p-6">
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-dark-900">
+                <div class="container mx-auto px-6 py-8">
                     {{template "page_content" .}}
                 </div>
             </main>
+            </div>
         </div>
-    </div>
 
     <!-- New Client Modal -->
-    <div class="modal-modern fixed inset-0 z-50 overflow-y-auto hidden" id="modal_new_client">
-        <div class="modal-overlay fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="modal-content inline-block align-bottom bg-white dark:bg-dark-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="modal-header bg-gray-50 dark:bg-dark-700 px-6 py-4 border-b border-gray-200 dark:border-dark-600">
-                    <h3 class="modal-title text-lg font-medium text-gray-900 dark:text-white" data-translate="New Wireguard Client">New Wireguard Client</h3>
-                    <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors" data-dismiss="modal" aria-label="Close">
-                        <i class="fas fa-times"></i>
+    <div id="modal_new_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="fas fa-plus text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span data-translate="New Wireguard Client">New Wireguard Client</span>
+                </h3>
+                <button onclick="document.getElementById('modal_new_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                    <i class="fas fa-times text-gray-400"></i>
+                        </button>
+                    </div>
+            
+            <form name="frm_new_client" id="frm_new_client" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Name">Name</span>
+                        </label>
+                        <input type="text" id="client_name" name="client_name" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                    </div>
+                    
+                    <div>
+                        <label for="client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Email">Email</span>
+                        </label>
+                        <input type="email" id="client_email" name="client_email" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Quota">Quota</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <select id="quota_preset" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                            <option value="custom" data-translate="Custom">Custom</option>
+                            <option value="1073741824">1 GB</option>
+                            <option value="5368709120">5 GB</option>
+                            <option value="10737418240">10 GB</option>
+                            <option value="53687091200">50 GB</option>
+                            <option value="107374182400">100 GB</option>
+                        </select>
+                        <input type="number" id="client_quota" name="client_quota" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Custom bytes">
+            </div>
+        </div>
+
+                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="use_server_dns" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="use_server_dns" class="ml-2 rtl:ml-0 rtl:mr-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Use server DNS">Use server DNS</span>
+                        </label>
+                        </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="enabled" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="enabled" class="ml-2 rtl:ml-0 rtl:mr-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Enable after creation">Enable after creation</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
+                    <button type="button" onclick="document.getElementById('modal_new_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <span data-translate="Cancel">Cancel</span>
                     </button>
-
-<body class="hold-transition sidebar-mini">
-    <!-- Site wrapper -->
-    <div class="wrapper">
-        <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <!-- Left navbar links -->
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-                </li>
-            </ul>
-
-            <!-- SEARCH FORM -->
-            <form class="form-inline ml-3" style="display: none" id="search-form">
-                <div class="input-group input-group-sm">
-                    <input class="form-control form-control-navbar" placeholder="Search"
-                        aria-label="Search" id="search-input">
-                    <div class="input-group-append">
-                        <button class="btn-navbar" type="submit" disabled>
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="form-group form-group-sm">
-                    <select name="status-selector" id="status-selector" class="custom-select form-control-navbar" style="margin-left: 0.5em; height: 90%; font-size: 14px;">
-                        <!-- THIS SECTION IS OVERRIDDEN BY JS. SEE updateSearchList() function in clients.html BEFORE EDITING -->
-                        <option value="All">All</option>
-                        <option value="Enabled">Enabled</option>
-                        <option value="Disabled">Disabled</option>
-                        <option value="Connected">Connected</option>
-                        <option value="Disconnected">Disconnected</option>
-                        <!-- THIS SECTION IS OVERRIDDEN BY JS. SEE updateSearchList() function in clients.html BEFORE EDITING -->
-                    </select>
-
-                </div>
-                <form name="frm_new_client" id="frm_new_client">
-                    <div class="modal-body p-6 space-y-6">
-                        <div class="space-y-2">
-                            <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Name">Name</label>
-                            <input type="text" class="input-modern" id="client_name" name="client_name">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Email">Email</label>
-                            <input type="text" class="input-modern" id="client_email" name="client_email">
-                        </div>
-                        <div class="space-y-2">
-                            <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300" data-translate="Quota">Quota</label>
-                            <div class="grid grid-cols-2 gap-3">
-                                <select class="select-modern" id="quota_preset" onchange="updateQuotaInput()">
-                                    <option value="custom" data-translate="Custom">Custom</option>
-                                    <option value="1073741824">1 GB</option>
-                                    <option value="2147483648">2 GB</option>
-                                    <option value="5368709120">5 GB</option>
-                                    <option value="10737418240">10 GB</option>
-                                    <option value="21474836480">20 GB</option>
-                                    <option value="53687091200">50 GB</option>
-                                    <option value="107374182400">100 GB</option>
-                                    <option value="214748364800">200 GB</option>
-                                    <option value="536870912000">500 GB</option>
-                                    <option value="1073741824000">1 TB</option>
-                                </select>
-                                <input type="number" class="input-modern" id="client_quota" name="client_quota" 
-                                       data-translate-placeholder="Enter custom quota in bytes" placeholder="Enter custom quota in bytes" />
-                            </div>
-                        </div>
-
-<body class="hold-transition sidebar-mini">
-    <!-- Site wrapper -->
-    <div class="wrapper">
-        <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <!-- Left navbar links -->
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
-                </li>
-            </ul>
-
-            <!-- SEARCH FORM -->
-            <form class="form-inline ml-3" style="display: none" id="search-form">
-                <div class="input-group input-group-sm">
-                    <input class="form-control form-control-navbar" placeholder="Search"
-                        aria-label="Search" id="search-input">
-                    <div class="input-group-append">
-                        <button class="btn-navbar" type="submit" disabled>
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="form-group form-group-sm">
-                    <select name="status-selector" id="status-selector" class="custom-select form-control-navbar" style="margin-left: 0.5em; height: 90%; font-size: 14px;">
-                        <!-- THIS SECTION IS OVERRIDDEN BY JS. SEE updateSearchList() function in clients.html BEFORE EDITING -->
-                        <option value="All">All</option>
-                        <option value="Enabled">Enabled</option>
-                        <option value="Disabled">Disabled</option>
-                        <option value="Connected">Connected</option>
-                        <option value="Disconnected">Disconnected</option>
-                        <!-- THIS SECTION IS OVERRIDDEN BY JS. SEE updateSearchList() function in clients.html BEFORE EDITING -->
-                    </select>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
+                        <span data-translate="Create Client">Create Client</span>
+                    </button>
                 </div>
             </form>
-
-            <!-- Right navbar links -->
-            <div class="navbar-nav ml-auto">
-                {{if eq .baseData.Active ""}}
-                <button style="margin-left: 0.5em;" type="button" class="btn btn-outline-primary btn-sm" data-toggle="modal"
-                    data-target="#modal_new_client"><i class="nav-icon fas fa-plus"></i> <span data-translate="New Client">New Client</span></button>
-                {{end}}
-                <!-- Apply Config Button - ALWAYS VISIBLE -->
-                <button id="apply-config-button" 
-                        onclick="window.applyConfig()"
-                        style="margin-left: 0.5em; display: inline-block !important; visibility: visible !important; opacity: 1 !important;" 
-                        type="button" class="btn btn-outline-danger btn-sm">
-                    <i class="nav-icon fas fa-check"></i> 
-                    <span data-translate="Apply Config">Apply Config</span>
-                </button>
-                <!-- Dark Mode Toggle -->
-                <button id="theme-toggle" style="margin-left: 0.5em;" type="button" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-moon"></i>
-                </button>
-                {{if .baseData.CurrentUser}}
-                <button onclick="location.href='{{.basePath}}/logout';" style="margin-left: 0.5em;" type="button"
-                    class="btn btn-outline-danger btn-sm"><i class="nav-icon fas fa-sign-out-alt"></i> <span data-translate="Logout">Logout</span></button>
-                {{end}}
-            </div>
-        </nav>
-        <!-- /.navbar -->
-
-        <!-- Main Sidebar Container -->
-        <aside class="main-sidebar sidebar-dark-primary elevation-4">
-            <!-- Brand Logo -->
-            <a href="{{.basePath}}" class="brand-link">
-                <div class="brand-wrapper">
-                    <div class="brand-icon-wrapper">
-                        <i class="nav-icon fas fa-shield-alt brand-icon"></i>
-                    </div>
-                    <span class="brand-text font-weight-bold">vWireguard</span>
-                </div>
-            </a>
-
-            <!-- Sidebar -->
-            <div class="sidebar">
-                <!-- Sidebar user (optional) -->
-                <div class="user-panel">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <i class="nav-icon fas fa-user-shield"></i>
-                            <div class="user-status"></div>
-                        </div>
-                        <div class="user-details">
-                            {{if .baseData.CurrentUser}}
-                            {{if .baseData.Admin}}
-                            <div class="admin-badge">
-                                <span class="admin-title" data-translate="Administrator">Administrator</span>
-                                <span class="admin-name">{{.baseData.CurrentUser}}</span>
-                            </div>
-                            {{else}}
-                            <div class="manager-badge">
-                                <span class="manager-title" data-translate="Manager">Manager</span>
-                                <span class="manager-name">{{.baseData.CurrentUser}}</span>
-                            </div>
-                            {{end}}
-                            {{else}}
-                            <div class="admin-badge">
-                                <span class="admin-title" data-translate="Administrator">Administrator</span>
-                            </div>
-                            {{end}}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Sidebar Menu -->
-                <nav class="sidebar-nav">
-                    <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                        <li class="nav-header"><span class="header-icon">⚡</span><span data-translate="MAIN">MAIN</span></li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/system-monitor" class="nav-link {{if eq .baseData.Active "system-monitor"}}active{{end}}">
-                                <i class="nav-icon fas fa-chart-line"></i>
-                                <p data-translate="System Monitor">System Monitor</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/" class="nav-link {{if eq .baseData.Active ""}}active{{end}}">
-                                <i class="nav-icon fas fa-user-secret"></i>
-                                <p data-translate="Wireguard Clients">Wireguard Clients</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/tunnels" class="nav-link {{if eq .baseData.Active "tunnels"}}active{{end}}">
-                                <i class="nav-icon fas fa-network-wired"></i>
-                                <p data-translate="Tunnels">Tunnels</p>
-                            </a>
-                        </li>
-
-                        {{if .baseData.Admin}}
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/wg-server" class="nav-link {{if eq .baseData.Active "wg-server" }}active{{end}}">
-                                <i class="nav-icon fas fa-server"></i>
-                                <p data-translate="Wireguard Server">Wireguard Server</p>
-                            </a>
-                        </li>
-
-                        <li class="nav-header"><span class="header-icon">⚙️</span><span data-translate="SETTINGS">SETTINGS</span></li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/global-settings" class="nav-link {{if eq .baseData.Active "global-settings" }}active{{end}}">
-                                <i class="nav-icon fas fa-cog"></i>
-                                <p data-translate="Global Settings">Global Settings</p>
-                            </a>
-                        </li>
-                        {{if not .loginDisabled}}
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/users-settings" class="nav-link {{if eq .baseData.Active "users-settings" }}active{{end}}">
-                                <i class="nav-icon fas fa-users-cog"></i>
-                                <p data-translate="Users Settings">Users Settings</p>
-                            </a>
-                        </li>
-                        {{end}}
-                        {{end}}
-
-                        <li class="nav-header"><span class="header-icon">🔧</span><span data-translate="UTILITIES">UTILITIES</span></li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/utilities" class="nav-link {{if eq .baseData.Active "utilities" }}active{{end}}">
-                                <i class="nav-icon fas fa-tools"></i>
-                                <p data-translate="System Utilities">System Utilities</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{.basePath}}/status" class="nav-link {{if eq .baseData.Active "status" }}active{{end}}">
-                                <i class="nav-icon fas fa-signal"></i>
-                                <p data-translate="Status">Status</p>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <!-- /.sidebar-menu -->
-            </div>
-            <!-- /.sidebar -->
-        </aside>
-
-        <div class="modal fade" id="modal_new_client">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h4 class="modal-title" data-translate="New Wireguard Client">New Wireguard Client</h4>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <form name="frm_new_client" id="frm_new_client">
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <label for="client_name" class="control-label" data-translate="Name">Name</label>
-                                <input type="text" class="form-control" id="client_name" name="client_name">
-                            </div>
-                            <div class="form-group">
-                                <label for="client_email" class="control-label" data-translate="Email">Email</label>
-                                <input type="text" class="form-control" id="client_email" name="client_email">
-                            </div>
-                            <div class="form-group">
-                                <label for="client_quota" class="control-label" data-translate="Quota">Quota</label>
-                                <div class="input-group">
-                                    <select class="form-control" id="quota_preset" onchange="updateQuotaInput()">
-                                        <option value="custom" data-translate="Custom">Custom</option>
-                                        <option value="1073741824">1 GB</option>
-                                        <option value="2147483648">2 GB</option>
-                                        <option value="5368709120">5 GB</option>
-                                        <option value="10737418240">10 GB</option>
-                                        <option value="21474836480">20 GB</option>
-                                        <option value="53687091200">50 GB</option>
-                                        <option value="107374182400">100 GB</option>
-                                        <option value="214748364800">200 GB</option>
-                                        <option value="536870912000">500 GB</option>
-                                        <option value="1073741824000">1 TB</option>
-                                    </select>
-                                    <div class="input-group-append">
-                                        <input type="number" class="form-control" id="client_quota" name="client_quota" 
-                                               data-translate-placeholder="Enter custom quota in bytes" placeholder="Enter custom quota in bytes" />
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div class="form-group">
-                                <label for="client_expiration_days" class="control-label" data-translate="Expiration Days">Expiration Days</label>
-                                <input type="number" class="form-control" id="client_expiration_days" name="client_expiration_days" placeholder="e.g. 30" min="0" />
-                            </div>
-                            <div class="form-group">
-                                <label for="subnet_ranges" class="control-label" data-translate="Subnet range">Subnet range</label>
-                                <select id="subnet_ranges" class="select2"
-                                        data-translate-placeholder="Select a subnet range"
-                                        data-placeholder="Select a subnet range" style="width: 100%;">
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="client_allocated_ips" class="control-label" data-translate="IP Allocation">IP Allocation</label>
-                                <input type="text" data-role="tagsinput" class="form-control" id="client_allocated_ips">
-                            </div>
-                            <div class="form-group">
-                                <label for="client_allowed_ips" class="control-label">
-                                    <span data-translate="Allowed IPs">Allowed IPs</span>
-                                    <i class="fas fa-info-circle" data-toggle="tooltip"
-                                       data-translate-title="Specify a list of addresses that will get routed to the server. These addresses will be included in 'AllowedIPs' of client config"
-                                       data-original-title="Specify a list of addresses that will get routed to the server. These addresses will be included in 'AllowedIPs' of client config">
-                                    </i>
-                                </label>
-                                <input type="text" data-role="tagsinput" class="form-control" id="client_allowed_ips"
-                                       value="{{ StringsJoin .client_defaults.AllowedIps "," }}">
-                            </div>
-                            <div class="form-group">
-                                <label for="client_extra_allowed_ips" class="control-label">
-                                    <span data-translate="Extra Allowed IPs">Extra Allowed IPs</span>
-                                    <i class="fas fa-info-circle" data-toggle="tooltip"
-                                       data-translate-title="Specify a list of addresses that will get routed to the client. These addresses will be included in 'AllowedIPs' of WG server config"
-                                       data-original-title="Specify a list of addresses that will get routed to the client. These addresses will be included in 'AllowedIPs' of WG server config">
-                                    </i>
-                                </label>
-                                <input type="text" data-role="tagsinput" class="form-control" id="client_extra_allowed_ips" value="{{ StringsJoin .client_defaults.ExtraAllowedIps "," }}">
-                            </div>
-                            <div class="form-group">
-                                <label for="client_endpoint" class="control-label" data-translate="Endpoint">Endpoint</label>
-                                <input type="text" class="form-control" id="client_endpoint" name="client_endpoint">
-                            </div>
-                            <div class="form-group">
-                                <div class="icheck-primary d-inline">
-                                    <input type="checkbox" id="use_server_dns" {{ if .client_defaults.UseServerDNS }} checked{{ end }}>
-                                    <label for="use_server_dns" data-translate="Use server DNS">
-                                        Use server DNS
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <div class="icheck-primary d-inline">
-                                    <input type="checkbox" id="enabled" {{ if .client_defaults.EnableAfterCreation }} checked{{ end }}>
-                                    <label for="enabled" data-translate="Enable after creation">
-                                        Enable after creation
-                                    </label>
-                                </div>
-                            </div>
-                            <details>
-                                <summary>
-                                    <strong data-translate="Public and Preshared Keys">Public and Preshared Keys</strong>
-                                    <i class="fas fa-info-circle" data-toggle="tooltip"
-                                       data-translate-title="If you don't want to let the server generate and store the client's private key, you can manually specify its public and preshared key here. Note: QR code will not be generated"
-                                       data-original-title="If you don't want to let the server generate and store the client's private key, you can manually specify its public and preshared key here. Note: QR code will not be generated">
-                                    </i>
-                                </summary>
-                                <div class="form-group" style="margin-top: 1rem">
-                                    <label for="client_public_key" class="control-label" data-translate="Public Key">
-                                        Public Key
-                                    </label>
-                                    <input type="text" class="form-control" id="client_public_key" name="client_public_key" data-translate-placeholder="Autogenerated" placeholder="Autogenerated" aria-invalid="false">
-                                </div>
-                                <div class="form-group">
-                                    <label for="client_preshared_key" class="control-label" data-translate="Preshared Key">
-                                        Preshared Key
-                                    </label>
-                                    <input type="text" class="form-control" id="client_preshared_key" name="client_preshared_key" data-translate-placeholder="Autogenerated - enter &quot;-&quot; to skip generation" placeholder="Autogenerated - enter &quot;-&quot; to skip generation">
-                                </div>
-                            </details>
-                            <details style="margin-top: 0.5rem;">
-                                <summary>
-                                    <strong data-translate="Additional configuration">Additional configuration</strong>
-                                </summary>
-                                <div class="form-group" style="margin-top: 0.5rem;">
-                                    <label for="client_telegram_userid" class="control-label" data-translate="Telegram userid">Telegram userid</label>
-                                    <input type="text" class="form-control" id="client_telegram_userid" name="client_telegram_userid">
-                                </div>
-                                <div class="form-group">
-                                    <label for="additional_notes" class="control-label" data-translate="Notes">Notes</label>
-                                    <textarea class="form-control" style="min-height: 6rem;" id="additional_notes" name="additional_notes" data-translate-placeholder="Additional notes about this client" placeholder="Additional notes about this client"></textarea>
-                                </div>
-                            </details>
-                        </div>
-                        <div class="modal-footer justify-content-between">
-                            <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                            <button type="submit" class="btn btn-primary" data-translate="Submit">Submit</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
         </div>
-
-        <div class="modal fade" id="modal_apply_config" role="dialog" aria-labelledby="modal_apply_config_title">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h4 class="modal-title" id="modal_apply_config_title" data-translate="Apply Config">Apply Config</h4>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <p data-translate="Do you want to write config file and restart WireGuard server?">Do you want to write config file and restart WireGuard server?</p>
-                    </div>
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                        <button type="button" class="btn btn-danger" id="apply_config_confirm" data-translate="Apply">Apply</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Content Wrapper. Contains page content -->
-        <div class="content-wrapper">
-            <!-- Content Header (Page header) -->
-            <section class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2">
-                        <div class="col-sm-6">
-                            <h1>{{template "page_title" .}}</h1>
-                        </div>
-                    </div>
-                </div><!-- /.container-fluid -->
-            </section>
-
-            <!-- Main content -->
-            {{template "page_content" .}}
-            <!-- /.content -->
-        </div>
-        <!-- /.content-wrapper -->
-        <!--
-        <footer class="main-footer">
-            <div class="float-right d-none d-sm-block">
-                <b>Version</b> {{ .appVersion }}
-            </div>
-            <strong>Copyright &copy; <script>document.write(new Date().getFullYear())</script> <a href="https://github.com/MmadF14/vwireguard">vWireguard</a>.</strong> All rights
-            reserved.
-        </footer>
-        -->
-        <!-- Control Sidebar -->
-        <aside class="control-sidebar control-sidebar-dark">
-            <!-- Control sidebar content goes here -->
-        </aside>
-        <!-- /.control-sidebar -->
     </div>
-    <!-- ./wrapper -->
-
-    <!-- jQuery -->
-    <script src="{{.basePath}}/static/plugins/jquery/jquery.min.js"></script>
-    <!-- Bootstrap 4 -->
-    <script src="{{.basePath}}/static/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <!-- Select2 -->
-    <script src="{{.basePath}}/static/plugins/select2/js/select2.full.min.js"></script>
-    <!-- jquery-validation -->
-    <script src="{{.basePath}}/static/plugins/jquery-validation/jquery.validate.min.js"></script>
-    <!-- Toastr -->
-    <script src="{{.basePath}}/static/plugins/toastr/toastr.min.js"></script>
-    <!-- Jquery Tags Input -->
-    <script src="{{.basePath}}/static/plugins/jquery-tags-input/dist/jquery.tagsinput.min.js"></script>
-    <!-- AdminLTE App -->
-    <script src="{{.basePath}}/static/dist/js/adminlte.min.js"></script>
-    <!-- Base Path -->
-    <script>
-        const basePath = '{{.basePath}}';
-    </script>
-    <!-- Custom JavaScript -->
-    <script src="{{.basePath}}/static/dist/js/custom.js"></script>
-    <!-- START: On page js -->
+    
+    <!-- jQuery and other scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Page specific scripts -->
     {{template "bottom_js" .}}
-    <!-- END: On page js -->
 
     <script>
-    // Global applyConfig function for Apply Config button
-    window.applyConfig = function() {
-        $('#modal_apply_config').modal('show');
-    };
-
-    // Apply config confirmation handler
-    $(document).ready(function() {
-        $('#apply_config_confirm').click(function() {
-            $.ajax({
-                cache: false,
-                method: 'POST',
-                url: '/api/apply-wg-config',
-                dataType: 'json',
-                contentType: "application/json",
-                success: function(data) {
-                    $('#modal_apply_config').modal('hide');
-                    if (typeof toastr !== 'undefined') {
-                        toastr.success('Configuration applied successfully');
-                    } else {
-                        alert('Configuration applied successfully');
-                    }
-                },
-                error: function(jqXHR) {
-                    $('#modal_apply_config').modal('hide');
-                    let errorMessage = 'Error applying configuration';
-                    try {
-                        const responseJson = jQuery.parseJSON(jqXHR.responseText);
-                        errorMessage = responseJson.message || errorMessage;
-                    } catch (e) {
-                        console.error('Error parsing error response:', e);
-                    }
-                    if (typeof toastr !== 'undefined') {
-                        toastr.error(errorMessage);
-                    } else {
-                        alert(errorMessage);
-                    }
-                }
-            });
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileMenu = document.getElementById('profile-menu');
+            const profileButton = event.target.closest('[onclick*="profile-menu"]');
+            
+            if (!profileButton && profileMenu && !profileMenu.contains(event.target)) {
+                profileMenu.classList.add('hidden');
+            }
         });
+        
+        // Enhanced mobile responsiveness
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                // Desktop view
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (sidebar) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                }
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                }
+                sidebarManager.isOpen = false;
+            }
+        });
+        
+        // Initialize tooltips and other interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth scrolling behavior
+            document.documentElement.style.scrollBehavior = 'smooth';
+            
+            // Initialize any additional interactive elements
+            console.log('vWireguard Dashboard initialized');
     });
     </script>
 </body>
-
 </html>
 {{end}}
-
-<style>
-/* Modern Sidebar Styling */
-.main-sidebar {
-    background: linear-gradient(165deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
-    box-shadow: 0 0 25px rgba(0,0,0,0.3);
-    border-right: none;
-    position: relative;
-    overflow: hidden;
-}
-
-.main-sidebar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at top right, rgba(255,255,255,0.1) 0%, transparent 60%);
-    pointer-events: none;
-}
-
-/* Brand Section */
-.brand-link {
-    border-bottom: none !important;
-    padding: 1.25rem 1rem;
-    background: rgba(0,0,0,0.15);
-    position: relative;
-    overflow: hidden;
-}
-
-.brand-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    position: relative;
-    z-index: 1;
-    padding: 0.25rem;
-}
-
-.brand-icon-wrapper {
-    background: rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 0.4rem;
-    box-shadow: 0 0 15px rgba(100,181,246,0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 35px;
-}
-
-.brand-icon {
-    font-size: 1.25rem;
-    color: #90caf9;
-    filter: drop-shadow(0 0 10px rgba(144,202,249,0.5));
-}
-
-.brand-text {
-    color: #fff;
-    font-size: 1.3rem;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    background: linear-gradient(to right, #fff, #90caf9);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* User Panel */
-.user-panel {
-    background: rgba(255,255,255,0.07);
-    margin: 1rem;
-    border-radius: 16px;
-    padding: 1.25rem;
-    border: 1px solid rgba(255,255,255,0.1);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    backdrop-filter: blur(10px);
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.user-avatar {
-    background: linear-gradient(135deg, #2196f3, #1976d2);
-    border-radius: 12px;
-    width: 42px;
-    height: 42px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    box-shadow: 0 4px 10px rgba(25,118,210,0.3);
-}
-
-.user-avatar i {
-    font-size: 1.3rem;
-    color: #fff;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-.user-status {
-    position: absolute;
-    bottom: -2px;
-    right: -2px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #4caf50;
-    border: 2px solid #1976d2;
-    box-shadow: 0 0 8px rgba(76,175,80,0.5);
-}
-
-.user-details {
-    flex: 1;
-}
-
-.admin-badge, .manager-badge {
-    background: rgba(255,255,255,0.1);
-    border-radius: 8px;
-    padding: 0.4rem 0.6rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    border: 1px solid rgba(255,255,255,0.15);
-}
-
-.admin-title, .manager-title {
-    color: #90caf9;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    font-weight: 600;
-}
-
-.admin-name, .manager-name {
-    color: #fff;
-    font-size: 0.95rem;
-    font-weight: 500;
-}
-
-/* Navigation */
-.sidebar-nav {
-    padding: 0 1rem;
-    margin-top: 1rem;
-}
-
-.nav-header {
-    color: #90caf9;
-    font-size: 0.85rem;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    padding: 1.25rem 1rem 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    text-transform: uppercase;
-    position: relative;
-    margin-bottom: 0.5rem;
-}
-
-.header-icon {
-    font-size: 1rem;
-    background: rgba(255,255,255,0.1);
-    padding: 0.4rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.nav-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background: linear-gradient(to right, rgba(144,202,249,0.5), transparent);
-}
-
-.nav-sidebar .nav-item > .nav-link {
-    margin-bottom: 0.4rem;
-    border-radius: 12px;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    padding: 0.7rem 1rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    display: flex;
-    align-items: center;
-}
-
-.nav-sidebar .nav-item > .nav-link:hover {
-    background: rgba(255,255,255,0.1);
-    transform: translateX(5px) scale(1.02);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border-color: rgba(255,255,255,0.2);
-}
-
-.nav-sidebar .nav-item > .nav-link.active {
-    background: linear-gradient(135deg, #1976d2 0%, #2196f3 100%);
-    box-shadow: 0 4px 15px rgba(33,150,243,0.4);
-    transform: translateX(5px);
-    border: none;
-}
-
-.nav-icon {
-    color: #90caf9;
-    font-size: 1.1rem;
-    width: 20px;
-    text-align: center;
-    margin-right: 0.8rem;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
-
-.nav-link:hover .nav-icon {
-    transform: scale(1.1);
-    color: #64b5f6;
-}
-
-.nav-link.active .nav-icon {
-    color: #fff;
-    filter: drop-shadow(0 2px 4px rgba(255,255,255,0.2));
-}
-
-.nav-link p {
-    font-weight: 500;
-    font-size: 0.9rem;
-    letter-spacing: 0.3px;
-    color: rgba(255,255,255,0.9);
-    margin: 0;
-    line-height: 1.2;
-}
-
-.nav-link.active p {
-    color: #fff;
-    font-weight: 600;
-}
-
-/* Animations */
-@keyframes fadeInUp {
-    from { 
-        opacity: 0; 
-        transform: translateY(20px);
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0);
-    }
-}
-
-.sidebar .nav-item {
-    animation: fadeInUp 0.5s ease-out forwards;
-    opacity: 0;
-}
-
-.sidebar .nav-item:nth-child(1) { animation-delay: 0.1s; }
-.sidebar .nav-item:nth-child(2) { animation-delay: 0.2s; }
-.sidebar .nav-item:nth-child(3) { animation-delay: 0.3s; }
-.sidebar .nav-item:nth-child(4) { animation-delay: 0.4s; }
-.sidebar .nav-item:nth-child(5) { animation-delay: 0.5s; }
-.sidebar .nav-item:nth-child(6) { animation-delay: 0.6s; }
-.sidebar .nav-item:nth-child(7) { animation-delay: 0.7s; }
-
-/* Hover Effects */
-.nav-link {
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-link::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: rgba(255,255,255,0.2);
-    transition: width 0.3s ease;
-    transform: translateY(-50%);
-}
-
-.nav-link:hover::after {
-    width: 100%;
-}
-
-/* Scrollbar Styling */
-.sidebar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.05);
-}
-
-.sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.2);
-    border-radius: 3px;
-}
-
-.sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255,255,255,0.3);
-}
-
-/* Dark Mode Enhancement */
-[class*="sidebar-dark"] {
-    background: linear-gradient(165deg, #1a237e 0%, #0d47a1 50%, #1565c0 100%);
-}
-
-[class*="sidebar-dark"] .nav-sidebar > .nav-item > .nav-link.active {
-    box-shadow: 0 4px 15px rgba(33,150,243,0.4);
-}
-</style>
