@@ -65,6 +65,265 @@
     
     <!-- Custom Styles -->
     <style>
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        
+        [dir="rtl"] .notification-container {
+            right: auto;
+            left: 20px;
+        }
+        
+        .notification {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            overflow: hidden;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        [dir="rtl"] .notification {
+            transform: translateX(-100%);
+            border-left: none;
+            border-right: 4px solid #3b82f6;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .notification.success {
+            border-left-color: #10b981;
+        }
+        
+        [dir="rtl"] .notification.success {
+            border-left-color: transparent;
+            border-right-color: #10b981;
+        }
+        
+        .notification.error {
+            border-left-color: #ef4444;
+        }
+        
+        [dir="rtl"] .notification.error {
+            border-left-color: transparent;
+            border-right-color: #ef4444;
+        }
+        
+        .notification.warning {
+            border-left-color: #f59e0b;
+        }
+        
+        [dir="rtl"] .notification.warning {
+            border-left-color: transparent;
+            border-right-color: #f59e0b;
+        }
+        
+        .notification.info {
+            border-left-color: #3b82f6;
+        }
+        
+        [dir="rtl"] .notification.info {
+            border-left-color: transparent;
+            border-right-color: #3b82f6;
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 8px 20px;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.2s ease;
+        }
+        
+        .notification-close:hover {
+            color: #374151;
+        }
+        
+        .notification-body {
+            padding: 0 20px 16px 20px;
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .notification-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+        }
+        
+        [dir="rtl"] .notification-icon {
+            margin-right: 0;
+            margin-left: 12px;
+        }
+        
+        .notification-content {
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        /* Dark mode notifications */
+        .dark .notification {
+            background: #1f2937;
+            color: #f9fafb;
+        }
+        
+        .dark .notification-title {
+            color: #f9fafb;
+        }
+        
+        .dark .notification-body {
+            color: #d1d5db;
+        }
+        
+        .dark .notification-close {
+            color: #9ca3af;
+        }
+        
+        .dark .notification-close:hover {
+            color: #d1d5db;
+        }
+        
+        /* Confirmation Modal */
+        .confirmation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .confirmation-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .confirmation-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .confirmation-modal.show .confirmation-content {
+            transform: scale(1);
+        }
+        
+        .dark .confirmation-content {
+            background: #1f2937;
+            color: #f9fafb;
+        }
+        
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1f2937;
+        }
+        
+        .dark .confirmation-title {
+            color: #f9fafb;
+        }
+        
+        .confirmation-message {
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .dark .confirmation-message {
+            color: #d1d5db;
+        }
+        
+        .confirmation-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .confirmation-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .confirmation-btn.cancel {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .confirmation-btn.cancel:hover {
+            background: #e5e7eb;
+        }
+        
+        .dark .confirmation-btn.cancel {
+            background: #374151;
+            color: #d1d5db;
+        }
+        
+        .dark .confirmation-btn.cancel:hover {
+            background: #4b5563;
+        }
+        
+        .confirmation-btn.confirm {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .confirmation-btn.confirm:hover {
+            background: #dc2626;
+        }
+        
+        .confirmation-btn.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .confirmation-btn.success:hover {
+            background: #059669;
+        }
         /* RTL Support */
         [dir="rtl"] {
             font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif;
@@ -739,12 +998,144 @@
         </div>
     </div>
     
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="confirmation-modal">
+        <div class="confirmation-content">
+            <div class="confirmation-title" id="confirmation-title"></div>
+            <div class="confirmation-message" id="confirmation-message"></div>
+            <div class="confirmation-buttons">
+                <button class="confirmation-btn cancel" onclick="hideConfirmation()">
+                    <span data-translate="Cancel">Cancel</span>
+                </button>
+                <button class="confirmation-btn confirm" id="confirmation-confirm-btn">
+                    <span data-translate="Confirm">Confirm</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <!-- jQuery and other scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Page specific scripts -->
     {{template "bottom_js" .}}
+    
+    <!-- Notification System JavaScript -->
+    <script>
+        // Notification System
+        window.showNotification = function(message, type = 'info', duration = 5000) {
+            const container = document.getElementById('notification-container');
+            if (!container) return;
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                warning: 'fas fa-exclamation-triangle',
+                info: 'fas fa-info-circle'
+            };
+            
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-content">
+                        <i class="${icons[type]}" style="color: ${colors[type]};"></i>
+                        <div>
+                            <div class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                            <div class="notification-body">${message}</div>
+                        </div>
+                    </div>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Show animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto remove
+            if (duration > 0) {
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, duration);
+            }
+        };
+        
+        // Confirmation System
+        window.showConfirmation = function(title, message, onConfirm, confirmText = 'Confirm', confirmType = 'confirm') {
+            const modal = document.getElementById('confirmation-modal');
+            const titleEl = document.getElementById('confirmation-title');
+            const messageEl = document.getElementById('confirmation-message');
+            const confirmBtn = document.getElementById('confirmation-confirm-btn');
+            
+            if (!modal || !titleEl || !messageEl || !confirmBtn) return;
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            confirmBtn.textContent = confirmText;
+            
+            // Update button class based on type
+            confirmBtn.className = `confirmation-btn ${confirmType}`;
+            
+            // Remove previous event listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            
+            // Add new event listener
+            newConfirmBtn.addEventListener('click', () => {
+                hideConfirmation();
+                if (onConfirm) onConfirm();
+            });
+            
+            modal.classList.add('show');
+        };
+        
+        window.hideConfirmation = function() {
+            const modal = document.getElementById('confirmation-modal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        };
+        
+        // Global success and error functions
+        window.showSuccess = function(message) {
+            showNotification(message, 'success');
+        };
+        
+        window.showError = function(message) {
+            showNotification(message, 'error');
+        };
+        
+        window.showWarning = function(message) {
+            showNotification(message, 'warning');
+        };
+        
+        window.showInfo = function(message) {
+            showNotification(message, 'info');
+        };
+    </script>
     
     <script>
         // Close dropdowns when clicking outside

@@ -666,19 +666,39 @@ function prettyDateTime(timeStr) {
 }
 
 function showSuccess(message) {
-    // You can integrate with a toast library here
-    console.log('Success:', message);
-    alert(message);
+    window.showSuccess(message);
 }
 
 function showError(message) {
-    // You can integrate with a toast library here
-    console.error('Error:', message);
-    alert('Error: ' + message);
+    window.showError(message);
 }
 
 // Global base path
 const basePath = '{{.basePath}}';
+
+// Apply config function
+window.applyConfig = function() {
+    showInfo('Applying configuration...');
+    
+    fetch(`${basePath}/api/apply`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showSuccess('Configuration applied successfully');
+        } else {
+            showError(data.message || 'Failed to apply configuration');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError('Failed to apply configuration');
+    });
+};
 
 // Make functions globally available
 window.editClient = function(clientId) {
@@ -738,7 +758,12 @@ window.editClient = function(clientId) {
         document.getElementById('_client_extra_allowed_ips').value = clientData.extra_allowed_ips.join(',');
     }
     
-    document.getElementById('modal_edit_client').style.display = 'block';
+    // Show the modal
+    const modal = document.getElementById('modal_edit_client');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.remove('hidden');
+    }
 };
 
 window.showQRCode = function(clientId) {
@@ -769,26 +794,36 @@ window.toggleClient = function(clientId) {
     
     const clientData = client.Client || client;
     
-    // Toggle client enabled state
-    fetch(`${basePath}/api/client/${clientData.id}/status/${!clientData.enabled}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    const action = clientData.enabled ? 'disable' : 'enable';
+    const actionText = clientData.enabled ? 'Disable' : 'Enable';
+    
+    showConfirmation(
+        `${actionText} Client`,
+        `Are you sure you want to ${action} client "${clientData.name}"?`,
+        () => {
+            fetch(`${basePath}/api/client/${clientData.id}/status/${!clientData.enabled}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadClients();
+                    showSuccess(`Client ${action}d successfully`);
+                } else {
+                    showError(`Failed to ${action} client`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError(`Failed to ${action} client`);
+            });
         },
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            loadClients();
-            showSuccess(`Client ${clientData.enabled ? 'disabled' : 'enabled'} successfully`);
-        } else {
-            showError('Failed to toggle client');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showError('Failed to toggle client');
-    });
+        actionText,
+        clientData.enabled ? 'confirm' : 'success'
+    );
 };
 
 window.deleteClient = function(clientId) {
@@ -801,28 +836,34 @@ window.deleteClient = function(clientId) {
     
     const clientData = client.Client || client;
     
-    if (confirm(`Are you sure you want to delete client "${clientData.name}"?`)) {
-        fetch(`${basePath}/api/client/${clientData.id}/remove`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id: clientData.id }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                loadClients();
-                showSuccess('Client deleted successfully');
-            } else {
+    showConfirmation(
+        'Delete Client',
+        `Are you sure you want to delete client "${clientData.name}"? This action cannot be undone.`,
+        () => {
+            fetch(`${basePath}/api/client/${clientData.id}/remove`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: clientData.id }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadClients();
+                    showSuccess('Client deleted successfully');
+                } else {
+                    showError('Failed to delete client');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 showError('Failed to delete client');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showError('Failed to delete client');
-        });
-    }
+            });
+        },
+        'Delete',
+        'confirm'
+    );
 };
 
 window.updateQuotaInput = function() {
