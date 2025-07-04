@@ -636,21 +636,78 @@
                     </div>
                 </div>
                 
-                <div>
-                    <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        <span data-translate="Quota">Quota</span>
-                    </label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <select id="quota_preset" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
-                            <option value="custom" data-translate="Custom">Custom</option>
-                            <option value="1073741824">1 GB</option>
-                            <option value="5368709120">5 GB</option>
-                            <option value="10737418240">10 GB</option>
-                            <option value="53687091200">50 GB</option>
-                            <option value="107374182400">100 GB</option>
-                        </select>
-                        <input type="number" id="client_quota" name="client_quota" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Custom bytes">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Quota">Quota</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="quota_preset" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" onchange="updateNewClientQuota()">
+                                <option value="custom" data-translate="Custom">Custom</option>
+                                <option value="10">10 GB</option>
+                                <option value="20">20 GB</option>
+                                <option value="30">30 GB</option>
+                                <option value="40">40 GB</option>
+                                <option value="50">50 GB</option>
+                                <option value="100">100 GB</option>
+                                <option value="200">200 GB</option>
+                                <option value="500">500 GB</option>
+                                <option value="1000">1 TB</option>
+                            </select>
+                            <input type="number" id="client_quota" name="client_quota" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Custom GB" step="0.1" min="0">
+                        </div>
                     </div>
+                    
+                    <div>
+                        <label for="client_expiration_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Expiration Days">Expiration Days</span>
+                        </label>
+                        <input type="number" id="client_expiration_days" name="client_expiration_days" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 30" min="0">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="IP Allocation">IP Allocation</span>
+                        </label>
+                        <input type="text" id="client_allocated_ips" name="client_allocated_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 10.0.0.2">
+                    </div>
+                    
+                    <div>
+                        <label for="client_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Endpoint">Endpoint</span>
+                        </label>
+                        <input type="text" id="client_endpoint" name="client_endpoint" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. server.com:51820">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Telegram userid">Telegram userid</span>
+                    </label>
+                    <input type="text" id="client_telegram_userid" name="client_telegram_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Telegram user ID">
+                </div>
+                
+                <div>
+                    <label for="client_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Allowed IPs">Allowed IPs</span>
+                    </label>
+                    <input type="text" id="client_allowed_ips" name="client_allowed_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 0.0.0.0/0">
+                </div>
+                
+                <div>
+                    <label for="client_extra_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Extra Allowed IPs">Extra Allowed IPs</span>
+                    </label>
+                    <input type="text" id="client_extra_allowed_ips" name="client_extra_allowed_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Additional allowed IPs">
+                </div>
+                
+                <div>
+                    <label for="client_additional_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Notes">Notes</span>
+                    </label>
+                    <textarea id="client_additional_notes" name="client_additional_notes" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" style="min-height: 4rem;" placeholder="Additional notes about this client"></textarea>
                 </div>
                 
                 <div class="flex items-center space-x-4 rtl:space-x-reverse">
@@ -737,26 +794,52 @@
             const quotaInput = document.getElementById('client_quota');
             
             if (quotaPreset && quotaInput) {
-                quotaPreset.addEventListener('change', function() {
-                    if (this.value !== 'custom') {
-                        quotaInput.value = this.value;
-                        quotaInput.disabled = true;
-                    } else {
-                        quotaInput.disabled = false;
-                        quotaInput.value = '';
-                    }
-                });
+                // Initialize quota input state
+                if (quotaPreset.value !== 'custom') {
+                    quotaInput.disabled = true;
+                }
             }
             
-            if (newClientForm) {
+                            if (newClientForm) {
                 newClientForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
                     const formData = new FormData(this);
+                    
+                    // Parse allocated IPs
+                    const allocatedIps = formData.get('client_allocated_ips') ? 
+                        formData.get('client_allocated_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    
+                    // Parse allowed IPs
+                    const allowedIps = formData.get('client_allowed_ips') ? 
+                        formData.get('client_allowed_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    
+                    // Parse extra allowed IPs
+                    const extraAllowedIps = formData.get('client_extra_allowed_ips') ? 
+                        formData.get('client_extra_allowed_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    
+                    // Calculate quota in bytes
+                    let quota = 0;
+                    const quotaPreset = document.getElementById('quota_preset').value;
+                    const quotaInput = document.getElementById('client_quota').value;
+                    
+                    if (quotaPreset !== 'custom' && quotaPreset) {
+                        quota = parseInt(quotaPreset) * 1024 * 1024 * 1024; // Convert GB to bytes
+                    } else if (quotaInput) {
+                        quota = parseFloat(quotaInput) * 1024 * 1024 * 1024; // Convert GB to bytes
+                    }
+                    
                     const clientData = {
                         name: formData.get('client_name'),
                         email: formData.get('client_email'),
-                        quota: formData.get('client_quota') ? parseInt(formData.get('client_quota')) : 0,
+                        quota: quota,
+                        expiration_days: formData.get('client_expiration_days') ? parseInt(formData.get('client_expiration_days')) : null,
+                        allocated_ips: allocatedIps,
+                        endpoint: formData.get('client_endpoint'),
+                        tg_userid: formData.get('client_telegram_userid'),
+                        allowed_ips: allowedIps,
+                        extra_allowed_ips: extraAllowedIps,
+                        additional_notes: formData.get('client_additional_notes'),
                         use_server_dns: document.getElementById('use_server_dns').checked,
                         enabled: document.getElementById('enabled').checked,
                     };
@@ -767,7 +850,7 @@
                         return;
                     }
                     
-                    fetch('{{.basePath}}/api/clients', {
+                    fetch('{{.basePath}}/new-client', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -794,6 +877,22 @@
                         showError('Failed to create client');
                     });
                 });
+            }
+        }
+        
+        // Update new client quota function
+        function updateNewClientQuota() {
+            const quotaPreset = document.getElementById('quota_preset');
+            const quotaInput = document.getElementById('client_quota');
+            
+            if (quotaPreset && quotaInput) {
+                if (quotaPreset.value !== 'custom') {
+                    quotaInput.value = quotaPreset.value;
+                    quotaInput.disabled = true;
+                } else {
+                    quotaInput.disabled = false;
+                    quotaInput.value = '';
+                }
             }
         }
         

@@ -184,7 +184,7 @@
                     <div class="form-group">
                         <label for="_client_quota" class="control-label" data-translate="Quota">Quota</label>
                         <div class="grid grid-cols-2 gap-2">
-                            <select class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_quota_preset" onchange="updateQuotaInput()">
+                            <select class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_quota_preset" onchange="window.updateQuotaInput()">
                                 <option value="" data-translate="Select Quota">Select Quota</option>
                                 <option value="10">10 GB</option>
                                 <option value="20">20 GB</option>
@@ -640,8 +640,54 @@ function toggleAutoRefresh() {
     }
 }
 
-// Client actions
-function editClient(clientId) {
+
+
+// Utility functions
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function prettyDateTime(timeStr) {
+    if (!timeStr || timeStr === 'Never') return 'Never';
+    const dt = new Date(timeStr);
+    const offsetMs = dt.getTimezoneOffset() * 60 * 1000;
+    const dateLocal = new Date(dt.getTime() - offsetMs);
+    return dateLocal.toISOString().slice(0, 19).replace(/-/g, "/").replace("T", " ");
+}
+
+function showSuccess(message) {
+    // You can integrate with a toast library here
+    console.log('Success:', message);
+    alert(message);
+}
+
+function showError(message) {
+    // You can integrate with a toast library here
+    console.error('Error:', message);
+    alert('Error: ' + message);
+}
+
+// Global base path
+const basePath = '{{.basePath}}';
+
+// Make functions globally available
+window.editClient = function(clientId) {
     const client = clients.find(c => {
         const clientData = c.Client || c;
         return clientData.id === clientId;
@@ -699,9 +745,9 @@ function editClient(clientId) {
     }
     
     document.getElementById('modal_edit_client').style.display = 'block';
-}
+};
 
-function showQRCode(clientId) {
+window.showQRCode = function(clientId) {
     const client = clients.find(c => {
         const clientData = c.Client || c;
         return clientData.id === clientId;
@@ -713,13 +759,13 @@ function showQRCode(clientId) {
     document.getElementById('qr_client_id').value = clientData.id;
     document.getElementById('qr_code').src = `${basePath}/api/client/${clientData.id}/qr`;
     document.getElementById('modal_qr_code').style.display = 'block';
-}
+};
 
-function downloadClient(clientId) {
+window.downloadClient = function(clientId) {
     window.open(`${basePath}/api/client/${clientId}/download`, '_blank');
-}
+};
 
-function toggleClient(clientId) {
+window.toggleClient = function(clientId) {
     const client = clients.find(c => {
         const clientData = c.Client || c;
         return clientData.id === clientId;
@@ -749,9 +795,9 @@ function toggleClient(clientId) {
         console.error('Error:', error);
         showError('Failed to toggle client');
     });
-}
+};
 
-function deleteClient(clientId) {
+window.deleteClient = function(clientId) {
     const client = clients.find(c => {
         const clientData = c.Client || c;
         return clientData.id === clientId;
@@ -779,51 +825,22 @@ function deleteClient(clientId) {
             showError('Failed to delete client');
         });
     }
-}
+};
 
-// Utility functions
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-function prettyDateTime(timeStr) {
-    if (!timeStr || timeStr === 'Never') return 'Never';
-    const dt = new Date(timeStr);
-    const offsetMs = dt.getTimezoneOffset() * 60 * 1000;
-    const dateLocal = new Date(dt.getTime() - offsetMs);
-    return dateLocal.toISOString().slice(0, 19).replace(/-/g, "/").replace("T", " ");
-}
-
-function showSuccess(message) {
-    // You can integrate with a toast library here
-    console.log('Success:', message);
-    alert(message);
-}
-
-function showError(message) {
-    // You can integrate with a toast library here
-    console.error('Error:', message);
-    alert('Error: ' + message);
-}
-
-// Global base path
-const basePath = '{{.basePath}}';
+window.updateQuotaInput = function() {
+    const quotaPreset = document.getElementById('_quota_preset');
+    const quotaInput = document.getElementById('_client_quota');
+    
+    if (quotaPreset && quotaInput) {
+        if (quotaPreset.value === 'custom') {
+            quotaInput.disabled = false;
+            quotaInput.value = '';
+        } else if (quotaPreset.value) {
+            quotaInput.disabled = true;
+            quotaInput.value = quotaPreset.value;
+        }
+    }
+};
 
 // Handle edit client form submission
 document.addEventListener('DOMContentLoaded', function() {
@@ -892,20 +909,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Update quota input function
-function updateQuotaInput() {
-    const quotaPreset = document.getElementById('_quota_preset');
-    const quotaInput = document.getElementById('_client_quota');
-    
-    if (quotaPreset && quotaInput) {
-        if (quotaPreset.value === 'custom') {
-            quotaInput.disabled = false;
-            quotaInput.value = '';
-        } else if (quotaPreset.value) {
-            quotaInput.disabled = true;
-            quotaInput.value = quotaPreset.value;
-        }
-    }
-}
+
 </script>
 {{end}}
