@@ -1,4 +1,4 @@
-﻿{{define "title"}}
+{{define "title"}}
 <span data-translate="Wireguard Clients">Wireguard Clients</span>
 {{end}}
 
@@ -45,7 +45,11 @@
                 </div>
             </div>
             <div class="md:col-span-3">
+
+                <select id="status-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
                 <select id="status-selector" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
                     <option value="All" data-translate="All">All</option>
                     <option value="Enabled" data-translate="Enabled">Enabled</option>
                     <option value="Disabled" data-translate="Disabled">Disabled</option>
@@ -54,7 +58,15 @@
                 </select>
             </div>
         </div>
-        
+
+        <div id="loading-state" class="hidden flex flex-col items-center py-10">
+            <i class="fas fa-spinner fa-spin text-gray-500 text-xl"></i>
+            <span class="mt-2 text-gray-500 dark:text-gray-400" data-translate="Loading...">Loading...</span>
+        </div>
+        <div id="empty-state" class="hidden text-center py-10">
+            <span class="text-gray-500 dark:text-gray-400" data-translate="No clients found">No clients found</span>
+        </div>
+
         <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         </div>
         <!-- /.row -->
@@ -83,27 +95,35 @@
     </div>
 </div>
 
-<div class="modal fade" id="modal_qr_client">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" data-translate="QR Code">QR Code</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="qr_client_id" name="qr_client_id">
-                <img id="qr_code" class="w-100" style="image-rendering: pixelated;" src="" alt="QR code" />
-                <!-- do not include FwMark in any client configs: it is INVALID. -->
-            </div>
+<div id="modal_qr_code" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <span data-translate="QR Code">QR Code</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
         </div>
-        <!-- /.modal-content -->
+        <div class="p-6 text-center">
+            <input type="hidden" id="qr_client_id" name="qr_client_id">
+            <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
+                <img id="qr_code" class="w-full h-auto max-w-xs mx-auto" style="image-rendering: pixelated;" src="" alt="QR code" />
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="Scan this QR code with your Wireguard client">Scan this QR code with your Wireguard client</p>
+        </div>
     </div>
-    <!-- /.modal-dialog -->
 </div>
-<!-- /.modal -->
 
+
+<div id="modal_telegram_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Telegram Configuration">Telegram Configuration</h4>
+            <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+=======
 <div class="modal fade" id="modal_telegram_client">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -126,25 +146,33 @@
                     <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Send">Send</button>
                 </div>
             </form>
-        </div>
-        <!-- /.modal-content -->
-    </div>
-    <!-- /.modal-dialog -->
-</div>
-<!-- /.modal -->
 
-<div class="modal fade" id="modal_edit_client">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" data-translate="Edit Client">Edit Client</h4>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+        </div>
+        <form name="frm_telegram_client" id="frm_telegram_client" class="p-6 space-y-4">
+            <input type="hidden" id="tg_client_id" name="tg_client_id">
+            <div>
+                <label for="tg_client_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" data-translate="Telegram userid">Telegram userid</label>
+                <input type="text" id="tg_client_userid" name="tg_client_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
             </div>
-            <form name="frm_edit_client" id="frm_edit_client">
-                <div class="modal-body">
-                    <input type="hidden" id="_client_id" name="_client_id">
+            <div class="flex justify-end space-x-3 rtl:space-x-reverse">
+                <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Send">Send</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal_edit_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-2xl">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Edit Client">Edit Client</h4>
+            <button type="button" onclick="document.getElementById('modal_edit_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        <form name="frm_edit_client" id="frm_edit_client" class="p-6 space-y-4 overflow-y-auto max-h-screen">
+            <input type="hidden" id="_client_id" name="_client_id">
+            <div class="space-y-4">
                     <div class="form-group">
                         <label for="_client_name" class="control-label" data-translate="Name">Name</label>
                         <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_name" name="_client_name">
@@ -253,6 +281,13 @@
                         </div>
                     </details>
                 </div>
+
+            <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
+                <button type="button" onclick="document.getElementById('modal_edit_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Save">Save</button>
+            </div>
+        </form>
+=======
                 <div class="modal-footer justify-content-between">
                     <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-dismiss="modal" data-translate="Cancel">Cancel</button>
                     <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Save">Save</button>
@@ -260,11 +295,23 @@
             </form>
         </div>
         <!-- /.modal-content -->
-    </div>
-    <!-- /.modal-dialog -->
-</div>
-<!-- /.modal -->
 
+    </div>
+</div>
+
+<div id="modal_pause_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700 bg-warning-100 dark:bg-warning-900/20">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Disable">Disable</h4>
+            <button type="button" onclick="document.getElementById('modal_pause_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        <div class="p-6" id="modal_pause_client_body"></div>
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 pt-0">
+            <button type="button" onclick="document.getElementById('modal_pause_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+            <button type="button" id="pause_client_confirm" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Apply">Apply</button>
+=======
 <div class="modal fade" id="modal_pause_client">
     <div class="modal-dialog">
         <div class="modal-content bg-warning">
@@ -280,12 +327,23 @@
                 <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-dismiss="modal" data-translate="Cancel">Cancel</button>
                 <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" id="pause_client_confirm" data-translate="Apply">Apply</button>
             </div>
+
         </div>
-        <!-- /.modal-content -->
     </div>
-    <!-- /.modal-dialog -->
 </div>
-<!-- /.modal -->
+
+<div id="modal_remove_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700 bg-danger-100 dark:bg-danger-900/20">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Remove">Remove</h4>
+            <button type="button" onclick="document.getElementById('modal_remove_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        <div class="p-6" id="modal_remove_client_body"></div>
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 pt-0">
+            <button type="button" onclick="document.getElementById('modal_remove_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+            <button type="button" id="remove_client_confirm" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Apply">Apply</button>
 
 <div class="modal fade" id="modal_remove_client">
     <div class="modal-dialog">
@@ -302,12 +360,10 @@
                 <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-dismiss="modal" data-translate="Cancel">Cancel</button>
                 <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" id="remove_client_confirm" data-translate="Apply">Apply</button>
             </div>
+
         </div>
-        <!-- /.modal-content -->
     </div>
-    <!-- /.modal-dialog -->
 </div>
-<!-- /.modal -->
                 <span data-translate="QR Code">QR Code</span>
             </h3>
             <button onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
@@ -339,8 +395,8 @@ const loadingState = document.getElementById('loading-state');
 const emptyState = document.getElementById('empty-state');
 const searchInput = document.getElementById('search-input');
 const statusFilter = document.getElementById('status-filter');
-const autoRefreshToggle = document.getElementById('auto-refresh');
-const refreshBtn = document.getElementById('refresh-btn');
+const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+const refreshBtn = document.getElementById('refresh-status-btn');
 
 // Statistics elements
 const totalClientsEl = document.getElementById('total-clients');
