@@ -930,29 +930,45 @@
                         <label for="client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             <span data-translate="IP Allocation">IP Allocation</span>
                         </label>
-                        <input type="text" id="client_allocated_ips" name="client_allocated_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 10.0.0.2">
+                        <div class="relative">
+                            <input type="text" id="client_allocated_ips" name="client_allocated_ips" class="block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 10.252.1.2/32">
+                            <button type="button" onclick="suggestIPAllocation()" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-primary-500" title="Suggest IP">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                        </div>
                     </div>
                     
+                    <div>
+                        <label for="subnet_ranges" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Subnet Range">Subnet Range</span>
+                        </label>
+                        <select id="subnet_ranges" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" onchange="updateIPAllocationSuggestion()">
+                            <option value="" data-translate="Select subnet range">Select subnet range</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="client_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             <span data-translate="Endpoint">Endpoint</span>
                         </label>
                         <input type="text" id="client_endpoint" name="client_endpoint" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. server.com:51820">
                     </div>
-                </div>
-                
-                <div>
-                    <label for="client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        <span data-translate="Telegram userid">Telegram userid</span>
-                    </label>
-                    <input type="text" id="client_telegram_userid" name="client_telegram_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Telegram user ID">
+                    
+                    <div>
+                        <label for="client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Telegram userid">Telegram userid</span>
+                        </label>
+                        <input type="text" id="client_telegram_userid" name="client_telegram_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Telegram user ID">
+                    </div>
                 </div>
                 
                 <div>
                     <label for="client_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         <span data-translate="Allowed IPs">Allowed IPs</span>
                     </label>
-                    <input type="text" id="client_allowed_ips" name="client_allowed_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 0.0.0.0/0">
+                    <input type="text" id="client_allowed_ips" name="client_allowed_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 0.0.0.0/0" value="0.0.0.0/0">
                 </div>
                 
                 <div>
@@ -1179,9 +1195,24 @@
         if (newClientButton) {
             newClientButton.addEventListener('click', function() {
                 setTimeout(() => {
-                    loadSuggestedIPs();
+                    initializeNewClientForm();
                 }, 100);
             });
+        }
+        
+        // Also initialize when modal is shown (for any other way it might be opened)
+        const newClientModal = document.getElementById('modal_new_client');
+        if (newClientModal) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        if (newClientModal.style.display === 'block' || newClientModal.style.display === 'flex') {
+                            initializeNewClientForm();
+                        }
+                    }
+                });
+            });
+            observer.observe(newClientModal, { attributes: true });
         }
             
             // Initialize any additional interactive elements
@@ -1207,17 +1238,20 @@
                     
                     const formData = new FormData(this);
                     
-                    // Parse allocated IPs
-                    const allocatedIps = formData.get('client_allocated_ips') ? 
+                    // Parse and format allocated IPs to CIDR
+                    let allocatedIps = formData.get('client_allocated_ips') ? 
                         formData.get('client_allocated_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    allocatedIps = formatIPListToCIDR(allocatedIps);
                     
                     // Parse allowed IPs
-                    const allowedIps = formData.get('client_allowed_ips') ? 
+                    let allowedIps = formData.get('client_allowed_ips') ? 
                         formData.get('client_allowed_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    allowedIps = formatIPListToCIDR(allowedIps);
                     
                     // Parse extra allowed IPs
-                    const extraAllowedIps = formData.get('client_extra_allowed_ips') ? 
+                    let extraAllowedIps = formData.get('client_extra_allowed_ips') ? 
                         formData.get('client_extra_allowed_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    extraAllowedIps = formatIPListToCIDR(extraAllowedIps);
                     
                     // Calculate quota in bytes
                     let quota = 0;
@@ -1247,7 +1281,7 @@
                     
                     // Validate required fields
                     if (!clientData.name.trim()) {
-                        alert('Name is required');
+                        showError('Name is required');
                         return;
                     }
                     
@@ -1265,6 +1299,9 @@
                             newClientForm.reset();
                             showSuccess('Client created successfully');
                             
+                            // Reset form to defaults
+                            initializeNewClientForm();
+                            
                             // Reload clients if on clients page
                             if (typeof loadClients === 'function') {
                                 loadClients();
@@ -1279,28 +1316,6 @@
                     });
                 });
             }
-        }
-        
-        // Load suggested IPs function
-        function loadSuggestedIPs() {
-            fetch('{{.basePath}}/api/suggest-client-ips', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.suggested_ips) {
-                    const allocatedIpsInput = document.getElementById('client_allocated_ips');
-                    if (allocatedIpsInput && data.suggested_ips.length > 0) {
-                        allocatedIpsInput.value = data.suggested_ips[0];
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error loading suggested IPs:', error);
-            });
         }
         
         // Update new client quota function
@@ -1321,27 +1336,161 @@
         
         // Apply config function
         window.applyConfig = function() {
-            if (confirm('Are you sure you want to apply the WireGuard configuration? This will restart the service.')) {
-                fetch('{{.basePath}}/api/apply-wg-config', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showSuccess('Configuration applied successfully');
-                    } else {
-                        showError(data.message || 'Failed to apply configuration');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showError('Failed to apply configuration');
-                });
-            }
+            showConfirmation(
+                'Apply Configuration',
+                'Are you sure you want to apply the WireGuard configuration? This will restart the service.',
+                function() {
+                    fetch('{{.basePath}}/api/apply-wg-config', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showSuccess('Configuration applied successfully');
+                        } else {
+                            showError(data.message || 'Failed to apply configuration');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showError('Failed to apply configuration');
+                    });
+                }
+            );
         };
+        
+        // Load suggested IPs function
+        function loadSuggestedIPs() {
+            fetch('{{.basePath}}/api/suggest-client-ips', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const allocatedIpsInput = document.getElementById('client_allocated_ips');
+                    if (allocatedIpsInput) {
+                        allocatedIpsInput.value = data[0];
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading suggested IPs:', error);
+            });
+        }
+        
+        // Suggest IP allocation function
+        function suggestIPAllocation() {
+            const subnetRange = document.getElementById('subnet_ranges').value;
+            const url = subnetRange ? 
+                `{{.basePath}}/api/suggest-client-ips?sr=${subnetRange}` : 
+                '{{.basePath}}/api/suggest-client-ips';
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const allocatedIpsInput = document.getElementById('client_allocated_ips');
+                    if (allocatedIpsInput) {
+                        allocatedIpsInput.value = data[0];
+                    }
+                    showSuccess('IP suggestion applied successfully');
+                } else {
+                    showError('No available IPs found');
+                }
+            })
+            .catch(error => {
+                console.error('Error suggesting IP:', error);
+                showError('Failed to suggest IP');
+            });
+        }
+        
+        // Update IP allocation suggestion when subnet range changes
+        function updateIPAllocationSuggestion() {
+            const subnetRange = document.getElementById('subnet_ranges').value;
+            if (subnetRange) {
+                suggestIPAllocation();
+            }
+        }
+        
+        // Load subnet ranges function
+        function loadSubnetRanges() {
+            fetch('{{.basePath}}/api/subnet-ranges', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('subnet_ranges');
+                if (select && data && data.length > 0) {
+                    // Clear existing options except the first one
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
+                    
+                    data.forEach(range => {
+                        const option = document.createElement('option');
+                        option.value = range;
+                        option.textContent = range;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading subnet ranges:', error);
+            });
+        }
+        
+        // Format IP addresses to CIDR format
+        function formatIPToCIDR(ip) {
+            if (!ip || ip.includes('/')) {
+                return ip; // Already in CIDR format or empty
+            }
+            
+            // Check if it's a valid IP address
+            const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            if (ipRegex.test(ip.trim())) {
+                return ip.trim() + '/32';
+            }
+            
+            return ip; // Return as-is if not a valid IP
+        }
+        
+        // Format IP list to CIDR format
+        function formatIPListToCIDR(ipList) {
+            if (!ipList || !Array.isArray(ipList)) {
+                return ipList;
+            }
+            
+            return ipList.map(ip => formatIPToCIDR(ip));
+        }
+        
+        // Initialize new client form
+        function initializeNewClientForm() {
+            // Load subnet ranges
+            loadSubnetRanges();
+            
+            // Set default values
+            document.getElementById('use_server_dns').checked = true;
+            document.getElementById('enabled').checked = true;
+            
+            // Auto-suggest IP when modal opens
+            setTimeout(() => {
+                loadSuggestedIPs();
+            }, 100);
+        }
         
         // Utility functions
         function showSuccess(message) {
