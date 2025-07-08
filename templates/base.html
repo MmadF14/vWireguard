@@ -795,7 +795,7 @@
                     <!-- Right Side -->
                     <div class="flex items-center space-x-4 rtl:space-x-reverse">
                         {{if eq .baseData.Active ""}}
-                        <button onclick="document.getElementById('modal_new_client').style.display='block'" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        <button onclick="document.getElementById('modal_new_client').style.display='flex'" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
                             <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
                             <span data-translate="New Client">New Client</span>
                         </button>
@@ -1206,7 +1206,9 @@
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                        if (newClientModal.style.display === 'block' || newClientModal.style.display === 'flex') {
+                        const display = newClientModal.style.display;
+                        if (display === 'block' || display === 'flex') {
+                            console.log('Modal opened, initializing form');
                             initializeNewClientForm();
                         }
                     }
@@ -1221,20 +1223,29 @@
         
         // New Client Form Functionality
         function initializeNewClientForm() {
+            // Load subnet ranges
+            loadSubnetRanges();
+            
+            // Set default values
+            const useServerDns = document.getElementById('use_server_dns');
+            const enabled = document.getElementById('enabled');
+            if (useServerDns) useServerDns.checked = true;
+            if (enabled) enabled.checked = true;
+            
+            // Auto-suggest IP when modal opens
+            setTimeout(() => {
+                loadSuggestedIPs();
+            }, 100);
+        }
+        
+        // Initialize new client form submission (only once)
+        document.addEventListener('DOMContentLoaded', function() {
             const newClientForm = document.getElementById('frm_new_client');
-            const quotaPreset = document.getElementById('quota_preset');
-            const quotaInput = document.getElementById('client_quota');
-            
-            if (quotaPreset && quotaInput) {
-                // Initialize quota input state
-                if (quotaPreset.value !== 'custom') {
-                    quotaInput.disabled = true;
-                }
-            }
-            
-                            if (newClientForm) {
+            if (newClientForm) {
                 newClientForm.addEventListener('submit', function(e) {
                     e.preventDefault();
+                    
+                    console.log('New client form submitted');
                     
                     const formData = new FormData(this);
                     
@@ -1279,6 +1290,8 @@
                         enabled: document.getElementById('enabled').checked,
                     };
                     
+                    console.log('Client data to send:', clientData);
+                    
                     // Validate required fields
                     if (!clientData.name.trim()) {
                         showError('Name is required');
@@ -1292,8 +1305,16 @@
                         },
                         body: JSON.stringify(clientData),
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        console.log('Response headers:', response.headers);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('Response data:', data);
                         if (data.success) {
                             document.getElementById('modal_new_client').style.display = 'none';
                             newClientForm.reset();
@@ -1311,12 +1332,12 @@
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
-                        showError('Failed to create client');
+                        console.error('Fetch error:', error);
+                        showError('Failed to create client: ' + error.message);
                     });
                 });
             }
-        }
+        });
         
         // Update new client quota function
         function updateNewClientQuota() {
@@ -1477,21 +1498,6 @@
             return ipList.map(ip => formatIPToCIDR(ip));
         }
         
-        // Initialize new client form
-        function initializeNewClientForm() {
-            // Load subnet ranges
-            loadSubnetRanges();
-            
-            // Set default values
-            document.getElementById('use_server_dns').checked = true;
-            document.getElementById('enabled').checked = true;
-            
-            // Auto-suggest IP when modal opens
-            setTimeout(() => {
-                loadSuggestedIPs();
-            }, 100);
-        }
-        
         // Utility functions
         function showSuccess(message) {
             console.log('Success:', message);
@@ -1502,6 +1508,53 @@
             console.error('Error:', message);
             alert('Error: ' + message);
         }
+    </script>
+
+    <!-- Debug function to test API -->
+    <script>
+        // Debug function to test API
+        window.testCreateClient = function() {
+            const testData = {
+                name: "Test Client",
+                email: "test@example.com",
+                quota: 0,
+                expiration_days: null,
+                allocated_ips: ["10.252.1.100/32"],
+                endpoint: "",
+                tg_userid: "",
+                allowed_ips: ["0.0.0.0/0"],
+                extra_allowed_ips: [],
+                additional_notes: "",
+                use_server_dns: true,
+                enabled: true,
+            };
+            
+            console.log('Testing API with data:', testData);
+            
+            fetch('{{.basePath}}/new-client', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(testData),
+            })
+            .then(response => {
+                console.log('Test response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Test response data:', data);
+                if (data.success) {
+                    showSuccess('Test client created successfully');
+                } else {
+                    showError('Test failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Test error:', error);
+                showError('Test failed: ' + error.message);
+            });
+        };
     </script>
 </body>
 </html>

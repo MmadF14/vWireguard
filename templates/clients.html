@@ -21,7 +21,7 @@
             <label class="inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="auto-refresh-toggle" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
                 <span class="ml-2 rtl:ml-0 rtl:mr-2 text-sm" data-translate="Auto Refresh">Auto Refresh</span>
-            </label>
+                </label>
             <select id="refresh-interval" class="px-2 py-1 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 focus:outline-none" disabled>
                 <option value="5" data-translate="5 seconds">5 seconds</option>
                 <option value="10" data-translate="10 seconds">10 seconds</option>
@@ -30,10 +30,10 @@
             </select>
             <button type="button" id="refresh-status-btn" class="px-4 py-2 text-sm font-medium text-primary-600 border border-primary-500 rounded-xl hover:bg-primary-50 dark:hover:bg-dark-700 flex items-center space-x-2 rtl:space-x-reverse">
                 <i class="fas fa-sync-alt"></i>
-                <span data-translate="Refresh Status">Refresh Status</span>
-            </button>
-        </div>
-
+            <span data-translate="Refresh Status">Refresh Status</span>
+        </button>
+    </div>
+    
         <!-- Search and Filter Row -->
         <div class="mb-6 grid grid-cols-1 md:grid-cols-8 gap-4 hidden" id="search-form">
             <div class="md:col-span-5">
@@ -42,8 +42,8 @@
                         <i class="fas fa-search"></i>
                     </span>
                     <input type="text" id="search-input" class="block w-full pl-10 rtl:pl-3 rtl:pr-10 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Search clients..." data-translate-placeholder="Search clients...">
-                </div>
-            </div>
+    </div>
+</div>
             <div class="md:col-span-3">
 
                 <select id="status-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
@@ -57,20 +57,20 @@
                     <option value="Disconnected" data-translate="Disconnected">Disconnected</option>
                 </select>
             </div>
-        </div>
-
+                </div>
+                
         <div id="loading-state" class="hidden flex flex-col items-center py-10">
             <i class="fas fa-spinner fa-spin text-gray-500 text-xl"></i>
             <span class="mt-2 text-gray-500 dark:text-gray-400" data-translate="Loading...">Loading...</span>
-        </div>
+            </div>
         <div id="empty-state" class="hidden text-center py-10">
             <span class="text-gray-500 dark:text-gray-400" data-translate="No clients found">No clients found</span>
-        </div>
-
-        <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        </div>
-        <!-- /.row -->
     </div>
+    
+        <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    </div>
+        <!-- /.row -->
+</div>
 </section>
 
 <div id="modal_email_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
@@ -79,19 +79,19 @@
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Email Configuration">Email Configuration</h4>
             <button type="button" onclick="document.getElementById('modal_email_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         <form name="frm_email_client" id="frm_email_client" class="p-6 space-y-4">
-            <input type="hidden" id="e_client_id" name="e_client_id">
+                    <input type="hidden" id="e_client_id" name="e_client_id">
             <div>
                 <label for="e_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" data-translate="Email address">Email address</label>
                 <input type="text" id="e_client_email" name="e_client_email" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
-            </div>
+                    </div>
             <div class="flex justify-end space-x-3 rtl:space-x-reverse">
                 <button type="button" onclick="document.getElementById('modal_email_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
                 <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Send">Send</button>
-            </div>
-        </form>
+                </div>
+            </form>
     </div>
 </div>
 
@@ -103,10 +103,10 @@
             </h3>
             <button type="button" onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         <div class="p-6 text-center">
-            <input type="hidden" id="qr_client_id" name="qr_client_id">
+                <input type="hidden" id="qr_client_id" name="qr_client_id">
             <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
                 <img id="qr_code" class="w-full h-auto max-w-xs mx-auto" style="image-rendering: pixelated;" src="" alt="QR code" />
             </div>
@@ -168,20 +168,20 @@
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Edit Client">Edit Client</h4>
             <button type="button" onclick="document.getElementById('modal_edit_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         <form name="frm_edit_client" id="frm_edit_client" class="p-6 space-y-4 overflow-y-auto max-h-screen">
-            <input type="hidden" id="_client_id" name="_client_id">
+                    <input type="hidden" id="_client_id" name="_client_id">
             <div class="space-y-4">
-                    <div class="form-group">
+                        <div class="form-group">
                         <label for="_client_name" class="control-label" data-translate="Name">Name</label>
                         <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_name" name="_client_name">
-                    </div>
-                    <div class="form-group">
+                        </div>
+                        <div class="form-group">
                         <label for="_client_email" class="control-label" data-translate="Email">Email</label>
                         <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_email" name="client_email">
-                    </div>
-                    <div class="form-group">
+                        </div>
+                        <div class="form-group">
                         <label for="_client_quota" class="control-label" data-translate="Quota">Quota</label>
                         <div class="grid grid-cols-2 gap-2">
                             <select class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_quota_preset" onchange="window.updateQuotaInput()">
@@ -205,7 +205,7 @@
                         <label for="_client_expiration_days" class="control-label" data-translate="Expiration Days">Expiration Days</label>
                         <input type="number" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_expiration_days" name="_client_expiration_days" placeholder="e.g. 30" min="0" />
                     </div>
-
+                    
                     <div class="form-group">
                         <label for="_client_allocated_ips" class="control-label" data-translate="IP Allocation">IP Allocation</label>
                         <input type="text" data-role="tagsinput" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_allocated_ips">
@@ -222,22 +222,22 @@
                         <label for="_additional_notes" class="control-label" data-translate="Notes">Notes</label>
                         <textarea class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" style="min-height: 6rem;" id="_additional_notes" name="_additional_notes" data-translate-placeholder="Additional notes about this client" placeholder="Additional notes about this client"></textarea>
                     </div>
-                    <div class="form-group">
+                        <div class="form-group">
                         <div class="icheck-primary d-inline">
                             <input type="checkbox" id="_use_server_dns">
                             <label for="_use_server_dns" data-translate="Use server DNS">
                                 Use server DNS
                             </label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="form-group">
+                        <div class="form-group">
                         <div class="icheck-primary d-inline">
                             <input type="checkbox" id="_enabled">
                             <label for="_enabled" data-translate="Enable this client">
                                 Enable this client
                             </label>
+                            </div>
                         </div>
-                    </div>
                     <details>
                         <summary>
                             <strong data-translate="Public and Preshared Keys">Public and Preshared Keys</strong>
@@ -251,8 +251,8 @@
                                 Public Key
                             </label>
                             <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_public_key" name="_client_public_key" aria-invalid="false">
-                        </div>
-                        <div class="form-group">
+                            </div>
+                            <div class="form-group">
                             <label for="_client_preshared_key" class="control-label" data-translate="Preshared Key">
                                 Preshared Key
                             </label>
@@ -263,21 +263,21 @@
                         <summary>
                             <strong data-translate="Additional configuration">Additional configuration</strong>
                         </summary>
-                        <div class="form-group">
+                            <div class="form-group">
                             <label for="_client_allowed_ips" class="control-label" data-translate="Allowed IPs">Allowed IPs</label>
                             <input type="text" data-role="tagsinput" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_allowed_ips">
-                        </div>
-                        <div class="form-group">
+                            </div>
+                            <div class="form-group">
                             <label for="_client_extra_allowed_ips" class="control-label" data-translate="Extra Allowed IPs">Extra Allowed IPs</label>
                             <input type="text" data-role="tagsinput" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                                    id="_client_extra_allowed_ips">
-                        </div>
-                        <div class="form-group">
+                            </div>
+                            <div class="form-group">
                             <label for="_subnet_ranges" class="control-label" data-translate="Subnet range">Subnet range</label>
                             <select id="_subnet_ranges" class="select2"
                                     data-translate-placeholder="Select a subnet range"
                                     data-placeholder="Select a subnet range" style="width: 100%;">
-                            </select>
+                                </select>
                         </div>
                     </details>
                 </div>
@@ -285,8 +285,8 @@
             <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
                 <button type="button" onclick="document.getElementById('modal_edit_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
                 <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Save">Save</button>
-            </div>
-        </form>
+                </div>
+            </form>
     </div>
 </div>
 
@@ -359,21 +359,21 @@
             </h3>
             <button onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         
         <div class="p-6 text-center">
             <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
                 <img id="qr-code-image" src="" alt="QR Code" class="w-full h-auto max-w-xs mx-auto">
             </div>
             <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="Scan this QR code with your Wireguard client">Scan this QR code with your Wireguard client</p>
+            </div>
         </div>
     </div>
-</div>
 {{end}}
 
 {{define "bottom_js"}}
-<script>
+    <script>
 // Global variables
 let clients = [];
 let filteredClients = [];
@@ -482,9 +482,9 @@ function renderClients() {
     if (filteredClients.length === 0) {
         clientsContainer.classList.add('hidden');
         if (emptyState) emptyState.classList.remove('hidden');
-        return;
-    }
-    
+                return;
+            }
+
     clientsContainer.classList.remove('hidden');
     if (emptyState) emptyState.classList.add('hidden');
     
@@ -503,7 +503,7 @@ function createClientCard(client) {
     const allocatedIpsHtml = allocatedIps.map(ip => `<span class=\"inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1\">${ip}</span>`).join('');
     return `
         <div class=\"client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden p-4 flex flex-col justify-between\">
-            <div>
+                                    <div>
                 <div class=\"flex items-center justify-between mb-2\">
                     <h3 class=\"text-lg font-semibold truncate max-w-[120px] text-gray-900 dark:text-white\" title=\"${name}\">${name}</h3>
                     <div class=\"flex items-center space-x-1 rtl:space-x-reverse\">
@@ -512,16 +512,16 @@ function createClientCard(client) {
                         <button onclick=\"downloadClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Download\"><i class=\"fas fa-download\"></i></button>
                         <button onclick=\"toggleClient('${clientData.id}')\" class=\"action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"${clientData.enabled ? 'Disable' : 'Enable'}\"><i class=\"fas fa-${clientData.enabled ? 'pause' : 'play'}\"></i></button>
                         <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
-                    </div>
-                </div>
+                                    </div>
+                                </div>
                 <p class=\"text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]\" title=\"${email}\">${email}</p>
                 <div class=\"mt-2\">${allocatedIpsHtml || '<span class=\"text-gray-400\">No IPs allocated</span>'}</div>
-            </div>
+                                        </div>
             <div class=\"flex justify-between items-center mt-4 text-xs text-gray-600 dark:text-gray-300\">
                 <span><i class=\"fas fa-database mr-1\"></i> ${quotaText}</span>
                 <span><i class=\"fas fa-clock mr-1\"></i> ${expirationText}</span>
-            </div>
-        </div>
+                                    </div>
+                                </div>
     `;
 }
 
@@ -540,13 +540,13 @@ function toggleAutoRefresh() {
 
 
 // Utility functions
-function formatBytes(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
 
 function debounce(func, wait) {
     let timeout;
@@ -596,7 +596,7 @@ window.applyConfig = function() {
             .then(data => {
                 if (data.success) {
                     showSuccess('Configuration applied successfully');
-                } else {
+                        } else {
                     showError(data.message || 'Failed to apply configuration');
                 }
             })
@@ -770,7 +770,7 @@ window.deleteClient = function(clientId) {
                 if (data.success) {
                     loadClients();
                     showSuccess('Client deleted successfully');
-                } else {
+            } else {
                     showError('Failed to delete client');
                 }
             })
@@ -867,5 +867,5 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-</script>
+    </script>
 {{end}}
