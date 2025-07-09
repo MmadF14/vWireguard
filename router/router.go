@@ -163,6 +163,20 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	funcs := template.FuncMap{
 		"StringsJoin": strings.Join,
 		"formatBytes": formatBytes,
+		"substr": func(s string, start, length int) string {
+			if start < 0 {
+				start = 0
+			}
+			if start >= len(s) {
+				return ""
+			}
+			end := start + length
+			if end > len(s) {
+				end = len(s)
+			}
+			return s[start:end]
+		},
+		"upper": strings.ToUpper,
 	}
 	templates := make(map[string]*template.Template)
 	templates["login.html"] = template.Must(template.New("login").Funcs(funcs).Parse(tmplLoginString))
