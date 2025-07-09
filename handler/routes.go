@@ -483,10 +483,37 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 			clientDataList = make([]model.ClientData, 0)
 		}
 
+		// Get WireGuard usage data for online status and data usage
+		usageMap, err := getWireGuardUsage()
+		if err != nil {
+			log.Error("Error getting WireGuard usage: ", err)
+			// Continue without usage data
+			usageMap = make(map[string]peerUsage)
+		}
+
 		// Process each client and fill subnet range
 		processedList := make([]model.ClientData, 0, len(clientDataList))
 		for _, clientData := range clientDataList {
 			if clientData.Client != nil { // اطمینان از معتبر بودن داده
+				// Add online status and data usage
+				if usage, ok := usageMap[clientData.Client.PublicKey]; ok {
+					// Check if client is online (last handshake within 3 minutes)
+					clientData.Client.Status = "offline"
+					if !usage.LastHandshake.IsZero() && time.Since(usage.LastHandshake).Minutes() < 3 {
+						clientData.Client.Status = "online"
+					}
+
+					// Update used quota
+					totalBytes := usage.Rx + usage.Tx
+					clientData.Client.UsedQuota = int64(totalBytes)
+
+					// Add last handshake time
+					clientData.Client.LastHandshake = usage.LastHandshake
+				} else {
+					clientData.Client.Status = "offline"
+					clientData.Client.UsedQuota = 0
+				}
+
 				processedList = append(processedList, util.FillClientSubnetRange(clientData))
 			}
 		}

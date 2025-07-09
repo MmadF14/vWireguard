@@ -501,27 +501,58 @@ function createClientCard(client) {
     const expirationText = clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration';
     const allocatedIps = clientData.allocated_ips || [];
     const allocatedIpsHtml = allocatedIps.map(ip => `<span class=\"inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1\">${ip}</span>`).join('');
+    
+    // Online status indicator
+    const isOnline = clientData.status === 'online' || (clientData.last_handshake && (Date.now() - new Date(clientData.last_handshake).getTime()) < 180000); // 3 minutes
+    const onlineStatusClass = isOnline ? 'bg-green-500' : 'bg-gray-400';
+    const onlineStatusTitle = isOnline ? 'Online' : 'Offline';
+    
+    // Data usage display
+    const usedQuota = clientData.used_quota || 0;
+    const usedQuotaText = formatBytes(usedQuota);
+    const quotaProgress = clientData.quota ? Math.min((usedQuota / (clientData.quota * 1024 * 1024 * 1024)) * 100, 100) : 0;
+    
     return `
         <div class=\"client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden p-4 flex flex-col justify-between\">
-                                    <div>
+            <div>
                 <div class=\"flex items-center justify-between mb-2\">
-                    <h3 class=\"text-lg font-semibold truncate max-w-[120px] text-gray-900 dark:text-white\" title=\"${name}\">${name}</h3>
+                    <div class=\"flex items-center space-x-2 rtl:space-x-reverse\">
+                        <div class=\"w-3 h-3 rounded-full ${onlineStatusClass} flex-shrink-0\" title=\"${onlineStatusTitle}\"></div>
+                        <h3 class=\"text-lg font-semibold truncate max-w-[120px] text-gray-900 dark:text-white\" title=\"${name}\">${name}</h3>
+                    </div>
                     <div class=\"flex items-center space-x-1 rtl:space-x-reverse\">
                         <button onclick=\"editClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Edit\"><i class=\"fas fa-edit\"></i></button>
                         <button onclick=\"showQRCode('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"QR Code\"><i class=\"fas fa-qrcode\"></i></button>
                         <button onclick=\"downloadClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Download\"><i class=\"fas fa-download\"></i></button>
                         <button onclick=\"toggleClient('${clientData.id}')\" class=\"action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"${clientData.enabled ? 'Disable' : 'Enable'}\"><i class=\"fas fa-${clientData.enabled ? 'pause' : 'play'}\"></i></button>
-                        <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
-                                    </div>
-                                </div>
+                        <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
+                    </div>
+                </div>
                 <p class=\"text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]\" title=\"${email}\">${email}</p>
                 <div class=\"mt-2\">${allocatedIpsHtml || '<span class=\"text-gray-400\">No IPs allocated</span>'}</div>
-                                        </div>
-            <div class=\"flex justify-between items-center mt-4 text-xs text-gray-600 dark:text-gray-300\">
-                <span><i class=\"fas fa-database mr-1\"></i> ${quotaText}</span>
-                <span><i class=\"fas fa-clock mr-1\"></i> ${expirationText}</span>
-                                    </div>
-                                </div>
+            </div>
+            <div class=\"mt-4 space-y-2\">
+                <!-- Data Usage -->
+                <div class=\"text-xs text-gray-600 dark:text-gray-300\">
+                    <div class=\"flex justify-between items-center mb-1\">
+                        <span><i class=\"fas fa-database mr-1\"></i> Usage: ${usedQuotaText}</span>
+                        <span><i class=\"fas fa-clock mr-1\"></i> ${expirationText}</span>
+                    </div>
+                    ${clientData.quota ? `
+                    <div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-1.5 mb-1\">
+                        <div class=\"bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div>
+                    </div>
+                    <div class=\"text-xs text-gray-500 dark:text-gray-400\">
+                        ${quotaProgress.toFixed(1)}% of ${quotaText}
+                    </div>
+                    ` : `
+                    <div class=\"text-xs text-gray-500 dark:text-gray-400\">
+                        Quota: ${quotaText}
+                    </div>
+                    `}
+                </div>
+            </div>
+        </div>
     `;
 }
 
