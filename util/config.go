@@ -56,6 +56,8 @@ const (
 	FirewallMarkEnvVar                     = "WGUI_FIREWALL_MARK"
 	TableEnvVar                            = "WGUI_TABLE"
 	ConfigFilePathEnvVar                   = "WGUI_CONFIG_FILE_PATH"
+	TimezoneEnvVar                         = "WGUI_TIMEZONE"
+	LanguageEnvVar                         = "WGUI_LANGUAGE"
 	LogLevel                               = "WGUI_LOG_LEVEL"
 	ServerAddressesEnvVar                  = "WGUI_SERVER_INTERFACE_ADDRESSES"
 	ServerListenPortEnvVar                 = "WGUI_SERVER_LISTEN_PORT"

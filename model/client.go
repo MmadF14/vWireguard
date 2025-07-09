@@ -31,6 +31,17 @@ type Client struct {
 	FirstConnectedAt time.Time `json:"first_connected_at,omitempty"`
 	Status           string    `json:"status,omitempty"`
 	LastHandshake    time.Time `json:"last_handshake,omitempty"`
+	// Persistent storage for usage data
+	PersistentUsageData *ClientUsageData `json:"persistent_usage_data,omitempty"`
+}
+
+// ClientUsageData stores persistent usage information
+type ClientUsageData struct {
+	TotalBytesReceived uint64    `json:"total_bytes_received"`
+	TotalBytesSent     uint64    `json:"total_bytes_sent"`
+	LastSeen           time.Time `json:"last_seen"`
+	FirstSeen          time.Time `json:"first_seen"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
 // ClientData includes the Client and extra data

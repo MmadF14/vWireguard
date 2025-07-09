@@ -509,9 +509,40 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 
 					// Add last handshake time
 					clientData.Client.LastHandshake = usage.LastHandshake
+
+					// Update persistent usage data
+					if clientData.Client.PersistentUsageData == nil {
+						clientData.Client.PersistentUsageData = &model.ClientUsageData{}
+					}
+
+					// Only update if we have new data
+					if !usage.LastHandshake.IsZero() {
+						clientData.Client.PersistentUsageData.LastSeen = usage.LastHandshake
+
+						// Update first seen if not set
+						if clientData.Client.PersistentUsageData.FirstSeen.IsZero() {
+							clientData.Client.PersistentUsageData.FirstSeen = usage.LastHandshake
+						}
+					}
+
+					// Update total usage (accumulate)
+					clientData.Client.PersistentUsageData.TotalBytesReceived = usage.Rx
+					clientData.Client.PersistentUsageData.TotalBytesSent = usage.Tx
+					clientData.Client.PersistentUsageData.UpdatedAt = time.Now().UTC()
+
+					// Save the updated client data
+					if err := db.SaveClient(*clientData.Client); err != nil {
+						log.Error("Error saving client persistent data: ", err)
+					}
 				} else {
 					clientData.Client.Status = "offline"
 					clientData.Client.UsedQuota = 0
+
+					// Use persistent data if available
+					if clientData.Client.PersistentUsageData != nil {
+						clientData.Client.UsedQuota = int64(clientData.Client.PersistentUsageData.TotalBytesReceived + clientData.Client.PersistentUsageData.TotalBytesSent)
+						clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
+					}
 				}
 
 				processedList = append(processedList, util.FillClientSubnetRange(clientData))
@@ -1476,6 +1507,47 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 		log.Infof("Updated global settings: %v", globalSettings)
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated global settings successfully"})
+	}
+}
+
+// DisplaySettingsSubmit handler to update display settings
+func DisplaySettingsSubmit(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var displaySettings struct {
+			Timezone string `json:"timezone"`
+			Language string `json:"language"`
+		}
+		c.Bind(&displaySettings)
+
+		// Validate timezone
+		if displaySettings.Timezone == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Timezone is required"})
+		}
+
+		// Validate language
+		if displaySettings.Language == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Language is required"})
+		}
+
+		// Get current global settings
+		currentSettings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get current settings"})
+		}
+
+		// Update display settings
+		currentSettings.Timezone = displaySettings.Timezone
+		currentSettings.Language = displaySettings.Language
+		currentSettings.UpdatedAt = time.Now().UTC()
+
+		// Save updated settings
+		if err := db.SaveGlobalSettings(currentSettings); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot save display settings"})
+		}
+
+		log.Infof("Updated display settings: timezone=%s, language=%s", displaySettings.Timezone, displaySettings.Language)
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated display settings successfully"})
 	}
 }
 

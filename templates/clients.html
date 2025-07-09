@@ -162,131 +162,171 @@
     </div>
 </div>
 
-<div id="modal_edit_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4 overflow-y-auto">
-    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-2xl">
+<!-- Edit Client Modal -->
+<div id="modal_edit_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
-            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Edit Client">Edit Client</h4>
-            <button type="button" onclick="document.getElementById('modal_edit_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="fas fa-edit text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="Edit Client">Edit Client</span>
+            </h3>
+            <button type="button" onclick="closeEditModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">
                 <i class="fas fa-times text-gray-400"></i>
-                </button>
-            </div>
-        <form name="frm_edit_client" id="frm_edit_client" class="p-6 space-y-4 overflow-y-auto max-h-screen">
-                    <input type="hidden" id="_client_id" name="_client_id">
-            <div class="space-y-4">
-                        <div class="form-group">
-                        <label for="_client_name" class="control-label" data-translate="Name">Name</label>
-                        <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_name" name="_client_name">
-                        </div>
-                        <div class="form-group">
-                        <label for="_client_email" class="control-label" data-translate="Email">Email</label>
-                        <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_email" name="client_email">
-                        </div>
-                        <div class="form-group">
-                        <label for="_client_quota" class="control-label" data-translate="Quota">Quota</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <select class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_quota_preset" onchange="window.updateQuotaInput()">
-                                <option value="" data-translate="Select Quota">Select Quota</option>
-                                <option value="10">10 GB</option>
-                                <option value="20">20 GB</option>
-                                <option value="30">30 GB</option>
-                                <option value="40">40 GB</option>
-                                <option value="50">50 GB</option>
-                                <option value="100">100 GB</option>
-                                <option value="200">200 GB</option>
-                                <option value="500">500 GB</option>
-                                <option value="1000">1 TB</option>
-                                <option value="custom" data-translate="Custom">Custom</option>
-                            </select>
-                            <input type="number" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_quota" name="_client_quota" data-translate-placeholder="Enter custom quota in GB" placeholder="Enter custom quota in GB" step="0.1" min="0" />
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="_client_expiration_days" class="control-label" data-translate="Expiration Days">Expiration Days</label>
-                        <input type="number" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_expiration_days" name="_client_expiration_days" placeholder="e.g. 30" min="0" />
+            </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <form id="frm_edit_client" class="space-y-6">
+                <input type="hidden" id="edit_client_id" name="edit_client_id">
+                
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-user mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Name">Name</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_name" 
+                               name="edit_client_name"
+                               required
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
                     </div>
                     
-                    <div class="form-group">
-                        <label for="_client_allocated_ips" class="control-label" data-translate="IP Allocation">IP Allocation</label>
-                        <input type="text" data-role="tagsinput" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_allocated_ips">
+                    <div>
+                        <label for="edit_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-envelope mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Email">Email</span>
+                        </label>
+                        <input type="email" 
+                               id="edit_client_email" 
+                               name="edit_client_email"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
                     </div>
-                    <div class="form-group">
-                        <label for="_client_endpoint" class="control-label" data-translate="Endpoint">Endpoint</label>
-                        <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_endpoint" name="client_endpoint">
-                    </div>
-                    <div class="form-group" style="margin-top: 0.5rem;">
-                        <label for="_client_telegram_userid" class="control-label" data-translate="Telegram userid">Telegram userid</label>
-                        <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_telegram_userid" name="_client_telegram_userid">
-                    </div>
-                    <div class="form-group">
-                        <label for="_additional_notes" class="control-label" data-translate="Notes">Notes</label>
-                        <textarea class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" style="min-height: 6rem;" id="_additional_notes" name="_additional_notes" data-translate-placeholder="Additional notes about this client" placeholder="Additional notes about this client"></textarea>
-                    </div>
-                        <div class="form-group">
-                        <div class="icheck-primary d-inline">
-                            <input type="checkbox" id="_use_server_dns">
-                            <label for="_use_server_dns" data-translate="Use server DNS">
-                                Use server DNS
-                            </label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                        <div class="icheck-primary d-inline">
-                            <input type="checkbox" id="_enabled">
-                            <label for="_enabled" data-translate="Enable this client">
-                                Enable this client
-                            </label>
-                            </div>
-                        </div>
-                    <details>
-                        <summary>
-                            <strong data-translate="Public and Preshared Keys">Public and Preshared Keys</strong>
-                            <i class="fas fa-info-circle" data-toggle="tooltip"
-                               data-translate-title="Update the server stored client Public and Preshared keys."
-                               data-original-title="Update the server stored client Public and Preshared keys.">
-                            </i>
-                        </summary>
-                        <div class="form-group" style="margin-top: 1rem">
-                            <label for="_client_public_key" class="control-label" data-translate="Public Key">
-                                Public Key
-                            </label>
-                            <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_public_key" name="_client_public_key" aria-invalid="false">
-                            </div>
-                            <div class="form-group">
-                            <label for="_client_preshared_key" class="control-label" data-translate="Preshared Key">
-                                Preshared Key
-                            </label>
-                            <input type="text" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_preshared_key" name="_client_preshared_key">
-                        </div>
-                    </details>
-                    <details style="margin-top: 0.5rem;">
-                        <summary>
-                            <strong data-translate="Additional configuration">Additional configuration</strong>
-                        </summary>
-                            <div class="form-group">
-                            <label for="_client_allowed_ips" class="control-label" data-translate="Allowed IPs">Allowed IPs</label>
-                            <input type="text" data-role="tagsinput" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" id="_client_allowed_ips">
-                            </div>
-                            <div class="form-group">
-                            <label for="_client_extra_allowed_ips" class="control-label" data-translate="Extra Allowed IPs">Extra Allowed IPs</label>
-                            <input type="text" data-role="tagsinput" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                                   id="_client_extra_allowed_ips">
-                            </div>
-                            <div class="form-group">
-                            <label for="_subnet_ranges" class="control-label" data-translate="Subnet range">Subnet range</label>
-                            <select id="_subnet_ranges" class="select2"
-                                    data-translate-placeholder="Select a subnet range"
-                                    data-placeholder="Select a subnet range" style="width: 100%;">
-                                </select>
-                        </div>
-                    </details>
                 </div>
-
-            <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
-                <button type="button" onclick="document.getElementById('modal_edit_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
-                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Save">Save</button>
+                
+                <!-- Quota and Expiration -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-database mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Quota (GB)">Quota (GB)</span>
+                        </label>
+                        <input type="number" 
+                               id="edit_client_quota" 
+                               name="edit_client_quota"
+                               min="0"
+                               step="0.1"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for unlimited</p>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_expiration_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-calendar mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Expiration Days">Expiration Days</span>
+                        </label>
+                        <input type="number" 
+                               id="edit_client_expiration_days" 
+                               name="edit_client_expiration_days"
+                               min="0"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for no expiration</p>
+                    </div>
+                </div>
+                
+                <!-- IP Allocation -->
+                <div>
+                    <label for="edit_client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="IP Allocation">IP Allocation</span>
+                    </label>
+                    <input type="text" 
+                           id="edit_client_allocated_ips" 
+                           name="edit_client_allocated_ips"
+                           placeholder="10.0.0.2/32, 10.0.0.3/32"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated IP addresses in CIDR format</p>
+                </div>
+                
+                <!-- Additional Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fab fa-telegram mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Telegram User ID">Telegram User ID</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_telegram_userid" 
+                               name="edit_client_telegram_userid"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-server mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Endpoint">Endpoint</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_endpoint" 
+                               name="edit_client_endpoint"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+                </div>
+                
+                <!-- Checkboxes -->
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="edit_client_enabled" 
+                               name="edit_client_enabled"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="edit_client_enabled" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Enabled">Enabled</span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="edit_client_use_server_dns" 
+                               name="edit_client_use_server_dns"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="edit_client_use_server_dns" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Use Server DNS">Use Server DNS</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Notes -->
+                <div>
+                    <label for="edit_client_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-sticky-note mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Additional Notes">Additional Notes</span>
+                    </label>
+                    <textarea id="edit_client_notes" 
+                              name="edit_client_notes"
+                              rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 resize-none"></textarea>
                 </div>
             </form>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
+            <button type="button" 
+                    onclick="closeEditModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                <span data-translate="Cancel">Cancel</span>
+            </button>
+            <button type="button" 
+                    onclick="saveEditClient()"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="Save Changes">Save Changes</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -512,6 +552,10 @@ function createClientCard(client) {
     const usedQuotaText = formatBytes(usedQuota);
     const quotaProgress = clientData.quota ? Math.min((usedQuota / (clientData.quota * 1024 * 1024 * 1024)) * 100, 100) : 0;
     
+    // Last seen display
+    const lastSeen = clientData.last_handshake ? new Date(clientData.last_handshake) : null;
+    const lastSeenText = lastSeen ? formatLastSeen(lastSeen) : 'Never';
+    
     return `
         <div class=\"client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden p-4 flex flex-col justify-between\">
             <div>
@@ -528,28 +572,39 @@ function createClientCard(client) {
                         <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
                     </div>
                 </div>
-                <p class=\"text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]\" title=\"${email}\">${email}</p>
-                <div class=\"mt-2\">${allocatedIpsHtml || '<span class=\"text-gray-400\">No IPs allocated</span>'}</div>
-            </div>
-            <div class=\"mt-4 space-y-2\">
-                <!-- Data Usage -->
-                <div class=\"text-xs text-gray-600 dark:text-gray-300\">
-                    <div class=\"flex justify-between items-center mb-1\">
-                        <span><i class=\"fas fa-database mr-1\"></i> Usage: ${usedQuotaText}</span>
-                        <span><i class=\"fas fa-clock mr-1\"></i> ${expirationText}</span>
+                
+                <div class=\"space-y-3\">
+                    <!-- Email -->
+                    ${email ? `<div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\"><i class=\"fas fa-envelope mr-2 rtl:mr-0 rtl:ml-2\"></i><span class=\"truncate\" title=\"${email}\">${email}</span></div>` : ''}
+                    
+                    <!-- IP Allocation -->
+                    ${allocatedIpsHtml ? `<div class=\"flex items-start text-sm text-gray-600 dark:text-gray-400\"><i class=\"fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2 mt-0.5\"></i><div class=\"flex flex-wrap gap-1\">${allocatedIpsHtml}</div></div>` : ''}
+                    
+                    <!-- Data Usage -->
+                    <div class=\"space-y-1\">
+                        <div class=\"flex items-center justify-between text-sm\">
+                            <span class=\"text-gray-600 dark:text-gray-400\">Data Usage</span>
+                            <span class=\"text-gray-900 dark:text-white font-medium\">${usedQuotaText}</span>
+                        </div>
+                        ${clientData.quota ? `<div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2\"><div class=\"bg-primary-500 h-2 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div></div>` : ''}
+                        ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>${quotaText}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
                     </div>
-                    ${clientData.quota ? `
-                    <div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-1.5 mb-1\">
-                        <div class=\"bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div>
+                    
+                    <!-- Last Seen -->
+                    <div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\">
+                        <i class=\"fas fa-clock mr-2 rtl:mr-0 rtl:ml-2\"></i>
+                        <span>Last seen: ${lastSeenText}</span>
                     </div>
-                    <div class=\"text-xs text-gray-500 dark:text-gray-400\">
-                        ${quotaProgress.toFixed(1)}% of ${quotaText}
+                    
+                    <!-- Quota & Expiration -->
+                    <div class=\"flex flex-wrap gap-2 text-xs\">
+                        <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200\">
+                            <i class=\"fas fa-database mr-1 rtl:mr-0 rtl:ml-1\"></i>${quotaText}
+                        </span>
+                        <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200\">
+                            <i class=\"fas fa-calendar mr-1 rtl:mr-0 rtl:ml-1\"></i>${expirationText}
+                        </span>
                     </div>
-                    ` : `
-                    <div class=\"text-xs text-gray-500 dark:text-gray-400\">
-                        Quota: ${quotaText}
-                    </div>
-                    `}
                 </div>
             </div>
         </div>
@@ -578,6 +633,21 @@ function toggleAutoRefresh() {
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
+
+function formatLastSeen(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
 
 function debounce(func, wait) {
     let timeout;
@@ -658,13 +728,13 @@ window.editClient = function(clientId) {
     const clientData = client.Client || client;
     
     // Fill the edit form
-    document.getElementById('_client_id').value = clientData.id;
-    document.getElementById('_client_name').value = clientData.name;
-    document.getElementById('_client_email').value = clientData.email || '';
+    document.getElementById('edit_client_id').value = clientData.id;
+    document.getElementById('edit_client_name').value = clientData.name;
+    document.getElementById('edit_client_email').value = clientData.email || '';
     
     // Handle quota field
     const quotaGB = clientData.quota ? Math.round(clientData.quota / (1024 * 1024 * 1024)) : 0;
-    document.getElementById('_client_quota').value = quotaGB;
+    document.getElementById('edit_client_quota').value = quotaGB;
     
     // Set quota preset if it matches a preset value
     const quotaPreset = document.getElementById('_quota_preset');
@@ -673,35 +743,35 @@ window.editClient = function(clientId) {
         const presetOption = quotaPreset.querySelector(`option[value="${presetValue}"]`);
         if (presetOption) {
             quotaPreset.value = presetValue;
-            document.getElementById('_client_quota').disabled = true;
+            document.getElementById('edit_client_quota').disabled = true;
         } else {
             quotaPreset.value = 'custom';
-            document.getElementById('_client_quota').disabled = false;
+            document.getElementById('edit_client_quota').disabled = false;
         }
     }
     
-    document.getElementById('_client_expiration_days').value = clientData.expiration_days || '';
-    document.getElementById('_additional_notes').value = clientData.additional_notes || '';
-    document.getElementById('_enabled').checked = clientData.enabled;
-    document.getElementById('_use_server_dns').checked = clientData.use_server_dns;
-    document.getElementById('_client_telegram_userid').value = clientData.tg_userid || '';
-    document.getElementById('_client_endpoint').value = clientData.endpoint || '';
-    document.getElementById('_client_public_key').value = clientData.public_key || '';
-    document.getElementById('_client_preshared_key').value = clientData.preshared_key || '';
+    document.getElementById('edit_client_expiration_days').value = clientData.expiration_days || '';
+    document.getElementById('edit_client_notes').value = clientData.additional_notes || '';
+    document.getElementById('edit_client_enabled').checked = clientData.enabled;
+    document.getElementById('edit_client_use_server_dns').checked = clientData.use_server_dns;
+    document.getElementById('edit_client_telegram_userid').value = clientData.tg_userid || '';
+    document.getElementById('edit_client_endpoint').value = clientData.endpoint || '';
+    document.getElementById('edit_client_public_key').value = clientData.public_key || '';
+    document.getElementById('edit_client_preshared_key').value = clientData.preshared_key || '';
     
     // Set allocated IPs
     if (clientData.allocated_ips && clientData.allocated_ips.length > 0) {
-        document.getElementById('_client_allocated_ips').value = clientData.allocated_ips.join(',');
+        document.getElementById('edit_client_allocated_ips').value = clientData.allocated_ips.join(',');
     }
     
     // Set allowed IPs
     if (clientData.allowed_ips && clientData.allowed_ips.length > 0) {
-        document.getElementById('_client_allowed_ips').value = clientData.allowed_ips.join(',');
+        document.getElementById('edit_client_allowed_ips').value = clientData.allowed_ips.join(',');
     }
     
     // Set extra allowed IPs
     if (clientData.extra_allowed_ips && clientData.extra_allowed_ips.length > 0) {
-        document.getElementById('_client_extra_allowed_ips').value = clientData.extra_allowed_ips.join(',');
+        document.getElementById('edit_client_extra_allowed_ips').value = clientData.extra_allowed_ips.join(',');
     }
     
     // Show the modal
@@ -837,23 +907,23 @@ document.addEventListener('DOMContentLoaded', function() {
         editForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            const clientId = document.getElementById('_client_id').value;
+            const clientId = document.getElementById('edit_client_id').value;
             
             const updateData = {
-                name: document.getElementById('_client_name').value,
-                email: document.getElementById('_client_email').value,
-                quota: document.getElementById('_client_quota').value ? parseFloat(document.getElementById('_client_quota').value) * 1024 * 1024 * 1024 : null,
-                expiration_days: document.getElementById('_client_expiration_days').value ? parseInt(document.getElementById('_client_expiration_days').value) : null,
-                additional_notes: document.getElementById('_additional_notes').value,
-                enabled: document.getElementById('_enabled').checked,
-                use_server_dns: document.getElementById('_use_server_dns').checked,
-                tg_userid: document.getElementById('_client_telegram_userid').value,
-                endpoint: document.getElementById('_client_endpoint').value,
-                public_key: document.getElementById('_client_public_key').value,
-                preshared_key: document.getElementById('_client_preshared_key').value,
-                allocated_ips: document.getElementById('_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
-                allowed_ips: document.getElementById('_client_allowed_ips').value.split(',').filter(ip => ip.trim()),
-                extra_allowed_ips: document.getElementById('_client_extra_allowed_ips').value.split(',').filter(ip => ip.trim()),
+                name: document.getElementById('edit_client_name').value,
+                email: document.getElementById('edit_client_email').value,
+                quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+                expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
+                additional_notes: document.getElementById('edit_client_notes').value,
+                enabled: document.getElementById('edit_client_enabled').checked,
+                use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
+                tg_userid: document.getElementById('edit_client_telegram_userid').value,
+                endpoint: document.getElementById('edit_client_endpoint').value,
+                public_key: document.getElementById('edit_client_public_key').value,
+                preshared_key: document.getElementById('edit_client_preshared_key').value,
+                allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
+                allowed_ips: document.getElementById('edit_client_allowed_ips').value.split(',').filter(ip => ip.trim()),
+                extra_allowed_ips: document.getElementById('edit_client_extra_allowed_ips').value.split(',').filter(ip => ip.trim()),
             };
             
             fetch(`${basePath}/api/client/${clientId}`, {
@@ -879,24 +949,66 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
-    // Add quota preset functionality
-    const quotaPreset = document.getElementById('_quota_preset');
-    const quotaInput = document.getElementById('_client_quota');
-    
-    if (quotaPreset && quotaInput) {
-        quotaPreset.addEventListener('change', function() {
-            if (this.value === 'custom') {
-                quotaInput.disabled = false;
-                quotaInput.value = '';
-            } else if (this.value) {
-                quotaInput.disabled = true;
-                quotaInput.value = this.value;
-            }
-        });
-    }
 });
 
+// New edit modal functions
+window.closeEditModal = function() {
+    const modal = document.getElementById('modal_edit_client');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+    }
+};
+
+window.saveEditClient = function() {
+    const clientId = document.getElementById('edit_client_id').value;
+    
+    const updateData = {
+        name: document.getElementById('edit_client_name').value,
+        email: document.getElementById('edit_client_email').value,
+        quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+        expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
+        additional_notes: document.getElementById('edit_client_notes').value,
+        enabled: document.getElementById('edit_client_enabled').checked,
+        use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
+        tg_userid: document.getElementById('edit_client_telegram_userid').value,
+        endpoint: document.getElementById('edit_client_endpoint').value,
+        allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
+    };
+    
+    // Show loading state
+    const saveBtn = document.querySelector('#modal_edit_client button[onclick="saveEditClient()"]');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Saving...">Saving...</span>';
+    
+    fetch(`${basePath}/api/client/${clientId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+        
+        if (data.success) {
+            closeEditModal();
+            loadClients();
+            showSuccess('Client updated successfully');
+        } else {
+            showError(data.message || 'Failed to update client');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+        showError('Failed to update client');
+    });
+};
 
     </script>
 {{end}}

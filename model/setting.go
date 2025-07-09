@@ -14,7 +14,8 @@ type GlobalSetting struct {
 	Table               string    `json:"table"`
 	ConfigFilePath      string    `json:"config_file_path"`
 	UpdatedAt           time.Time `json:"updated_at"`
-	// WARP settings
-	WARPEnabled bool     `json:"warp_enabled"`
-	WARPDomains []string `json:"warp_domains"`
+
+	// Display settings
+	Timezone string `json:"timezone"`
+	Language string `json:"language"`
 }
