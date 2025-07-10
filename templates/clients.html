@@ -479,11 +479,20 @@ function createClientCard(client) {
     // مینیمال: فقط اسم، ایمیل، حجم، زمان، IP Allocation و دکمه‌ها
     const name = clientData.name || '';
     const email = clientData.email || '';
-    const quotaText = clientData.quota ? formatBytes(clientData.quota * 1024 * 1024 * 1024) : 'Unlimited';
     const quotaBytes = clientData.quota ? clientData.quota * 1024 * 1024 * 1024 : 0;
-    const expirationText = clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z'
-        ? formatTimeRemaining(clientData.expiration)
-        : (clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration');
+    const quotaText = quotaBytes ? formatBytes(quotaBytes) : 'Unlimited';
+
+    let expirationText = 'No expiration';
+    if (clientData.expiration_days) {
+        if (clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z') {
+            expirationText = formatTimeRemaining(clientData.expiration);
+        } else if (clientData.first_connected_at) {
+            const exp = new Date(clientData.first_connected_at).getTime() + (clientData.expiration_days * 86400000);
+            expirationText = formatTimeRemaining(exp);
+        } else {
+            expirationText = `${clientData.expiration_days} days`;
+        }
+    }
     const allocatedIps = clientData.allocated_ips || [];
     const allocatedIpsHtml = allocatedIps.map(ip => `<span class=\"inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1\">${ip}</span>`).join('');
     
@@ -495,7 +504,8 @@ function createClientCard(client) {
     // Data usage display
     const usedQuota = clientData.used_quota || 0;
     const usedQuotaText = formatBytes(usedQuota);
-    const quotaProgress = clientData.quota ? Math.min((usedQuota / (clientData.quota * 1024 * 1024 * 1024)) * 100, 100) : 0;
+    const quotaProgress = quotaBytes ? Math.min((usedQuota / quotaBytes) * 100, 100) : 0;
+    const remainingBytes = quotaBytes ? Math.max(quotaBytes - usedQuota, 0) : 0;
     
     // Last seen display
     const lastSeen = clientData.last_handshake ? new Date(clientData.last_handshake) : null;
@@ -532,7 +542,7 @@ function createClientCard(client) {
                             <span class=\"text-gray-900 dark:text-white font-medium\">${clientData.quota ? `${usedQuotaText} / ${quotaText}` : usedQuotaText}</span>
                         </div>
                         ${clientData.quota ? `<div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2\"><div class=\"bg-primary-500 h-2 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div></div>` : ''}
-                        ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>Remaining ${formatBytes(Math.max(quotaBytes - usedQuota, 0))}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
+                        ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>Remaining ${formatBytes(remainingBytes)}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
                     </div>
                     
                     <!-- Last Seen -->
@@ -572,7 +582,7 @@ function toggleAutoRefresh() {
 
 // Utility functions
         function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
+            if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
             const k = 1024;
             const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -597,6 +607,7 @@ function formatLastSeen(date) {
 function formatTimeRemaining(expiration) {
     if (!expiration) return 'No expiration';
     const expDate = new Date(expiration);
+    if (isNaN(expDate.getTime())) return 'No expiration';
     const now = new Date();
     if (expDate <= now) return 'Expired';
     const diff = expDate - now;
