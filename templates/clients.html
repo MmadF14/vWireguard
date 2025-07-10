@@ -480,7 +480,10 @@ function createClientCard(client) {
     const name = clientData.name || '';
     const email = clientData.email || '';
     const quotaText = clientData.quota ? formatBytes(clientData.quota * 1024 * 1024 * 1024) : 'Unlimited';
-    const expirationText = clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration';
+    const quotaBytes = clientData.quota ? clientData.quota * 1024 * 1024 * 1024 : 0;
+    const expirationText = clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z'
+        ? formatTimeRemaining(clientData.expiration)
+        : (clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration');
     const allocatedIps = clientData.allocated_ips || [];
     const allocatedIpsHtml = allocatedIps.map(ip => `<span class=\"inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1\">${ip}</span>`).join('');
     
@@ -526,11 +529,7 @@ function createClientCard(client) {
                     <div class=\"space-y-1\">
                         <div class=\"flex items-center justify-between text-sm\">
                             <span class=\"text-gray-600 dark:text-gray-400\">Data Usage</span>
-                            <span class=\"text-gray-900 dark:text-white font-medium\">${usedQuotaText}</span>
-                                        </div>
-                        ${clientData.quota ? `<div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2\"><div class=\"bg-primary-500 h-2 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div></div>` : ''}
-                        ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>${quotaText}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
-                                    </div>
+
                     
                     <!-- Last Seen -->
                     <div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\">
@@ -568,13 +567,13 @@ function toggleAutoRefresh() {
 
 
 // Utility functions
-        function formatBytes(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
+function formatBytes(bytes) {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
 
 function formatLastSeen(date) {
             const now = new Date();
@@ -589,6 +588,18 @@ function formatLastSeen(date) {
     if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
     
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+function formatTimeRemaining(expiration) {
+    if (!expiration) return 'No expiration';
+    const expDate = new Date(expiration);
+    if (isNaN(expDate.getTime())) return 'No expiration';
+    const now = new Date();
+    if (expDate <= now) return 'Expired';
+    const diff = expDate - now;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    return `${days}d ${hours}h left`;
 }
 
 function debounce(func, wait) {
