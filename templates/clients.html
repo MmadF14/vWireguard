@@ -122,19 +122,19 @@
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Telegram Configuration">Telegram Configuration</h4>
             <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
+                </button>
 
         <form name="frm_telegram_client" id="frm_telegram_client" class="p-6 space-y-4">
-            <input type="hidden" id="tg_client_id" name="tg_client_id">
+                    <input type="hidden" id="tg_client_id" name="tg_client_id">
             <div>
                 <label for="tg_client_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" data-translate="Telegram userid">Telegram userid</label>
                 <input type="text" id="tg_client_userid" name="tg_client_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
-            </div>
+                    </div>
             <div class="flex justify-end space-x-3 rtl:space-x-reverse">
                 <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
                 <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Send">Send</button>
-            </div>
-        </form>
+                </div>
+            </form>
     </div>
 </div>
 
@@ -149,8 +149,8 @@
             </h3>
             <button type="button" onclick="closeEditModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         
         <!-- Modal Body -->
         <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
@@ -158,7 +158,7 @@
                 <input type="hidden" id="edit_client_id" name="edit_client_id">
                 
                 <!-- Basic Information -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="edit_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <i class="fas fa-user mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
@@ -169,7 +169,7 @@
                                name="edit_client_name"
                                required
                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
-                    </div>
+                        </div>
                     
                     <div>
                         <label for="edit_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -180,11 +180,11 @@
                                id="edit_client_email" 
                                name="edit_client_email"
                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        </div>
                     </div>
-                </div>
-                
+                    
                 <!-- Quota and Expiration -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="edit_client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <i class="fas fa-database mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
@@ -197,7 +197,7 @@
                                step="0.1"
                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for unlimited</p>
-                    </div>
+                        </div>
                     
                     <div>
                         <label for="edit_client_expiration_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -210,9 +210,9 @@
                                min="0"
                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for no expiration</p>
+                        </div>
                     </div>
-                </div>
-                
+
                 <!-- IP Allocation -->
                 <div>
                     <label for="edit_client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -225,8 +225,8 @@
                            placeholder="10.0.0.2/32, 10.0.0.3/32"
                            class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated IP addresses in CIDR format</p>
-                </div>
-                
+                    </div>
+                    
                 <!-- Additional Settings -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -250,11 +250,11 @@
                                name="edit_client_endpoint"
                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
                     </div>
-                </div>
-                
+                    </div>
+                    
                 <!-- Checkboxes -->
                 <div class="space-y-3">
-                    <div class="flex items-center">
+                            <div class="flex items-center">
                         <input type="checkbox" 
                                id="edit_client_enabled" 
                                name="edit_client_enabled"
@@ -262,9 +262,9 @@
                         <label for="edit_client_enabled" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                             <span data-translate="Enabled">Enabled</span>
                         </label>
-                    </div>
+                            </div>
                     
-                    <div class="flex items-center">
+                            <div class="flex items-center">
                         <input type="checkbox" 
                                id="edit_client_use_server_dns" 
                                name="edit_client_use_server_dns"
@@ -272,9 +272,9 @@
                         <label for="edit_client_use_server_dns" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                             <span data-translate="Use Server DNS">Use Server DNS</span>
                         </label>
+                        </div>
                     </div>
-                </div>
-                
+                    
                 <!-- Notes -->
                 <div>
                     <label for="edit_client_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -285,9 +285,9 @@
                               name="edit_client_notes"
                               rows="3"
                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 resize-none"></textarea>
-                </div>
+                            </div>
             </form>
-        </div>
+                            </div>
         
         <!-- Modal Footer -->
         <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
@@ -302,7 +302,7 @@
                 <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
                 <span data-translate="Save Changes">Save Changes</span>
             </button>
-        </div>
+                            </div>
     </div>
 </div>
 
@@ -312,8 +312,8 @@
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Disable">Disable</h4>
             <button type="button" onclick="document.getElementById('modal_pause_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         <div class="p-6" id="modal_pause_client_body"></div>
         <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 pt-0">
             <button type="button" onclick="document.getElementById('modal_pause_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
@@ -328,8 +328,8 @@
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Remove">Remove</h4>
             <button type="button" onclick="document.getElementById('modal_remove_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
-            </button>
-        </div>
+                </button>
+            </div>
         <div class="p-6" id="modal_remove_client_body"></div>
         <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 pt-0">
             <button type="button" onclick="document.getElementById('modal_remove_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
@@ -513,7 +513,7 @@ function createClientCard(client) {
     
     return `
         <div class=\"client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden p-4 flex flex-col justify-between\">
-            <div>
+                                    <div>
                 <div class=\"flex items-center justify-between mb-2\">
                     <div class=\"flex items-center space-x-2 rtl:space-x-reverse\">
                         <div class=\"w-3 h-3 rounded-full ${onlineStatusClass} flex-shrink-0\" title=\"${onlineStatusTitle}\"></div>
@@ -525,9 +525,9 @@ function createClientCard(client) {
                         <button onclick=\"downloadClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Download\"><i class=\"fas fa-download\"></i></button>
                         <button onclick=\"toggleClient('${clientData.id}')\" class=\"action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"${clientData.enabled ? 'Disable' : 'Enable'}\"><i class=\"fas fa-${clientData.enabled ? 'pause' : 'play'}\"></i></button>
                         <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
-                    </div>
-                </div>
-                
+                                    </div>
+                                </div>
+                                
                 <div class=\"space-y-3\">
                     <!-- Email -->
                     ${email ? `<div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\"><i class=\"fas fa-envelope mr-2 rtl:mr-0 rtl:ml-2\"></i><span class=\"truncate\" title=\"${email}\">${email}</span></div>` : ''}
@@ -539,18 +539,13 @@ function createClientCard(client) {
                     <div class=\"space-y-1\">
                         <div class=\"flex items-center justify-between text-sm\">
                             <span class=\"text-gray-600 dark:text-gray-400\">Data Usage</span>
-                            <span class=\"text-gray-900 dark:text-white font-medium\">${clientData.quota ? `${usedQuotaText} / ${quotaText}` : usedQuotaText}</span>
-                        </div>
-                        ${clientData.quota ? `<div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2\"><div class=\"bg-primary-500 h-2 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div></div>` : ''}
-                        ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>Remaining ${formatBytes(remainingBytes)}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
-                    </div>
                     
                     <!-- Last Seen -->
                     <div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\">
                         <i class=\"fas fa-clock mr-2 rtl:mr-0 rtl:ml-2\"></i>
                         <span>Last seen: ${lastSeenText}</span>
-                    </div>
-                    
+                            </div>
+                            
                     <!-- Quota & Expiration -->
                     <div class=\"flex flex-wrap gap-2 text-xs\">
                         <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200\">
@@ -559,9 +554,9 @@ function createClientCard(client) {
                         <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200\">
                             <i class=\"fas fa-calendar mr-1 rtl:mr-0 rtl:ml-1\"></i>${expirationText}
                         </span>
-                    </div>
-                </div>
-            </div>
+                                    </div>
+                                    </div>
+                                    </div>
         </div>
     `;
 }
@@ -590,7 +585,7 @@ function toggleAutoRefresh() {
         }
 
 function formatLastSeen(date) {
-    const now = new Date();
+            const now = new Date();
     const diff = now - date;
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
