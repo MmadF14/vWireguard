@@ -123,6 +123,7 @@
             <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
             </button>
+
         <form name="frm_telegram_client" id="frm_telegram_client" class="p-6 space-y-4">
             <input type="hidden" id="tg_client_id" name="tg_client_id">
             <div>
@@ -697,8 +698,10 @@ window.editClient = function(clientId) {
     document.getElementById('edit_client_use_server_dns').checked = clientData.use_server_dns;
     document.getElementById('edit_client_telegram_userid').value = clientData.tg_userid || '';
     document.getElementById('edit_client_endpoint').value = clientData.endpoint || '';
-    document.getElementById('edit_client_public_key').value = clientData.public_key || '';
-    document.getElementById('edit_client_preshared_key').value = clientData.preshared_key || '';
+    const pubKeyField = document.getElementById('edit_client_public_key');
+    if (pubKeyField) pubKeyField.value = clientData.public_key || '';
+    const preKeyField = document.getElementById('edit_client_preshared_key');
+    if (preKeyField) preKeyField.value = clientData.preshared_key || '';
     
     // Set allocated IPs
     if (clientData.allocated_ips && clientData.allocated_ips.length > 0) {
@@ -707,12 +710,14 @@ window.editClient = function(clientId) {
     
     // Set allowed IPs
     if (clientData.allowed_ips && clientData.allowed_ips.length > 0) {
-        document.getElementById('edit_client_allowed_ips').value = clientData.allowed_ips.join(',');
+        const allowedField = document.getElementById('edit_client_allowed_ips');
+        if (allowedField) allowedField.value = clientData.allowed_ips.join(',');
     }
     
     // Set extra allowed IPs
     if (clientData.extra_allowed_ips && clientData.extra_allowed_ips.length > 0) {
-        document.getElementById('edit_client_extra_allowed_ips').value = clientData.extra_allowed_ips.join(',');
+        const extraAllowedField = document.getElementById('edit_client_extra_allowed_ips');
+        if (extraAllowedField) extraAllowedField.value = clientData.extra_allowed_ips.join(',');
     }
     
     // Show the modal
@@ -860,12 +865,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
                 tg_userid: document.getElementById('edit_client_telegram_userid').value,
                 endpoint: document.getElementById('edit_client_endpoint').value,
-                public_key: document.getElementById('edit_client_public_key').value,
-                preshared_key: document.getElementById('edit_client_preshared_key').value,
                 allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
-                allowed_ips: document.getElementById('edit_client_allowed_ips').value.split(',').filter(ip => ip.trim()),
-                extra_allowed_ips: document.getElementById('edit_client_extra_allowed_ips').value.split(',').filter(ip => ip.trim()),
             };
+
+            const publicKeyInput = document.getElementById('edit_client_public_key');
+            if (publicKeyInput) updateData.public_key = publicKeyInput.value;
+
+            const preKeyInput = document.getElementById('edit_client_preshared_key');
+            if (preKeyInput) updateData.preshared_key = preKeyInput.value;
+
+            const allowedIpsInput = document.getElementById('edit_client_allowed_ips');
+            if (allowedIpsInput) {
+                updateData.allowed_ips = allowedIpsInput.value.split(',').filter(ip => ip.trim());
+            }
+
+            const extraAllowedInput = document.getElementById('edit_client_extra_allowed_ips');
+            if (extraAllowedInput) {
+                updateData.extra_allowed_ips = extraAllowedInput.value.split(',').filter(ip => ip.trim());
+            }
             
             fetch(`${basePath}/api/client/${clientId}`, {
                 method: 'PUT',
@@ -916,6 +933,18 @@ window.saveEditClient = function() {
         endpoint: document.getElementById('edit_client_endpoint').value,
         allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
     };
+
+    const sPubKey = document.getElementById('edit_client_public_key');
+    if (sPubKey) updateData.public_key = sPubKey.value;
+
+    const sPreKey = document.getElementById('edit_client_preshared_key');
+    if (sPreKey) updateData.preshared_key = sPreKey.value;
+
+    const sAllowed = document.getElementById('edit_client_allowed_ips');
+    if (sAllowed) updateData.allowed_ips = sAllowed.value.split(',').filter(ip => ip.trim());
+
+    const sExtra = document.getElementById('edit_client_extra_allowed_ips');
+    if (sExtra) updateData.extra_allowed_ips = sExtra.value.split(',').filter(ip => ip.trim());
     
     // Show loading state
     const saveBtn = document.querySelector('#modal_edit_client button[onclick="saveEditClient()"]');
