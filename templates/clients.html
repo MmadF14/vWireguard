@@ -887,7 +887,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const updateData = {
                 name: document.getElementById('edit_client_name').value,
                 email: document.getElementById('edit_client_email').value,
-                quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+                quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) : null,
                 expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
                 additional_notes: document.getElementById('edit_client_notes').value,
                 enabled: document.getElementById('edit_client_enabled').checked,
@@ -953,7 +953,7 @@ window.saveEditClient = function() {
     const updateData = {
         name: document.getElementById('edit_client_name').value,
         email: document.getElementById('edit_client_email').value,
-        quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+        quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) : null,
         expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
         additional_notes: document.getElementById('edit_client_notes').value,
         enabled: document.getElementById('edit_client_enabled').checked,
