@@ -567,11 +567,7 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 						clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
 					} else {
 						clientData.Client.UsedQuota = 0
-					}
 
-					// Persist last seen and quota even when offline
-					if err := db.SaveClient(*clientData.Client); err != nil {
-						log.Error("Error saving client persistent data: ", err)
 					}
 				}
 
