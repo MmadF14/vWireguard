@@ -176,6 +176,32 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 			}
 			return s[start:end]
 		},
+		"upper": strings.ToUpper,
+		"len": func(v interface{}) int {
+			switch v := v.(type) {
+			case string:
+				return len(v)
+			case []interface{}:
+				return len(v)
+			case map[string]interface{}:
+				return len(v)
+			default:
+				return 0
+			}
+		},
+		"eq": func(a, b interface{}) bool {
+			return a == b
+		},
+		"not": func(v interface{}) bool {
+			switch v := v.(type) {
+			case bool:
+				return !v
+			case nil:
+				return true
+			default:
+				return false
+			}
+		},
 	}
 	templates := make(map[string]*template.Template)
 	templates["login.html"] = template.Must(template.New("login").Funcs(funcs).Parse(tmplLoginString))
