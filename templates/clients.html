@@ -73,7 +73,7 @@
 </div>
 </section>
 
-<div id="modal_email_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+<div id="modal_email_client" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Email Configuration">Email Configuration</h4>
@@ -95,7 +95,7 @@
     </div>
 </div>
 
-<div id="modal_qr_code" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+<div id="modal_qr_code" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -116,7 +116,7 @@
 </div>
 
 
-<div id="modal_telegram_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+<div id="modal_telegram_client" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Telegram Configuration">Telegram Configuration</h4>
@@ -139,7 +139,7 @@
 </div>
 
 <!-- Edit Client Modal -->
-<div id="modal_edit_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+<div id="modal_edit_client" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         <!-- Modal Header -->
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
@@ -306,7 +306,7 @@
     </div>
 </div>
 
-<div id="modal_pause_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+<div id="modal_pause_client" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700 bg-warning-100 dark:bg-warning-900/20">
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Disable">Disable</h4>
@@ -322,7 +322,7 @@
     </div>
 </div>
 
-<div id="modal_remove_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+<div id="modal_remove_client" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" style="display: none;">
     <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
         <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700 bg-danger-100 dark:bg-danger-900/20">
             <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Remove">Remove</h4>
@@ -738,7 +738,6 @@ window.editClient = function(clientId) {
     const modal = document.getElementById('modal_edit_client');
     if (modal) {
         modal.style.display = 'flex';
-        modal.classList.remove('hidden');
     } else {
         console.error('modal_edit_client not found in DOM');
         showError('Edit modal not found!');
@@ -928,7 +927,6 @@ window.closeEditModal = function() {
     const modal = document.getElementById('modal_edit_client');
     if (modal) {
         modal.style.display = 'none';
-        modal.classList.add('hidden');
     }
 };
 
