@@ -37,11 +37,13 @@ type Client struct {
 
 // ClientUsageData stores persistent usage information
 type ClientUsageData struct {
-	TotalBytesReceived uint64    `json:"total_bytes_received"`
-	TotalBytesSent     uint64    `json:"total_bytes_sent"`
-	LastSeen           time.Time `json:"last_seen"`
-	FirstSeen          time.Time `json:"first_seen"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	TotalBytesReceived         uint64    `json:"total_bytes_received"`
+	TotalBytesSent             uint64    `json:"total_bytes_sent"`
+	LastInterfaceBytesReceived uint64    `json:"last_interface_bytes_received"`
+	LastInterfaceBytesSent     uint64    `json:"last_interface_bytes_sent"`
+	LastSeen                   time.Time `json:"last_seen"`
+	FirstSeen                  time.Time `json:"first_seen"`
+	UpdatedAt                  time.Time `json:"updated_at"`
 }
 
 // ClientData includes the Client and extra data

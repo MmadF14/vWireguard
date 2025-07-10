@@ -512,7 +512,10 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 
 					// Update persistent usage data
 					if clientData.Client.PersistentUsageData == nil {
-						clientData.Client.PersistentUsageData = &model.ClientUsageData{}
+						clientData.Client.PersistentUsageData = &model.ClientUsageData{
+							LastInterfaceBytesReceived: usage.Rx,
+							LastInterfaceBytesSent:     usage.Tx,
+						}
 					}
 
 					// Only update if we have new data
@@ -525,10 +528,28 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 						}
 					}
 
-					// Update total usage (accumulate)
-					clientData.Client.PersistentUsageData.TotalBytesReceived = usage.Rx
-					clientData.Client.PersistentUsageData.TotalBytesSent = usage.Tx
+					// Compute usage delta based on last counters
+					deltaRx := usage.Rx
+					if usage.Rx >= clientData.Client.PersistentUsageData.LastInterfaceBytesReceived {
+						deltaRx = usage.Rx - clientData.Client.PersistentUsageData.LastInterfaceBytesReceived
+					}
+					deltaTx := usage.Tx
+					if usage.Tx >= clientData.Client.PersistentUsageData.LastInterfaceBytesSent {
+						deltaTx = usage.Tx - clientData.Client.PersistentUsageData.LastInterfaceBytesSent
+					}
+
+					// Accumulate totals
+					clientData.Client.PersistentUsageData.TotalBytesReceived += deltaRx
+					clientData.Client.PersistentUsageData.TotalBytesSent += deltaTx
+
+					// Update last interface counters
+					clientData.Client.PersistentUsageData.LastInterfaceBytesReceived = usage.Rx
+					clientData.Client.PersistentUsageData.LastInterfaceBytesSent = usage.Tx
+
 					clientData.Client.PersistentUsageData.UpdatedAt = time.Now().UTC()
+
+					// Update UsedQuota from persistent totals
+					clientData.Client.UsedQuota = int64(clientData.Client.PersistentUsageData.TotalBytesReceived + clientData.Client.PersistentUsageData.TotalBytesSent)
 
 					// Save the updated client data
 					if err := db.SaveClient(*clientData.Client); err != nil {
@@ -536,12 +557,17 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 					}
 				} else {
 					clientData.Client.Status = "offline"
-					clientData.Client.UsedQuota = 0
-
 					// Use persistent data if available
 					if clientData.Client.PersistentUsageData != nil {
 						clientData.Client.UsedQuota = int64(clientData.Client.PersistentUsageData.TotalBytesReceived + clientData.Client.PersistentUsageData.TotalBytesSent)
 						clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
+					} else {
+						clientData.Client.UsedQuota = 0
+					}
+
+					// Persist last seen and quota even when offline
+					if err := db.SaveClient(*clientData.Client); err != nil {
+						log.Error("Error saving client persistent data: ", err)
 					}
 				}
 
