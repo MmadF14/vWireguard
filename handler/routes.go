@@ -507,8 +507,12 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 					totalBytes := usage.Rx + usage.Tx
 					clientData.Client.UsedQuota = int64(totalBytes)
 
-					// Add last handshake time
-					clientData.Client.LastHandshake = usage.LastHandshake
+					// Add last handshake time; preserve previous if no handshake yet
+					lastSeen := usage.LastHandshake
+					if lastSeen.IsZero() && clientData.Client.PersistentUsageData != nil {
+						lastSeen = clientData.Client.PersistentUsageData.LastSeen
+					}
+					clientData.Client.LastHandshake = lastSeen
 
 					// Update persistent usage data
 					if clientData.Client.PersistentUsageData == nil {
@@ -563,6 +567,7 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 						clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
 					} else {
 						clientData.Client.UsedQuota = 0
+
 					}
 				}
 
