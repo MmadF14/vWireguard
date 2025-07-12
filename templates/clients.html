@@ -479,7 +479,6 @@ function createClientCard(client) {
     // مینیمال: فقط اسم، ایمیل، حجم، زمان، IP Allocation و دکمه‌ها
     const name = clientData.name || '';
     const email = clientData.email || '';
-
     const expirationText = clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z'
         ? formatTimeRemaining(clientData.expiration)
         : (clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration');
@@ -528,7 +527,6 @@ function createClientCard(client) {
                     <div class=\"space-y-1\">
                         <div class=\"flex items-center justify-between text-sm\">
                             <span class=\"text-gray-600 dark:text-gray-400\">Data Usage</span>
-
                         </div>
                         ${clientData.quota ? `<div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2\"><div class=\"bg-primary-500 h-2 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div></div>` : ''}
                         ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>Remaining ${formatBytes(Math.max(quotaBytes - usedQuota, 0))}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
@@ -543,7 +541,6 @@ function createClientCard(client) {
                     <!-- Quota & Expiration -->
                     <div class=\"flex flex-wrap gap-2 text-xs\">
                         <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200\">
-                            <i class=\"fas fa-database mr-1 rtl:mr-0 rtl:ml-1\"></i>${quotaDisplay}
                         </span>
                         <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200\">
                             <i class=\"fas fa-calendar mr-1 rtl:mr-0 rtl:ml-1\"></i>${expirationText}
