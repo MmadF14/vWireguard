@@ -105,6 +105,13 @@
                 <i class="fas fa-times text-gray-400"></i>
                 </button>
             </div>
+        <div class="p-6 text-center">
+                <input type="hidden" id="qr_client_id" name="qr_client_id">
+            <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
+                <img id="qr_code" class="w-full h-auto max-w-xs mx-auto" style="image-rendering: pixelated;" src="" alt="QR code" />
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="Scan this QR code with your Wireguard client">Scan this QR code with your Wireguard client</p>
+        </div>
     </div>
 </div>
 
@@ -393,13 +400,7 @@
                 <i class="fas fa-times text-gray-400"></i>
                 </button>
             </div>
-        
-        <div class="p-6 text-center">
-            <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
-                <img id="qr-code-image" src="" alt="QR Code" class="w-full h-auto max-w-xs mx-auto">
-            </div>
-            <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="Scan this QR code with your Wireguard client">Scan this QR code with your Wireguard client</p>
-            </div>
+
         </div>
     </div>
 {{end}}
