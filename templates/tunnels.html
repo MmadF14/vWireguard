@@ -297,259 +297,6 @@
     </div>
 </section>
 
-<!-- New Tunnel Modal -->
-<div class="modal fade" id="modal_new_tunnel">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                                        <h4 class="modal-title" data-translate="New Tunnel">New Tunnel</h4>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <form id="frm_new_tunnel">
-                <div class="modal-body">
-                    <!-- Basic Information -->
-                    <div class="form-group">
-                        <label for="tunnel_name" data-translate="Tunnel Name">Tunnel Name</label>
-                        <input type="text" class="form-control" id="tunnel_name" name="name" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="tunnel_type" data-translate="Tunnel Type">Tunnel Type</label>
-                        <select class="form-control" id="tunnel_type" name="type" required onchange="showTunnelConfig()">
-                            <option value="" data-translate="Select tunnel type">Select tunnel type</option>
-                            <option value="wg-to-wg" data-translate="WireGuard to WireGuard">WireGuard to WireGuard</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="description" data-translate="Description (Optional)">Description (Optional)</label>
-                        <textarea class="form-control" id="description" name="description" rows="2"></textarea>
-                    </div>
-
-                    <!-- Client Selection -->
-                    <div class="form-group">
-                        <label data-translate="Client Routing">Client Routing</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="client_routing" id="route_all" value="all" checked>
-                            <label class="form-check-label" for="route_all" data-translate="Route all clients through this tunnel">
-                                Route all clients through this tunnel
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="client_routing" id="route_selected" value="selected">
-                            <label class="form-check-label" for="route_selected" data-translate="Route only selected clients">
-                                Route only selected clients
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="client_selection" style="display:none;">
-                        <label data-translate="Select Clients">Select Clients</label>
-                        <div id="client_list">
-                            <!-- Will be populated via AJAX -->
-                        </div>
-                    </div>
-
-                    <!-- WireGuard Configuration -->
-                    <div id="wg_config" style="display:none;">
-                        <h5 data-translate="WireGuard Configuration">WireGuard Configuration</h5>
-                        
-                        <!-- Key Generation Section -->
-                        <div class="form-group">
-                            <div class="btn-group" role="group">
-                                <button type="button" class="btn btn-info btn-sm" onclick="generateWireGuardKeys()">
-                                    <i class="fas fa-key"></i> <span data-translate="Generate Keypair">Generate Keypair</span>
-                                </button>
-                                <button type="button" class="btn btn-outline-info btn-sm" onclick="showManualKeyEntry()">
-                                    <i class="fas fa-edit"></i> <span data-translate="Manual Entry">Manual Entry</span>
-                                </button>
-                            </div>
-                            <small class="form-text text-muted" data-translate="Generate or manually enter your keypair">Generate or manually enter your keypair</small>
-                        </div>
-                        
-                        <!-- Manual Key Entry -->
-                        <div id="manual_key_section" style="display:none;">
-                            <div class="form-group">
-                                <label for="wg_manual_private_key" data-translate="Local Private Key">Local Private Key</label>
-                                <textarea class="form-control" id="wg_manual_private_key" rows="2" placeholder="Enter your WireGuard private key" onblur="generatePublicKeyFromPrivate()"></textarea>
-                                <small class="form-text text-muted" data-translate="Enter your private key and public key will be auto-generated">Enter your private key and public key will be auto-generated</small>
-                            </div>
-                            <div class="form-group">
-                                <label for="wg_manual_public_key" data-translate="Local Public Key (Auto-generated)">Local Public Key (Auto-generated)</label>
-                                <input type="text" class="form-control" id="wg_manual_public_key" readonly placeholder="Will be generated from private key">
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="wg_remote_endpoint" data-translate="Remote Endpoint (IP:Port)">Remote Endpoint (IP:Port)</label>
-                                    <input type="text" class="form-control" id="wg_remote_endpoint" placeholder="1.2.3.4:51820">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="wg_tunnel_ip" data-translate="Our Tunnel IP">Our Tunnel IP</label>
-                                    <input type="text" class="form-control" id="wg_tunnel_ip" placeholder="10.0.1.2/24">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="wg_remote_public_key" data-translate="Remote Public Key">Remote Public Key</label>
-                            <textarea class="form-control" id="wg_remote_public_key" rows="2" placeholder="Remote WireGuard server's public key"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="wg_allowed_ips" data-translate="Allowed IPs (comma separated)">Allowed IPs (comma separated)</label>
-                            <input type="text" class="form-control" id="wg_allowed_ips" value="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" placeholder="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16">
-                            <small class="form-text text-warning">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <strong data-translate="WARNING:">WARNING:</strong> <span data-translate="Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.">Using 0.0.0.0/0 will route ALL traffic through tunnel and may disconnect your server! Use private networks only for safety.</span>
-                            </small>
-                        </div>
-                        
-                        <!-- PreShared Key (Optional) -->
-                        <div class="form-group">
-                            <label for="wg_preshared_key" data-translate="PreShared Key (Optional)">PreShared Key (Optional)</label>
-                            <div class="input-group">
-                                <textarea class="form-control" id="wg_preshared_key" rows="2" placeholder="Leave empty or enter PreShared Key for extra security"></textarea>
-                                <div class="input-group-append">
-                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePreSharedKey()">
-                                        <i class="fas fa-key"></i> <span data-translate="Generate">Generate</span>
-                                    </button>
-                                </div>
-                            </div>
-                            <small class="form-text text-muted" data-translate="Optional: Adds an extra layer of symmetric-key cryptography">Optional: Adds an extra layer of symmetric-key cryptography</small>
-                        </div>
-                    </div>
-
-                    <!-- Dokodemo Door Configuration -->
-                    <div id="dokodemo_config" style="display:none;">
-                        <h5>Dokodemo Door Configuration</h5>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="dokodemo_address">Target Address</label>
-                                    <input type="text" class="form-control" id="dokodemo_address" placeholder="example.com or 1.2.3.4">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="dokodemo_port">Target Port</label>
-                                    <input type="number" class="form-control" id="dokodemo_port" placeholder="80">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="dokodemo_network">Network Protocol</label>
-                                    <select class="form-control" id="dokodemo_network">
-                                        <option value="tcp">TCP</option>
-                                        <option value="udp">UDP</option>
-                                        <option value="tcp,udp">TCP + UDP</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="dokodemo_timeout">Timeout (seconds)</label>
-                                    <input type="number" class="form-control" id="dokodemo_timeout" value="300" placeholder="300">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="dokodemo_domain_strategy">Domain Strategy</label>
-                            <select class="form-control" id="dokodemo_domain_strategy">
-                                <option value="AsIs">As Is (default)</option>
-                                <option value="UseIP">Use IP</option>
-                                <option value="UseIPv4">Use IPv4</option>
-                                <option value="UseIPv6">Use IPv6</option>
-                            </select>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="dokodemo_follow_redirect">
-                            <label class="form-check-label" for="dokodemo_follow_redirect">
-                                Follow HTTP Redirects  
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Port Forward Configuration -->
-                    <div id="port_forward_config" style="display:none;">
-                        <h5>Port Forward Configuration (Dokodemo Door)</h5>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="pf_protocol">Protocol</label>
-                                    <select class="form-control" id="pf_protocol">
-                                        <option value="tcp">TCP</option>
-                                        <option value="udp">UDP</option>
-                                        <option value="both">Both (TCP + UDP)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="pf_local_port">Local Bind Port</label>
-                                    <input type="number" class="form-control" id="pf_local_port" placeholder="8080">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-8">
-                                <div class="form-group">
-                                    <label for="pf_remote_host">Target Host</label>
-                                    <input type="text" class="form-control" id="pf_remote_host" placeholder="google.com">
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label for="pf_remote_port">Target Port</label>
-                                    <input type="number" class="form-control" id="pf_remote_port" placeholder="80">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="pf_transparent">
-                            <label class="form-check-label" for="pf_transparent">
-                                Transparent Proxy Mode
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                    <button type="submit" class="btn btn-primary" data-translate="Create Tunnel">Create Tunnel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Cleanup Modal -->
-<div class="modal fade" id="modal_cleanup_tunnels" role="dialog">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" data-translate="Cleanup Corrupted Tunnels">Cleanup Corrupted Tunnels</h4>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <p data-translate="This will remove any corrupted tunnel records that cannot be loaded properly.">This will remove any corrupted tunnel records that cannot be loaded properly.</p>
-                <p><strong data-translate="Warning:">Warning:</strong> <span data-translate="This action cannot be undone!">This action cannot be undone!</span></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
-                <button type="button" class="btn btn-warning" onclick="cleanupTunnels()" data-translate="Smart Cleanup">Smart Cleanup</button>
-                <button type="button" class="btn btn-danger" onclick="deleteAllTunnels()" data-translate="Delete All">Delete All</button>
-            </div>
-        </div>
-    </div>
-</div>
 {{end}}
 
 {{define "bottom_js"}}
@@ -561,7 +308,7 @@ function openNewTunnelModal() {
         <div id="newTunnelModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeNewTunnelModal()"></div>
-                
+
                 <div class="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-dark-800 shadow-xl rounded-2xl">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-lg font-medium text-gray-900 dark:text-white">
@@ -572,14 +319,14 @@ function openNewTunnelModal() {
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
-                    
+
                     <form id="frm_new_tunnel" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Tunnel Name">Tunnel Name</label>
                             <input type="text" id="tunnel_name" name="name" required
                                    class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Tunnel Type">Tunnel Type</label>
                             <select id="tunnel_type" name="type" required onchange="showTunnelConfig()"
@@ -588,13 +335,13 @@ function openNewTunnelModal() {
                                 <option value="wg-to-wg" data-translate="WireGuard to WireGuard">WireGuard to WireGuard</option>
                             </select>
                         </div>
-                        
+
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" data-translate="Description (Optional)">Description (Optional)</label>
                             <textarea id="description" name="description" rows="2"
                                       class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white resize-none"></textarea>
                         </div>
-                        
+
                         <div class="flex space-x-3 rtl:space-x-reverse pt-4">
                             <button type="button" onclick="closeNewTunnelModal()"
                                     class="flex-1 px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
@@ -610,22 +357,29 @@ function openNewTunnelModal() {
             </div>
         </div>
     `;
-    
+
     // Add modal to page
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Show modal
-    document.getElementById('newTunnelModal').style.display = 'block';
-    
+
+    const modalEl = document.getElementById('newTunnelModal');
+    modalEl.style.display = 'block';
+
     // Translate modal content
-    if (window.langManager) {
+    if (window.langManager && window.langManager.translatePage) {
         window.langManager.translatePage();
     }
+    if (typeof smartTranslateTunnels === 'function') {
+        smartTranslateTunnels();
+    }
+
+    // Load clients and initial config
+    document.dispatchEvent(new Event('tunnelModalOpened'));
 }
 
 function closeNewTunnelModal() {
     const modal = document.getElementById('newTunnelModal');
     if (modal) {
+        document.dispatchEvent(new Event('tunnelModalClosed'));
         modal.remove();
     }
 }
@@ -881,10 +635,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script>
 $(document).ready(function() {
-    // Load client list on modal open
-    $('#modal_new_tunnel').on('shown.bs.modal', function() {
+    // Load client list when custom modal is opened
+    $(document).on('tunnelModalOpened', function() {
         loadClientList();
-        // Ensure tunnel config is shown if type is already selected
         setTimeout(function() {
             if ($('#tunnel_type').val()) {
                 showTunnelConfig();
@@ -893,7 +646,7 @@ $(document).ready(function() {
     });
 
     // Handle client routing radio button changes
-    $('input[name="client_routing"]').change(function() {
+    $(document).on('change', 'input[name="client_routing"]', function() {
         if ($(this).val() === 'selected') {
             $('#client_selection').show();
             loadClientList();
@@ -911,12 +664,12 @@ $(document).ready(function() {
     console.log('wg_config element exists:', $('#wg_config').length > 0);
 
     // Handle tunnel form submission (create/edit)
-    $('#frm_new_tunnel').on('submit', function(e) {
+    $(document).on('submit', '#frm_new_tunnel', function(e) {
         e.preventDefault();
         
         console.log('Form submitted!');
         
-        const tunnelId = $('#modal_new_tunnel').data('tunnel-id');
+        const tunnelId = $('#newTunnelModal').data('tunnel-id');
         const isEdit = !!tunnelId;
         
         const tunnelType = $('#tunnel_type').val();
@@ -1016,7 +769,7 @@ $(document).ready(function() {
             console.log('API Response:', response);
             if (response.success) {
                 alert(`Tunnel ${action} successfully!`);
-                $('#modal_new_tunnel').modal('hide');
+                closeNewTunnelModal();
                 setTimeout(function() {
                     location.reload();
                 }, 500);
@@ -1032,18 +785,20 @@ $(document).ready(function() {
     });
     
     // Reset form when modal is closed
-    $('#modal_new_tunnel').on('hidden.bs.modal', function() {
-        $('#frm_new_tunnel')[0].reset();
+    $(document).on('tunnelModalClosed', function() {
+        if ($('#frm_new_tunnel').length) {
+            $('#frm_new_tunnel')[0].reset();
+        }
         $('#wg_config, #dokodemo_config, #port_forward_config, #manual_key_section').hide();
         $('#wg_config .alert').remove();
         $('#wg_manual_private_key, #wg_manual_public_key, #wg_preshared_key').val('');
         $('#wg_config').removeData('private-key public-key');
         $('#client_selection').hide();
         $('input[name="client_routing"][value="all"]').prop('checked', true);
-        
+
         // Reset modal for create mode
-        $('#modal_new_tunnel').removeData('tunnel-id');
-        $('#modal_new_tunnel .modal-title').text('New Tunnel');
+        $('#newTunnelModal').removeData('tunnel-id');
+        $('#newTunnelModal .modal-title').text('New Tunnel');
         $('#frm_new_tunnel button[type="submit"]').text('Create Tunnel');
     });
 });
@@ -1284,6 +1039,8 @@ function editTunnel(tunnelId) {
         method: 'GET'
     })
     .done(function(tunnel) {
+        openNewTunnelModal();
+
         // Populate basic fields
         $('#tunnel_name').val(tunnel.name);
         $('#tunnel_type').val(tunnel.type);
@@ -1343,9 +1100,9 @@ function editTunnel(tunnelId) {
         }
         
         // Change modal title, button text and store tunnel ID
-        $('#modal_new_tunnel .modal-title').text('Edit Tunnel');
+        $('#newTunnelModal .modal-title').text('Edit Tunnel');
         $('#frm_new_tunnel button[type="submit"]').text('Update Tunnel');
-        $('#modal_new_tunnel').data('tunnel-id', tunnelId);
+        $('#newTunnelModal').data('tunnel-id', tunnelId);
         
         // Load and mark selected clients
         loadClientList();
@@ -1357,7 +1114,6 @@ function editTunnel(tunnelId) {
             }
         }, 500);
         
-        $('#modal_new_tunnel').modal('show');
     })
     .fail(function() {
         alert('Error loading tunnel data');
