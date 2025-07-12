@@ -227,6 +227,63 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated IP addresses in CIDR format</p>
                 </div>
                 
+                <!-- Allowed IPs -->
+                <div>
+                    <label for="edit_client_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-globe mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Allowed IPs">Allowed IPs</span>
+                    </label>
+                    <input type="text" 
+                           id="edit_client_allowed_ips" 
+                           name="edit_client_allowed_ips"
+                           placeholder="0.0.0.0/0, ::/0"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated IP ranges in CIDR format</p>
+                </div>
+                
+                <!-- Extra Allowed IPs -->
+                <div>
+                    <label for="edit_client_extra_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-plus-circle mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Extra Allowed IPs">Extra Allowed IPs</span>
+                    </label>
+                    <input type="text" 
+                           id="edit_client_extra_allowed_ips" 
+                           name="edit_client_extra_allowed_ips"
+                           placeholder="192.168.1.0/24, 10.0.0.0/8"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Additional IP ranges to route through VPN</p>
+                </div>
+                
+                <!-- Advanced Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_public_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-key mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Public Key">Public Key</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_public_key" 
+                               name="edit_client_public_key"
+                               readonly
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm bg-gray-50 dark:bg-dark-600 text-gray-900 dark:text-white transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Auto-generated public key</p>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_preshared_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-shield-alt mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Preshared Key">Preshared Key</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_preshared_key" 
+                               name="edit_client_preshared_key"
+                               readonly
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm bg-gray-50 dark:bg-dark-600 text-gray-900 dark:text-white transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional additional security key</p>
+                    </div>
+                </div>
+                
                 <!-- Additional Settings -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -671,6 +728,8 @@ window.applyConfig = function() {
 // Make functions globally available
 window.editClient = function(clientId) {
     console.log('editClient called with', clientId); // Debug log
+    console.log('Available clients:', clients); // Debug log
+    
     const client = clients.find(c => {
         const clientData = c.Client || c;
         return clientData.id === clientId;
@@ -678,6 +737,7 @@ window.editClient = function(clientId) {
     
     if (!client) {
         console.error('Client not found:', clientId);
+        console.error('Available client IDs:', clients.map(c => (c.Client || c).id));
         showError('Client not found!');
         return;
     }
@@ -693,19 +753,8 @@ window.editClient = function(clientId) {
     const quotaGB = clientData.quota ? Math.round(clientData.quota / (1024 * 1024 * 1024)) : 0;
     document.getElementById('edit_client_quota').value = quotaGB;
     
-    // Set quota preset if it matches a preset value
-    const quotaPreset = document.getElementById('_quota_preset');
-    if (quotaPreset) {
-        const presetValue = quotaGB.toString();
-        const presetOption = quotaPreset.querySelector(`option[value="${presetValue}"]`);
-        if (presetOption) {
-            quotaPreset.value = presetValue;
-            document.getElementById('edit_client_quota').disabled = true;
-        } else {
-            quotaPreset.value = 'custom';
-            document.getElementById('edit_client_quota').disabled = false;
-        }
-    }
+    // Set quota preset if it matches a preset value (skip for edit modal as it doesn't have preset dropdown)
+    // The edit modal only has the direct quota input field
     
     document.getElementById('edit_client_expiration_days').value = clientData.expiration_days || '';
     document.getElementById('edit_client_notes').value = clientData.additional_notes || '';
@@ -719,27 +768,32 @@ window.editClient = function(clientId) {
     if (preKeyField) preKeyField.value = clientData.preshared_key || '';
     
     // Set allocated IPs
-    if (clientData.allocated_ips && clientData.allocated_ips.length > 0) {
-        document.getElementById('edit_client_allocated_ips').value = clientData.allocated_ips.join(',');
+    const allocatedIpsField = document.getElementById('edit_client_allocated_ips');
+    if (allocatedIpsField) {
+        allocatedIpsField.value = (clientData.allocated_ips && clientData.allocated_ips.length > 0) ? clientData.allocated_ips.join(',') : '';
     }
     
     // Set allowed IPs
-    if (clientData.allowed_ips && clientData.allowed_ips.length > 0) {
-        const allowedField = document.getElementById('edit_client_allowed_ips');
-        if (allowedField) allowedField.value = clientData.allowed_ips.join(',');
+    const allowedField = document.getElementById('edit_client_allowed_ips');
+    if (allowedField) {
+        allowedField.value = (clientData.allowed_ips && clientData.allowed_ips.length > 0) ? clientData.allowed_ips.join(',') : '';
     }
     
     // Set extra allowed IPs
-    if (clientData.extra_allowed_ips && clientData.extra_allowed_ips.length > 0) {
-        const extraAllowedField = document.getElementById('edit_client_extra_allowed_ips');
-        if (extraAllowedField) extraAllowedField.value = clientData.extra_allowed_ips.join(',');
+    const extraAllowedField = document.getElementById('edit_client_extra_allowed_ips');
+    if (extraAllowedField) {
+        extraAllowedField.value = (clientData.extra_allowed_ips && clientData.extra_allowed_ips.length > 0) ? clientData.extra_allowed_ips.join(',') : '';
     }
     
     // Show the modal
     const modal = document.getElementById('modal_edit_client');
+    console.log('Modal element found:', modal); // Debug log
     if (modal) {
+        console.log('Modal classes before:', modal.classList.toString()); // Debug log
         modal.style.display = 'flex';
         modal.classList.remove('hidden');
+        console.log('Modal classes after:', modal.classList.toString()); // Debug log
+        console.log('Modal style display:', modal.style.display); // Debug log
     } else {
         console.error('modal_edit_client not found in DOM');
         showError('Edit modal not found!');
