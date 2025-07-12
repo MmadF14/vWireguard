@@ -479,8 +479,8 @@ function createClientCard(client) {
     // مینیمال: فقط اسم، ایمیل، حجم، زمان، IP Allocation و دکمه‌ها
     const name = clientData.name || '';
     const email = clientData.email || '';
-    const quotaText = clientData.quota ? formatBytes(clientData.quota * 1024 * 1024 * 1024) : 'Unlimited';
-    const quotaBytes = clientData.quota ? clientData.quota * 1024 * 1024 * 1024 : 0;
+    const quotaText = clientData.quota ? formatBytes(clientData.quota) : 'Unlimited';
+    const quotaBytes = clientData.quota ? clientData.quota : 0;
     const expirationText = clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z'
         ? formatTimeRemaining(clientData.expiration)
         : (clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration');
@@ -495,7 +495,7 @@ function createClientCard(client) {
     // Data usage display
     const usedQuota = clientData.used_quota || 0;
     const usedQuotaText = formatBytes(usedQuota);
-    const quotaProgress = clientData.quota ? Math.min((usedQuota / (clientData.quota * 1024 * 1024 * 1024)) * 100, 100) : 0;
+    const quotaProgress = clientData.quota ? Math.min((usedQuota / clientData.quota) * 100, 100) : 0;
     
     // Last seen display
     const lastSeen = clientData.last_handshake ? new Date(clientData.last_handshake) : null;
