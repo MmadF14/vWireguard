@@ -479,8 +479,7 @@ function createClientCard(client) {
     // مینیمال: فقط اسم، ایمیل، حجم، زمان، IP Allocation و دکمه‌ها
     const name = clientData.name || '';
     const email = clientData.email || '';
-    const quotaText = clientData.quota ? formatBytes(clientData.quota) : 'Unlimited';
-    const quotaBytes = clientData.quota || 0;
+
     const expirationText = clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z'
         ? formatTimeRemaining(clientData.expiration)
         : (clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration');
