@@ -888,7 +888,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// Validate Telegram userid if provided
-		log.Infof("Received TgUserid: '%s'", _client.TgUserid)
 		if _client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(_client.TgUserid, 10, 64)
 			if err != nil || idNum == 0 {
@@ -979,7 +978,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.Name = _client.Name
 		client.Email = _client.Email
 		client.TgUserid = _client.TgUserid
-		log.Infof("Setting TgUserid to: '%s'", client.TgUserid)
 		client.Enabled = _client.Enabled
 		client.UseServerDNS = _client.UseServerDNS
 		client.AllocatedIPs = _client.AllocatedIPs
@@ -1721,57 +1719,43 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// First try to add new peers without disrupting active ones
-		addCmd := exec.Command("sudo", "wg", "addconf", interfaceName, settings.ConfigFilePath)
-		addOutput, addErr := addCmd.CombinedOutput()
-		if addErr != nil {
-			log.Printf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, string(addOutput))
+		// Restart WireGuard service
+		serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 
-			// If adding fails, fall back to syncing the entire configuration
-			syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
-			syncOutput, syncErr := syncCmd.CombinedOutput()
-			if syncErr != nil {
-				log.Printf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, string(syncOutput))
+		// Try different service names if the first one fails
+		serviceNames := []string{
+			serviceName,
+			"wg-quick@" + interfaceName,
+			"wireguard@" + interfaceName,
+			"wg-quick",
+			"wireguard",
+		}
 
-				// Restart WireGuard service as a fallback
-				serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+		var restartSuccess bool
+		var lastError error
+		var lastOutput string
 
-				// Try different service names if the first one fails
-				serviceNames := []string{
-					serviceName,
-					"wg-quick@" + interfaceName,
-					"wireguard@" + interfaceName,
-					"wg-quick",
-					"wireguard",
-				}
-
-				var restartSuccess bool
-				var lastError error
-				var lastOutput string
-
-				for _, svcName := range serviceNames {
-					cmd := exec.Command("sudo", "systemctl", "restart", svcName)
-					output, err := cmd.CombinedOutput()
-					if err == nil {
-						// Check if service is active
-						checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
-						status, err := checkCmd.CombinedOutput()
-						if err == nil && strings.TrimSpace(string(status)) == "active" {
-							restartSuccess = true
-							break
-						}
-					}
-					lastError = err
-					lastOutput = string(output)
-				}
-
-				if !restartSuccess {
-					log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-						false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
-					})
+		for _, svcName := range serviceNames {
+			cmd := exec.Command("sudo", "systemctl", "restart", svcName)
+			output, err := cmd.CombinedOutput()
+			if err == nil {
+				// Check if service is active
+				checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
+				status, err := checkCmd.CombinedOutput()
+				if err == nil && strings.TrimSpace(string(status)) == "active" {
+					restartSuccess = true
+					break
 				}
 			}
+			lastError = err
+			lastOutput = string(output)
+		}
+
+		if !restartSuccess {
+			log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+				false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
+			})
 		}
 
 		err = util.UpdateHashes(db)
