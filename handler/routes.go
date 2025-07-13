@@ -856,13 +856,9 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		if clientData.Client.TgUserid == "" {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Client has no Telegram user ID configured"})
-		}
-
 		userid, err := strconv.ParseInt(clientData.Client.TgUserid, 10, 64)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid Telegram user ID format: " + err.Error()})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "userid: " + err.Error()})
 		}
 
 		err = telegram.SendConfig(userid, clientData.Client.Name, configData, qrData, false)
