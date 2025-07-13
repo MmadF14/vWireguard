@@ -556,6 +556,15 @@
 <script>
 // Show built-in modal for creating tunnels
 function openNewTunnelModal() {
+    $('#modal_new_tunnel').modal('show');
+    setTimeout(function() {
+        if (window.langManager && window.langManager.translatePage) {
+            window.langManager.translatePage();
+        }
+        if (typeof smartTranslateTunnels === 'function') {
+            smartTranslateTunnels();
+        }
+    }, 100);
 }
 
 function closeNewTunnelModal() {
