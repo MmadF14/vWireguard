@@ -1719,6 +1719,8 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
+
+=======
 		// First try to reload configuration without restarting to avoid dropping connections
 		syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
 		syncOutput, syncErr := syncCmd.CombinedOutput()
@@ -1752,17 +1754,18 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 						restartSuccess = true
 						break
 					}
+
 				}
 				lastError = err
 				lastOutput = string(output)
 			}
-
 			if !restartSuccess {
 				log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
 					false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
 				})
 			}
+
 		}
 
 		err = util.UpdateHashes(db)
