@@ -556,7 +556,7 @@ function createClientCard(client) {
                         <button onclick=\"showQRCode('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"QR Code\"><i class=\"fas fa-qrcode\"></i></button>
                         <button onclick=\"downloadClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Download\"><i class=\"fas fa-download\"></i></button>
                         ${email ? `<button onclick=\"showEmailModal('${clientData.id}', '${email}')\" class=\"action-button p-2 text-blue-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Send via Email\"><i class=\"fas fa-envelope\"></i></button>` : ''}
-                        ${clientData.tg_userid ? `<button onclick=\"sendTelegramConfig('${clientData.id}', '${clientData.tg_userid}')\" class=\"action-button p-2 text-blue-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Send via Telegram\"><i class=\"fab fa-telegram\"></i></button>` : ''}
+                        ${clientData.telegram_userid ? `<button onclick=\"sendTelegramConfig('${clientData.id}', '${clientData.telegram_userid}')\" class=\"action-button p-2 text-blue-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Send via Telegram\"><i class=\"fab fa-telegram\"></i></button>` : ''}
                         <button onclick=\"toggleClient('${clientData.id}')\" class=\"action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"${clientData.enabled ? 'Disable' : 'Enable'}\"><i class=\"fas fa-${clientData.enabled ? 'pause' : 'play'}\"></i></button>
                         <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
                     </div>
@@ -747,7 +747,7 @@ window.editClient = function(clientId) {
     document.getElementById('edit_client_notes').value = clientData.additional_notes || '';
     document.getElementById('edit_client_enabled').checked = clientData.enabled;
     document.getElementById('edit_client_use_server_dns').checked = clientData.use_server_dns;
-    document.getElementById('edit_client_telegram_userid').value = clientData.tg_userid || '';
+    document.getElementById('edit_client_telegram_userid').value = clientData.telegram_userid || '';
     document.getElementById('edit_client_endpoint').value = clientData.endpoint || '';
     const pubKeyField = document.getElementById('edit_client_public_key');
     if (pubKeyField) pubKeyField.value = clientData.public_key || '';
@@ -920,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 additional_notes: document.getElementById('edit_client_notes').value,
                 enabled: document.getElementById('edit_client_enabled').checked,
                 use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
-                tg_userid: document.getElementById('edit_client_telegram_userid').value,
+                telegram_userid: document.getElementById('edit_client_telegram_userid').value,
                 endpoint: document.getElementById('edit_client_endpoint').value,
                 allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
             };
@@ -978,19 +978,19 @@ window.closeEditModal = function() {
 window.saveEditClient = function() {
     const clientId = document.getElementById('edit_client_id').value;
     
-    const updateData = {
-        id: clientId, // Add client ID to request body
-        name: document.getElementById('edit_client_name').value,
-        email: document.getElementById('edit_client_email').value,
-        quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
-        expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
-        additional_notes: document.getElementById('edit_client_notes').value,
-        enabled: document.getElementById('edit_client_enabled').checked,
-        use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
-        tg_userid: document.getElementById('edit_client_telegram_userid').value,
-        endpoint: document.getElementById('edit_client_endpoint').value,
-        allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
-    };
+                const updateData = {
+                id: clientId, // Add client ID to request body
+                name: document.getElementById('edit_client_name').value,
+                email: document.getElementById('edit_client_email').value,
+                quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+                expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
+                additional_notes: document.getElementById('edit_client_notes').value,
+                enabled: document.getElementById('edit_client_enabled').checked,
+                use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
+                telegram_userid: document.getElementById('edit_client_telegram_userid').value,
+                endpoint: document.getElementById('edit_client_endpoint').value,
+                allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
+            };
 
     const sPubKey = document.getElementById('edit_client_public_key');
     if (sPubKey) updateData.public_key = sPubKey.value;
