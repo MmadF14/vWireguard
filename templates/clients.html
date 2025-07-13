@@ -16,62 +16,61 @@
 {{define "page_content"}}
 <section class="content">
     <div class="container-fluid">
-        <!-- Top bar -->
+        <!-- <h5 class="mt-4 mb-2">Wireguard Clients</h5> -->
         <div class="mb-4 flex justify-end items-center space-x-4 rtl:space-x-reverse">
-            <!-- Auto‑refresh toggle -->
             <label class="inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="auto-refresh-toggle" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
                 <span class="ml-2 rtl:ml-0 rtl:mr-2 text-sm" data-translate="Auto Refresh">Auto Refresh</span>
-            </label>
-            <!-- Refresh interval (disabled until toggle on) -->
+                </label>
             <select id="refresh-interval" class="px-2 py-1 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 focus:outline-none" disabled>
-                <option value="5"  data-translate="5 seconds">5 seconds</option>
+                <option value="5" data-translate="5 seconds">5 seconds</option>
                 <option value="10" data-translate="10 seconds">10 seconds</option>
                 <option value="30" data-translate="30 seconds">30 seconds</option>
                 <option value="60" data-translate="60 seconds">60 seconds</option>
             </select>
-            <!-- Manual refresh button -->
             <button type="button" id="refresh-status-btn" class="px-4 py-2 text-sm font-medium text-primary-600 border border-primary-500 rounded-xl hover:bg-primary-50 dark:hover:bg-dark-700 flex items-center space-x-2 rtl:space-x-reverse">
                 <i class="fas fa-sync-alt"></i>
-                <span data-translate="Refresh Status">Refresh Status</span>
-            </button>
-        </div>
-
-        <!-- Search + status filter row (hidden by default) -->
+            <span data-translate="Refresh Status">Refresh Status</span>
+        </button>
+    </div>
+    
+        <!-- Search and Filter Row -->
         <div class="mb-6 grid grid-cols-1 md:grid-cols-8 gap-4 hidden" id="search-form">
-            <!-- Search -->
             <div class="md:col-span-5">
                 <div class="relative">
                     <span class="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-3 rtl:pl-0 rtl:pr-3 text-gray-400">
                         <i class="fas fa-search"></i>
                     </span>
                     <input type="text" id="search-input" class="block w-full pl-10 rtl:pl-3 rtl:pr-10 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Search clients..." data-translate-placeholder="Search clients...">
-                </div>
-            </div>
-            <!-- Status filter -->
+    </div>
+</div>
             <div class="md:col-span-3">
+
                 <select id="status-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                    <option value="All"          data-translate="All">All</option>
-                    <option value="Enabled"      data-translate="Enabled">Enabled</option>
-                    <option value="Disabled"     data-translate="Disabled">Disabled</option>
-                    <option value="Connected"    data-translate="Connected">Connected</option>
+
+                <select id="status-selector" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
+                    <option value="All" data-translate="All">All</option>
+                    <option value="Enabled" data-translate="Enabled">Enabled</option>
+                    <option value="Disabled" data-translate="Disabled">Disabled</option>
+                    <option value="Connected" data-translate="Connected">Connected</option>
                     <option value="Disconnected" data-translate="Disconnected">Disconnected</option>
                 </select>
             </div>
-        </div>
-
-        <!-- Loading / empty states -->
+                </div>
+                
         <div id="loading-state" class="hidden flex flex-col items-center py-10">
             <i class="fas fa-spinner fa-spin text-gray-500 text-xl"></i>
             <span class="mt-2 text-gray-500 dark:text-gray-400" data-translate="Loading...">Loading...</span>
-        </div>
+            </div>
         <div id="empty-state" class="hidden text-center py-10">
             <span class="text-gray-500 dark:text-gray-400" data-translate="No clients found">No clients found</span>
-        </div>
-
-        <!-- Clients grid -->
-        <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
     </div>
+    
+        <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    </div>
+        <!-- /.row -->
+</div>
 </section>
 
 <div id="modal_email_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
@@ -124,7 +123,7 @@
             <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
                 <i class="fas fa-times text-gray-400"></i>
             </button>
-
+        </div>
         <form name="frm_telegram_client" id="frm_telegram_client" class="p-6 space-y-4">
             <input type="hidden" id="tg_client_id" name="tg_client_id">
             <div>
@@ -395,15 +394,6 @@
         </div>
     </div>
 </div>
-                <span data-translate="QR Code">QR Code</span>
-            </h3>
-            <button onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
-                <i class="fas fa-times text-gray-400"></i>
-                </button>
-            </div>
-
-        </div>
-    </div>
 {{end}}
 
 {{define "bottom_js"}}
