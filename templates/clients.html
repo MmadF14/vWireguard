@@ -912,6 +912,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const clientId = document.getElementById('edit_client_id').value;
             
             const updateData = {
+                id: clientId, // Add client ID to request body
                 name: document.getElementById('edit_client_name').value,
                 email: document.getElementById('edit_client_email').value,
                 quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
@@ -978,6 +979,7 @@ window.saveEditClient = function() {
     const clientId = document.getElementById('edit_client_id').value;
     
     const updateData = {
+        id: clientId, // Add client ID to request body
         name: document.getElementById('edit_client_name').value,
         email: document.getElementById('edit_client_email').value,
         quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
