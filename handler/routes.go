@@ -1719,43 +1719,50 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// Restart WireGuard service
-		serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+		// First try to reload configuration without restarting to avoid dropping connections
+		syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
+		syncOutput, syncErr := syncCmd.CombinedOutput()
+		if syncErr != nil {
+			log.Printf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, string(syncOutput))
 
-		// Try different service names if the first one fails
-		serviceNames := []string{
-			serviceName,
-			"wg-quick@" + interfaceName,
-			"wireguard@" + interfaceName,
-			"wg-quick",
-			"wireguard",
-		}
+			// Restart WireGuard service as a fallback
+			serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 
-		var restartSuccess bool
-		var lastError error
-		var lastOutput string
-
-		for _, svcName := range serviceNames {
-			cmd := exec.Command("sudo", "systemctl", "restart", svcName)
-			output, err := cmd.CombinedOutput()
-			if err == nil {
-				// Check if service is active
-				checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
-				status, err := checkCmd.CombinedOutput()
-				if err == nil && strings.TrimSpace(string(status)) == "active" {
-					restartSuccess = true
-					break
-				}
+			// Try different service names if the first one fails
+			serviceNames := []string{
+				serviceName,
+				"wg-quick@" + interfaceName,
+				"wireguard@" + interfaceName,
+				"wg-quick",
+				"wireguard",
 			}
-			lastError = err
-			lastOutput = string(output)
-		}
 
-		if !restartSuccess {
-			log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-				false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
-			})
+			var restartSuccess bool
+			var lastError error
+			var lastOutput string
+
+			for _, svcName := range serviceNames {
+				cmd := exec.Command("sudo", "systemctl", "restart", svcName)
+				output, err := cmd.CombinedOutput()
+				if err == nil {
+					// Check if service is active
+					checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
+					status, err := checkCmd.CombinedOutput()
+					if err == nil && strings.TrimSpace(string(status)) == "active" {
+						restartSuccess = true
+						break
+					}
+				}
+				lastError = err
+				lastOutput = string(output)
+			}
+
+			if !restartSuccess {
+				log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+					false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
+				})
+			}
 		}
 
 		err = util.UpdateHashes(db)
