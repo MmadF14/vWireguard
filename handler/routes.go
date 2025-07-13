@@ -856,9 +856,13 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
+		if clientData.Client.TgUserid == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Client has no Telegram user ID configured"})
+		}
+
 		userid, err := strconv.ParseInt(clientData.Client.TgUserid, 10, 64)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "userid: " + err.Error()})
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid Telegram user ID format: " + err.Error()})
 		}
 
 		err = telegram.SendConfig(userid, clientData.Client.Name, configData, qrData, false)
@@ -888,6 +892,7 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// Validate Telegram userid if provided
+		log.Infof("Received TgUserid: '%s'", _client.TgUserid)
 		if _client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(_client.TgUserid, 10, 64)
 			if err != nil || idNum == 0 {
@@ -978,6 +983,7 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.Name = _client.Name
 		client.Email = _client.Email
 		client.TgUserid = _client.TgUserid
+		log.Infof("Setting TgUserid to: '%s'", client.TgUserid)
 		client.Enabled = _client.Enabled
 		client.UseServerDNS = _client.UseServerDNS
 		client.AllocatedIPs = _client.AllocatedIPs
