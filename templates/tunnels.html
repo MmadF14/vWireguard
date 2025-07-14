@@ -323,6 +323,7 @@
                 <select class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" id="tunnel_type" name="type" required onchange="showTunnelConfig()">
                     <option value="" data-translate="Select tunnel type">Select tunnel type</option>
                     <option value="wg-to-wg" data-translate="WireGuard to WireGuard">WireGuard to WireGuard</option>
+                    <option value="wg-to-v2ray" data-translate="WireGuard to V2Ray">WireGuard to V2Ray</option>
                 </select>
             </div>
 
@@ -493,6 +494,69 @@
                 <div class="flex items-center">
                     <input class="mr-2" type="checkbox" id="pf_transparent">
                     <label for="pf_transparent" class="text-sm text-gray-700 dark:text-gray-300">Transparent Proxy Mode</label>
+                </div>
+            </div>
+
+            <!-- V2Ray Configuration -->
+            <div id="v2ray_config" class="hidden" x-data="{protocol:'vmess'}">
+                <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-4">V2Ray Configuration</h5>
+                <div class="flex items-center space-x-2 rtl:space-x-reverse mb-4">
+                    <input id="v2link" type="text" class="flex-grow px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white" placeholder="vmess:// or vless://">
+                    <button type="button" onclick="handleParseV2Link()" class="px-3 py-2 bg-blue-500 text-white rounded-lg">Parse</button>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="v2ray_protocol" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Protocol</label>
+                        <select id="v2ray_protocol" x-model="protocol" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                            <option value="vmess">VMess</option>
+                            <option value="vless">VLESS</option>
+                            <option value="trojan">Trojan</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="v2ray_remote_address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remote Address</label>
+                        <input id="v2ray_remote_address" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="v2ray_remote_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remote Port</label>
+                        <input id="v2ray_remote_port" type="number" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div x-show="protocol != 'trojan'">
+                        <label for="v2ray_uuid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">UUID</label>
+                        <input id="v2ray_uuid" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div x-show="protocol == 'trojan'">
+                        <label for="v2ray_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                        <input id="v2ray_password" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="v2ray_security" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Security</label>
+                        <select id="v2ray_security" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                            <option value="tls">TLS</option>
+                            <option value="reality">Reality</option>
+                            <option value="none">None</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="v2ray_network" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Network</label>
+                        <select id="v2ray_network" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                            <option value="tcp">TCP</option>
+                            <option value="ws">WebSocket</option>
+                            <option value="grpc">gRPC</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="v2ray_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Path/Service</label>
+                        <input id="v2ray_path" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="v2ray_server_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Server Name</label>
+                        <input id="v2ray_server_name" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="v2ray_fingerprint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fingerprint</label>
+                        <input id="v2ray_fingerprint" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
                 </div>
             </div>
             
@@ -920,6 +984,25 @@ $(document).ready(function() {
                 remote_port: parseInt($('#pf_remote_port').val()),
                 transparent: $('#pf_transparent').is(':checked')
             };
+        } else if (tunnelType === 'wg-to-v2ray') {
+            if (!$('#v2ray_remote_address').val() || !$('#v2ray_remote_port').val()) {
+                alert('Please fill all V2Ray configuration fields');
+                return;
+            }
+            formData.v2ray_config = {
+                protocol: $('#v2ray_protocol').val(),
+                remote_address: $('#v2ray_remote_address').val(),
+                remote_port: parseInt($('#v2ray_remote_port').val()),
+                uuid: $('#v2ray_uuid').val(),
+                flow: '',
+                password: $('#v2ray_password').val(),
+                security: $('#v2ray_security').val(),
+                server_name: $('#v2ray_server_name').val(),
+                fingerprint: $('#v2ray_fingerprint').val(),
+                network: $('#v2ray_network').val(),
+                path: $('#v2ray_path').val(),
+                sni: $('#v2ray_server_name').val()
+            };
         }
         
         console.log('Final form data:', formData);
@@ -957,7 +1040,7 @@ $(document).ready(function() {
     // Reset form when modal is closed
     function resetModalForm() {
         $('#frm_new_tunnel')[0].reset();
-        $('#wg_config, #dokodemo_config, #port_forward_config, #manual_key_section').addClass('hidden');
+        $('#wg_config, #dokodemo_config, #port_forward_config, #v2ray_config, #manual_key_section').addClass('hidden');
         $('#wg_config .alert').remove();
         $('#wg_manual_private_key, #wg_manual_public_key, #wg_preshared_key').val('');
         $('#wg_config').removeData('private-key public-key');
@@ -977,10 +1060,10 @@ function showTunnelConfig() {
     console.log('showTunnelConfig called with type:', tunnelType);
     
     // Reset all required attributes first
-    $('#wg_remote_endpoint, #wg_remote_public_key, #dokodemo_address, #dokodemo_port, #pf_remote_host, #pf_remote_port').removeAttr('required');
+    $('#wg_remote_endpoint, #wg_remote_public_key, #dokodemo_address, #dokodemo_port, #pf_remote_host, #pf_remote_port, #v2ray_remote_address, #v2ray_remote_port').removeAttr('required');
     
     // Hide all config sections
-    $('#wg_config, #dokodemo_config, #port_forward_config').addClass('hidden');
+    $('#wg_config, #dokodemo_config, #port_forward_config, #v2ray_config').addClass('hidden');
     
     // Show relevant config section and set required fields
     if (tunnelType === 'wg-to-wg') {
@@ -998,6 +1081,10 @@ function showTunnelConfig() {
         console.log('Showing Port Forward config section');
         $('#port_forward_config').removeClass('hidden');
         $('#pf_remote_host, #pf_remote_port').attr('required', 'required');
+    } else if (tunnelType === 'wg-to-v2ray') {
+        console.log('Showing V2Ray config section');
+        $('#v2ray_config').removeClass('hidden');
+        $('#v2ray_remote_address, #v2ray_remote_port').attr('required', 'required');
     }
 }
 
@@ -1057,6 +1144,46 @@ function showManualKeyEntry() {
     
     // Focus on private key field
     $('#wg_manual_private_key').focus();
+}
+
+function handleParseV2Link() {
+    const link = document.getElementById('v2link').value.trim();
+    if (!link) return;
+    const fill = (data) => {
+        window.alpData.v2ray = data;
+        document.getElementById('v2ray_protocol').value = data.protocol || '';
+        document.getElementById('v2ray_remote_address').value = data.remote_address || '';
+        document.getElementById('v2ray_remote_port').value = data.remote_port || '';
+        document.getElementById('v2ray_uuid').value = data.uuid || '';
+        document.getElementById('v2ray_password').value = data.password || '';
+        document.getElementById('v2ray_security').value = data.security || 'none';
+        document.getElementById('v2ray_server_name').value = data.server_name || '';
+        document.getElementById('v2ray_fingerprint').value = data.fingerprint || '';
+        document.getElementById('v2ray_network').value = data.network || '';
+        document.getElementById('v2ray_path').value = data.path || '';
+    };
+
+    fetch('{{.basePath}}/api/utils/parse_v2link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link })
+    })
+    .then(r => {
+        if (r.status === 404) throw new Error('noback');
+        if (!r.ok) throw new Error('bad');
+        return r.json();
+    })
+    .then(fill)
+    .catch(() => {
+        const data = parseV2Link(link);
+        if (data) {
+            fill(data);
+        } else if (typeof showToast === 'function') {
+            showToast('Invalid V2Ray link', 'error');
+        } else {
+            alert('Invalid V2Ray link');
+        }
+    });
 }
 
 function generatePublicKeyFromPrivate() {
@@ -1255,6 +1382,17 @@ function editTunnel(tunnelId) {
             $('#pf_remote_host').val(tunnel.port_forward_config.remote_host);
             $('#pf_remote_port').val(tunnel.port_forward_config.remote_port);
             $('#pf_transparent').prop('checked', tunnel.port_forward_config.transparent);
+        } else if (tunnel.type === 'wg-to-v2ray' && tunnel.v2ray_config) {
+            $('#v2ray_protocol').val(tunnel.v2ray_config.protocol);
+            $('#v2ray_remote_address').val(tunnel.v2ray_config.remote_address);
+            $('#v2ray_remote_port').val(tunnel.v2ray_config.remote_port);
+            $('#v2ray_uuid').val(tunnel.v2ray_config.uuid);
+            $('#v2ray_password').val(tunnel.v2ray_config.password);
+            $('#v2ray_security').val(tunnel.v2ray_config.security);
+            $('#v2ray_server_name').val(tunnel.v2ray_config.server_name);
+            $('#v2ray_fingerprint').val(tunnel.v2ray_config.fingerprint);
+            $('#v2ray_network').val(tunnel.v2ray_config.network);
+            $('#v2ray_path').val(tunnel.v2ray_config.path);
         }
         
         // Set client routing
