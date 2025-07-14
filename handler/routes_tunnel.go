@@ -18,6 +18,7 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/service"
 	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/store/jsondb"
 )
@@ -164,6 +165,13 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			if tunnelData.PortForwardConfig.RemoteHost == "" || tunnelData.PortForwardConfig.RemotePort == 0 {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote host and port are required"})
 			}
+		case model.TunnelTypeWireGuardToV2ray:
+			if tunnelData.V2rayConfig == nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray configuration is required"})
+			}
+			if tunnelData.V2rayConfig.Protocol == "" || tunnelData.V2rayConfig.RemoteAddress == "" || tunnelData.V2rayConfig.RemotePort == 0 || tunnelData.V2rayConfig.Security == "" || tunnelData.V2rayConfig.Network == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Incomplete V2Ray configuration"})
+			}
 		}
 
 		// Create tunnel model
@@ -179,6 +187,7 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			WGConfig:          tunnelData.WGConfig,
 			DokodemoConfig:    tunnelData.DokodemoConfig,
 			PortForwardConfig: tunnelData.PortForwardConfig,
+			V2rayConfig:       tunnelData.V2rayConfig,
 			Priority:          1,
 			CreatedBy:         currentUser(c),
 			CreatedAt:         time.Now().UTC(),
@@ -194,6 +203,86 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 
 		log.Printf("NewTunnel: Tunnel saved successfully - ID: %s", tunnel.ID)
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel created successfully"})
+	}
+}
+
+// CreateV2rayTunnel creates a WireGuard to V2Ray tunnel
+func CreateV2rayTunnel(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var data struct {
+			Name        string                       `json:"name"`
+			Description string                       `json:"description"`
+			RouteAll    bool                         `json:"route_all"`
+			ClientIDs   []string                     `json:"client_ids"`
+			WGConfig    *model.WireGuardTunnelConfig `json:"wg_config"`
+			V2rayConfig *model.V2rayTunnelConfig     `json:"v2ray_config"`
+		}
+		if err := c.Bind(&data); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid tunnel data"})
+		}
+		if data.Name == "" || data.WGConfig == nil || data.V2rayConfig == nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Missing required fields"})
+		}
+		t := model.Tunnel{
+			ID:          xid.New().String(),
+			Name:        data.Name,
+			Type:        model.TunnelTypeWireGuardToV2ray,
+			Description: data.Description,
+			Status:      model.TunnelStatusInactive,
+			Enabled:     true,
+			RouteAll:    data.RouteAll,
+			ClientIDs:   data.ClientIDs,
+			WGConfig:    data.WGConfig,
+			V2rayConfig: data.V2rayConfig,
+			Priority:    1,
+			CreatedBy:   currentUser(c),
+			CreatedAt:   time.Now().UTC(),
+			UpdatedAt:   time.Now().UTC(),
+		}
+		if t.WGConfig.LocalPrivateKey == "" {
+			priv, pub, err := generateWireGuardKeypair()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate keypair"})
+			}
+			t.WGConfig.LocalPrivateKey = priv
+			t.WGConfig.LocalPublicKey = pub
+		}
+		if err := db.SaveTunnel(t); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to save tunnel: %v", err)})
+		}
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel created successfully"})
+	}
+}
+
+// UpdateV2rayTunnel updates WireGuard to V2Ray tunnel
+func UpdateV2rayTunnel(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		id := c.Param("id")
+		existing, err := db.GetTunnelByID(id)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
+		}
+		if existing.Status == model.TunnelStatusActive {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot edit active tunnel. Please stop the tunnel first."})
+		}
+		var upd model.Tunnel
+		if err := c.Bind(&upd); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid tunnel data"})
+		}
+		upd.ID = existing.ID
+		upd.Type = model.TunnelTypeWireGuardToV2ray
+		upd.CreatedAt = existing.CreatedAt
+		upd.CreatedBy = existing.CreatedBy
+		upd.UpdatedAt = time.Now().UTC()
+		upd.BytesIn = existing.BytesIn
+		upd.BytesOut = existing.BytesOut
+		upd.LastSeen = existing.LastSeen
+		upd.Enabled = existing.Enabled
+		upd.Status = existing.Status
+		if err := db.SaveTunnel(upd); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel: %v", err)})
+		}
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel updated successfully"})
 	}
 }
 
@@ -299,6 +388,42 @@ func SetTunnelStatus(db store.IStore) echo.HandlerFunc {
 	}
 }
 
+// EnableTunnel sets a tunnel to enabled state
+func EnableTunnel(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tunnelID := c.Param("id")
+		tunnel, err := db.GetTunnelByID(tunnelID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
+		}
+		tunnel.Enabled = true
+		tunnel.Status = model.TunnelStatusActive
+		tunnel.UpdatedAt = time.Now().UTC()
+		if err := db.SaveTunnel(tunnel); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to enable tunnel"})
+		}
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel enabled"})
+	}
+}
+
+// DisableTunnel sets a tunnel to disabled state
+func DisableTunnel(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tunnelID := c.Param("id")
+		tunnel, err := db.GetTunnelByID(tunnelID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
+		}
+		tunnel.Enabled = false
+		tunnel.Status = model.TunnelStatusInactive
+		tunnel.UpdatedAt = time.Now().UTC()
+		if err := db.SaveTunnel(tunnel); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to disable tunnel"})
+		}
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel disabled"})
+	}
+}
+
 // StartTunnel handler starts a tunnel
 func StartTunnel(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -320,6 +445,11 @@ func StartTunnel(db store.IStore) echo.HandlerFunc {
 			if err := startWireGuardTunnel(tunnel); err != nil {
 				log.Printf("Failed to start WireGuard tunnel: %v", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start WireGuard tunnel: " + err.Error()})
+			}
+		case model.TunnelTypeWireGuardToV2ray:
+			if err := startV2rayTunnel(tunnel); err != nil {
+				log.Printf("Failed to start V2Ray tunnel: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start V2Ray tunnel: " + err.Error()})
 			}
 		default:
 			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
@@ -353,6 +483,11 @@ func StopTunnel(db store.IStore) echo.HandlerFunc {
 			if err := stopWireGuardTunnel(tunnel); err != nil {
 				log.Printf("Failed to stop WireGuard tunnel: %v", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop WireGuard tunnel: " + err.Error()})
+			}
+		case model.TunnelTypeWireGuardToV2ray:
+			if err := stopV2rayTunnel(tunnel); err != nil {
+				log.Printf("Failed to stop V2Ray tunnel: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop V2Ray tunnel: " + err.Error()})
 			}
 		default:
 			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
@@ -436,6 +571,11 @@ func GetTunnelTypes() echo.HandlerFunc {
 				"value":       string(model.TunnelTypeWireGuardToHTTP),
 				"label":       "WireGuard to HTTP",
 				"description": "HTTP proxy over WireGuard",
+			},
+			{
+				"value":       string(model.TunnelTypeWireGuardToV2ray),
+				"label":       "WireGuard to V2Ray",
+				"description": "Route traffic via V2Ray outbound",
 			},
 			{
 				"value":       string(model.TunnelTypePortForward),
@@ -811,6 +951,25 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		log.Printf("Warning: Interface %s still appears to be active after stop", interfaceName)
 	}
 
+	return nil
+}
+
+// startV2rayTunnel generates Xray config and starts the systemd service
+func startV2rayTunnel(tunnel model.Tunnel) error {
+	cfg, err := service.GenerateXrayConfig(&tunnel)
+	if err != nil {
+		return err
+	}
+	return service.WriteConfigAndService(&tunnel, cfg)
+}
+
+// stopV2rayTunnel stops and removes the systemd service
+func stopV2rayTunnel(tunnel model.Tunnel) error {
+	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)
+	exec.Command("systemctl", "disable", "--now", serviceName).Run()
+	os.Remove(filepath.Join("/etc/systemd/system", serviceName))
+	os.Remove(filepath.Join("/etc/vwireguard/tunnels", tunnel.ID+".json"))
+	exec.Command("systemctl", "daemon-reload").Run()
 	return nil
 }
 

@@ -331,6 +331,11 @@ func main() {
 	app.POST(util.BasePath+"/api/tunnel/cleanup", handler.CleanupTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.DELETE(util.BasePath+"/api/tunnel/cleanup/all", handler.DeleteAllTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 
+	tunnelGroup := app.Group(util.BasePath + "/api/tunnels")
+	router.RegisterTunnelRoutes(tunnelGroup, db)
+	utilsGroup := app.Group(util.BasePath + "/api/utils")
+	router.RegisterUtilsRoutes(utilsGroup, db)
+
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {
 		app.Add(route.Method, route.Path, route.Handler(db), route.Middleware...)
