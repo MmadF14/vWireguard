@@ -1207,6 +1207,29 @@ function handleParseV2Link() {
             alert('Invalid V2Ray link');
         }
     });
+
+
+    fetch('{{.basePath}}/api/utils/parse_v2link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link })
+    })
+    .then(r => {
+        if (r.status === 404) throw new Error('noback');
+        if (!r.ok) throw new Error('bad');
+        return r.json();
+    })
+    .then(fill)
+    .catch(() => {
+        const data = parseV2Link(link);
+        if (data) {
+            fill(data);
+        } else if (typeof showToast === 'function') {
+            showToast('Invalid V2Ray link', 'error');
+        } else {
+            alert('Invalid V2Ray link');
+        }
+    });
 }
 
 function generatePublicKeyFromPrivate() {
@@ -1779,7 +1802,5 @@ function refreshTunnelStats(tunnelId) {
     });
 }
 
-// Include tunnel-form.js for V2Ray link parsing functionality
 </script>
-<script src="{{.basePath}}/static/js/tunnel-form.js"></script>
 {{end}} 
