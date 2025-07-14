@@ -55,11 +55,11 @@ install_packages() {
     case $os in
         "debian")
             apt-get update -y
-            apt-get install -y curl wget git build-essential wireguard wireguard-tools ufw openssl
+            apt-get install -y curl wget git build-essential wireguard wireguard-tools ufw openssl unzip
             ;;
         "rhel")
                 yum update -y
-            yum install -y curl wget git gcc make wireguard-tools firewalld openssl
+            yum install -y curl wget git gcc make wireguard-tools firewalld openssl unzip
             ;;
         *)
             error "Operating system not supported"
@@ -83,6 +83,25 @@ install_go() {
         tar -C /usr/local -xzf /tmp/go.tar.gz
     export PATH=$PATH:/usr/local/go/bin
         echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile
+}
+
+install_xray() {
+    if command -v xray >/dev/null 2>&1; then
+        log "Xray is already installed"
+        return 0
+    fi
+
+    log "Installing Xray core..."
+    local arch=$(uname -m)
+    local xarch="64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then
+        xarch="arm64-v8a"
+    fi
+    local url="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-${xarch}.zip"
+    mkdir -p /tmp/xray
+    wget -q "$url" -O /tmp/xray/xray.zip && unzip -q /tmp/xray/xray.zip -d /tmp/xray
+    install -m 755 /tmp/xray/xray /usr/local/bin/xray
+    rm -rf /tmp/xray
 }
 
 ask_ssl() {
@@ -401,6 +420,7 @@ install_vwireguard() {
     
     install_packages
     install_go
+    install_xray
     ask_ssl
     setup_vwireguard
     setup_ssl_certs

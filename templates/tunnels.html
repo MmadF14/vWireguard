@@ -603,6 +603,7 @@
 <script>
     window.alpData = window.alpData || {};
     window.alpData.v2ray = window.alpData.v2ray || {};
+    window.basePath = '{{.basePath}}';
     if (typeof parseV2Link !== 'function') {
     function parseV2Link(link) {
         if (!link) return null;
@@ -1605,6 +1606,7 @@ function startTunnel(tunnelId) {
         startBtn.innerHTML = originalText;
     });
 }
+window.startTunnel = startTunnel;
 
 function stopTunnel(tunnelId) {
     console.log('Stopping tunnel:', tunnelId);
@@ -1667,7 +1669,7 @@ function stopTunnel(tunnelId) {
         stopBtn.innerHTML = originalText;
     });
 }
-
+window.stopTunnel = stopTunnel;
 function cleanupTunnels() {
     if (confirm('Are you sure you want to cleanup corrupted tunnels? This action cannot be undone!')) {
         fetch('{{.basePath}}/api/tunnel/cleanup', {

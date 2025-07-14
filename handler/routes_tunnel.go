@@ -18,6 +18,7 @@ import (
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 
 	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/service"
 	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/store/jsondb"
 )
@@ -446,6 +447,11 @@ func StartTunnel(db store.IStore) echo.HandlerFunc {
 				log.Printf("Failed to start WireGuard tunnel: %v", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start WireGuard tunnel: " + err.Error()})
 			}
+		case model.TunnelTypeWireGuardToV2ray:
+			if err := startV2rayTunnel(tunnel); err != nil {
+				log.Printf("Failed to start V2Ray tunnel: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start V2Ray tunnel: " + err.Error()})
+			}
 		default:
 			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
 			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
@@ -478,6 +484,11 @@ func StopTunnel(db store.IStore) echo.HandlerFunc {
 			if err := stopWireGuardTunnel(tunnel); err != nil {
 				log.Printf("Failed to stop WireGuard tunnel: %v", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop WireGuard tunnel: " + err.Error()})
+			}
+		case model.TunnelTypeWireGuardToV2ray:
+			if err := stopV2rayTunnel(tunnel); err != nil {
+				log.Printf("Failed to stop V2Ray tunnel: %v", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop V2Ray tunnel: " + err.Error()})
 			}
 		default:
 			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
@@ -941,6 +952,23 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 		log.Printf("Warning: Interface %s still appears to be active after stop", interfaceName)
 	}
 
+	return nil
+}
+func startV2rayTunnel(tunnel model.Tunnel) error {
+	cfg, err := service.GenerateXrayConfig(&tunnel)
+	if err != nil {
+		return err
+	}
+	return service.WriteConfigAndService(&tunnel, cfg)
+}
+
+// stopV2rayTunnel stops and removes the systemd service
+func stopV2rayTunnel(tunnel model.Tunnel) error {
+	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)
+	exec.Command("systemctl", "disable", "--now", serviceName).Run()
+	os.Remove(filepath.Join("/etc/systemd/system", serviceName))
+	os.Remove(filepath.Join("/etc/vwireguard/tunnels", tunnel.ID+".json"))
+	exec.Command("systemctl", "daemon-reload").Run()
 	return nil
 }
 
