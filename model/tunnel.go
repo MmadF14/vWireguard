@@ -14,6 +14,7 @@ const (
 	TunnelTypeWireGuardToL2TP      TunnelType = "wg-to-l2tp"
 	TunnelTypeWireGuardToSOCKS     TunnelType = "wg-to-socks"
 	TunnelTypeWireGuardToHTTP      TunnelType = "wg-to-http"
+	TunnelTypeWireGuardToV2ray     TunnelType = "wg-to-v2ray"
 	TunnelTypePortForward          TunnelType = "port-forward"
 	TunnelTypeReverse              TunnelType = "reverse"
 )
@@ -48,6 +49,9 @@ type Tunnel struct {
 
 	// Port forward specific fields
 	PortForwardConfig *PortForwardConfig `json:"port_forward_config,omitempty"`
+
+	// WireGuard to V2Ray specific fields
+	V2rayConfig *V2rayTunnelConfig `json:"v2ray_config,omitempty"`
 
 	// Traffic statistics
 	BytesIn  int64 `json:"bytes_in"`
@@ -116,6 +120,22 @@ type PortForwardConfig struct {
 	Transparent    bool   `json:"transparent"`          // Transparent proxy mode
 	FollowRedirect bool   `json:"follow_redirect"`      // Follow redirects
 	UserAgent      string `json:"user_agent,omitempty"` // Custom user agent for HTTP
+}
+
+type V2rayTunnelConfig struct {
+	Protocol      string   `json:"protocol"`           // vmess|vless|trojan
+	RemoteAddress string   `json:"remote_address"`     // IP or domain
+	RemotePort    int      `json:"remote_port"`        // e.g. 443
+	UUID          string   `json:"uuid,omitempty"`     // VMess/VLESS
+	Flow          string   `json:"flow,omitempty"`     // optional
+	Password      string   `json:"password,omitempty"` // Trojan
+	Security      string   `json:"security"`           // tls|reality|none
+	ServerName    string   `json:"server_name,omitempty"`
+	Fingerprint   string   `json:"fingerprint,omitempty"`
+	Alpn          []string `json:"alpn,omitempty"`
+	Network       string   `json:"network"`        // tcp|ws|grpc
+	Path          string   `json:"path,omitempty"` // for ws/grpc
+	SNI           string   `json:"sni,omitempty"`  // TLS SNI
 }
 
 // TunnelConfig represents configuration for different tunnel types
