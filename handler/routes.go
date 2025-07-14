@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -1673,6 +1674,64 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 	}
 }
 
+// buildPeerConfig converts a client entry into a wgtypes.PeerConfig for runtime updates
+func buildPeerConfig(cl *model.Client, settings model.GlobalSetting) (wgtypes.PeerConfig, error) {
+	pubKey, err := wgtypes.ParseKey(cl.PublicKey)
+	if err != nil {
+		return wgtypes.PeerConfig{}, err
+	}
+
+	var psk *wgtypes.Key
+	if cl.PresharedKey != "" {
+		key, err := wgtypes.ParseKey(cl.PresharedKey)
+		if err != nil {
+			return wgtypes.PeerConfig{}, err
+		}
+		psk = &key
+	}
+
+	var allowedIPs []net.IPNet
+	for _, ipStr := range append(append([]string{}, cl.AllocatedIPs...), cl.ExtraAllowedIPs...) {
+		if ipStr == "" {
+			continue
+		}
+		_, ipNet, err := net.ParseCIDR(ipStr)
+		if err != nil {
+			continue
+		}
+		allowedIPs = append(allowedIPs, *ipNet)
+	}
+	if len(allowedIPs) == 0 {
+		if _, ipNet, err := net.ParseCIDR("0.0.0.0/0"); err == nil {
+			allowedIPs = append(allowedIPs, *ipNet)
+		}
+	}
+
+	var endpoint *net.UDPAddr
+	if cl.Endpoint != "" {
+		if ep, err := net.ResolveUDPAddr("udp", cl.Endpoint); err == nil {
+			endpoint = ep
+		}
+	}
+
+	var keepalive *time.Duration
+	if settings.PersistentKeepalive > 0 {
+		d := time.Duration(settings.PersistentKeepalive) * time.Second
+		keepalive = &d
+	}
+
+	pc := wgtypes.PeerConfig{
+		PublicKey:                   pubKey,
+		PresharedKey:                psk,
+		Endpoint:                    endpoint,
+		PersistentKeepaliveInterval: keepalive,
+		ReplaceAllowedIPs:           true,
+		AllowedIPs:                  allowedIPs,
+	}
+
+	return pc, nil
+}
+
 // ApplyServerConfig handler to write config file and restart Wireguard server
 func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -1719,18 +1778,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// Try to update peers live using diff engine
-		liveApplied := false
-		diffs, diffErr := util.ComputePeerDiffs(interfaceName, clients, settings)
-		if diffErr == nil {
-			applyErr := util.ApplyPeerDiffs(interfaceName, diffs, settings)
-			if applyErr == nil {
-				liveApplied = true
-			} else {
-				log.Printf("ApplyPeerDiffs failed: %v", applyErr)
-			}
-		} else {
-			log.Printf("ComputePeerDiffs error: %v", diffErr)
+
 		}
 
 		if !liveApplied {
