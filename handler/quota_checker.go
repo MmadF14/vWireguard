@@ -257,10 +257,10 @@ func applyWireGuardConfig(db store.IStore) error {
 		}
 	}
 
-	// Apply configuration changes using optimized runtime methods
+	// Apply configuration changes using pure runtime commands with zero disruption
 	err = util.ApplyConfigChanges(interfaceName, settings.ConfigFilePath, clients, settings)
 	if err != nil {
-		log.Printf("Runtime configuration failed: %v, falling back to service restart", err)
+		log.Printf("Pure runtime configuration failed: %v, falling back to service restart", err)
 
 		// Fallback to service restart only if absolutely necessary
 		serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
@@ -281,7 +281,7 @@ func applyWireGuardConfig(db store.IStore) error {
 		}
 		log.Printf("WireGuard service is active after restart")
 	} else {
-		log.Printf("Configuration applied successfully without disrupting active connections")
+		log.Printf("Configuration applied successfully using pure runtime commands - zero disruption to existing connections")
 	}
 
 	return nil

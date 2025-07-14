@@ -1732,10 +1732,10 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// Apply configuration changes using optimized runtime methods
+		// Apply configuration changes using pure runtime commands with zero disruption
 		err = util.ApplyConfigChanges(interfaceName, settings.ConfigFilePath, clients, settings)
 		if err != nil {
-			log.Printf("Runtime configuration failed: %v, falling back to service restart", err)
+			log.Printf("Pure runtime configuration failed: %v, falling back to service restart", err)
 
 			// Fallback to service restart only if absolutely necessary
 			serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
@@ -1776,7 +1776,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 
 			log.Printf("Configuration applied via service restart (fallback method)")
 		} else {
-			log.Printf("Configuration applied successfully without disrupting active connections")
+			log.Printf("Configuration applied successfully using pure runtime commands - zero disruption to existing connections")
 		}
 
 		err = util.UpdateHashes(db)
@@ -1966,6 +1966,90 @@ func GetInterfaceStatus(db store.IStore) echo.HandlerFunc {
 			"interface": interfaceName,
 			"status":    status,
 			"active":    util.IsInterfaceActive(interfaceName),
+		})
+	}
+}
+
+// GetPeerDiffs returns the computed differences between current and target peer states
+func GetPeerDiffs(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+
+		// Get interface name from config file path
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		// Check if interface is active
+		if !util.IsInterfaceActive(interfaceName) {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "WireGuard interface is not active"})
+		}
+
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients"})
+		}
+
+		// Compute peer diffs
+		diffs, err := util.ComputePeerDiffs(interfaceName, clients, settings)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to compute peer diffs: %v", err)})
+		}
+
+		// Format diffs for JSON response
+		var diffResults []map[string]interface{}
+		for _, diff := range diffs {
+			diffResult := map[string]interface{}{
+				"action":     diff.Action,
+				"public_key": diff.PublicKey,
+				"changes":    diff.Changes,
+			}
+
+			if diff.OldState != nil {
+				diffResult["old_state"] = map[string]interface{}{
+					"allowed_ips":          diff.OldState.AllowedIPs,
+					"preshared_key":        diff.OldState.PresharedKey,
+					"persistent_keepalive": diff.OldState.PersistentKeepalive,
+					"endpoint":             diff.OldState.Endpoint,
+					"last_handshake":       diff.OldState.LastHandshake,
+					"receive_bytes":        diff.OldState.ReceiveBytes,
+					"transmit_bytes":       diff.OldState.TransmitBytes,
+				}
+			}
+
+			if diff.NewState != nil {
+				diffResult["new_state"] = map[string]interface{}{
+					"allowed_ips":          diff.NewState.AllowedIPs,
+					"preshared_key":        diff.NewState.PresharedKey,
+					"persistent_keepalive": diff.NewState.PersistentKeepalive,
+					"endpoint":             diff.NewState.Endpoint,
+				}
+			}
+
+			diffResults = append(diffResults, diffResult)
+		}
+
+		// Get current peer count
+		currentCount, err := util.GetActivePeerCount(interfaceName)
+		if err != nil {
+			currentCount = -1 // Indicate error
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success":       true,
+			"interface":     interfaceName,
+			"current_peers": currentCount,
+			"target_peers":  len(clients),
+			"diffs":         diffResults,
+			"total_changes": len(diffs),
 		})
 	}
 }

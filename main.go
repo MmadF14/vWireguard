@@ -311,6 +311,7 @@ func main() {
 	app.POST(util.BasePath+"/api/wg/add-peer", handler.AddPeer(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/wg/remove-peer", handler.RemovePeer(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/wg/status", handler.GetInterfaceStatus(db), handler.ValidSession)
+	app.GET(util.BasePath+"/api/wg/diffs", handler.GetPeerDiffs(db), handler.ValidSession)
 	app.GET(util.BasePath+"/wake_on_lan_hosts", handler.GetWakeOnLanHosts(db), handler.ValidSession, handler.RefreshSession)
 	app.POST(util.BasePath+"/wake_on_lan_host", handler.SaveWakeOnLanHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.DELETE(util.BasePath+"/wake_on_lan_host/:mac_address", handler.DeleteWakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)

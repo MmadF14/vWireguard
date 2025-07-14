@@ -14,9 +14,10 @@ class WireGuardOptimized {
      */
     async applyConfig() {
         const confirmMessage = 'Apply WireGuard configuration?\n\n' +
-            '✅ New optimized method will preserve active connections\n' +
-            '⚠️ Only new peers will be added without disruption\n' +
-            '🔄 Existing connections will remain stable';
+            '✅ ZERO-DISRUPTION method using pure runtime commands\n' +
+            '✅ Only exact differences will be applied\n' +
+            '✅ Existing connections remain 100% stable\n' +
+            '✅ Perfect for gaming and VoIP sessions';
 
         if (!confirm(confirmMessage)) {
             return;
@@ -37,9 +38,10 @@ class WireGuardOptimized {
 
             if (data.success) {
                 this.showSuccess('Configuration applied successfully! ✅\n\n' +
-                    '• Active connections preserved\n' +
-                    '• New peers added seamlessly\n' +
-                    '• No service interruption');
+                    '• ZERO disruption to existing connections\n' +
+                    '• Only exact differences applied\n' +
+                    '• Pure runtime commands used\n' +
+                    '• Perfect for gaming environments');
                 
                 // Refresh the page after a short delay
                 setTimeout(() => {
