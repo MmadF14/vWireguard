@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -1673,6 +1674,64 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 	}
 }
 
+// buildPeerConfig converts a client entry into a wgtypes.PeerConfig for runtime updates
+func buildPeerConfig(cl *model.Client, settings model.GlobalSetting) (wgtypes.PeerConfig, error) {
+	pubKey, err := wgtypes.ParseKey(cl.PublicKey)
+	if err != nil {
+		return wgtypes.PeerConfig{}, err
+	}
+
+	var psk *wgtypes.Key
+	if cl.PresharedKey != "" {
+		key, err := wgtypes.ParseKey(cl.PresharedKey)
+		if err != nil {
+			return wgtypes.PeerConfig{}, err
+		}
+		psk = &key
+	}
+
+	var allowedIPs []net.IPNet
+	for _, ipStr := range append(append([]string{}, cl.AllocatedIPs...), cl.ExtraAllowedIPs...) {
+		if ipStr == "" {
+			continue
+		}
+		_, ipNet, err := net.ParseCIDR(ipStr)
+		if err != nil {
+			continue
+		}
+		allowedIPs = append(allowedIPs, *ipNet)
+	}
+	if len(allowedIPs) == 0 {
+		if _, ipNet, err := net.ParseCIDR("0.0.0.0/0"); err == nil {
+			allowedIPs = append(allowedIPs, *ipNet)
+		}
+	}
+
+	var endpoint *net.UDPAddr
+	if cl.Endpoint != "" {
+		if ep, err := net.ResolveUDPAddr("udp", cl.Endpoint); err == nil {
+			endpoint = ep
+		}
+	}
+
+	var keepalive *time.Duration
+	if settings.PersistentKeepalive > 0 {
+		d := time.Duration(settings.PersistentKeepalive) * time.Second
+		keepalive = &d
+	}
+
+	pc := wgtypes.PeerConfig{
+		PublicKey:                   pubKey,
+		PresharedKey:                psk,
+		Endpoint:                    endpoint,
+		PersistentKeepaliveInterval: keepalive,
+		ReplaceAllowedIPs:           true,
+		AllowedIPs:                  allowedIPs,
+	}
+
+	return pc, nil
+}
+
 // ApplyServerConfig handler to write config file and restart Wireguard server
 func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -1719,55 +1778,80 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// First try to add new peers without disrupting active ones
-		addCmd := exec.Command("sudo", "wg", "addconf", interfaceName, settings.ConfigFilePath)
-		addOutput, addErr := addCmd.CombinedOutput()
-		if addErr != nil {
-			log.Printf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, string(addOutput))
-
-			// If adding fails, fall back to syncing the entire configuration
-			syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
-			syncOutput, syncErr := syncCmd.CombinedOutput()
-			if syncErr != nil {
-				log.Printf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, string(syncOutput))
-
-				// Restart WireGuard service as a fallback
-				serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
-
-				// Try different service names if the first one fails
-				serviceNames := []string{
-					serviceName,
-					"wg-quick@" + interfaceName,
-					"wireguard@" + interfaceName,
-					"wg-quick",
-					"wireguard",
-				}
-
-				var restartSuccess bool
-				var lastError error
-				var lastOutput string
-
-				for _, svcName := range serviceNames {
-					cmd := exec.Command("sudo", "systemctl", "restart", svcName)
-					output, err := cmd.CombinedOutput()
-					if err == nil {
-						// Check if service is active
-						checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
-						status, err := checkCmd.CombinedOutput()
-						if err == nil && strings.TrimSpace(string(status)) == "active" {
-							restartSuccess = true
-							break
-						}
+		// Try to update peers live using wgctrl
+		liveApplied := false
+		wgClient, wgErr := wgctrl.New()
+		if wgErr == nil {
+			var peerConfigs []wgtypes.PeerConfig
+			for _, cd := range clients {
+				if cd.Client != nil && cd.Client.Enabled {
+					pc, err := buildPeerConfig(cd.Client, settings)
+					if err != nil {
+						log.Printf("Cannot build peer config for %s: %v", cd.Client.Name, err)
+						continue
 					}
-					lastError = err
-					lastOutput = string(output)
+					peerConfigs = append(peerConfigs, pc)
 				}
+			}
+			if len(peerConfigs) > 0 {
+				wgErr = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{Peers: peerConfigs})
+			}
+			wgClient.Close()
+			if wgErr == nil {
+				liveApplied = true
+			} else {
+				log.Printf("wgctrl ConfigureDevice failed: %v", wgErr)
+			}
+		} else {
+			log.Printf("wgctrl client error: %v", wgErr)
+		}
 
-				if !restartSuccess {
-					log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-						false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
-					})
+		if !liveApplied {
+			// Fallback to wg addconf then syncconf and service restart if needed
+			addCmd := exec.Command("sudo", "wg", "addconf", interfaceName, settings.ConfigFilePath)
+			addOutput, addErr := addCmd.CombinedOutput()
+			if addErr != nil {
+				log.Printf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, string(addOutput))
+
+				syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
+				syncOutput, syncErr := syncCmd.CombinedOutput()
+				if syncErr != nil {
+					log.Printf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, string(syncOutput))
+
+					serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+					serviceNames := []string{
+						serviceName,
+						"wg-quick@" + interfaceName,
+						"wireguard@" + interfaceName,
+						"wg-quick",
+						"wireguard",
+					}
+
+					var restartSuccess bool
+					var lastError error
+					var lastOutput string
+
+					for _, svcName := range serviceNames {
+						cmd := exec.Command("sudo", "systemctl", "restart", svcName)
+						output, err := cmd.CombinedOutput()
+						if err == nil {
+							checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
+							status, err := checkCmd.CombinedOutput()
+							if err == nil && strings.TrimSpace(string(status)) == "active" {
+								restartSuccess = true
+								break
+							}
+						}
+						lastError = err
+						lastOutput = string(output)
+					}
+
+					if !restartSuccess {
+						log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
+						return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+							false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
+						})
+					}
 				}
 			}
 		}
@@ -1779,8 +1863,11 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 				false, fmt.Sprintf("Cannot update hashes: %v", err),
 			})
 		}
-
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Applied server config successfully"})
+		msg := "Applied server config successfully"
+		if liveApplied {
+			msg = "Applied server config live"
+		}
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, msg})
 	}
 }
 
