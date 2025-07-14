@@ -1778,32 +1778,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// Try to update peers live using wgctrl
-		liveApplied := false
-		wgClient, wgErr := wgctrl.New()
-		if wgErr == nil {
-			var peerConfigs []wgtypes.PeerConfig
-			for _, cd := range clients {
-				if cd.Client != nil && cd.Client.Enabled {
-					pc, err := buildPeerConfig(cd.Client, settings)
-					if err != nil {
-						log.Printf("Cannot build peer config for %s: %v", cd.Client.Name, err)
-						continue
-					}
-					peerConfigs = append(peerConfigs, pc)
-				}
-			}
-			if len(peerConfigs) > 0 {
-				wgErr = wgClient.ConfigureDevice(interfaceName, wgtypes.Config{Peers: peerConfigs})
-			}
-			wgClient.Close()
-			if wgErr == nil {
-				liveApplied = true
-			} else {
-				log.Printf("wgctrl ConfigureDevice failed: %v", wgErr)
-			}
-		} else {
-			log.Printf("wgctrl client error: %v", wgErr)
+
 		}
 
 		if !liveApplied {
