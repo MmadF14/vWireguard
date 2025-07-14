@@ -4,7 +4,3 @@
 
 ![screenshot](../assets/v2ray_tunnel.png)
 
-## Paste a V2Ray link
-در ابتدای فرم، لینک `vmess://`، `vless://` یا `trojan://` خود را در کادر **Link** وارد کنید و دکمهٔ **Parse** را بزنید تا مقادیر فرم به صورت خودکار پر شود.
-
-![parse](../assets/v2ray_link_parse.png)

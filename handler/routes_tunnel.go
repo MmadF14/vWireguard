@@ -96,6 +96,7 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			WGConfig          *model.WireGuardTunnelConfig `json:"wg_config,omitempty"`
 			DokodemoConfig    *model.DokodemoTunnelConfig  `json:"dokodemo_config,omitempty"`
 			PortForwardConfig *model.PortForwardConfig     `json:"port_forward_config,omitempty"`
+			V2rayConfig       *model.V2rayTunnelConfig     `json:"v2ray_config,omitempty"`
 		}
 
 		// Bind JSON data
