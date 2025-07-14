@@ -154,25 +154,33 @@ func AddPeer(interfaceName string, peer WireGuardPeer) error {
 		args = append(args, "endpoint", peer.Endpoint)
 	}
 
+	log.Printf("DEBUG: Executing wg command: wg %s", strings.Join(args, " "))
+
 	cmd := exec.Command("wg", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Printf("ERROR: wg command failed: %v, output: %s", err, string(output))
 		return fmt.Errorf("failed to add peer %s: %v, output: %s", peer.PublicKey, err, string(output))
 	}
 
-	log.Printf("Successfully added peer %s to interface %s", peer.PublicKey, interfaceName)
+	log.Printf("DEBUG: wg command succeeded, output: %s", string(output))
+	log.Printf("SUCCESS: Successfully added peer %s to interface %s", peer.PublicKey, interfaceName)
 	return nil
 }
 
 // RemovePeer removes a single peer from the WireGuard interface
 func RemovePeer(interfaceName string, publicKey string) error {
+	log.Printf("DEBUG: Executing wg remove command: wg set %s peer %s remove", interfaceName, publicKey)
+
 	cmd := exec.Command("wg", "set", interfaceName, "peer", publicKey, "remove")
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Printf("ERROR: wg remove command failed: %v, output: %s", err, string(output))
 		return fmt.Errorf("failed to remove peer %s: %v, output: %s", publicKey, err, string(output))
 	}
 
-	log.Printf("Successfully removed peer %s from interface %s", publicKey, interfaceName)
+	log.Printf("DEBUG: wg remove command succeeded, output: %s", string(output))
+	log.Printf("SUCCESS: Successfully removed peer %s from interface %s", publicKey, interfaceName)
 	return nil
 }
 
@@ -205,13 +213,17 @@ func UpdatePeer(interfaceName string, peer WireGuardPeer) error {
 		args = append(args, "endpoint", "(none)")
 	}
 
+	log.Printf("DEBUG: Executing wg update command: wg %s", strings.Join(args, " "))
+
 	cmd := exec.Command("wg", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		log.Printf("ERROR: wg update command failed: %v, output: %s", err, string(output))
 		return fmt.Errorf("failed to update peer %s: %v, output: %s", peer.PublicKey, err, string(output))
 	}
 
-	log.Printf("Successfully updated peer %s on interface %s", peer.PublicKey, interfaceName)
+	log.Printf("DEBUG: wg update command succeeded, output: %s", string(output))
+	log.Printf("SUCCESS: Successfully updated peer %s on interface %s", peer.PublicKey, interfaceName)
 	return nil
 }
 
@@ -263,12 +275,26 @@ func ComputePeerDiffs(interfaceName string, clients []model.ClientData, settings
 		return nil, fmt.Errorf("failed to get current peers: %v", err)
 	}
 
+	log.Printf("DEBUG: Current peers in interface %s: %d", interfaceName, len(currentPeers))
+	for pubKey := range currentPeers {
+		log.Printf("DEBUG: Current peer: %s", pubKey)
+	}
+
 	// Build target peer configuration
 	targetPeers := make(map[string]WireGuardPeer)
+	enabledClients := 0
+	totalClients := len(clients)
+
 	for _, clientData := range clients {
+		log.Printf("DEBUG: Processing client %s (enabled: %v, public_key: %s)",
+			clientData.Client.Name, clientData.Client.Enabled, clientData.Client.PublicKey)
+
 		if !clientData.Client.Enabled {
+			log.Printf("DEBUG: Skipping disabled client %s", clientData.Client.Name)
 			continue
 		}
+
+		enabledClients++
 
 		peer := WireGuardPeer{
 			PublicKey: clientData.Client.PublicKey,
@@ -298,6 +324,13 @@ func ComputePeerDiffs(interfaceName string, clients []model.ClientData, settings
 		}
 
 		targetPeers[clientData.Client.PublicKey] = peer
+		log.Printf("DEBUG: Added target peer %s for client %s (allowed_ips: %v)",
+			clientData.Client.PublicKey, clientData.Client.Name, peer.AllowedIPs)
+	}
+
+	log.Printf("DEBUG: Target peers: %d (enabled clients: %d/%d)", len(targetPeers), enabledClients, totalClients)
+	for pubKey := range targetPeers {
+		log.Printf("DEBUG: Target peer: %s", pubKey)
 	}
 
 	// Compute diffs
@@ -305,13 +338,19 @@ func ComputePeerDiffs(interfaceName string, clients []model.ClientData, settings
 
 	// Check for peers to add or update
 	for pubKey, targetPeer := range targetPeers {
+		log.Printf("DEBUG: Checking target peer %s", pubKey)
 		if currentPeer, exists := currentPeers[pubKey]; exists {
+			log.Printf("DEBUG: Peer %s exists in interface - checking for updates", pubKey)
 			// Peer exists - check for updates
 			diff := ComparePeerStates(currentPeer, targetPeer)
 			if diff.Action == "update" {
+				log.Printf("DEBUG: Peer %s needs update (changes: %v)", pubKey, diff.Changes)
 				diffs = append(diffs, diff)
+			} else {
+				log.Printf("DEBUG: Peer %s is up to date (no changes needed)", pubKey)
 			}
 		} else {
+			log.Printf("DEBUG: Peer %s does not exist in interface - needs to be added", pubKey)
 			// Peer doesn't exist - needs to be added
 			diffs = append(diffs, PeerDiff{
 				Action:    "add",
@@ -323,59 +362,91 @@ func ComputePeerDiffs(interfaceName string, clients []model.ClientData, settings
 
 	// Check for peers to remove
 	for pubKey, currentPeer := range currentPeers {
+		log.Printf("DEBUG: Checking current peer %s for removal", pubKey)
 		if _, exists := targetPeers[pubKey]; !exists {
+			log.Printf("DEBUG: Peer %s exists in interface but not in target - needs to be removed", pubKey)
 			// Peer exists in interface but not in target - needs to be removed
 			diffs = append(diffs, PeerDiff{
 				Action:    "remove",
 				PublicKey: pubKey,
 				OldState:  &currentPeer,
 			})
+		} else {
+			log.Printf("DEBUG: Peer %s exists in both interface and target - keeping", pubKey)
 		}
 	}
 
+	log.Printf("DEBUG: Computed %d diffs: %d adds, %d removes, %d updates",
+		len(diffs),
+		len(filterDiffsByAction(diffs, "add")),
+		len(filterDiffsByAction(diffs, "remove")),
+		len(filterDiffsByAction(diffs, "update")))
+
 	return diffs, nil
+}
+
+// Helper function to filter diffs by action
+func filterDiffsByAction(diffs []PeerDiff, action string) []PeerDiff {
+	var filtered []PeerDiff
+	for _, diff := range diffs {
+		if diff.Action == action {
+			filtered = append(filtered, diff)
+		}
+	}
+	return filtered
 }
 
 // ApplyPeerDiffs applies only the computed differences to the interface
 func ApplyPeerDiffs(interfaceName string, diffs []PeerDiff) error {
 	var addedCount, removedCount, updatedCount int
 
-	for _, diff := range diffs {
+	log.Printf("DEBUG: Applying %d peer diffs to interface %s", len(diffs), interfaceName)
+
+	for i, diff := range diffs {
+		log.Printf("DEBUG: Processing diff %d/%d: %s peer %s", i+1, len(diffs), diff.Action, diff.PublicKey)
+
 		switch diff.Action {
 		case "add":
+			log.Printf("DEBUG: Adding peer %s with allowed_ips: %v", diff.PublicKey, diff.NewState.AllowedIPs)
 			if err := AddPeer(interfaceName, *diff.NewState); err != nil {
-				log.Printf("Failed to add peer %s: %v", diff.PublicKey, err)
+				log.Printf("ERROR: Failed to add peer %s: %v", diff.PublicKey, err)
 				continue
 			}
 			addedCount++
-			log.Printf("Added peer %s", diff.PublicKey)
+			log.Printf("SUCCESS: Added peer %s", diff.PublicKey)
 
 		case "remove":
+			log.Printf("DEBUG: Removing peer %s", diff.PublicKey)
 			if err := RemovePeer(interfaceName, diff.PublicKey); err != nil {
-				log.Printf("Failed to remove peer %s: %v", diff.PublicKey, err)
+				log.Printf("ERROR: Failed to remove peer %s: %v", diff.PublicKey, err)
 				continue
 			}
 			removedCount++
-			log.Printf("Removed peer %s", diff.PublicKey)
+			log.Printf("SUCCESS: Removed peer %s", diff.PublicKey)
 
 		case "update":
+			log.Printf("DEBUG: Updating peer %s with changes: %v", diff.PublicKey, diff.Changes)
 			if err := UpdatePeer(interfaceName, *diff.NewState); err != nil {
-				log.Printf("Failed to update peer %s: %v", diff.PublicKey, err)
+				log.Printf("ERROR: Failed to update peer %s: %v", diff.PublicKey, err)
 				continue
 			}
 			updatedCount++
-			log.Printf("Updated peer %s (changes: %s)", diff.PublicKey, strings.Join(diff.Changes, ", "))
+			log.Printf("SUCCESS: Updated peer %s (changes: %s)", diff.PublicKey, strings.Join(diff.Changes, ", "))
 
 		case "none":
+			log.Printf("DEBUG: No changes needed for peer %s", diff.PublicKey)
 			// No changes needed
 			continue
+
+		default:
+			log.Printf("ERROR: Unknown diff action: %s for peer %s", diff.Action, diff.PublicKey)
 		}
 	}
 
 	if addedCount > 0 || removedCount > 0 || updatedCount > 0 {
-		log.Printf("Applied peer changes: %d added, %d removed, %d updated", addedCount, removedCount, updatedCount)
+		log.Printf("SUCCESS: Applied peer changes: %d added, %d removed, %d updated", addedCount, removedCount, updatedCount)
 	} else {
-		log.Printf("No peer changes needed - interface is already in sync")
+		log.Printf("INFO: No peer changes needed - interface is already in sync")
 	}
 
 	return nil
@@ -383,21 +454,28 @@ func ApplyPeerDiffs(interfaceName string, diffs []PeerDiff) error {
 
 // ApplyConfigChanges applies configuration changes using pure runtime commands with zero disruption
 func ApplyConfigChanges(interfaceName string, configPath string, clients []model.ClientData, settings model.GlobalSetting) error {
+	log.Printf("DEBUG: Starting ApplyConfigChanges for interface %s with %d clients", interfaceName, len(clients))
+
 	// Step 1: Compute exact differences between current and target state
+	log.Printf("DEBUG: Computing peer diffs...")
 	diffs, err := ComputePeerDiffs(interfaceName, clients, settings)
 	if err != nil {
+		log.Printf("ERROR: Failed to compute peer diffs: %v", err)
 		return fmt.Errorf("failed to compute peer diffs: %v", err)
 	}
 
+	log.Printf("DEBUG: Computed %d diffs, applying to interface...", len(diffs))
+
 	// Step 2: Apply only the differences using precise wg set commands
 	if err := ApplyPeerDiffs(interfaceName, diffs); err != nil {
+		log.Printf("ERROR: Failed to apply peer diffs: %v", err)
 		return fmt.Errorf("failed to apply peer diffs: %v", err)
 	}
 
 	// Step 3: Update the config file for persistence (but don't load it)
 	// This is handled by the calling function
 
-	log.Printf("Configuration applied successfully using pure runtime commands - zero disruption to existing connections")
+	log.Printf("SUCCESS: Configuration applied successfully using pure runtime commands - zero disruption to existing connections")
 	return nil
 }
 
