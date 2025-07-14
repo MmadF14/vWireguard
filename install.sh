@@ -97,7 +97,12 @@ install_xray() {
     if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then
         xarch="arm64-v8a"
     fi
-    local url="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-${xarch}.zip"
+  local url="https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-${xarch}.zip"
+    local api_url="https://api.github.com/repos/XTLS/Xray-core/releases/latest"
+    local latest_url=$(curl -sL "$api_url" | grep -o "browser_download_url.*Xray-linux-${xarch}\.zip" | head -n1 | cut -d '"' -f4)
+    if [ -n "$latest_url" ]; then
+        url="$latest_url"
+    fi
     mkdir -p /tmp/xray
     wget -q "$url" -O /tmp/xray/xray.zip && unzip -q /tmp/xray/xray.zip -d /tmp/xray
     install -m 755 /tmp/xray/xray /usr/local/bin/xray

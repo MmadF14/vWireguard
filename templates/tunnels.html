@@ -557,6 +557,18 @@
                         <label for="v2ray_fingerprint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fingerprint</label>
                         <input id="v2ray_fingerprint" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                     </div>
+                    <div>
+                        <label for="v2ray_flow" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Flow</label>
+                        <input id="v2ray_flow" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" placeholder="optional">
+                    </div>
+                    <div>
+                        <label for="v2ray_sni" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">SNI</label>
+                        <input id="v2ray_sni" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" placeholder="optional">
+                    </div>
+                    <div>
+                        <label for="v2ray_alpn" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ALPN</label>
+                        <input id="v2ray_alpn" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" placeholder="h2,http/1.1">
+                    </div>
                 </div>
             </div>
             
@@ -1047,14 +1059,16 @@ $(document).ready(function() {
                 remote_address: $('#v2ray_remote_address').val(),
                 remote_port: parseInt($('#v2ray_remote_port').val()),
                 uuid: $('#v2ray_uuid').val(),
-                flow: '',
+                flow: $('#v2ray_flow').val(),
                 password: $('#v2ray_password').val(),
                 security: $('#v2ray_security').val(),
                 server_name: $('#v2ray_server_name').val(),
                 fingerprint: $('#v2ray_fingerprint').val(),
                 network: $('#v2ray_network').val(),
                 path: $('#v2ray_path').val(),
-                sni: $('#v2ray_server_name').val()
+                sni: $('#v2ray_sni').val(),
+                alpn: $('#v2ray_alpn').val().split(',').map(v => v.trim()).filter(Boolean)
+                
             };
         }
         
@@ -1203,18 +1217,21 @@ function handleParseV2Link() {
     const link = document.getElementById('v2link').value.trim();
     if (!link) return;
     const fill = (data) => {
-        window.alpData.v2ray = data;
-        document.getElementById('v2ray_protocol').value = data.protocol || '';
-        document.getElementById('v2ray_remote_address').value = data.remote_address || '';
-        document.getElementById('v2ray_remote_port').value = data.remote_port || '';
-        document.getElementById('v2ray_uuid').value = data.uuid || '';
-        document.getElementById('v2ray_password').value = data.password || '';
-        document.getElementById('v2ray_security').value = data.security || 'none';
-        document.getElementById('v2ray_server_name').value = data.server_name || '';
-        document.getElementById('v2ray_fingerprint').value = data.fingerprint || '';
-        document.getElementById('v2ray_network').value = data.network || '';
-        document.getElementById('v2ray_path').value = data.path || '';
-    };
+            window.alpData.v2ray = data;
+            document.getElementById('v2ray_protocol').value = data.protocol || '';
+            document.getElementById('v2ray_remote_address').value = data.remote_address || '';
+            document.getElementById('v2ray_remote_port').value = data.remote_port || '';
+            document.getElementById('v2ray_uuid').value = data.uuid || '';
+            document.getElementById('v2ray_password').value = data.password || '';
+            document.getElementById('v2ray_security').value = data.security || 'none';
+            document.getElementById('v2ray_server_name').value = data.server_name || '';
+            document.getElementById('v2ray_fingerprint').value = data.fingerprint || '';
+            document.getElementById('v2ray_network').value = data.network || '';
+            document.getElementById('v2ray_path').value = data.path || '';
+            document.getElementById('v2ray_flow').value = data.flow || '';
+            document.getElementById('v2ray_sni').value = data.sni || '';
+            document.getElementById('v2ray_alpn').value = (data.alpn || []).join(',');
+        };
 
     fetch('{{.basePath}}/api/utils/parse_v2link', {
         method: 'POST',
@@ -1492,6 +1509,11 @@ function editTunnel(tunnelId) {
             $('#v2ray_fingerprint').val(tunnel.v2ray_config.fingerprint);
             $('#v2ray_network').val(tunnel.v2ray_config.network);
             $('#v2ray_path').val(tunnel.v2ray_config.path);
+            $('#v2ray_flow').val(tunnel.v2ray_config.flow || '');
+            $('#v2ray_sni').val(tunnel.v2ray_config.sni || '');
+            if (Array.isArray(tunnel.v2ray_config.alpn)) {
+            $('#v2ray_alpn').val(tunnel.v2ray_config.alpn.join(','));
+            }
         }
         
         // Set client routing
