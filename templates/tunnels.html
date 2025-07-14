@@ -500,7 +500,10 @@
             <!-- V2Ray Configuration -->
             <div id="v2ray_config" class="hidden" x-data="{protocol:'vmess'}">
                 <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-4">V2Ray Configuration</h5>
-
+                <div class="flex items-center space-x-2 rtl:space-x-reverse mb-4">
+                    <input id="v2link" type="text" class="flex-grow px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white" placeholder="vmess:// or vless://">
+                    <button type="button" onclick="handleParseV2Link()" class="px-3 py-2 bg-blue-500 text-white rounded-lg">Parse</button>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="v2ray_protocol" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Protocol</label>
@@ -1159,6 +1162,29 @@ function handleParseV2Link() {
         document.getElementById('v2ray_network').value = data.network || '';
         document.getElementById('v2ray_path').value = data.path || '';
     };
+
+    fetch('{{.basePath}}/api/utils/parse_v2link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link })
+    })
+    .then(r => {
+        if (r.status === 404) throw new Error('noback');
+        if (!r.ok) throw new Error('bad');
+        return r.json();
+    })
+    .then(fill)
+    .catch(() => {
+        const data = parseV2Link(link);
+        if (data) {
+            fill(data);
+        } else if (typeof showToast === 'function') {
+            showToast('Invalid V2Ray link', 'error');
+        } else {
+            alert('Invalid V2Ray link');
+        }
+    });
+
 
     fetch('{{.basePath}}/api/utils/parse_v2link', {
         method: 'POST',
