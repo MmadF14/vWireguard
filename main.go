@@ -334,6 +334,7 @@ func main() {
 	tunnelGroup := app.Group(util.BasePath + "/api/tunnels")
 	router.RegisterTunnelRoutes(tunnelGroup, db)
 
+
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {
 		app.Add(route.Method, route.Path, route.Handler(db), route.Middleware...)
