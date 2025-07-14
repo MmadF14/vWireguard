@@ -601,6 +601,8 @@
 {{define "bottom_js"}}
 <script src="{{.basePath}}/static/js/tunnel-form.js"></script>
 <script>
+    window.alpData = window.alpData || {};
+    window.alpData.v2ray = window.alpData.v2ray || {};
     if (typeof parseV2Link !== 'function') {
     function parseV2Link(link) {
         if (!link) return null;
