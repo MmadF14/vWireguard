@@ -1673,7 +1673,7 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// ApplyServerConfig handler to write config file and restart Wireguard server
+// ApplyServerConfig handler to write config file and apply changes without disrupting active connections
 func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		server, err := db.GetServer()
@@ -1719,57 +1719,64 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// First try to add new peers without disrupting active ones
-		addCmd := exec.Command("sudo", "wg", "addconf", interfaceName, settings.ConfigFilePath)
-		addOutput, addErr := addCmd.CombinedOutput()
-		if addErr != nil {
-			log.Printf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, string(addOutput))
-
-			// If adding fails, fall back to syncing the entire configuration
-			syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
-			syncOutput, syncErr := syncCmd.CombinedOutput()
-			if syncErr != nil {
-				log.Printf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, string(syncOutput))
-
-				// Restart WireGuard service as a fallback
-				serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
-
-				// Try different service names if the first one fails
-				serviceNames := []string{
-					serviceName,
-					"wg-quick@" + interfaceName,
-					"wireguard@" + interfaceName,
-					"wg-quick",
-					"wireguard",
-				}
-
-				var restartSuccess bool
-				var lastError error
-				var lastOutput string
-
-				for _, svcName := range serviceNames {
-					cmd := exec.Command("sudo", "systemctl", "restart", svcName)
-					output, err := cmd.CombinedOutput()
-					if err == nil {
-						// Check if service is active
-						checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
-						status, err := checkCmd.CombinedOutput()
-						if err == nil && strings.TrimSpace(string(status)) == "active" {
-							restartSuccess = true
-							break
-						}
-					}
-					lastError = err
-					lastOutput = string(output)
-				}
-
-				if !restartSuccess {
-					log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-						false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
-					})
-				}
+		// Check if interface is active
+		if !util.IsInterfaceActive(interfaceName) {
+			log.Printf("Interface %s is not active, starting it first", interfaceName)
+			// Try to start the interface if it's not active
+			startCmd := exec.Command("sudo", "wg-quick", "up", interfaceName)
+			if output, err := startCmd.CombinedOutput(); err != nil {
+				log.Printf("Failed to start interface %s: %v, output: %s", interfaceName, err, string(output))
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+					false, fmt.Sprintf("Interface %s is not active and cannot be started: %v", interfaceName, err),
+				})
 			}
+		}
+
+		// Apply configuration changes using optimized runtime methods
+		err = util.ApplyConfigChanges(interfaceName, settings.ConfigFilePath, clients, settings)
+		if err != nil {
+			log.Printf("Runtime configuration failed: %v, falling back to service restart", err)
+
+			// Fallback to service restart only if absolutely necessary
+			serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+			serviceNames := []string{
+				serviceName,
+				"wg-quick@" + interfaceName,
+				"wireguard@" + interfaceName,
+				"wg-quick",
+				"wireguard",
+			}
+
+			var restartSuccess bool
+			var lastError error
+			var lastOutput string
+
+			for _, svcName := range serviceNames {
+				cmd := exec.Command("sudo", "systemctl", "restart", svcName)
+				output, err := cmd.CombinedOutput()
+				if err == nil {
+					// Check if service is active
+					checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
+					status, err := checkCmd.CombinedOutput()
+					if err == nil && strings.TrimSpace(string(status)) == "active" {
+						restartSuccess = true
+						break
+					}
+				}
+				lastError = err
+				lastOutput = string(output)
+			}
+
+			if !restartSuccess {
+				log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+					false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
+				})
+			}
+
+			log.Printf("Configuration applied via service restart (fallback method)")
+		} else {
+			log.Printf("Configuration applied successfully without disrupting active connections")
 		}
 
 		err = util.UpdateHashes(db)
@@ -1780,7 +1787,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			})
 		}
 
-		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Applied server config successfully"})
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Applied server config successfully without disrupting active connections"})
 	}
 }
 
@@ -1828,4 +1835,137 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 // GetInternalRoutes returns the list of internal routes
 func GetInternalRoutes() []Route {
 	return internalRoutes
+}
+
+// AddPeer adds a single peer to the WireGuard interface
+func AddPeer(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var request struct {
+			PublicKey           string   `json:"public_key"`
+			AllowedIPs          []string `json:"allowed_ips"`
+			PresharedKey        string   `json:"preshared_key,omitempty"`
+			PersistentKeepalive int      `json:"persistent_keepalive,omitempty"`
+			Endpoint            string   `json:"endpoint,omitempty"`
+		}
+
+		if err := json.NewDecoder(c.Request().Body).Decode(&request); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request format"})
+		}
+
+		if request.PublicKey == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Public key is required"})
+		}
+
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+
+		// Get interface name from config file path
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		// Check if interface is active
+		if !util.IsInterfaceActive(interfaceName) {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "WireGuard interface is not active"})
+		}
+
+		// Create peer configuration
+		peer := util.WireGuardPeer{
+			PublicKey:           request.PublicKey,
+			AllowedIPs:          request.AllowedIPs,
+			PresharedKey:        request.PresharedKey,
+			PersistentKeepalive: request.PersistentKeepalive,
+			Endpoint:            request.Endpoint,
+		}
+
+		// Add peer to interface
+		if err := util.AddPeer(interfaceName, peer); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to add peer: %v", err)})
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Peer added successfully"})
+	}
+}
+
+// RemovePeer removes a single peer from the WireGuard interface
+func RemovePeer(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var request struct {
+			PublicKey string `json:"public_key"`
+		}
+
+		if err := json.NewDecoder(c.Request().Body).Decode(&request); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request format"})
+		}
+
+		if request.PublicKey == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Public key is required"})
+		}
+
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+
+		// Get interface name from config file path
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		// Check if interface is active
+		if !util.IsInterfaceActive(interfaceName) {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "WireGuard interface is not active"})
+		}
+
+		// Remove peer from interface
+		if err := util.RemovePeer(interfaceName, request.PublicKey); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to remove peer: %v", err)})
+		}
+
+		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Peer removed successfully"})
+	}
+}
+
+// GetInterfaceStatus returns the current status of the WireGuard interface
+func GetInterfaceStatus(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+
+		// Get interface name from config file path
+		interfaceName := "wg0"
+		if settings.ConfigFilePath != "" {
+			parts := strings.Split(settings.ConfigFilePath, "/")
+			if len(parts) > 0 {
+				baseName := parts[len(parts)-1]
+				interfaceName = strings.TrimSuffix(baseName, ".conf")
+			}
+		}
+
+		status, err := util.GetInterfaceStatus(interfaceName)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to get interface status: %v", err)})
+		}
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success":   true,
+			"interface": interfaceName,
+			"status":    status,
+			"active":    util.IsInterfaceActive(interfaceName),
+		})
+	}
 }

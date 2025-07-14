@@ -2,15 +2,16 @@ package handler
 
 import (
 	"fmt"
-	"github.com/MmadF14/vwireguard/store"
-	"github.com/MmadF14/vwireguard/util"
-	"golang.zx2c4.com/wireguard/wgctrl"
 	"io/fs"
 	"log"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/MmadF14/vwireguard/store"
+	"github.com/MmadF14/vwireguard/util"
+	"golang.zx2c4.com/wireguard/wgctrl"
 )
 
 var (
@@ -245,24 +246,43 @@ func applyWireGuardConfig(db store.IStore) error {
 		}
 	}
 
-	// Restart WireGuard service
-	serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
-	cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("Error restarting WireGuard service: %v, Output: %s", err, string(output))
-		return fmt.Errorf("error restarting WireGuard service: %v, Output: %s", err, string(output))
+	// Check if interface is active
+	if !util.IsInterfaceActive(interfaceName) {
+		log.Printf("Interface %s is not active, starting it first", interfaceName)
+		// Try to start the interface if it's not active
+		startCmd := exec.Command("sudo", "wg-quick", "up", interfaceName)
+		if output, err := startCmd.CombinedOutput(); err != nil {
+			log.Printf("Failed to start interface %s: %v, output: %s", interfaceName, err, string(output))
+			return fmt.Errorf("interface %s is not active and cannot be started: %v", interfaceName, err)
+		}
 	}
-	log.Printf("Successfully restarted WireGuard service")
 
-	// Verify service is active
-	checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
-	status, err := checkCmd.CombinedOutput()
-	if err != nil || strings.TrimSpace(string(status)) != "active" {
-		log.Printf("WireGuard service is not active after restart. Status: %s", string(status))
-		return fmt.Errorf("WireGuard service is not active after restart. Status: %s", string(status))
+	// Apply configuration changes using optimized runtime methods
+	err = util.ApplyConfigChanges(interfaceName, settings.ConfigFilePath, clients, settings)
+	if err != nil {
+		log.Printf("Runtime configuration failed: %v, falling back to service restart", err)
+
+		// Fallback to service restart only if absolutely necessary
+		serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+		cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Printf("Error restarting WireGuard service: %v, Output: %s", err, string(output))
+			return fmt.Errorf("error restarting WireGuard service: %v, Output: %s", err, string(output))
+		}
+		log.Printf("Configuration applied via service restart (fallback method)")
+
+		// Verify service is active after restart
+		checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
+		status, err := checkCmd.CombinedOutput()
+		if err != nil || strings.TrimSpace(string(status)) != "active" {
+			log.Printf("WireGuard service is not active after restart. Status: %s", string(status))
+			return fmt.Errorf("WireGuard service is not active after restart. Status: %s", string(status))
+		}
+		log.Printf("WireGuard service is active after restart")
+	} else {
+		log.Printf("Configuration applied successfully without disrupting active connections")
 	}
-	log.Printf("WireGuard service is active")
 
 	return nil
 }
