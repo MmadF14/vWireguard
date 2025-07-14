@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -143,7 +144,21 @@ func AddPeer(interfaceName string, peer WireGuardPeer) error {
 	}
 
 	if peer.PresharedKey != "" {
-		args = append(args, "preshared-key", peer.PresharedKey)
+		// Create temporary file for preshared key
+		tempFile, err := os.CreateTemp("", "wg-preshared-*")
+		if err != nil {
+			return fmt.Errorf("failed to create temp file for preshared key: %v", err)
+		}
+		defer os.Remove(tempFile.Name()) // Clean up temp file
+
+		// Write preshared key to temp file
+		if _, err := tempFile.WriteString(peer.PresharedKey); err != nil {
+			tempFile.Close()
+			return fmt.Errorf("failed to write preshared key to temp file: %v", err)
+		}
+		tempFile.Close()
+
+		args = append(args, "preshared-key", tempFile.Name())
 	}
 
 	if peer.PersistentKeepalive > 0 {
@@ -193,7 +208,21 @@ func UpdatePeer(interfaceName string, peer WireGuardPeer) error {
 	}
 
 	if peer.PresharedKey != "" {
-		args = append(args, "preshared-key", peer.PresharedKey)
+		// Create temporary file for preshared key
+		tempFile, err := os.CreateTemp("", "wg-preshared-*")
+		if err != nil {
+			return fmt.Errorf("failed to create temp file for preshared key: %v", err)
+		}
+		defer os.Remove(tempFile.Name()) // Clean up temp file
+
+		// Write preshared key to temp file
+		if _, err := tempFile.WriteString(peer.PresharedKey); err != nil {
+			tempFile.Close()
+			return fmt.Errorf("failed to write preshared key to temp file: %v", err)
+		}
+		tempFile.Close()
+
+		args = append(args, "preshared-key", tempFile.Name())
 	} else {
 		// If preshared key is empty, we need to remove it
 		args = append(args, "preshared-key", "(none)")
