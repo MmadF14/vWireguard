@@ -12,8 +12,57 @@ import (
 
 // GenerateXrayConfig builds an Xray config for WireGuard->V2Ray tunnels
 func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
-	if tunnel == nil || tunnel.WGConfig == nil || tunnel.V2rayConfig == nil {
-		return "", fmt.Errorf("incomplete tunnel configuration")
+	if tunnel == nil {
+		return "", fmt.Errorf("tunnel is nil")
+	}
+	if tunnel.WGConfig == nil {
+		return "", fmt.Errorf("WireGuard configuration is missing")
+	}
+	if tunnel.V2rayConfig == nil {
+		return "", fmt.Errorf("V2Ray configuration is missing")
+	}
+
+	// Validate WireGuard configuration
+	if tunnel.WGConfig.TunnelIP == "" {
+		return "", fmt.Errorf("WireGuard tunnel IP is missing")
+	}
+	if tunnel.WGConfig.LocalPrivateKey == "" {
+		return "", fmt.Errorf("WireGuard local private key is missing")
+	}
+	if tunnel.WGConfig.RemotePublicKey == "" {
+		return "", fmt.Errorf("WireGuard remote public key is missing")
+	}
+
+	// Validate V2Ray configuration
+	vc := tunnel.V2rayConfig
+	if vc.Protocol == "" {
+		return "", fmt.Errorf("V2Ray protocol is missing")
+	}
+	if vc.RemoteAddress == "" {
+		return "", fmt.Errorf("V2Ray remote address is missing")
+	}
+	if vc.RemotePort == 0 {
+		return "", fmt.Errorf("V2Ray remote port is missing")
+	}
+	if vc.Security == "" {
+		return "", fmt.Errorf("V2Ray security setting is missing")
+	}
+	if vc.Network == "" {
+		return "", fmt.Errorf("V2Ray network type is missing")
+	}
+
+	// Protocol-specific validation
+	switch vc.Protocol {
+	case "vmess", "vless":
+		if vc.UUID == "" {
+			return "", fmt.Errorf("UUID is required for %s protocol", vc.Protocol)
+		}
+	case "trojan":
+		if vc.Password == "" {
+			return "", fmt.Errorf("Password is required for Trojan protocol")
+		}
+	default:
+		return "", fmt.Errorf("Unsupported V2Ray protocol: %s", vc.Protocol)
 	}
 
 	inb := map[string]interface{}{
@@ -31,7 +80,6 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		},
 	}
 
-	vc := tunnel.V2rayConfig
 	ob := map[string]interface{}{
 		"tag":      "v2-out",
 		"protocol": vc.Protocol,

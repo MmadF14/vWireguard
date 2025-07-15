@@ -170,8 +170,36 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			if tunnelData.V2rayConfig == nil {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray configuration is required"})
 			}
-			if tunnelData.V2rayConfig.Protocol == "" || tunnelData.V2rayConfig.RemoteAddress == "" || tunnelData.V2rayConfig.RemotePort == 0 || tunnelData.V2rayConfig.Security == "" || tunnelData.V2rayConfig.Network == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Incomplete V2Ray configuration"})
+
+			// Basic required fields for all V2Ray protocols
+			if tunnelData.V2rayConfig.Protocol == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray protocol is required"})
+			}
+			if tunnelData.V2rayConfig.RemoteAddress == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray remote address is required"})
+			}
+			if tunnelData.V2rayConfig.RemotePort == 0 {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray remote port is required"})
+			}
+			if tunnelData.V2rayConfig.Security == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray security setting is required"})
+			}
+			if tunnelData.V2rayConfig.Network == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray network type is required"})
+			}
+
+			// Protocol-specific validation
+			switch tunnelData.V2rayConfig.Protocol {
+			case "vmess", "vless":
+				if tunnelData.V2rayConfig.UUID == "" {
+					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("UUID is required for %s protocol", tunnelData.V2rayConfig.Protocol)})
+				}
+			case "trojan":
+				if tunnelData.V2rayConfig.Password == "" {
+					return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Password is required for Trojan protocol"})
+				}
+			default:
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Unsupported V2Ray protocol: %s", tunnelData.V2rayConfig.Protocol)})
 			}
 		}
 

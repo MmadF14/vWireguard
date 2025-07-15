@@ -204,6 +204,28 @@ http://localhost:5000
 - Secure key storage and management
 - Regular security updates
 
+## 🆘 Troubleshooting
+
+### V2Ray Tunnel Issues
+
+If you encounter issues with V2Ray tunnels, especially the "incomplete tunnel configuration" error, please refer to our comprehensive troubleshooting guide:
+
+📖 **[V2Ray Tunnel Troubleshooting Guide](docs/V2RAY_TROUBLESHOOTING.md)**
+
+This guide covers:
+- Common configuration errors and solutions
+- Required fields for different V2Ray protocols
+- Step-by-step configuration instructions
+- Validation tips and best practices
+
+### General Issues
+
+For other issues, please check:
+1. System logs: `journalctl -u vwireguard`
+2. WireGuard status: `wg show`
+3. Network connectivity
+4. Firewall settings
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

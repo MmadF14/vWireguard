@@ -500,46 +500,53 @@
             <!-- V2Ray Configuration -->
             <div id="v2ray_config" class="hidden" x-data="{protocol:'vmess'}">
                 <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-4">V2Ray Configuration</h5>
+                <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Fields marked with <span class="text-red-500">*</span> are required. For VMess/VLESS protocols, UUID is required. For Trojan protocol, Password is required.
+                    </p>
+                </div>
                 <div class="flex items-center space-x-2 rtl:space-x-reverse mb-4">
                     <input id="v2link" type="text" class="flex-grow px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white" placeholder="vmess:// or vless://">
                     <button type="button" onclick="handleParseV2Link()" class="px-3 py-2 bg-blue-500 text-white rounded-lg">Parse</button>
+                    <button type="button" onclick="showV2RayValidationResult()" class="px-3 py-2 bg-green-500 text-white rounded-lg">Validate</button>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label for="v2ray_protocol" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Protocol</label>
-                        <select id="v2ray_protocol" x-model="protocol" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_protocol" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Protocol <span class="text-red-500">*</span></label>
+                        <select id="v2ray_protocol" x-model="protocol" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                             <option value="vmess">VMess</option>
                             <option value="vless">VLESS</option>
                             <option value="trojan">Trojan</option>
                         </select>
                     </div>
                     <div>
-                        <label for="v2ray_remote_address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remote Address</label>
-                        <input id="v2ray_remote_address" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_remote_address" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remote Address <span class="text-red-500">*</span></label>
+                        <input id="v2ray_remote_address" type="text" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
-                        <label for="v2ray_remote_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remote Port</label>
-                        <input id="v2ray_remote_port" type="number" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_remote_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Remote Port <span class="text-red-500">*</span></label>
+                        <input id="v2ray_remote_port" type="number" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                     </div>
                     <div x-show="protocol != 'trojan'">
-                        <label for="v2ray_uuid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">UUID</label>
-                        <input id="v2ray_uuid" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_uuid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">UUID <span class="text-red-500">*</span></label>
+                        <input id="v2ray_uuid" type="text" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                     </div>
                     <div x-show="protocol == 'trojan'">
-                        <label for="v2ray_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
-                        <input id="v2ray_password" type="text" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password <span class="text-red-500">*</span></label>
+                        <input id="v2ray_password" type="text" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                     </div>
                     <div>
-                        <label for="v2ray_security" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Security</label>
-                        <select id="v2ray_security" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_security" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Security <span class="text-red-500">*</span></label>
+                        <select id="v2ray_security" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                             <option value="tls">TLS</option>
                             <option value="reality">Reality</option>
                             <option value="none">None</option>
                         </select>
                     </div>
                     <div>
-                        <label for="v2ray_network" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Network</label>
-                        <select id="v2ray_network" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <label for="v2ray_network" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Network <span class="text-red-500">*</span></label>
+                        <select id="v2ray_network" onchange="showV2RayValidationResult()" class="w-full px-4 py-2 border border-gray-300 dark:border-dark-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
                             <option value="tcp">TCP</option>
                             <option value="ws">WebSocket</option>
                             <option value="grpc">gRPC</option>
@@ -1050,25 +1057,51 @@ $(document).ready(function() {
                 transparent: $('#pf_transparent').is(':checked')
             };
         } else if (tunnelType === 'wg-to-v2ray') {
-            if (!$('#v2ray_remote_address').val() || !$('#v2ray_remote_port').val()) {
-                alert('Please fill all V2Ray configuration fields');
+            // Enhanced V2Ray validation
+            const protocol = $('#v2ray_protocol').val();
+            const remoteAddress = $('#v2ray_remote_address').val();
+            const remotePort = $('#v2ray_remote_port').val();
+            const security = $('#v2ray_security').val();
+            const network = $('#v2ray_network').val();
+            const uuid = $('#v2ray_uuid').val();
+            const password = $('#v2ray_password').val();
+            
+            // Basic validation
+            if (!remoteAddress || !remotePort || !security || !network) {
+                alert('Please fill all basic V2Ray configuration fields (Remote Address, Remote Port, Security, Network)');
                 return;
             }
+            
+            // Protocol-specific validation
+            if (protocol === 'vmess' || protocol === 'vless') {
+                if (!uuid) {
+                    alert('UUID is required for ' + protocol + ' protocol');
+                    return;
+                }
+            } else if (protocol === 'trojan') {
+                if (!password) {
+                    alert('Password is required for Trojan protocol');
+                    return;
+                }
+            } else {
+                alert('Please select a valid V2Ray protocol (VMess, VLESS, or Trojan)');
+                return;
+            }
+            
             formData.v2ray_config = {
-                protocol: $('#v2ray_protocol').val(),
-                remote_address: $('#v2ray_remote_address').val(),
-                remote_port: parseInt($('#v2ray_remote_port').val()),
-                uuid: $('#v2ray_uuid').val(),
+                protocol: protocol,
+                remote_address: remoteAddress,
+                remote_port: parseInt(remotePort),
+                uuid: uuid,
                 flow: $('#v2ray_flow').val(),
-                password: $('#v2ray_password').val(),
-                security: $('#v2ray_security').val(),
+                password: password,
+                security: security,
                 server_name: $('#v2ray_server_name').val(),
                 fingerprint: $('#v2ray_fingerprint').val(),
-                network: $('#v2ray_network').val(),
+                network: network,
                 path: $('#v2ray_path').val(),
                 sni: $('#v2ray_sni').val(),
                 alpn: $('#v2ray_alpn').val().split(',').map(v => v.trim()).filter(Boolean)
-                
             };
         }
         
@@ -1231,6 +1264,13 @@ function handleParseV2Link() {
             document.getElementById('v2ray_flow').value = data.flow || '';
             document.getElementById('v2ray_sni').value = data.sni || '';
             document.getElementById('v2ray_alpn').value = (data.alpn || []).join(',');
+            
+            // Trigger validation after filling the form
+            setTimeout(() => {
+                if (typeof showV2RayValidationResult === 'function') {
+                    showV2RayValidationResult();
+                }
+            }, 100);
         };
 
     fetch('{{.basePath}}/api/utils/parse_v2link', {
