@@ -201,6 +201,19 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 			default:
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Unsupported V2Ray protocol: %s", tunnelData.V2rayConfig.Protocol)})
 			}
+
+			// Generate WireGuard configuration for V2Ray tunnels if not provided
+			if tunnelData.WGConfig == nil {
+				privateKey, publicKey, err := generateWireGuardKeypair()
+				if err != nil {
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to generate WireGuard keypair"})
+				}
+				tunnelData.WGConfig = &model.WireGuardTunnelConfig{
+					TunnelIP:        "10.0.0.2",
+					LocalPrivateKey: privateKey,
+					LocalPublicKey:  publicKey,
+				}
+			}
 		}
 
 		// Create tunnel model
