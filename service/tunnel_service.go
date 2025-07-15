@@ -121,14 +121,14 @@ func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
 
 	servicePath := filepath.Join("/etc/systemd/system", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID))
 	serviceContent := fmt.Sprintf(`[Unit]
-Description=vWireguard V2Ray Tunnel %%i
+Description=vWireguard V2Ray Tunnel %s
 After=network-online.target
 [Service]
 ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%%i.json
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
-`)
+`, tunnel.ID, tunnel.ID)
 	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
 		return err
 	}
