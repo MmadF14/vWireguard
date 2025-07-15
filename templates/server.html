@@ -350,7 +350,9 @@ document.addEventListener('keydown', function(e) {
         
         // Apply translation to processing text
         if (window.langManager && window.langManager.translateElement) {
-            window.langManager.translateElement(submitBtn.find('[data-translate]'));
+            submitBtn.find('[data-translate]').each(function () {
+                window.langManager.translateElement(this);
+            });
         }
         
         const addresses = $("#addresses").val()
@@ -386,6 +388,9 @@ document.addEventListener('keydown', function(e) {
                 submitBtn.html('<i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Save">Save</span>');
                 if (window.langManager && window.langManager.translateElement) {
                     window.langManager.translateElement(submitBtn.find('[data-translate]'));
+                    submitBtn.find('[data-translate]').each(function () {
+                        window.langManager.translateElement(this);
+                    });
                 }
                 
                 // Show success message - always show success unless explicitly failed
@@ -420,7 +425,9 @@ document.addEventListener('keydown', function(e) {
                 submitBtn.prop('disabled', false);
                 submitBtn.html('<i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Save">Save</span>');
                 if (window.langManager && window.langManager.translateElement) {
-                    window.langManager.translateElement(submitBtn.find('[data-translate]'));
+                    submitBtn.find('[data-translate]').each(function () {
+                        window.langManager.translateElement(this);
+                    });
                 }
                 
                 let errorMessage = 'An error occurred';
