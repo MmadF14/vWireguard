@@ -503,7 +503,7 @@
                 <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                     <p class="text-sm text-blue-800 dark:text-blue-200">
                         <i class="fas fa-info-circle mr-2"></i>
-                        Fields marked with <span class="text-red-500">*</span> are required. For VMess/VLESS protocols, UUID is required. For Trojan protocol, Password is required.
+                        Fields marked with <span class="text-red-500">*</span> are required. For VMess/VLESS protocols, UUID is required. For Trojan protocol, Password is required. <strong>Note:</strong> V2Ray tunnels also require WireGuard configuration (shown above).
                     </p>
                 </div>
                 <div class="flex items-center space-x-2 rtl:space-x-reverse mb-4">
@@ -623,6 +623,67 @@
     window.alpData = window.alpData || {};
     window.alpData.v2ray = window.alpData.v2ray || {};
     window.basePath = '{{.basePath}}';
+    
+    // V2Ray validation functions
+    function validateV2RayConfig() {
+        const protocol = document.getElementById('v2ray_protocol').value;
+        const remoteAddress = document.getElementById('v2ray_remote_address').value;
+        const remotePort = document.getElementById('v2ray_remote_port').value;
+        const security = document.getElementById('v2ray_security').value;
+        const network = document.getElementById('v2ray_network').value;
+        const uuid = document.getElementById('v2ray_uuid').value;
+        const password = document.getElementById('v2ray_password').value;
+        
+        const errors = [];
+        
+        // Basic validation
+        if (!remoteAddress) errors.push('Remote Address is required');
+        if (!remotePort || remotePort <= 0) errors.push('Remote Port must be a positive number');
+        if (!security) errors.push('Security setting is required');
+        if (!network) errors.push('Network type is required');
+        
+        // Protocol-specific validation - only check if field is visible
+        if (protocol === 'vmess' || protocol === 'vless') {
+            const uuidField = document.getElementById('v2ray_uuid');
+            if (uuidField && !uuidField.closest('div').classList.contains('hidden') && !uuid) {
+                errors.push('UUID is required for ' + protocol + ' protocol');
+            }
+        } else if (protocol === 'trojan') {
+            const passwordField = document.getElementById('v2ray_password');
+            if (passwordField && !passwordField.closest('div').classList.contains('hidden') && !password) {
+                errors.push('Password is required for Trojan protocol');
+            }
+        } else if (!protocol) {
+            errors.push('Protocol selection is required');
+        }
+        
+        return {
+            isValid: errors.length === 0,
+            errors: errors
+        };
+    }
+
+    function showV2RayValidationResult() {
+        const validation = validateV2RayConfig();
+        let resultDiv = document.getElementById('v2ray_validation_result');
+        
+        if (!resultDiv) {
+            resultDiv = document.createElement('div');
+            resultDiv.id = 'v2ray_validation_result';
+            resultDiv.className = 'mt-3 p-3 rounded-lg';
+            document.getElementById('v2ray_config').appendChild(resultDiv);
+        }
+        
+        if (validation.isValid) {
+            resultDiv.className = 'mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg';
+            resultDiv.innerHTML = '<p class="text-sm text-green-800 dark:text-green-200"><i class="fas fa-check-circle mr-2"></i>V2Ray configuration is valid!</p>';
+        } else {
+            resultDiv.className = 'mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg';
+            resultDiv.innerHTML = '<p class="text-sm text-red-800 dark:text-red-200"><i class="fas fa-exclamation-triangle mr-2"></i><strong>Configuration errors:</strong></p><ul class="text-sm text-red-700 dark:text-red-300 mt-1 ml-4">' + 
+                       validation.errors.map(error => '<li>• ' + error + '</li>').join('') + '</ul>';
+        }
+    }
+    
     if (typeof parseV2Link !== 'function') {
     function parseV2Link(link) {
         if (!link) return null;
@@ -1088,6 +1149,22 @@ $(document).ready(function() {
                 return;
             }
             
+            // WireGuard configuration is also required for V2Ray tunnels
+            let localPrivateKey = $('#wg_config').data('private-key') || $('#wg_manual_private_key').val();
+            let localPublicKey = $('#wg_config').data('public-key') || $('#wg_manual_public_key').val();
+            
+            if (!localPrivateKey || !localPublicKey) {
+                alert('Please generate a WireGuard keypair or enter private key manually for the V2Ray tunnel');
+                return;
+            }
+            
+            formData.wg_config = {
+                tunnel_ip: $('#wg_tunnel_ip').val() || '10.0.0.2',
+                local_private_key: localPrivateKey,
+                local_public_key: localPublicKey,
+                preshared_key: $('#wg_preshared_key').val()
+            };
+            
             formData.v2ray_config = {
                 protocol: protocol,
                 remote_address: remoteAddress,
@@ -1183,8 +1260,21 @@ function showTunnelConfig() {
         $('#pf_remote_host, #pf_remote_port').attr('required', 'required');
     } else if (tunnelType === 'wg-to-v2ray') {
         console.log('Showing V2Ray config section');
+        $('#wg_config').removeClass('hidden'); // Show WireGuard config for V2Ray tunnels
         $('#v2ray_config').removeClass('hidden');
         $('#v2ray_remote_address, #v2ray_remote_port').attr('required', 'required');
+        
+        // Add note about WireGuard configuration requirement
+        if (!$('#wg_config .v2ray-note').length) {
+            $('#wg_config').prepend(`
+                <div class="v2ray-note mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        V2Ray tunnels require WireGuard configuration for the local interface. Please generate or enter WireGuard keys below.
+                    </p>
+                </div>
+            `);
+        }
     }
 }
 

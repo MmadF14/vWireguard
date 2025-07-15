@@ -49,58 +49,5 @@ function parseV2Link(link) {
     return null;
 }
 
-function validateV2RayConfig() {
-    const protocol = document.getElementById('v2ray_protocol').value;
-    const remoteAddress = document.getElementById('v2ray_remote_address').value;
-    const remotePort = document.getElementById('v2ray_remote_port').value;
-    const security = document.getElementById('v2ray_security').value;
-    const network = document.getElementById('v2ray_network').value;
-    const uuid = document.getElementById('v2ray_uuid').value;
-    const password = document.getElementById('v2ray_password').value;
-    
-    const errors = [];
-    
-    // Basic validation
-    if (!remoteAddress) errors.push('Remote Address is required');
-    if (!remotePort || remotePort <= 0) errors.push('Remote Port must be a positive number');
-    if (!security) errors.push('Security setting is required');
-    if (!network) errors.push('Network type is required');
-    
-    // Protocol-specific validation
-    if (protocol === 'vmess' || protocol === 'vless') {
-        if (!uuid) errors.push('UUID is required for ' + protocol + ' protocol');
-    } else if (protocol === 'trojan') {
-        if (!password) errors.push('Password is required for Trojan protocol');
-    } else if (!protocol) {
-        errors.push('Protocol selection is required');
-    }
-    
-    return {
-        isValid: errors.length === 0,
-        errors: errors
-    };
-}
-
-function showV2RayValidationResult() {
-    const validation = validateV2RayConfig();
-    const resultDiv = document.getElementById('v2ray_validation_result');
-    
-    if (!resultDiv) {
-        const div = document.createElement('div');
-        div.id = 'v2ray_validation_result';
-        div.className = 'mt-3 p-3 rounded-lg';
-        document.getElementById('v2ray_config').appendChild(div);
-    }
-    
-    const div = document.getElementById('v2ray_validation_result');
-    
-    if (validation.isValid) {
-        div.className = 'mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg';
-        div.innerHTML = '<p class="text-sm text-green-800 dark:text-green-200"><i class="fas fa-check-circle mr-2"></i>V2Ray configuration is valid!</p>';
-    } else {
-        div.className = 'mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg';
-        div.innerHTML = '<p class="text-sm text-red-800 dark:text-red-200"><i class="fas fa-exclamation-triangle mr-2"></i><strong>Configuration errors:</strong></p><ul class="text-sm text-red-700 dark:text-red-300 mt-1 ml-4">' + 
-                       validation.errors.map(error => '<li>• ' + error + '</li>').join('') + '</ul>';
-    }
-}
+// Note: validateV2RayConfig and showV2RayValidationResult functions are now defined in templates/tunnels.html
 

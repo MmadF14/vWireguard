@@ -28,18 +28,23 @@ This error occurs when the V2Ray tunnel configuration is missing required fields
    - **Name**: Give your tunnel a descriptive name
    - **Description**: Optional description of the tunnel's purpose
 
-3. **Configure V2Ray Settings**:
+3. **Configure WireGuard Settings** (Required for V2Ray tunnels):
+   - **Generate or Enter WireGuard Keys**: Click "Generate Keypair" or enter your private key manually
+   - **Tunnel IP**: The IP address for the local WireGuard interface (default: 10.0.0.2)
+   - **Pre-shared Key**: Optional for additional security
+
+4. **Configure V2Ray Settings**:
    - **Protocol**: Select your V2Ray protocol (VMess/VLESS/Trojan)
    - **Remote Address**: Enter your V2Ray server's IP or domain
    - **Remote Port**: Enter your V2Ray server's port (e.g., 443, 8080)
    - **Security**: Choose the security method (TLS/Reality/None)
    - **Network**: Select the network type (TCP/WebSocket/gRPC)
 
-4. **Protocol-Specific Configuration**:
+5. **Protocol-Specific Configuration**:
    - **For VMess/VLESS**: Enter the UUID from your V2Ray server configuration
    - **For Trojan**: Enter the password from your Trojan server configuration
 
-5. **Optional Advanced Settings**:
+6. **Optional Advanced Settings**:
    - **Server Name**: For TLS connections (usually same as Remote Address)
    - **Fingerprint**: Browser fingerprint for TLS
    - **Path**: For WebSocket/gRPC connections
@@ -82,6 +87,15 @@ You can also use the "Parse" feature to automatically fill configuration from V2
 
 #### Issue: "V2Ray network type is missing"
 **Solution**: Select a network type from the dropdown (TCP, WebSocket, or gRPC).
+
+#### Issue: "WireGuard configuration is missing"
+**Solution**: V2Ray tunnels require WireGuard configuration for the local interface. Make sure to:
+1. Generate WireGuard keys using the "Generate Keypair" button, or
+2. Enter your private key manually in the WireGuard configuration section
+3. Set a tunnel IP address (default: 10.0.0.2)
+
+#### Issue: "Please generate a WireGuard keypair or enter private key manually for the V2Ray tunnel"
+**Solution**: V2Ray tunnels need both WireGuard and V2Ray configurations. Click "Generate Keypair" in the WireGuard configuration section or enter your existing private key.
 
 ### Testing Your Configuration
 
