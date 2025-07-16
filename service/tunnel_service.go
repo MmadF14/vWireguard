@@ -206,7 +206,29 @@ WantedBy=multi-user.target
 	if output, err := exec.Command("systemctl", "start", serviceName).CombinedOutput(); err != nil {
 		// Get service status for debugging
 		statusOutput, _ := exec.Command("systemctl", "status", serviceName).CombinedOutput()
-		return fmt.Errorf("failed to start service: %v, output: %s, status: %s", err, string(output), string(statusOutput))
+
+		// Provide more specific error information based on exit code
+		var errorMsg string
+		if exitError, ok := err.(*exec.ExitError); ok {
+			switch exitError.ExitCode() {
+			case 1:
+				errorMsg = "service configuration error or invalid arguments"
+			case 2:
+				errorMsg = "service not found or not enabled"
+			case 3:
+				errorMsg = "service already running or failed to start"
+			case 4:
+				errorMsg = "service failed to start due to dependency issues"
+			case 5:
+				errorMsg = "service failed to start - check xray binary, permissions, or configuration"
+			default:
+				errorMsg = fmt.Sprintf("unknown error (exit code: %d)", exitError.ExitCode())
+			}
+		} else {
+			errorMsg = "unknown error"
+		}
+
+		return fmt.Errorf("failed to start service (%s): %v, output: %s, status: %s", errorMsg, err, string(output), string(statusOutput))
 	}
 
 	// Setup NAT rules for the tunnel network
@@ -256,7 +278,28 @@ func validateXrayConfig(configPath string) error {
 	// Test the configuration with xray
 	cmd := exec.Command(xrayPath, "test", "-c", configPath)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("xray configuration test failed: %v, output: %s", err, string(output))
+		// Provide more specific error information
+		var errorMsg string
+		if exitError, ok := err.(*exec.ExitError); ok {
+			switch exitError.ExitCode() {
+			case 1:
+				errorMsg = "configuration file not found or unreadable"
+			case 2:
+				errorMsg = "invalid JSON format in configuration"
+			case 3:
+				errorMsg = "configuration validation failed - check protocol settings"
+			case 4:
+				errorMsg = "network configuration error"
+			case 5:
+				errorMsg = "permission denied or binary execution failed"
+			default:
+				errorMsg = fmt.Sprintf("validation error (exit code: %d)", exitError.ExitCode())
+			}
+		} else {
+			errorMsg = "unknown validation error"
+		}
+
+		return fmt.Errorf("xray configuration test failed (%s): %v, output: %s", errorMsg, err, string(output))
 	}
 
 	return nil
