@@ -481,29 +481,9 @@ func StartTunnel(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel is disabled"})
 		}
 
-		// Implement actual tunnel starting logic based on type
-		switch tunnel.Type {
-		case model.TunnelTypeWireGuardToWireGuard:
-			if err := startWireGuardTunnel(tunnel); err != nil {
-				log.Printf("Failed to start WireGuard tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start WireGuard tunnel: " + err.Error()})
-			}
-		case model.TunnelTypeWireGuardToV2ray:
-			if err := startV2rayTunnel(tunnel); err != nil {
-				log.Printf("Failed to start V2Ray tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start V2Ray tunnel: " + err.Error()})
-			}
-		default:
-			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
-			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
+		if err := service.StartTunnel(db, tunnelID); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-
-		// Update status
-		err = db.UpdateTunnelStatus(tunnelID, model.TunnelStatusActive)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel status: %v", err)})
-		}
-
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel started successfully"})
 	}
 }
@@ -513,35 +493,15 @@ func StopTunnel(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		tunnelID := c.Param("id")
 
-		// Get tunnel
-		tunnel, err := db.GetTunnelByID(tunnelID)
+		// Check if tunnel exists
+		_, err := db.GetTunnelByID(tunnelID)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
 		}
 
-		// Implement actual tunnel stopping logic based on type
-		switch tunnel.Type {
-		case model.TunnelTypeWireGuardToWireGuard:
-			if err := stopWireGuardTunnel(tunnel); err != nil {
-				log.Printf("Failed to stop WireGuard tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop WireGuard tunnel: " + err.Error()})
-			}
-		case model.TunnelTypeWireGuardToV2ray:
-			if err := stopV2rayTunnel(tunnel); err != nil {
-				log.Printf("Failed to stop V2Ray tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop V2Ray tunnel: " + err.Error()})
-			}
-		default:
-			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
-			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
+		if err := service.StopTunnel(db, tunnelID); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-
-		// Update status
-		err = db.UpdateTunnelStatus(tunnelID, model.TunnelStatusInactive)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel status: %v", err)})
-		}
-
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel stopped successfully"})
 	}
 }
@@ -876,6 +836,22 @@ AllowedIPs = %s`,
 		return fmt.Errorf("tunnel interface %s is already active", interfaceName)
 	}
 
+	// Clean up any existing routes that might conflict
+	cleanupRoutes := []string{
+		fmt.Sprintf("ip route del 192.168.0.0/16 dev %s 2>/dev/null", interfaceName),
+		fmt.Sprintf("ip route del 10.0.0.0/8 dev %s 2>/dev/null", interfaceName),
+		fmt.Sprintf("ip route del 172.16.0.0/12 dev %s 2>/dev/null", interfaceName),
+		// Also try to delete routes without device specification
+		"ip route del 192.168.0.0/16 2>/dev/null",
+		"ip route del 10.0.0.0/8 2>/dev/null",
+		"ip route del 172.16.0.0/12 2>/dev/null",
+	}
+
+	for _, cleanupCmd := range cleanupRoutes {
+		cmd := exec.Command("sh", "-c", cleanupCmd)
+		_ = cmd.Run() // Ignore errors, just try to clean up
+	}
+
 	// Enable IP forwarding if not already enabled
 	enableForwardingCmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
 	if err := enableForwardingCmd.Run(); err != nil {
@@ -903,12 +879,32 @@ AllowedIPs = %s`,
 
 		log.Printf("Failed to start tunnel %s: %v, Output: %s", interfaceName, err, string(output))
 
-		// چک کنیم فایل واقعاً اونجا هست
-		checkCmd := exec.Command("ls", "-la", "/etc/wireguard/")
-		checkOutput, _ := checkCmd.CombinedOutput()
-		log.Printf("Contents of /etc/wireguard/: %s", string(checkOutput))
+		// Check if the error is due to existing routes
+		outputStr := string(output)
+		if strings.Contains(outputStr, "File exists") {
+			log.Printf("Route conflict detected, attempting to clean up and retry")
 
-		return fmt.Errorf("failed to start tunnel: %s", string(output))
+			// Clean up conflicting routes
+			cleanupCmd := exec.Command("sh", "-c", fmt.Sprintf("ip route del 192.168.0.0/16 dev %s 2>/dev/null; ip route del 10.0.0.0/8 dev %s 2>/dev/null; ip route del 172.16.0.0/12 dev %s 2>/dev/null", interfaceName, interfaceName, interfaceName))
+			_ = cleanupCmd.Run()
+
+			// Try starting the tunnel again
+			cmdRetry := exec.CommandContext(ctx, "wg-quick", "up", interfaceName)
+			cmdRetry.Dir = "/etc/wireguard"
+			retryOutput, retryErr := cmdRetry.CombinedOutput()
+			if retryErr != nil {
+				log.Printf("Retry failed: %v, Output: %s", retryErr, string(retryOutput))
+				return fmt.Errorf("failed to start tunnel after cleanup: %s", string(retryOutput))
+			}
+			log.Printf("Tunnel started successfully after cleanup")
+		} else {
+			// چک کنیم فایل واقعاً اونجا هست
+			checkCmd := exec.Command("ls", "-la", "/etc/wireguard/")
+			checkOutput, _ := checkCmd.CombinedOutput()
+			log.Printf("Contents of /etc/wireguard/: %s", string(checkOutput))
+
+			return fmt.Errorf("failed to start tunnel: %s", outputStr)
+		}
 	}
 
 	log.Printf("Successfully started WireGuard tunnel: %s", interfaceName)

@@ -6,8 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/MmadF14/vwireguard/model"
+	"github.com/MmadF14/vwireguard/store"
 )
 
 // GenerateXrayConfig builds an Xray config for WireGuard->V2Ray tunnels
@@ -29,9 +31,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	if tunnel.WGConfig.LocalPrivateKey == "" {
 		return "", fmt.Errorf("WireGuard local private key is missing")
 	}
-	if tunnel.WGConfig.RemotePublicKey == "" {
-		return "", fmt.Errorf("WireGuard remote public key is missing")
-	}
+	// For V2Ray tunnels, we don't need a remote public key since we're not connecting to a WireGuard peer
+	// The WireGuard interface is just for local traffic routing
 
 	// Validate V2Ray configuration
 	vc := tunnel.V2rayConfig
@@ -71,12 +72,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"settings": map[string]interface{}{
 			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"privateKey": tunnel.WGConfig.LocalPrivateKey,
-			"peers": []map[string]interface{}{
-				{
-					"publicKey":  tunnel.WGConfig.RemotePublicKey,
-					"allowedIPs": []string{"0.0.0.0/0", "::/0"},
-				},
-			},
+			// For V2Ray tunnels, we don't need peers since we're not connecting to a WireGuard server
+			// The WireGuard interface is just for local traffic routing
 		},
 	}
 
@@ -176,10 +173,77 @@ ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%%i.json
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
-`, tunnel.ID, tunnel.ID)
+`, tunnel.ID)
 	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
 		return err
 	}
 	exec.Command("systemctl", "daemon-reload").Run()
-	return exec.Command("systemctl", "enable", "--now", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)).Run()
+	if err := exec.Command("systemctl", "enable", "--now", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)).Run(); err != nil {
+		return err
+	}
+
+	// Setup NAT rules for the tunnel network
+	if tunnel.WGConfig != nil {
+		subnet := tunnel.WGConfig.TunnelIP + "/24"
+		outIface := "eth0"
+		if tunnel.V2rayConfig != nil {
+			remote := tunnel.V2rayConfig.RemoteAddress
+			if idx := strings.Index(remote, ":"); idx > 0 {
+				remote = remote[:idx]
+			}
+			if routeOut, err := exec.Command("sh", "-c", fmt.Sprintf("ip route get %s | awk '{for(i=1;i<NF;i++){if($i==\"dev\"){print $(i+1);exit}}}'", remote)).Output(); err == nil {
+				outIface = strings.TrimSpace(string(routeOut))
+			}
+		}
+		exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1").Run()
+		exec.Command("sysctl", "-w", "net.ipv6.conf.all.forwarding=1").Run()
+		exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-o", outIface, "-j", "MASQUERADE").Run()
+	}
+	return nil
+}
+
+// StartTunnel starts the systemd service for the given tunnel ID. If the tunnel
+// has RouteAll enabled, any other active RouteAll tunnels will be stopped first.
+func StartTunnel(db store.IStore, id string) error {
+	tunnel, err := db.GetTunnelByID(id)
+	if err != nil {
+		return err
+	}
+
+	if tunnel.RouteAll {
+		tunnels, err := db.GetTunnels()
+		if err == nil {
+			for _, t := range tunnels {
+				if t.ID != tunnel.ID && t.RouteAll && t.Status == model.TunnelStatusActive {
+					exec.Command("systemctl", "stop", fmt.Sprintf("vwireguard-tunnel-%s.service", t.ID)).Run()
+					t.Status = model.TunnelStatusInactive
+					db.SaveTunnel(t)
+				}
+			}
+		}
+	}
+
+	if os.Getenv("VWIREGUARD_TEST") != "1" {
+		if err := exec.Command("systemctl", "start", fmt.Sprintf("vwireguard-tunnel-%s.service", id)).Run(); err != nil {
+			return err
+		}
+	}
+
+	tunnel.Status = model.TunnelStatusActive
+	return db.SaveTunnel(tunnel)
+}
+
+// StopTunnel stops the systemd service for the given tunnel ID and marks it inactive.
+func StopTunnel(db store.IStore, id string) error {
+	tunnel, err := db.GetTunnelByID(id)
+	if err != nil {
+		return err
+	}
+
+	if os.Getenv("VWIREGUARD_TEST") != "1" {
+		exec.Command("systemctl", "stop", fmt.Sprintf("vwireguard-tunnel-%s.service", id)).Run()
+	}
+
+	tunnel.Status = model.TunnelStatusInactive
+	return db.SaveTunnel(tunnel)
 }
