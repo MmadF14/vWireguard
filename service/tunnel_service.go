@@ -173,7 +173,7 @@ ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%s.json
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
-`, tunnel.ID)
+`, tunnel.ID, tunnel.ID)
 	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
 		return err
 	}
