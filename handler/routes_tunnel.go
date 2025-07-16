@@ -121,64 +121,12 @@ func NewTunnel(db store.IStore) echo.HandlerFunc {
 		switch tunnelData.Type {
 		case model.TunnelTypeWireGuardToWireGuard:
 			if tunnelData.WGConfig == nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "WireGuard configuration is required for WireGuard to WireGuard tunnels"})
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "WireGuard configuration is required"})
 			}
-			if tunnelData.WGConfig.RemoteEndpoint == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote endpoint is required"})
+			if tunnelData.WGConfig.RemoteEndpoint == "" || tunnelData.WGConfig.RemotePublicKey == "" {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote endpoint and public key are required"})
 			}
-			if tunnelData.WGConfig.TunnelIP == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel IP is required"})
-			}
-			if tunnelData.WGConfig.LocalPrivateKey == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Local private key is required"})
-			}
-			if tunnelData.WGConfig.RemotePublicKey == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Remote public key is required"})
-			}
-		case model.TunnelTypeWireGuardToV2ray:
-			if tunnelData.WGConfig == nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "WireGuard configuration is required for V2Ray tunnels"})
-			}
-			if tunnelData.V2rayConfig == nil {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray configuration is required for V2Ray tunnels"})
-			}
-			if tunnelData.WGConfig.TunnelIP == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel IP is required"})
-			}
-			if tunnelData.WGConfig.LocalPrivateKey == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Local private key is required"})
-			}
-			// For V2Ray tunnels, we don't need remote public key since we create a local WireGuard interface
-			if tunnelData.V2rayConfig.Protocol == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray protocol is required"})
-			}
-			if tunnelData.V2rayConfig.RemoteAddress == "" {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray remote address is required"})
-			}
-			if tunnelData.V2rayConfig.RemotePort == 0 {
-				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "V2Ray remote port is required"})
-			}
-		default:
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Unsupported tunnel type: %s", tunnelData.Type)})
-		}
-
-		// Check for Route All conflicts
-		if tunnelData.RouteAll {
-			existingTunnels, err := db.GetTunnels()
-			if err != nil {
-				log.Printf("Failed to get existing tunnels for Route All check: %v", err)
-			} else {
-				for _, existingTunnel := range existingTunnels {
-					if existingTunnel.RouteAll && existingTunnel.Status == model.TunnelStatusActive {
-						return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Cannot create Route All tunnel: tunnel '%s' is already active and routes all clients. Stop the existing tunnel first.", existingTunnel.Name)})
-					}
-				}
-			}
-		}
-
-		// Handle keypair generation/validation
-		switch tunnelData.Type {
-		case model.TunnelTypeWireGuardToWireGuard:
+			// Handle keypair generation/validation
 			if tunnelData.WGConfig.LocalPrivateKey == "" {
 				// Generate new keypair if not provided
 				privateKey, publicKey, err := generateWireGuardKeypair()
@@ -531,34 +479,6 @@ func StartTunnel(db store.IStore) echo.HandlerFunc {
 
 		if !tunnel.Enabled {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel is disabled"})
-		}
-
-		// Check if this tunnel is already active
-		if tunnel.Status == model.TunnelStatusActive {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel is already active"})
-		}
-
-		// If this tunnel routes all clients, stop other active tunnels that route all clients
-		if tunnel.RouteAll {
-			allTunnels, err := db.GetTunnels()
-			if err != nil {
-				log.Printf("Failed to get tunnels for Route All check: %v", err)
-			} else {
-				for _, existingTunnel := range allTunnels {
-					if existingTunnel.ID != tunnelID && existingTunnel.Status == model.TunnelStatusActive && existingTunnel.RouteAll {
-						log.Printf("Stopping existing Route All tunnel: %s", existingTunnel.Name)
-						// Stop the existing tunnel
-						switch existingTunnel.Type {
-						case model.TunnelTypeWireGuardToWireGuard:
-							stopWireGuardTunnel(existingTunnel)
-						case model.TunnelTypeWireGuardToV2ray:
-							stopV2rayTunnel(existingTunnel)
-						}
-						// Update status
-						db.UpdateTunnelStatus(existingTunnel.ID, model.TunnelStatusInactive)
-					}
-				}
-			}
 		}
 
 		// Implement actual tunnel starting logic based on type
@@ -1075,94 +995,21 @@ func stopWireGuardTunnel(tunnel model.Tunnel) error {
 
 	return nil
 }
-
-// startV2rayTunnel starts a V2Ray tunnel
 func startV2rayTunnel(tunnel model.Tunnel) error {
-	if tunnel.V2rayConfig == nil {
-		return fmt.Errorf("V2Ray configuration is missing")
-	}
-	if tunnel.WGConfig == nil {
-		return fmt.Errorf("WireGuard configuration is missing")
-	}
-
-	// Generate Xray configuration
-	config, err := service.GenerateXrayConfig(&tunnel)
+	cfg, err := service.GenerateXrayConfig(&tunnel)
 	if err != nil {
-		return fmt.Errorf("Failed to generate Xray config: %v", err)
+		return err
 	}
-
-	// Write config and start service
-	if err := service.WriteConfigAndService(&tunnel, config); err != nil {
-		return fmt.Errorf("Failed to write config and start service: %v", err)
-	}
-
-	// Create WireGuard interface for client traffic
-	interfaceName := fmt.Sprintf("wg%s", tunnel.ID[len(tunnel.ID)-3:])
-
-	// Create WireGuard interface configuration
-	// For V2Ray tunnels, we create a local WireGuard interface that accepts client connections
-	// and routes traffic through V2Ray
-	wgConfig := fmt.Sprintf(`[Interface]
-PrivateKey = %s
-Address = %s
-ListenPort = 0
-PostUp = iptables -A FORWARD -i %s -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-PostDown = iptables -D FORWARD -i %s -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
-
-# Accept any WireGuard client (for V2Ray tunnels)
-[Peer]
-PublicKey = 0000000000000000000000000000000000000000000000000000000000000000
-AllowedIPs = 0.0.0.0/0, ::/0
-`, tunnel.WGConfig.LocalPrivateKey, tunnel.WGConfig.TunnelIP, interfaceName, interfaceName)
-
-	// Write WireGuard config
-	wgConfigPath := fmt.Sprintf("/etc/wireguard/%s.conf", interfaceName)
-	if err := os.WriteFile(wgConfigPath, []byte(wgConfig), 0600); err != nil {
-		return fmt.Errorf("Failed to write WireGuard config: %v", err)
-	}
-
-	// Start WireGuard interface
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "wg-quick", "up", interfaceName)
-	cmd.Dir = "/etc/wireguard"
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("Failed to start WireGuard interface: %s - %v", string(output), err)
-	}
-
-	log.Printf("V2Ray tunnel started successfully: %s", tunnel.Name)
-	return nil
+	return service.WriteConfigAndService(&tunnel, cfg)
 }
 
-// stopV2rayTunnel stops a V2Ray tunnel
+// stopV2rayTunnel stops and removes the systemd service
 func stopV2rayTunnel(tunnel model.Tunnel) error {
-	// Stop V2Ray service
-	serviceName := fmt.Sprintf("vwireguard-tunnel-%s", tunnel.ID)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Stop and disable service
-	exec.CommandContext(ctx, "systemctl", "stop", serviceName).Run()
-	exec.CommandContext(ctx, "systemctl", "disable", serviceName).Run()
-
-	// Stop WireGuard interface
-	interfaceName := fmt.Sprintf("wg%s", tunnel.ID[len(tunnel.ID)-3:])
-
-	cmd := exec.CommandContext(ctx, "wg-quick", "down", interfaceName)
-	cmd.Dir = "/etc/wireguard"
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Printf("Warning: Failed to stop WireGuard interface %s: %s - %v", interfaceName, string(output), err)
-	}
-
-	// Clean up config files
-	os.Remove(fmt.Sprintf("/etc/vwireguard/tunnels/%s.json", tunnel.ID))
-	os.Remove(fmt.Sprintf("/etc/systemd/system/%s.service", serviceName))
-	os.Remove(fmt.Sprintf("/etc/wireguard/%s.conf", interfaceName))
-
-	log.Printf("V2Ray tunnel stopped successfully: %s", tunnel.Name)
+	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)
+	exec.Command("systemctl", "disable", "--now", serviceName).Run()
+	os.Remove(filepath.Join("/etc/systemd/system", serviceName))
+	os.Remove(filepath.Join("/etc/vwireguard/tunnels", tunnel.ID+".json"))
+	exec.Command("systemctl", "daemon-reload").Run()
 	return nil
 }
 
