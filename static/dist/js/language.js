@@ -35,8 +35,15 @@ class LanguageManager {
     }
 
     translatePage() {
+
         // First, translate all elements with data-translate attribute
         const elementsToTranslate = document.querySelectorAll('[data-translate]');
+
+        if (window.DEBUG) console.log('Translating page to:', this.currentLang);
+        // First, translate all elements with data-translate attribute
+        const elementsToTranslate = document.querySelectorAll('[data-translate]');
+        if (window.DEBUG) console.log('Found', elementsToTranslate.length, 'elements to translate');
+
         
         elementsToTranslate.forEach(element => {
             const key = element.getAttribute('data-translate');

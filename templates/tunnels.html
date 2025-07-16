@@ -131,15 +131,10 @@
                                 <p class="text-sm text-gray-500 dark:text-gray-400">{{.Type}}</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-2 rtl:space-x-reverse">
-                            <!-- Connection Status Indicator -->
-                            <div class="w-3 h-3 rounded-full {{if eq .Status "active"}}bg-green-500{{else if eq .Status "error"}}bg-red-500{{else}}bg-gray-400{{end}}"></div>
-                            <!-- Status Badge -->
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{if eq .Status "active"}}bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300{{else if eq .Status "error"}}bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300{{else}}bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300{{end}}">
-                                <i class="fas fa-circle mr-1 rtl:mr-0 rtl:ml-1 text-xs"></i>
-                                {{.Status}}
-                            </span>
-                        </div>
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium {{if eq .Status "active"}}bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300{{else}}bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300{{end}}">
+                            <i class="fas fa-circle mr-1 rtl:mr-0 rtl:ml-1 text-xs"></i>
+                            {{.Status}}
+                        </span>
                     </div>
                 </div>
 
@@ -1054,13 +1049,49 @@ $(document).ready(function() {
                 alert('Please fill all WireGuard configuration fields');
                 return;
             }
+            
+            // Get keys from either generated or manual entry
+            let localPrivateKey = $('#wg_config').data('private-key') || $('#wg_manual_private_key').val();
+            let localPublicKey = $('#wg_config').data('public-key') || $('#wg_manual_public_key').val();
+            
+            if (!localPrivateKey || !localPublicKey) {
+                alert('Please generate a keypair or enter private key manually');
+                return;
+            }
+            
             formData.wg_config = {
                 remote_endpoint: $('#wg_remote_endpoint').val(),
-                tunnel_ip: $('#wg_tunnel_ip').val(),
-                local_private_key: $('#wg_manual_private_key').val() || $('#wg_config').data('private-key'),
                 remote_public_key: $('#wg_remote_public_key').val(),
-                allowed_ips: $('#wg_allowed_ips').val().split(',').map(v => v.trim()),
+                tunnel_ip: $('#wg_tunnel_ip').val(),
+                allowed_ips: $('#wg_allowed_ips').val().split(',').map(ip => ip.trim()),
+                local_private_key: localPrivateKey,
+                local_public_key: localPublicKey,
                 preshared_key: $('#wg_preshared_key').val()
+            };
+        } else if (tunnelType === 'wg-to-dokodemo') {
+            if (!$('#dokodemo_address').val() || !$('#dokodemo_port').val()) {
+                alert('Please fill all Dokodemo configuration fields');
+                return;
+            }
+            formData.dokodemo_config = {
+                address: $('#dokodemo_address').val(),
+                port: parseInt($('#dokodemo_port').val()),
+                network: $('#dokodemo_network').val(),
+                timeout: parseInt($('#dokodemo_timeout').val()) || 300,
+                domain_strategy: $('#dokodemo_domain_strategy').val(),
+                follow_redirect: $('#dokodemo_follow_redirect').is(':checked')
+            };
+        } else if (tunnelType === 'port-forward') {
+            if (!$('#pf_remote_host').val() || !$('#pf_remote_port').val()) {
+                alert('Please fill all Port Forward configuration fields');
+                return;
+            }
+            formData.port_forward_config = {
+                protocol: $('#pf_protocol').val(),
+                local_bind_port: parseInt($('#pf_local_port').val()),
+                remote_host: $('#pf_remote_host').val(),
+                remote_port: parseInt($('#pf_remote_port').val()),
+                transparent: $('#pf_transparent').is(':checked')
             };
         } else if (tunnelType === 'wg-to-v2ray') {
             // Enhanced V2Ray validation
@@ -1096,15 +1127,6 @@ $(document).ready(function() {
                 }
             }
             
-            // For V2Ray tunnels, we need WireGuard config but not remote public key
-            formData.wg_config = {
-                tunnel_ip: $('#wg_tunnel_ip').val(),
-                local_private_key: $('#wg_manual_private_key').val() || $('#wg_config').data('private-key'),
-                // No remote public key needed for V2Ray tunnels
-                allowed_ips: $('#wg_allowed_ips').val().split(',').map(v => v.trim()),
-                preshared_key: $('#wg_preshared_key').val()
-            };
-            
             formData.v2ray_config = {
                 protocol: protocol,
                 remote_address: remoteAddress,
@@ -1119,31 +1141,6 @@ $(document).ready(function() {
                 path: $('#v2ray_path').val(),
                 sni: $('#v2ray_sni').val(),
                 alpn: $('#v2ray_alpn').val().split(',').map(v => v.trim()).filter(Boolean)
-            };
-        } else if (tunnelType === 'wg-to-dokodemo') {
-            if (!$('#dokodemo_address').val() || !$('#dokodemo_port').val()) {
-                alert('Please fill all Dokodemo configuration fields');
-                return;
-            }
-            formData.dokodemo_config = {
-                address: $('#dokodemo_address').val(),
-                port: parseInt($('#dokodemo_port').val()),
-                network: $('#dokodemo_network').val(),
-                timeout: parseInt($('#dokodemo_timeout').val()) || 300,
-                domain_strategy: $('#dokodemo_domain_strategy').val(),
-                follow_redirect: $('#dokodemo_follow_redirect').is(':checked')
-            };
-        } else if (tunnelType === 'port-forward') {
-            if (!$('#pf_remote_host').val() || !$('#pf_remote_port').val()) {
-                alert('Please fill all Port Forward configuration fields');
-                return;
-            }
-            formData.port_forward_config = {
-                protocol: $('#pf_protocol').val(),
-                local_bind_port: parseInt($('#pf_local_port').val()),
-                remote_host: $('#pf_remote_host').val(),
-                remote_port: parseInt($('#pf_remote_port').val()),
-                transparent: $('#pf_transparent').is(':checked')
             };
         }
         
@@ -1189,9 +1186,6 @@ $(document).ready(function() {
         $('#client_selection').addClass('hidden');
         $('input[name="client_routing"][value="all"]').prop('checked', true);
         
-        // Show remote public key field again (it might be hidden for V2Ray tunnels)
-        $('#wg_remote_public_key').closest('div').show();
-        
         // Reset modal for create mode
         $('#modal_new_tunnel').removeData('tunnel-id');
         // Update modal title and button text for new structure
@@ -1230,9 +1224,6 @@ function showTunnelConfig() {
         if (window.DEBUG) console.log('Showing V2Ray config section');
         $('#v2ray_config').removeClass('hidden');
         $('#v2ray_remote_address, #v2ray_remote_port').attr('required', 'required');
-        
-        // Hide remote public key field for V2Ray tunnels since they don't need it
-        $('#wg_remote_public_key').closest('div').hide();
     }
 }
 
