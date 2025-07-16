@@ -481,29 +481,9 @@ func StartTunnel(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel is disabled"})
 		}
 
-		// Implement actual tunnel starting logic based on type
-		switch tunnel.Type {
-		case model.TunnelTypeWireGuardToWireGuard:
-			if err := startWireGuardTunnel(tunnel); err != nil {
-				log.Printf("Failed to start WireGuard tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start WireGuard tunnel: " + err.Error()})
-			}
-		case model.TunnelTypeWireGuardToV2ray:
-			if err := startV2rayTunnel(tunnel); err != nil {
-				log.Printf("Failed to start V2Ray tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to start V2Ray tunnel: " + err.Error()})
-			}
-		default:
-			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
-			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
+		if err := service.StartTunnel(db, tunnelID); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-
-		// Update status
-		err = db.UpdateTunnelStatus(tunnelID, model.TunnelStatusActive)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel status: %v", err)})
-		}
-
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel started successfully"})
 	}
 }
@@ -519,29 +499,9 @@ func StopTunnel(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
 		}
 
-		// Implement actual tunnel stopping logic based on type
-		switch tunnel.Type {
-		case model.TunnelTypeWireGuardToWireGuard:
-			if err := stopWireGuardTunnel(tunnel); err != nil {
-				log.Printf("Failed to stop WireGuard tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop WireGuard tunnel: " + err.Error()})
-			}
-		case model.TunnelTypeWireGuardToV2ray:
-			if err := stopV2rayTunnel(tunnel); err != nil {
-				log.Printf("Failed to stop V2Ray tunnel: %v", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Failed to stop V2Ray tunnel: " + err.Error()})
-			}
-		default:
-			log.Printf("Tunnel type %s not implemented yet", tunnel.Type)
-			return c.JSON(http.StatusNotImplemented, jsonHTTPResponse{false, fmt.Sprintf("Tunnel type %s not implemented yet", tunnel.Type)})
+		if err := service.StopTunnel(db, tunnelID); err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
-
-		// Update status
-		err = db.UpdateTunnelStatus(tunnelID, model.TunnelStatusInactive)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Failed to update tunnel status: %v", err)})
-		}
-
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Tunnel stopped successfully"})
 	}
 }
