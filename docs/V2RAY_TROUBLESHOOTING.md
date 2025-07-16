@@ -88,6 +88,9 @@ You can also use the "Parse" feature to automatically fill configuration from V2
 #### Issue: "V2Ray network type is missing"
 **Solution**: Select a network type from the dropdown (TCP, WebSocket, or gRPC).
 
+#### Issue: "WireGuard remote public key is missing"
+**Solution**: V2Ray tunnels don't require a WireGuard remote public key since they don't connect to a WireGuard peer. The WireGuard interface is only used for local traffic routing. The system automatically generates the necessary WireGuard configuration.
+
 #### Issue: "WireGuard configuration is missing"
 **Solution**: V2Ray tunnels require WireGuard configuration for the local interface. Make sure to:
 1. Generate WireGuard keys using the "Generate Keypair" button, or

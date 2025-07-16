@@ -29,9 +29,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	if tunnel.WGConfig.LocalPrivateKey == "" {
 		return "", fmt.Errorf("WireGuard local private key is missing")
 	}
-	if tunnel.WGConfig.RemotePublicKey == "" {
-		return "", fmt.Errorf("WireGuard remote public key is missing")
-	}
+	// For V2Ray tunnels, we don't need a remote public key since we're not connecting to a WireGuard peer
+	// The WireGuard interface is just for local traffic routing
 
 	// Validate V2Ray configuration
 	vc := tunnel.V2rayConfig
@@ -71,12 +70,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"settings": map[string]interface{}{
 			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"privateKey": tunnel.WGConfig.LocalPrivateKey,
-			"peers": []map[string]interface{}{
-				{
-					"publicKey":  tunnel.WGConfig.RemotePublicKey,
-					"allowedIPs": []string{"0.0.0.0/0", "::/0"},
-				},
-			},
+			// For V2Ray tunnels, we don't need peers since we're not connecting to a WireGuard server
+			// The WireGuard interface is just for local traffic routing
 		},
 	}
 
