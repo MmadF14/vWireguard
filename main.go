@@ -331,10 +331,21 @@ func main() {
 	app.POST(util.BasePath+"/api/tunnel/cleanup", handler.CleanupTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.DELETE(util.BasePath+"/api/tunnel/cleanup/all", handler.DeleteAllTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 
+	// Tunnel routes
 	tunnelGroup := app.Group(util.BasePath + "/api/tunnels")
-	router.RegisterTunnelRoutes(tunnelGroup, db)
+	tunnelGroup.GET("", handler.GetTunnels(db), handler.ValidSession)
+	tunnelGroup.GET("/:id", handler.GetTunnel(db), handler.ValidSession)
+	tunnelGroup.POST("/v2ray", handler.CreateV2rayTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	tunnelGroup.PUT("/v2ray/:id", handler.UpdateV2rayTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	tunnelGroup.POST("/:id/enable", handler.EnableTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	tunnelGroup.POST("/:id/disable", handler.DisableTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	tunnelGroup.PUT("/:id/start", handler.StartTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	tunnelGroup.PUT("/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	tunnelGroup.GET("/health/stream", handler.TunnelHealthStream(), handler.ValidSession)
+
+	// Utils routes
 	utilsGroup := app.Group(util.BasePath + "/api/utils")
-	router.RegisterUtilsRoutes(utilsGroup, db)
+	utilsGroup.POST("/parse_v2link", handler.ParseV2Link(), handler.ValidSession, handler.ContentTypeJson)
 
 	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {
