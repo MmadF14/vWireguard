@@ -29,8 +29,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	if tunnel.WGConfig.LocalPrivateKey == "" {
 		return "", fmt.Errorf("WireGuard local private key is missing")
 	}
-	// For V2Ray tunnels, we don't need a remote public key since we're not connecting to a WireGuard peer
-	// The WireGuard interface is just for local traffic routing
+	// For V2Ray tunnels, we don't need a remote public key since we're creating a local WireGuard interface
+	// that accepts client connections and routes traffic through V2Ray
 
 	// Validate V2Ray configuration
 	vc := tunnel.V2rayConfig
@@ -70,8 +70,14 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"settings": map[string]interface{}{
 			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"privateKey": tunnel.WGConfig.LocalPrivateKey,
-			// For V2Ray tunnels, we don't need peers since we're not connecting to a WireGuard server
-			// The WireGuard interface is just for local traffic routing
+			// For V2Ray tunnels, we need a peer to accept WireGuard client connections
+			// The peer will accept any client (wildcard public key)
+			"peers": []map[string]interface{}{
+				{
+					"publicKey":  "0000000000000000000000000000000000000000000000000000000000000000", // Accept any client
+					"allowedIPs": []string{"0.0.0.0/0", "::/0"},
+				},
+			},
 		},
 	}
 
@@ -139,7 +145,9 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"outbounds": []interface{}{ob, map[string]interface{}{"tag": "direct", "protocol": "freedom"}},
 		"routing": map[string]interface{}{
 			"rules": []interface{}{
+				// Route Iranian domains directly (bypass tunnel)
 				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "domain": []string{"geosite:ir"}, "outboundTag": "direct"},
+				// Route all other traffic through V2Ray
 				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "outboundTag": "v2-out"},
 			},
 		},
