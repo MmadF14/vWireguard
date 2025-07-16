@@ -104,7 +104,7 @@ function addGlobalStyle(css, id) {
 
 // Global function برای Apply Config - بدون هیچ dependency
 window.applyConfig = function() {
-    console.log("Apply Config called directly");
+    if (window.DEBUG) console.log("Apply Config called directly");
     
     if (confirm("Do you want to write config file and restart WireGuard server?")) {
         const xhr = new XMLHttpRequest();
@@ -113,7 +113,7 @@ window.applyConfig = function() {
         
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
-                console.log("Apply config response:", xhr.status, xhr.responseText);
+                if (window.DEBUG) console.log("Apply config response:", xhr.status, xhr.responseText);
                 if (xhr.status === 200) {
                     alert('Applied config successfully');
                     if (typeof location !== 'undefined') {
@@ -141,7 +141,7 @@ function forceShowApplyConfig() {
     const btn = document.getElementById("apply-config-button");
     if (btn) {
         btn.style.cssText = "margin-left: 0.5em; display: inline-block !important; visibility: visible !important; opacity: 1 !important;";
-        console.log("Apply Config FORCED to show");
+        if (window.DEBUG) console.log("Apply Config FORCED to show");
         return true;
     }
     console.error("Apply Config NOT FOUND!");
@@ -172,7 +172,7 @@ function protectApplyConfigButton() {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                     const style = applyBtn.getAttribute('style') || '';
                     if (style.includes('display: none') || style.includes('visibility: hidden')) {
-                        console.log("Apply Config button under attack! Protecting...");
+                        if (window.DEBUG) console.log("Apply Config button under attack! Protecting...");
                         forceShowApplyConfig();
                     }
                 }
@@ -184,7 +184,7 @@ function protectApplyConfigButton() {
             attributeFilter: ['style', 'class']
         });
         
-        console.log("Apply Config button is now protected!");
+        if (window.DEBUG) console.log("Apply Config button is now protected!");
     }
 }
 
@@ -198,9 +198,9 @@ function updateApplyConfigVisibility() {
                 'display': 'inline-block !important',
                 'visibility': 'visible !important'
             });
-            console.log("Apply Config button forced to show");
+            if (window.DEBUG) console.log("Apply Config button forced to show");
         } else {
-            console.warn("Apply Config button not found in DOM");
+            if (window.DEBUG) console.warn("Apply Config button not found in DOM");
         }
     });
 }
@@ -255,7 +255,7 @@ function updateStatusIndicators() {
 
 // Initialize all functionality
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("DOM loaded - ensuring Apply Config is visible");
+    if (window.DEBUG) console.log("DOM loaded - ensuring Apply Config is visible");
     
     // اطمینان از نمایش Apply Config
     ensureApplyConfigVisible();
@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Apply config confirm button event - ساده شده
     $("#apply_config_confirm").click(function () {
-        console.log("Apply config clicked");
+        if (window.DEBUG) console.log("Apply config clicked");
         $.ajax({
             cache: false,
             method: 'POST',
@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dataType: 'json',
             contentType: "application/json",
             success: function(data) {
-                console.log("Apply config success");
+                if (window.DEBUG) console.log("Apply config success");
                 $("#modal_apply_config").modal('hide');
                 if (typeof showNotification === 'function') {
                     showNotification('Applied config successfully', 'success');
@@ -380,13 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // مطمئن شدن که Apply Config button همیشه نمایش داده میشه
 window.onload = function() {
-    console.log("Window loaded - forcing Apply Config");
+    if (window.DEBUG) console.log("Window loaded - forcing Apply Config");
     ensureApplyConfigVisible();
 };
 
 // هر بار که صفحه focus میشه، دوباره چک کن
 window.onfocus = function() {
-    console.log("Window focused - forcing Apply Config");
+    if (window.DEBUG) console.log("Window focused - forcing Apply Config");
     forceShowApplyConfig();
 };
 

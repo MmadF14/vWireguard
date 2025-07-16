@@ -1240,7 +1240,7 @@
                     if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                         const display = newClientModal.style.display;
                         if (display === 'block' || display === 'flex') {
-                            console.log('Modal opened, initializing form');
+                            if (window.DEBUG) console.log('Modal opened, initializing form');
                             initializeNewClientForm();
                         }
                     }
@@ -1257,7 +1257,7 @@
                     if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                         const display = editClientModal.style.display;
                         if (display === 'block' || display === 'flex') {
-                            console.log('Edit modal opened');
+                            if (window.DEBUG) console.log('Edit modal opened');
                         }
                     }
                 });
@@ -1266,7 +1266,7 @@
         }
             
             // Initialize any additional interactive elements
-            console.log('vWireguard Dashboard initialized');
+            if (window.DEBUG) console.log('vWireguard Dashboard initialized');
     });
         
         // New Client Form Functionality
@@ -1293,7 +1293,7 @@
                 newClientForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
-                    console.log('New client form submitted');
+                    if (window.DEBUG) console.log('New client form submitted');
                     
                     const formData = new FormData(this);
                     
@@ -1338,7 +1338,7 @@
                         enabled: document.getElementById('enabled').checked,
                     };
                     
-                    console.log('Client data to send:', clientData);
+                    if (window.DEBUG) console.log('Client data to send:', clientData);
                     
                     // Validate required fields
                     if (!clientData.name.trim()) {
@@ -1354,15 +1354,15 @@
                         body: JSON.stringify(clientData),
                     })
                     .then(response => {
-                        console.log('Response status:', response.status);
-                        console.log('Response headers:', response.headers);
+                        if (window.DEBUG) console.log('Response status:', response.status);
+                        if (window.DEBUG) console.log('Response headers:', response.headers);
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
-                        console.log('Response data:', data);
+                        if (window.DEBUG) console.log('Response data:', data);
                         if (data.success) {
                             document.getElementById('modal_new_client').style.display = 'none';
                             newClientForm.reset();
@@ -1548,7 +1548,7 @@
         
         // Utility functions
         function showSuccess(message) {
-            console.log('Success:', message);
+            if (window.DEBUG) console.log('Success:', message);
             alert(message);
         }
         
@@ -1577,7 +1577,7 @@
                 enabled: true,
             };
             
-            console.log('Testing API with data:', testData);
+            if (window.DEBUG) console.log('Testing API with data:', testData);
             
             fetch('{{.basePath}}/new-client', {
                 method: 'POST',
@@ -1587,11 +1587,11 @@
                 body: JSON.stringify(testData),
             })
             .then(response => {
-                console.log('Test response status:', response.status);
+                if (window.DEBUG) console.log('Test response status:', response.status);
                 return response.json();
             })
             .then(data => {
-                console.log('Test response data:', data);
+                if (window.DEBUG) console.log('Test response data:', data);
                 if (data.success) {
                     showSuccess('Test client created successfully');
                 } else {
