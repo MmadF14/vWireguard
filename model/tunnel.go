@@ -34,6 +34,7 @@ type Tunnel struct {
 	Name        string       `json:"name"`
 	Type        TunnelType   `json:"type"`
 	Status      TunnelStatus `json:"status"`
+	StatusColor string       `json:"status_color"`
 	Description string       `json:"description"`
 
 	// Client routing - which clients use this tunnel
