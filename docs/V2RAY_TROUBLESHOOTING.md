@@ -32,6 +32,7 @@ This error occurs when the V2Ray tunnel configuration is missing required fields
    - **Generate or Enter WireGuard Keys**: Click "Generate Keypair" or enter your private key manually
    - **Tunnel IP**: The IP address for the local WireGuard interface (default: 10.0.0.2)
    - **Pre-shared Key**: Optional for additional security
+   - **Note**: V2Ray tunnels don't require a remote WireGuard peer - the WireGuard interface is only for local traffic routing
 
 4. **Configure V2Ray Settings**:
    - **Protocol**: Select your V2Ray protocol (VMess/VLESS/Trojan)
