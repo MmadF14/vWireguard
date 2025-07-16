@@ -593,6 +593,28 @@
     </div>
 </div>
 
+<!-- Cleanup Modal -->
+<div class="modal fade" id="modal_cleanup_tunnels" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" data-translate="Cleanup Corrupted Tunnels">Cleanup Corrupted Tunnels</h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p data-translate="This will remove any corrupted tunnel records that cannot be loaded properly.">This will remove any corrupted tunnel records that cannot be loaded properly.</p>
+                <p><strong data-translate="Warning:">Warning:</strong> <span data-translate="This action cannot be undone!">This action cannot be undone!</span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" data-translate="Cancel">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="cleanupTunnels()" data-translate="Smart Cleanup">Smart Cleanup</button>
+                <button type="button" class="btn btn-danger" onclick="deleteAllTunnels()" data-translate="Delete All">Delete All</button>
+            </div>
+        </div>
+    </div>
+</div>
 {{end}}
 
 {{define "bottom_js"}}
@@ -794,29 +816,29 @@ function smartTranslateTunnels() {
     // Check if current language is Persian
     const currentLang = localStorage.getItem('language') || 'en';
     if (currentLang !== 'fa') {
-        if (window.DEBUG) console.log('Not Persian language, skipping additional translation');
+        console.log('Not Persian language, skipping additional translation');
         return;
     }
     
-    if (window.DEBUG) console.log('Smart translating tunnels page for Persian...');
+    console.log('Smart translating tunnels page for Persian...');
     
     // First try to use the global translation system
     if (typeof applyTranslations === 'function') {
-        if (window.DEBUG) console.log('Using global applyTranslations function');
+        console.log('Using global applyTranslations function');
         applyTranslations();
     } else if (window.translations && window.translations.fa) {
-        if (window.DEBUG) console.log('Using manual translation with window.translations');
+        console.log('Using manual translation with window.translations');
         // Manual translation fallback
         const faTranslations = window.translations.fa;
         document.querySelectorAll('[data-translate]').forEach(element => {
             const key = element.getAttribute('data-translate');
             if (faTranslations[key]) {
-                if (window.DEBUG) console.log('Translating:', key, '->', faTranslations[key]);
+                console.log('Translating:', key, '->', faTranslations[key]);
                 element.textContent = faTranslations[key];
             }
         });
     } else {
-        if (window.DEBUG) console.log('No translation system available, using hardcoded translations');
+        console.log('No translation system available, using hardcoded translations');
         // Hardcoded translations as last resort
         const hardcodedTranslations = {
             'Tunnels': 'تانل‌ها',
@@ -893,7 +915,7 @@ function smartTranslateTunnels() {
         document.querySelectorAll('[data-translate]').forEach(element => {
             const key = element.getAttribute('data-translate');
             if (hardcodedTranslations[key]) {
-                if (window.DEBUG) console.log('Hardcoded translating:', key, '->', hardcodedTranslations[key]);
+                console.log('Hardcoded translating:', key, '->', hardcodedTranslations[key]);
                 element.textContent = hardcodedTranslations[key];
             }
         });
@@ -916,28 +938,28 @@ function smartTranslateTunnels() {
         }
     });
     
-    if (window.DEBUG) console.log('Smart translation completed');
+    console.log('Smart translation completed');
 }
 
 // Run smart translation when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    if (window.DEBUG) console.log('Tunnels page DOM loaded');
+    console.log('Tunnels page DOM loaded');
     
     // Wait for the main translation system to load first
     setTimeout(function() {
-        if (window.DEBUG) console.log('Running translation check...');
-        if (window.DEBUG) console.log('Current language:', localStorage.getItem('language'));
-        if (window.DEBUG) console.log('langManager exists:', typeof window.langManager);
-        if (window.DEBUG) console.log('translatePage exists:', window.langManager && typeof window.langManager.translatePage);
-        if (window.DEBUG) console.log('applyTranslations exists:', typeof applyTranslations);
-        if (window.DEBUG) console.log('window.translations exists:', typeof window.translations);
+        console.log('Running translation check...');
+        console.log('Current language:', localStorage.getItem('language'));
+        console.log('langManager exists:', typeof window.langManager);
+        console.log('translatePage exists:', window.langManager && typeof window.langManager.translatePage);
+        console.log('applyTranslations exists:', typeof applyTranslations);
+        console.log('window.translations exists:', typeof window.translations);
         
         // Apply main translation system
         if (window.langManager && window.langManager.translatePage) {
-            if (window.DEBUG) console.log('Applying main translation system');
+            console.log('Applying main translation system');
             window.langManager.translatePage();
         } else {
-            if (window.DEBUG) console.log('Main translation system not available, trying manual approach');
+            console.log('Main translation system not available, trying manual approach');
             // Fallback: manually call translation if langManager is not ready
             if (typeof applyTranslations === 'function') {
                 applyTranslations();
@@ -950,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Also try earlier
     setTimeout(function() {
-        if (window.DEBUG) console.log('Early translation attempt...');
+        console.log('Early translation attempt...');
         smartTranslateTunnels();
     }, 50);
     
@@ -1002,15 +1024,15 @@ $(document).ready(function() {
     startTunnelStatsRefresh();
     
     // Test jQuery and elements
-    if (window.DEBUG) console.log('jQuery loaded:', typeof $ !== 'undefined');
-    if (window.DEBUG) console.log('tunnel_type element exists:', $('#tunnel_type').length > 0);
-    if (window.DEBUG) console.log('wg_config element exists:', $('#wg_config').length > 0);
+    console.log('jQuery loaded:', typeof $ !== 'undefined');
+    console.log('tunnel_type element exists:', $('#tunnel_type').length > 0);
+    console.log('wg_config element exists:', $('#wg_config').length > 0);
 
     // Handle tunnel form submission (create/edit)
     $('#frm_new_tunnel').on('submit', function(e) {
         e.preventDefault();
         
-        if (window.DEBUG) console.log('Form submitted!');
+        console.log('Form submitted!');
         
         const tunnelId = $('#modal_new_tunnel').data('tunnel-id');
         const isEdit = !!tunnelId;
@@ -1024,7 +1046,7 @@ $(document).ready(function() {
             client_ids: []
         };
 
-        if (window.DEBUG) console.log('Form data before validation:', formData);
+        console.log('Form data before validation:', formData);
 
         // Validate required fields
         if (!formData.name) {
@@ -1144,7 +1166,7 @@ $(document).ready(function() {
             };
         }
         
-        if (window.DEBUG) console.log('Final form data:', formData);
+        console.log('Final form data:', formData);
         
         // Determine URL and method based on create/edit mode
         const url = isEdit ? `{{.basePath}}/api/tunnel/${tunnelId}` : '{{.basePath}}/api/tunnel';
@@ -1158,7 +1180,7 @@ $(document).ready(function() {
             data: JSON.stringify(formData)
         })
         .done(function(response) {
-            if (window.DEBUG) console.log('API Response:', response);
+            console.log('API Response:', response);
             if (response.success) {
                 alert(`Tunnel ${action} successfully!`);
                 closeNewTunnelModal();
@@ -1196,7 +1218,7 @@ $(document).ready(function() {
 
 function showTunnelConfig() {
     const tunnelType = $('#tunnel_type').val();
-    if (window.DEBUG) console.log('showTunnelConfig called with type:', tunnelType);
+    console.log('showTunnelConfig called with type:', tunnelType);
     
     // Reset all required attributes first
     $('#wg_remote_endpoint, #wg_remote_public_key, #dokodemo_address, #dokodemo_port, #pf_remote_host, #pf_remote_port, #v2ray_remote_address, #v2ray_remote_port').removeAttr('required');
@@ -1206,29 +1228,29 @@ function showTunnelConfig() {
     
     // Show relevant config section and set required fields
     if (tunnelType === 'wg-to-wg') {
-        if (window.DEBUG) console.log('Showing WireGuard config section');
+        console.log('Showing WireGuard config section');
         $('#wg_config').removeClass('hidden');
         $('#wg_remote_endpoint, #wg_remote_public_key').attr('required', 'required');
         
         // Run translation after showing the config
         setTimeout(smartTranslateTunnels, 100);
     } else if (tunnelType === 'wg-to-dokodemo') {
-        if (window.DEBUG) console.log('Showing Dokodemo config section');
+        console.log('Showing Dokodemo config section');
         $('#dokodemo_config').removeClass('hidden');
         $('#dokodemo_address, #dokodemo_port').attr('required', 'required');
     } else if (tunnelType === 'port-forward') {
-        if (window.DEBUG) console.log('Showing Port Forward config section');
+        console.log('Showing Port Forward config section');
         $('#port_forward_config').removeClass('hidden');
         $('#pf_remote_host, #pf_remote_port').attr('required', 'required');
     } else if (tunnelType === 'wg-to-v2ray') {
-        if (window.DEBUG) console.log('Showing V2Ray config section');
+        console.log('Showing V2Ray config section');
         $('#v2ray_config').removeClass('hidden');
         $('#v2ray_remote_address, #v2ray_remote_port').attr('required', 'required');
     }
 }
 
 function generateWireGuardKeys() {
-    if (window.DEBUG) console.log('Generating WireGuard keypair...');
+    console.log('Generating WireGuard keypair...');
     
     // Hide manual key section
     $('#manual_key_section').addClass('hidden');
@@ -1239,7 +1261,7 @@ function generateWireGuardKeys() {
         contentType: 'application/json'
     })
     .done(function(response) {
-        if (window.DEBUG) console.log('Keypair response:', response);
+        console.log('Keypair response:', response);
         if (response.success) {
             // Store the private key (will be used when creating tunnel)
             $('#wg_config').data('private-key', response.private_key);
@@ -1270,7 +1292,7 @@ function generateWireGuardKeys() {
 }
 
 function showManualKeyEntry() {
-    if (window.DEBUG) console.log('Showing manual key entry...');
+    console.log('Showing manual key entry...');
     
     // Remove any existing alerts
     $('#wg_config .alert').remove();
@@ -1389,7 +1411,7 @@ function generatePublicKeyFromPrivate() {
         return;
     }
     
-    if (window.DEBUG) console.log('Generating public key from private key:', privateKey);
+    console.log('Generating public key from private key:', privateKey);
     
     $.ajax({
         url: '{{.basePath}}/api/tunnel/generate-keypair',
@@ -1400,7 +1422,7 @@ function generatePublicKeyFromPrivate() {
         })
     })
     .done(function(response) {
-        if (window.DEBUG) console.log('Public key response:', response);
+        console.log('Public key response:', response);
         if (response.success) {
             $('#wg_manual_public_key').val(response.public_key);
             
@@ -1433,7 +1455,7 @@ function generatePublicKeyFromPrivate() {
 }
 
 function generatePreSharedKey() {
-    if (window.DEBUG) console.log('Generating PreShared Key...');
+    console.log('Generating PreShared Key...');
     
     $.ajax({
         url: '{{.basePath}}/api/tunnel/generate-preshared-key',
@@ -1441,7 +1463,7 @@ function generatePreSharedKey() {
         contentType: 'application/json'
     })
     .done(function(response) {
-        if (window.DEBUG) console.log('PreShared key response:', response);
+        console.log('PreShared key response:', response);
         if (response.success) {
             $('#wg_preshared_key').val(response.preshared_key);
         } else {
@@ -1455,20 +1477,20 @@ function generatePreSharedKey() {
 }
 
 function loadClientList() {
-    if (window.DEBUG) console.log('Loading client list...');
+    console.log('Loading client list...');
     $.ajax({
         url: '{{.basePath}}/api/clients',
         method: 'GET'
     })
     .done(function(response) {        
         let clientHtml = '';
-        if (window.DEBUG) console.log('Client list response:', response);
+        console.log('Client list response:', response);
         
         // GetClients API response structure: {success: true, data: [{Client: {...}, QRCode: "..."}, ...]}
         let clientsData = [];
         if (response && response.success && Array.isArray(response.data)) {
             clientsData = response.data;
-            if (window.DEBUG) console.log('Found', clientsData.length, 'client data objects');
+            console.log('Found', clientsData.length, 'client data objects');
         } else {
             console.error('Unexpected API response structure:', response);
             $('#client_list').html('<div class="alert alert-warning">Unexpected API response structure</div>');
@@ -1481,7 +1503,7 @@ function loadClientList() {
         }
         
         clientsData.forEach(function(clientDataObj, index) {
-            if (window.DEBUG) console.log('Processing client data object', index, ':', clientDataObj);
+            console.log('Processing client data object', index, ':', clientDataObj);
             
             // ClientData structure: {Client: {...}, QRCode: "..."}
             // کلیدها با حروف بزرگ هستن: Client نه client
@@ -1501,19 +1523,19 @@ function loadClientList() {
                         </label>
                     </div>
                 `;
-                if (window.DEBUG) console.log('Added client:', clientName, 'with ID:', client.id, 'and IPs:', ipStr);
+                console.log('Added client:', clientName, 'with ID:', client.id, 'and IPs:', ipStr);
             } else {
-                if (window.DEBUG) console.warn('Invalid client data in object', index, ':', clientDataObj);
-                if (window.DEBUG) console.warn('Client object found:', client);
+                console.warn('Invalid client data in object', index, ':', clientDataObj);
+                console.warn('Client object found:', client);
             }
         });
         
         if (clientHtml === '') {
             $('#client_list').html('<div class="alert alert-warning">No valid clients found. Please check if you have created any clients in the <a href="/">Wireguard Clients</a> section.</div>');
-            if (window.DEBUG) console.warn('No valid clients processed from', clientsData.length, 'client data objects');
+            console.warn('No valid clients processed from', clientsData.length, 'client data objects');
         } else {
             $('#client_list').html(clientHtml);
-            if (window.DEBUG) console.log('Successfully processed and displayed clients');
+            console.log('Successfully processed and displayed clients');
         }
     })
     .fail(function(xhr, status, error) {
@@ -1647,7 +1669,7 @@ function deleteTunnel(tunnelId) {
 }
 
 function startTunnel(tunnelId) {
-    if (window.DEBUG) console.log('Starting tunnel:', tunnelId);
+    console.log('Starting tunnel:', tunnelId);
     
     // Disable button and show loading
     const startBtn = event.target;
@@ -1710,7 +1732,7 @@ function startTunnel(tunnelId) {
 window.startTunnel = startTunnel;
 
 function stopTunnel(tunnelId) {
-    if (window.DEBUG) console.log('Stopping tunnel:', tunnelId);
+    console.log('Stopping tunnel:', tunnelId);
     
     // Disable button and show loading
     const stopBtn = event.target;
@@ -1945,7 +1967,7 @@ function refreshTunnelStats(tunnelId) {
                 }
             }
         }
-        if (window.DEBUG) console.log('Tunnel stats refreshed for', tunnelId);
+        console.log('Tunnel stats refreshed for', tunnelId);
     })
     .catch(error => {
         console.error('Failed to refresh tunnel stats:', error);

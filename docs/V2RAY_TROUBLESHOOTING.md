@@ -32,7 +32,6 @@ This error occurs when the V2Ray tunnel configuration is missing required fields
    - **Generate or Enter WireGuard Keys**: Click "Generate Keypair" or enter your private key manually
    - **Tunnel IP**: The IP address for the local WireGuard interface (default: 10.0.0.2)
    - **Pre-shared Key**: Optional for additional security
-   - **Note**: V2Ray tunnels don't require a remote WireGuard peer - the WireGuard interface is only for local traffic routing
 
 4. **Configure V2Ray Settings**:
    - **Protocol**: Select your V2Ray protocol (VMess/VLESS/Trojan)
@@ -88,34 +87,6 @@ You can also use the "Parse" feature to automatically fill configuration from V2
 
 #### Issue: "V2Ray network type is missing"
 **Solution**: Select a network type from the dropdown (TCP, WebSocket, or gRPC).
-
-#### Issue: "exit status 5" when starting V2Ray tunnel
-**Solution**: This error usually indicates that xray-core is not installed or not found. Please install xray-core:
-
-```bash
-# Download and install xray-core
-wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
-unzip Xray-linux-64.zip
-sudo mv xray /usr/local/bin/
-sudo chmod +x /usr/local/bin/xray
-
-# Or install via package manager (if available)
-# sudo apt install xray-core
-```
-
-After installation, restart the vWireguard service:
-```bash
-sudo systemctl restart vwireguard
-```
-
-#### Issue: "xray binary not found"
-**Solution**: Install xray-core as described above. The system looks for xray in these locations:
-- `/usr/local/bin/xray`
-- `/usr/bin/xray` 
-- `/opt/xray/xray`
-
-#### Issue: "WireGuard remote public key is missing"
-**Solution**: V2Ray tunnels don't require a WireGuard remote public key since they don't connect to a WireGuard peer. The WireGuard interface is only used for local traffic routing. The system automatically generates the necessary WireGuard configuration.
 
 #### Issue: "WireGuard configuration is missing"
 **Solution**: V2Ray tunnels require WireGuard configuration for the local interface. Make sure to:

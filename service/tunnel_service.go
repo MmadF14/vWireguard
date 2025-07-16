@@ -6,10 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
 	"github.com/MmadF14/vwireguard/model"
-	"github.com/MmadF14/vwireguard/store"
 )
 
 // GenerateXrayConfig builds an Xray config for WireGuard->V2Ray tunnels
@@ -31,8 +29,9 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	if tunnel.WGConfig.LocalPrivateKey == "" {
 		return "", fmt.Errorf("WireGuard local private key is missing")
 	}
-	// For V2Ray tunnels, we don't need a remote public key since we're not connecting to a WireGuard peer
-	// The WireGuard interface is just for local traffic routing
+	if tunnel.WGConfig.RemotePublicKey == "" {
+		return "", fmt.Errorf("WireGuard remote public key is missing")
+	}
 
 	// Validate V2Ray configuration
 	vc := tunnel.V2rayConfig
@@ -69,11 +68,15 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	inb := map[string]interface{}{
 		"tag":      "wg-in",
 		"protocol": "wireguard",
-		"port":     51820,
 		"settings": map[string]interface{}{
 			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"privateKey": tunnel.WGConfig.LocalPrivateKey,
-			"peers":      []interface{}{},
+			"peers": []map[string]interface{}{
+				{
+					"publicKey":  tunnel.WGConfig.RemotePublicKey,
+					"allowedIPs": []string{"0.0.0.0/0", "::/0"},
+				},
+			},
 		},
 	}
 
@@ -84,7 +87,7 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 
 	switch vc.Protocol {
 	case "vmess", "vless":
-		user := map[string]interface{}{"id": vc.UUID, "encryption": "none"}
+		user := map[string]interface{}{"id": vc.UUID}
 		if vc.Flow != "" {
 			user["flow"] = vc.Flow
 		}
@@ -141,6 +144,7 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"outbounds": []interface{}{ob, map[string]interface{}{"tag": "direct", "protocol": "freedom"}},
 		"routing": map[string]interface{}{
 			"rules": []interface{}{
+				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "domain": []string{"geosite:ir"}, "outboundTag": "direct"},
 				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "outboundTag": "v2-out"},
 			},
 		},
@@ -153,42 +157,13 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	return string(b), nil
 }
 
-// ensureGeositeFile ensures the geosite.dat file exists
-func ensureGeositeFile() error {
-	geositePath := "/usr/local/bin/geosite.dat"
-	if _, err := os.Stat(geositePath); os.IsNotExist(err) {
-		// Download geosite.dat if it doesn't exist
-		cmd := exec.Command("wget", "-O", geositePath, "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat")
-		if output, err := cmd.CombinedOutput(); err != nil {
-			return fmt.Errorf("failed to download geosite.dat: %v, output: %s", err, string(output))
-		}
-	}
-	return nil
-}
-
 // WriteConfigAndService writes the config file and systemd service
 func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
-	// Ensure geosite.dat exists
-	if err := ensureGeositeFile(); err != nil {
-		return fmt.Errorf("failed to ensure geosite.dat: %v", err)
-	}
-
 	cfgPath := filepath.Join("/etc/vwireguard/tunnels", fmt.Sprintf("%s.json", tunnel.ID))
 	if err := os.MkdirAll(filepath.Dir(cfgPath), 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %v", err)
+		return err
 	}
 	if err := os.WriteFile(cfgPath, []byte(config), 0644); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-
-	// Validate xray configuration
-	if err := validateXrayConfig(cfgPath); err != nil {
-		return fmt.Errorf("invalid xray configuration: %v", err)
-	}
-
-	// Find xray binary path
-	xrayPath, err := findXrayBinary()
-	if err != nil {
 		return err
 	}
 
@@ -197,202 +172,14 @@ func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
 Description=vWireguard V2Ray Tunnel %s
 After=network-online.target
 [Service]
-Type=simple
-ExecStart=%s -c /etc/vwireguard/tunnels/%s.json
+ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%%i.json
 Restart=on-failure
-RestartSec=5
-User=root
 [Install]
 WantedBy=multi-user.target
-`, tunnel.ID, xrayPath, tunnel.ID)
+`, tunnel.ID, tunnel.ID)
 	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
-		return fmt.Errorf("failed to write service file: %v", err)
-	}
-
-	// Reload systemd daemon
-	if output, err := exec.Command("systemctl", "daemon-reload").CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to reload systemd daemon: %v, output: %s", err, string(output))
-	}
-
-	// Enable and start the service
-	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)
-	if output, err := exec.Command("systemctl", "enable", serviceName).CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to enable service: %v, output: %s", err, string(output))
-	}
-
-	if output, err := exec.Command("systemctl", "start", serviceName).CombinedOutput(); err != nil {
-		// Get service status for debugging
-		statusOutput, _ := exec.Command("systemctl", "status", serviceName).CombinedOutput()
-
-		// Provide more specific error information based on exit code
-		var errorMsg string
-		if exitError, ok := err.(*exec.ExitError); ok {
-			switch exitError.ExitCode() {
-			case 1:
-				errorMsg = "service configuration error or invalid arguments"
-			case 2:
-				errorMsg = "service not found or not enabled"
-			case 3:
-				errorMsg = "service already running or failed to start"
-			case 4:
-				errorMsg = "service failed to start due to dependency issues"
-			case 5:
-				errorMsg = "service failed to start - check xray binary, permissions, or configuration"
-			default:
-				errorMsg = fmt.Sprintf("unknown error (exit code: %d)", exitError.ExitCode())
-			}
-		} else {
-			errorMsg = "unknown error"
-		}
-
-		return fmt.Errorf("failed to start service (%s): %v, output: %s, status: %s", errorMsg, err, string(output), string(statusOutput))
-	}
-
-	// Setup NAT rules for the tunnel network
-	if tunnel.WGConfig != nil {
-		subnet := tunnel.WGConfig.TunnelIP + "/24"
-		outIface := "eth0"
-		if tunnel.V2rayConfig != nil {
-			remote := tunnel.V2rayConfig.RemoteAddress
-			if idx := strings.Index(remote, ":"); idx > 0 {
-				remote = remote[:idx]
-			}
-			if routeOut, err := exec.Command("sh", "-c", fmt.Sprintf("ip route get %s | awk '{for(i=1;i<NF;i++){if($i==\"dev\"){print $(i+1);exit}}}'", remote)).Output(); err == nil {
-				outIface = strings.TrimSpace(string(routeOut))
-			}
-		}
-		exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1").Run()
-		exec.Command("sysctl", "-w", "net.ipv6.conf.all.forwarding=1").Run()
-		exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-o", outIface, "-j", "MASQUERADE").Run()
-	}
-	return nil
-}
-
-// findXrayBinary finds the xray binary path
-func findXrayBinary() (string, error) {
-	xrayPaths := []string{
-		"/usr/local/bin/xray",
-		"/usr/bin/xray",
-		"/opt/xray/xray",
-	}
-
-	for _, path := range xrayPaths {
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-	}
-
-	return "", fmt.Errorf("xray binary not found. Please install xray-core")
-}
-
-// validateXrayConfig validates the xray configuration file
-func validateXrayConfig(configPath string) error {
-	xrayPath, err := findXrayBinary()
-	if err != nil {
 		return err
 	}
-
-	// First try the 'test' command (newer versions)
-	cmd := exec.Command(xrayPath, "test", "-c", configPath)
-	if output, err := cmd.CombinedOutput(); err != nil {
-		// If 'test' command is not supported, try running xray with config to check syntax
-		if strings.Contains(string(output), "unknown command") || strings.Contains(string(output), "test") {
-			// Try to validate by attempting to run xray with the config (dry run)
-			validateCmd := exec.Command(xrayPath, "-c", configPath, "-test")
-			if validateOutput, validateErr := validateCmd.CombinedOutput(); validateErr != nil {
-				// If that fails too, try just checking JSON syntax
-				if jsonErr := validateJSONSyntax(configPath); jsonErr != nil {
-					return fmt.Errorf("invalid JSON configuration: %v", jsonErr)
-				}
-				// If JSON is valid but xray still fails, return the original error
-				return fmt.Errorf("xray configuration validation failed: %v, output: %s", validateErr, string(validateOutput))
-			}
-		} else {
-			// Provide more specific error information for test command
-			var errorMsg string
-			if exitError, ok := err.(*exec.ExitError); ok {
-				switch exitError.ExitCode() {
-				case 1:
-					errorMsg = "configuration file not found or unreadable"
-				case 2:
-					errorMsg = "invalid JSON format in configuration"
-				case 3:
-					errorMsg = "configuration validation failed - check protocol settings"
-				case 4:
-					errorMsg = "network configuration error"
-				case 5:
-					errorMsg = "permission denied or binary execution failed"
-				default:
-					errorMsg = fmt.Sprintf("validation error (exit code: %d)", exitError.ExitCode())
-				}
-			} else {
-				errorMsg = "unknown validation error"
-			}
-
-			return fmt.Errorf("xray configuration test failed (%s): %v, output: %s", errorMsg, err, string(output))
-		}
-	}
-
-	return nil
-}
-
-// validateJSONSyntax validates that the configuration file contains valid JSON
-func validateJSONSyntax(configPath string) error {
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return fmt.Errorf("failed to read config file: %v", err)
-	}
-
-	var config map[string]interface{}
-	if err := json.Unmarshal(data, &config); err != nil {
-		return fmt.Errorf("invalid JSON syntax: %v", err)
-	}
-
-	return nil
-}
-
-// StartTunnel starts the systemd service for the given tunnel ID. If the tunnel
-// has RouteAll enabled, any other active RouteAll tunnels will be stopped first.
-func StartTunnel(db store.IStore, id string) error {
-	tunnel, err := db.GetTunnelByID(id)
-	if err != nil {
-		return err
-	}
-
-	if tunnel.RouteAll {
-		tunnels, err := db.GetTunnels()
-		if err == nil {
-			for _, t := range tunnels {
-				if t.ID != tunnel.ID && t.RouteAll && t.Status == model.TunnelStatusActive {
-					exec.Command("systemctl", "stop", fmt.Sprintf("vwireguard-tunnel-%s.service", t.ID)).Run()
-					t.Status = model.TunnelStatusInactive
-					db.SaveTunnel(t)
-				}
-			}
-		}
-	}
-
-	if os.Getenv("VWIREGUARD_TEST") != "1" {
-		if err := exec.Command("systemctl", "start", fmt.Sprintf("vwireguard-tunnel-%s.service", id)).Run(); err != nil {
-			return err
-		}
-	}
-
-	tunnel.Status = model.TunnelStatusActive
-	return db.SaveTunnel(tunnel)
-}
-
-// StopTunnel stops the systemd service for the given tunnel ID and marks it inactive.
-func StopTunnel(db store.IStore, id string) error {
-	tunnel, err := db.GetTunnelByID(id)
-	if err != nil {
-		return err
-	}
-
-	if os.Getenv("VWIREGUARD_TEST") != "1" {
-		exec.Command("systemctl", "stop", fmt.Sprintf("vwireguard-tunnel-%s.service", id)).Run()
-	}
-
-	tunnel.Status = model.TunnelStatusInactive
-	return db.SaveTunnel(tunnel)
+	exec.Command("systemctl", "daemon-reload").Run()
+	return exec.Command("systemctl", "enable", "--now", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)).Run()
 }
