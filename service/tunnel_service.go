@@ -158,9 +158,20 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
 	cfgPath := filepath.Join("/etc/vwireguard/tunnels", fmt.Sprintf("%s.json", tunnel.ID))
 	if err := os.MkdirAll(filepath.Dir(cfgPath), 0755); err != nil {
-		return err
+		return fmt.Errorf("failed to create config directory: %v", err)
 	}
 	if err := os.WriteFile(cfgPath, []byte(config), 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %v", err)
+	}
+
+	// Validate xray configuration
+	if err := validateXrayConfig(cfgPath); err != nil {
+		return fmt.Errorf("invalid xray configuration: %v", err)
+	}
+
+	// Find xray binary path
+	xrayPath, err := findXrayBinary()
+	if err != nil {
 		return err
 	}
 
@@ -169,17 +180,33 @@ func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
 Description=vWireguard V2Ray Tunnel %s
 After=network-online.target
 [Service]
-ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%%i.json
+Type=simple
+ExecStart=%s -c /etc/vwireguard/tunnels/%s.json
 Restart=on-failure
+RestartSec=5
+User=root
 [Install]
 WantedBy=multi-user.target
-`, tunnel.ID)
+`, tunnel.ID, xrayPath, tunnel.ID)
 	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
-		return err
+		return fmt.Errorf("failed to write service file: %v", err)
 	}
-	exec.Command("systemctl", "daemon-reload").Run()
-	if err := exec.Command("systemctl", "enable", "--now", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)).Run(); err != nil {
-		return err
+
+	// Reload systemd daemon
+	if output, err := exec.Command("systemctl", "daemon-reload").CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to reload systemd daemon: %v, output: %s", err, string(output))
+	}
+
+	// Enable and start the service
+	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)
+	if output, err := exec.Command("systemctl", "enable", serviceName).CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to enable service: %v, output: %s", err, string(output))
+	}
+
+	if output, err := exec.Command("systemctl", "start", serviceName).CombinedOutput(); err != nil {
+		// Get service status for debugging
+		statusOutput, _ := exec.Command("systemctl", "status", serviceName).CombinedOutput()
+		return fmt.Errorf("failed to start service: %v, output: %s, status: %s", err, string(output), string(statusOutput))
 	}
 
 	// Setup NAT rules for the tunnel network
@@ -199,6 +226,39 @@ WantedBy=multi-user.target
 		exec.Command("sysctl", "-w", "net.ipv6.conf.all.forwarding=1").Run()
 		exec.Command("iptables", "-t", "nat", "-A", "POSTROUTING", "-s", subnet, "-o", outIface, "-j", "MASQUERADE").Run()
 	}
+	return nil
+}
+
+// findXrayBinary finds the xray binary path
+func findXrayBinary() (string, error) {
+	xrayPaths := []string{
+		"/usr/local/bin/xray",
+		"/usr/bin/xray",
+		"/opt/xray/xray",
+	}
+
+	for _, path := range xrayPaths {
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+	}
+
+	return "", fmt.Errorf("xray binary not found. Please install xray-core")
+}
+
+// validateXrayConfig validates the xray configuration file
+func validateXrayConfig(configPath string) error {
+	xrayPath, err := findXrayBinary()
+	if err != nil {
+		return err
+	}
+
+	// Test the configuration with xray
+	cmd := exec.Command(xrayPath, "test", "-c", configPath)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("xray configuration test failed: %v, output: %s", err, string(output))
+	}
+
 	return nil
 }
 

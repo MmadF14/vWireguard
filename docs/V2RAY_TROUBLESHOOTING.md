@@ -89,6 +89,31 @@ You can also use the "Parse" feature to automatically fill configuration from V2
 #### Issue: "V2Ray network type is missing"
 **Solution**: Select a network type from the dropdown (TCP, WebSocket, or gRPC).
 
+#### Issue: "exit status 5" when starting V2Ray tunnel
+**Solution**: This error usually indicates that xray-core is not installed or not found. Please install xray-core:
+
+```bash
+# Download and install xray-core
+wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+unzip Xray-linux-64.zip
+sudo mv xray /usr/local/bin/
+sudo chmod +x /usr/local/bin/xray
+
+# Or install via package manager (if available)
+# sudo apt install xray-core
+```
+
+After installation, restart the vWireguard service:
+```bash
+sudo systemctl restart vwireguard
+```
+
+#### Issue: "xray binary not found"
+**Solution**: Install xray-core as described above. The system looks for xray in these locations:
+- `/usr/local/bin/xray`
+- `/usr/bin/xray` 
+- `/opt/xray/xray`
+
 #### Issue: "WireGuard remote public key is missing"
 **Solution**: V2Ray tunnels don't require a WireGuard remote public key since they don't connect to a WireGuard peer. The WireGuard interface is only used for local traffic routing. The system automatically generates the necessary WireGuard configuration.
 
