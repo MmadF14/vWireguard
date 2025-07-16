@@ -23,6 +23,18 @@ import (
 	"github.com/MmadF14/vwireguard/store/jsondb"
 )
 
+// runSystemctl runs systemctl commands with proper privileges
+func runSystemctl(args ...string) error {
+	// Try with sudo first
+	cmd := exec.Command("sudo", append([]string{"systemctl"}, args...)...)
+	if err := cmd.Run(); err != nil {
+		// If sudo fails, try without sudo (in case we're already root)
+		cmd = exec.Command("systemctl", args...)
+		return cmd.Run()
+	}
+	return nil
+}
+
 // TunnelsPage handler
 func TunnelsPage(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -1002,10 +1014,10 @@ func startV2rayTunnel(tunnel model.Tunnel) error {
 // stopV2rayTunnel stops and removes the systemd service
 func stopV2rayTunnel(tunnel model.Tunnel) error {
 	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)
-	exec.Command("systemctl", "disable", "--now", serviceName).Run()
+	runSystemctl("disable", "--now", serviceName)
 	os.Remove(filepath.Join("/etc/systemd/system", serviceName))
 	os.Remove(filepath.Join("/etc/vwireguard/tunnels", tunnel.ID+".json"))
-	exec.Command("systemctl", "daemon-reload").Run()
+	runSystemctl("daemon-reload")
 	return nil
 }
 

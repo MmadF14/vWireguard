@@ -12,6 +12,18 @@ import (
 	"github.com/MmadF14/vwireguard/store"
 )
 
+// runSystemctl runs systemctl commands with proper privileges
+func runSystemctl(args ...string) error {
+	// Try with sudo first
+	cmd := exec.Command("sudo", append([]string{"systemctl"}, args...)...)
+	if err := cmd.Run(); err != nil {
+		// If sudo fails, try without sudo (in case we're already root)
+		cmd = exec.Command("systemctl", args...)
+		return cmd.Run()
+	}
+	return nil
+}
+
 // GenerateXrayConfig builds an Xray config for WireGuard->V2Ray tunnels
 func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	if tunnel == nil {
@@ -177,8 +189,8 @@ WantedBy=multi-user.target
 	if err := os.WriteFile(servicePath, []byte(serviceContent), 0644); err != nil {
 		return err
 	}
-	exec.Command("systemctl", "daemon-reload").Run()
-	if err := exec.Command("systemctl", "enable", "--now", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)).Run(); err != nil {
+	runSystemctl("daemon-reload")
+	if err := runSystemctl("enable", "--now", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID)); err != nil {
 		return err
 	}
 
@@ -215,7 +227,7 @@ func StartTunnel(db store.IStore, id string) error {
 		if err == nil {
 			for _, t := range tunnels {
 				if t.ID != tunnel.ID && t.RouteAll && t.Status == model.TunnelStatusActive {
-					exec.Command("systemctl", "stop", fmt.Sprintf("vwireguard-tunnel-%s.service", t.ID)).Run()
+					runSystemctl("stop", fmt.Sprintf("vwireguard-tunnel-%s.service", t.ID))
 					t.Status = model.TunnelStatusInactive
 					db.SaveTunnel(t)
 				}
@@ -224,7 +236,7 @@ func StartTunnel(db store.IStore, id string) error {
 	}
 
 	if os.Getenv("VWIREGUARD_TEST") != "1" {
-		if err := exec.Command("systemctl", "start", fmt.Sprintf("vwireguard-tunnel-%s.service", id)).Run(); err != nil {
+		if err := runSystemctl("start", fmt.Sprintf("vwireguard-tunnel-%s.service", id)); err != nil {
 			return err
 		}
 	}
@@ -241,7 +253,7 @@ func StopTunnel(db store.IStore, id string) error {
 	}
 
 	if os.Getenv("VWIREGUARD_TEST") != "1" {
-		exec.Command("systemctl", "stop", fmt.Sprintf("vwireguard-tunnel-%s.service", id)).Run()
+		runSystemctl("stop", fmt.Sprintf("vwireguard-tunnel-%s.service", id))
 	}
 
 	tunnel.Status = model.TunnelStatusInactive
