@@ -275,31 +275,60 @@ func validateXrayConfig(configPath string) error {
 		return err
 	}
 
-	// Test the configuration with xray
+	// First try the 'test' command (newer versions)
 	cmd := exec.Command(xrayPath, "test", "-c", configPath)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		// Provide more specific error information
-		var errorMsg string
-		if exitError, ok := err.(*exec.ExitError); ok {
-			switch exitError.ExitCode() {
-			case 1:
-				errorMsg = "configuration file not found or unreadable"
-			case 2:
-				errorMsg = "invalid JSON format in configuration"
-			case 3:
-				errorMsg = "configuration validation failed - check protocol settings"
-			case 4:
-				errorMsg = "network configuration error"
-			case 5:
-				errorMsg = "permission denied or binary execution failed"
-			default:
-				errorMsg = fmt.Sprintf("validation error (exit code: %d)", exitError.ExitCode())
+		// If 'test' command is not supported, try running xray with config to check syntax
+		if strings.Contains(string(output), "unknown command") || strings.Contains(string(output), "test") {
+			// Try to validate by attempting to run xray with the config (dry run)
+			validateCmd := exec.Command(xrayPath, "-c", configPath, "-test")
+			if validateOutput, validateErr := validateCmd.CombinedOutput(); validateErr != nil {
+				// If that fails too, try just checking JSON syntax
+				if jsonErr := validateJSONSyntax(configPath); jsonErr != nil {
+					return fmt.Errorf("invalid JSON configuration: %v", jsonErr)
+				}
+				// If JSON is valid but xray still fails, return the original error
+				return fmt.Errorf("xray configuration validation failed: %v, output: %s", validateErr, string(validateOutput))
 			}
 		} else {
-			errorMsg = "unknown validation error"
-		}
+			// Provide more specific error information for test command
+			var errorMsg string
+			if exitError, ok := err.(*exec.ExitError); ok {
+				switch exitError.ExitCode() {
+				case 1:
+					errorMsg = "configuration file not found or unreadable"
+				case 2:
+					errorMsg = "invalid JSON format in configuration"
+				case 3:
+					errorMsg = "configuration validation failed - check protocol settings"
+				case 4:
+					errorMsg = "network configuration error"
+				case 5:
+					errorMsg = "permission denied or binary execution failed"
+				default:
+					errorMsg = fmt.Sprintf("validation error (exit code: %d)", exitError.ExitCode())
+				}
+			} else {
+				errorMsg = "unknown validation error"
+			}
 
-		return fmt.Errorf("xray configuration test failed (%s): %v, output: %s", errorMsg, err, string(output))
+			return fmt.Errorf("xray configuration test failed (%s): %v, output: %s", errorMsg, err, string(output))
+		}
+	}
+
+	return nil
+}
+
+// validateJSONSyntax validates that the configuration file contains valid JSON
+func validateJSONSyntax(configPath string) error {
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %v", err)
+	}
+
+	var config map[string]interface{}
+	if err := json.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("invalid JSON syntax: %v", err)
 	}
 
 	return nil

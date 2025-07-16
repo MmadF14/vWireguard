@@ -116,10 +116,23 @@ if [ -d "/etc/vwireguard/tunnels" ]; then
             # Validate config with xray
             if [ "$xray_found" = true ]; then
                 echo "Validating config with xray..."
+                # Try test command first
                 if $xray_path test -c "$config" 2>&1; then
                     echo -e "${GREEN}✓ Config validation passed${NC}"
                 else
-                    echo -e "${RED}✗ Config validation failed${NC}"
+                    # If test command fails, try alternative validation
+                    echo "Test command failed, trying alternative validation..."
+                    if $xray_path -c "$config" -test 2>&1; then
+                        echo -e "${GREEN}✓ Config validation passed (alternative method)${NC}"
+                    else
+                        # Check JSON syntax
+                        if python3 -m json.tool "$config" >/dev/null 2>&1; then
+                            echo -e "${GREEN}✓ JSON syntax is valid${NC}"
+                            echo -e "${YELLOW}⚠ Config validation failed but JSON is valid - this may be a xray version compatibility issue${NC}"
+                        else
+                            echo -e "${RED}✗ Config validation failed - invalid JSON syntax${NC}"
+                        fi
+                    fi
                 fi
             fi
             echo ""
