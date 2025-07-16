@@ -15,7 +15,7 @@
 
 {{define "page_content"}}
 <section class="content">
-    <div class="container-fluid">
+    <div class="mx-auto px-4">
         <!-- <h5 class="mt-4 mb-2">Wireguard Clients</h5> -->
         <div class="mb-4 flex justify-end items-center space-x-4 rtl:space-x-reverse">
             <label class="inline-flex items-center cursor-pointer">
@@ -714,8 +714,8 @@ window.applyConfig = function() {
 
 // Make functions globally available
 window.editClient = function(clientId) {
-    console.log('editClient called with', clientId); // Debug log
-    console.log('Available clients:', clients); // Debug log
+    if (window.DEBUG) console.log('editClient called with', clientId); // Debug log
+    if (window.DEBUG) console.log('Available clients:', clients); // Debug log
     
     const client = clients.find(c => {
         const clientData = c.Client || c;
@@ -774,13 +774,13 @@ window.editClient = function(clientId) {
     
     // Show the modal
     const modal = document.getElementById('modal_edit_client');
-    console.log('Modal element found:', modal); // Debug log
+    if (window.DEBUG) console.log('Modal element found:', modal); // Debug log
     if (modal) {
-        console.log('Modal classes before:', modal.classList.toString()); // Debug log
+        if (window.DEBUG) console.log('Modal classes before:', modal.classList.toString()); // Debug log
         modal.style.display = 'flex';
         modal.classList.remove('hidden');
-        console.log('Modal classes after:', modal.classList.toString()); // Debug log
-        console.log('Modal style display:', modal.style.display); // Debug log
+        if (window.DEBUG) console.log('Modal classes after:', modal.classList.toString()); // Debug log
+        if (window.DEBUG) console.log('Modal style display:', modal.style.display); // Debug log
     } else {
         console.error('modal_edit_client not found in DOM');
         showError('Edit modal not found!');
