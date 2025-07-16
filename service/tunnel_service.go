@@ -169,7 +169,7 @@ func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
 Description=vWireguard V2Ray Tunnel %s
 After=network-online.target
 [Service]
-ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%%i.json
+ExecStart=/usr/local/bin/xray -c /etc/vwireguard/tunnels/%s.json
 Restart=on-failure
 [Install]
 WantedBy=multi-user.target
