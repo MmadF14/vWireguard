@@ -32,7 +32,6 @@ This error occurs when the V2Ray tunnel configuration is missing required fields
    - **Generate or Enter WireGuard Keys**: Click "Generate Keypair" or enter your private key manually
    - **Tunnel IP**: The IP address for the local WireGuard interface (default: 10.0.0.2)
    - **Pre-shared Key**: Optional for additional security
-   - **Note**: V2Ray tunnels don't require a remote WireGuard peer - the WireGuard interface is only for local traffic routing
 
 4. **Configure V2Ray Settings**:
    - **Protocol**: Select your V2Ray protocol (VMess/VLESS/Trojan)
@@ -88,9 +87,6 @@ You can also use the "Parse" feature to automatically fill configuration from V2
 
 #### Issue: "V2Ray network type is missing"
 **Solution**: Select a network type from the dropdown (TCP, WebSocket, or gRPC).
-
-#### Issue: "WireGuard remote public key is missing"
-**Solution**: V2Ray tunnels don't require a WireGuard remote public key since they don't connect to a WireGuard peer. The WireGuard interface is only used for local traffic routing. The system automatically generates the necessary WireGuard configuration.
 
 #### Issue: "WireGuard configuration is missing"
 **Solution**: V2Ray tunnels require WireGuard configuration for the local interface. Make sure to:
