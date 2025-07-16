@@ -385,5 +385,5 @@ document.addEventListener('DOMContentLoaded', () => {
         card.classList.add('animate-fade-in');
     });
     
-    console.log('Theme and Language Manager initialized');
+    if (window.DEBUG) console.log('Theme and Language Manager initialized');
 }); 
