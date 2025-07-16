@@ -69,11 +69,11 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	inb := map[string]interface{}{
 		"tag":      "wg-in",
 		"protocol": "wireguard",
+		"port":     51820,
 		"settings": map[string]interface{}{
 			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"privateKey": tunnel.WGConfig.LocalPrivateKey,
-			// For V2Ray tunnels, we don't need peers since we're not connecting to a WireGuard server
-			// The WireGuard interface is just for local traffic routing
+			"peers":      []interface{}{},
 		},
 	}
 
@@ -84,7 +84,7 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 
 	switch vc.Protocol {
 	case "vmess", "vless":
-		user := map[string]interface{}{"id": vc.UUID}
+		user := map[string]interface{}{"id": vc.UUID, "encryption": "none"}
 		if vc.Flow != "" {
 			user["flow"] = vc.Flow
 		}
@@ -141,7 +141,6 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"outbounds": []interface{}{ob, map[string]interface{}{"tag": "direct", "protocol": "freedom"}},
 		"routing": map[string]interface{}{
 			"rules": []interface{}{
-				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "domain": []string{"geosite:ir"}, "outboundTag": "direct"},
 				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "outboundTag": "v2-out"},
 			},
 		},
@@ -154,8 +153,26 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	return string(b), nil
 }
 
+// ensureGeositeFile ensures the geosite.dat file exists
+func ensureGeositeFile() error {
+	geositePath := "/usr/local/bin/geosite.dat"
+	if _, err := os.Stat(geositePath); os.IsNotExist(err) {
+		// Download geosite.dat if it doesn't exist
+		cmd := exec.Command("wget", "-O", geositePath, "https://github.com/v2fly/domain-list-community/releases/latest/download/dlc.dat")
+		if output, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to download geosite.dat: %v, output: %s", err, string(output))
+		}
+	}
+	return nil
+}
+
 // WriteConfigAndService writes the config file and systemd service
 func WriteConfigAndService(tunnel *model.Tunnel, config string) error {
+	// Ensure geosite.dat exists
+	if err := ensureGeositeFile(); err != nil {
+		return fmt.Errorf("failed to ensure geosite.dat: %v", err)
+	}
+
 	cfgPath := filepath.Join("/etc/vwireguard/tunnels", fmt.Sprintf("%s.json", tunnel.ID))
 	if err := os.MkdirAll(filepath.Dir(cfgPath), 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %v", err)
