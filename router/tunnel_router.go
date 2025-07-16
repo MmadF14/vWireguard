@@ -14,4 +14,7 @@ func RegisterTunnelRoutes(g *echo.Group, db store.IStore) {
 	g.PUT("/v2ray/:id", handler.UpdateV2rayTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	g.POST("/:id/enable", handler.EnableTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	g.POST("/:id/disable", handler.DisableTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	g.PUT("/:id/start", handler.StartTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	g.PUT("/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	g.GET("/health/stream", handler.TunnelHealthStream(), handler.ValidSession)
 }
