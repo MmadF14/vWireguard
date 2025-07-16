@@ -338,12 +338,12 @@ document.addEventListener('keydown', function(e) {
 {{define "bottom_js"}}
 <script>
     function submitServerInterfaceSetting() {
-        console.log('submitServerInterfaceSetting called');
+        if (window.DEBUG) console.log('submitServerInterfaceSetting called');
         
         // Show loading state
         const submitBtn = $('#frm_server_interface button[type="submit"]');
         const originalText = submitBtn.html();
-        console.log('Original button text:', originalText);
+        if (window.DEBUG) console.log('Original button text:', originalText);
         
         submitBtn.prop('disabled', true);
         submitBtn.html('<i class="fas fa-spinner fa-spin"></i> <span data-translate="Processing...">Processing...</span>');
@@ -368,11 +368,11 @@ document.addEventListener('keydown', function(e) {
         const final_check_interval = isNaN(check_interval) ? 1 : check_interval;
         const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": final_check_interval};
 
-        console.log('Submitting server interface data:', data);
-        console.log('Check interval raw value:', check_interval_val);
-        console.log('Check interval parsed:', check_interval);
-        console.log('Check interval is NaN?', isNaN(check_interval));
-        console.log('Final check interval:', final_check_interval);
+        if (window.DEBUG) console.log('Submitting server interface data:', data);
+        if (window.DEBUG) console.log('Check interval raw value:', check_interval_val);
+        if (window.DEBUG) console.log('Check interval parsed:', check_interval);
+        if (window.DEBUG) console.log('Check interval is NaN?', isNaN(check_interval));
+        if (window.DEBUG) console.log('Final check interval:', final_check_interval);
 
         $.ajax({
             cache: false,
@@ -382,7 +382,7 @@ document.addEventListener('keydown', function(e) {
             contentType: "application/json",
             data: JSON.stringify(data),
             success: function(response) {
-                console.log('Server interface updated successfully:', response);
+                if (window.DEBUG) console.log('Server interface updated successfully:', response);
                 // Reset button state first
                 submitBtn.prop('disabled', false);
                 submitBtn.html('<i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Save">Save</span>');
@@ -403,7 +403,7 @@ document.addEventListener('keydown', function(e) {
                     }
                 } else {
                     // Show success message
-                    console.log('Showing success message');
+                    if (window.DEBUG) console.log('Showing success message');
                     if (typeof toastr !== 'undefined') {
                         const successMessage = (window.langManager && window.langManager.translate) ? 
                             window.langManager.translate('Updated Wireguard server interface addresses successfully') : 
@@ -450,7 +450,7 @@ document.addEventListener('keydown', function(e) {
 <script>
     // Wireguard Interface Addresses tag input
     $(document).ready(function() {
-        console.log('Document ready - initializing tags input');
+        if (window.DEBUG) console.log('Document ready - initializing tags input');
         
         $("#addresses").tagsInput({
             'width': '100%',
@@ -463,11 +463,11 @@ document.addEventListener('keydown', function(e) {
             'placeholderColor': '#666666'
         });
         
-        console.log('Tags input initialized');
+        if (window.DEBUG) console.log('Tags input initialized');
         
         // Add direct click handler for save button
         $('#frm_server_interface button[type="submit"]').on('click', function(e) {
-            console.log('Save button clicked directly');
+            if (window.DEBUG) console.log('Save button clicked directly');
             e.preventDefault();
             submitServerInterfaceSetting();
             return false;
@@ -482,17 +482,17 @@ document.addEventListener('keydown', function(e) {
 
     // Wireguard Interface Addresses form validation
     $(document).ready(function () {
-        console.log('Setting up form validation for server interface');
+        if (window.DEBUG) console.log('Setting up form validation for server interface');
         
         // Also add a direct submit handler as backup
         $('#frm_server_interface').on('submit', function(e) {
-            console.log('Form submit event triggered');
+            if (window.DEBUG) console.log('Form submit event triggered');
             e.preventDefault();
             if ($(this).valid()) {
-                console.log('Form is valid, calling submitServerInterfaceSetting');
+                if (window.DEBUG) console.log('Form is valid, calling submitServerInterfaceSetting');
                 submitServerInterfaceSetting();
             } else {
-                console.log('Form is not valid');
+                if (window.DEBUG) console.log('Form is not valid');
             }
             return false;
         });
