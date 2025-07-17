@@ -82,6 +82,7 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	inb := map[string]interface{}{
 		"tag":      "wg-in",
 		"protocol": "wireguard",
+		"port":     51820, // Add port for WireGuard inbound
 		"settings": map[string]interface{}{
 			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"privateKey": tunnel.WGConfig.LocalPrivateKey,
