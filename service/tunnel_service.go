@@ -154,7 +154,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"outbounds": []interface{}{ob, map[string]interface{}{"tag": "direct", "protocol": "freedom"}},
 		"routing": map[string]interface{}{
 			"rules": []interface{}{
-				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "domain": []string{"geosite:ir"}, "outboundTag": "direct"},
+				// Remove geosite:ir rule that requires geosite.dat
+				// Instead, route all traffic through V2Ray outbound
 				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "outboundTag": "v2-out"},
 			},
 		},
