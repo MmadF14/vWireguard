@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -231,6 +232,44 @@ func StartTunnel(db store.IStore, id string) error {
 					t.Status = model.TunnelStatusInactive
 					db.SaveTunnel(t)
 				}
+			}
+		}
+	}
+
+	// For V2Ray tunnels, ensure configuration and service files exist
+	if tunnel.Type == model.TunnelTypeWireGuardToV2ray {
+		// Check if config file exists
+		cfgPath := filepath.Join("/etc/vwireguard/tunnels", fmt.Sprintf("%s.json", tunnel.ID))
+		servicePath := filepath.Join("/etc/systemd/system", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID))
+
+		// If either file doesn't exist, recreate them
+		if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+			// Config file doesn't exist, recreate both files
+			log.Printf("V2Ray tunnel configuration or service file missing, recreating for tunnel %s", tunnel.ID)
+
+			// Generate V2Ray configuration
+			cfg, err := GenerateXrayConfig(&tunnel)
+			if err != nil {
+				return fmt.Errorf("failed to generate V2Ray configuration: %v", err)
+			}
+
+			// Write configuration and service files
+			if err := WriteConfigAndService(&tunnel, cfg); err != nil {
+				return fmt.Errorf("failed to write V2Ray configuration and service: %v", err)
+			}
+		} else if _, err := os.Stat(servicePath); os.IsNotExist(err) {
+			// Service file doesn't exist, recreate both files
+			log.Printf("V2Ray tunnel service file missing, recreating for tunnel %s", tunnel.ID)
+
+			// Generate V2Ray configuration
+			cfg, err := GenerateXrayConfig(&tunnel)
+			if err != nil {
+				return fmt.Errorf("failed to generate V2Ray configuration: %v", err)
+			}
+
+			// Write configuration and service files
+			if err := WriteConfigAndService(&tunnel, cfg); err != nil {
+				return fmt.Errorf("failed to write V2Ray configuration and service: %v", err)
 			}
 		}
 	}
