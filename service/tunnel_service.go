@@ -102,6 +102,10 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		if vc.Flow != "" {
 			user["flow"] = vc.Flow
 		}
+		// Add encryption field for VLESS
+		if vc.Protocol == "vless" {
+			user["encryption"] = "none"
+		}
 		ob["settings"] = map[string]interface{}{
 			"vnext": []map[string]interface{}{
 				{
