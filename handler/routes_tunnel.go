@@ -478,6 +478,30 @@ func DisableTunnel(db store.IStore) echo.HandlerFunc {
 	}
 }
 
+// TestTunnel tests if a tunnel is working properly
+func TestTunnel(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		tunnelID := c.Param("id")
+
+		// Get tunnel
+		tunnel, err := db.GetTunnelByID(tunnelID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Tunnel not found"})
+		}
+
+		// Test based on tunnel type
+		switch tunnel.Type {
+		case model.TunnelTypeWireGuardToV2ray:
+			if err := service.TestV2RayTunnel(tunnelID); err != nil {
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Tunnel test failed: %v", err)})
+			}
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "V2Ray tunnel test successful"})
+		default:
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Tunnel type not supported for testing"})
+		}
+	}
+}
+
 // StartTunnel handler starts a tunnel
 func StartTunnel(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {

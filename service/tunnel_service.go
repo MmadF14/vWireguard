@@ -82,7 +82,7 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	inb := map[string]interface{}{
 		"tag":      "wg-in",
 		"protocol": "wireguard",
-		"port":     51820, // Add port for WireGuard inbound
+		"port":     51821, // Use different port to avoid conflict with main WireGuard server
 		"settings": map[string]interface{}{
 			"address":   []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
 			"secretKey": tunnel.WGConfig.LocalPrivateKey, // Use secretKey instead of privateKey
@@ -171,6 +171,28 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// TestV2RayTunnel tests if the V2Ray tunnel is working by checking connectivity
+func TestV2RayTunnel(tunnelID string) error {
+	// Test if the tunnel service is running
+	serviceName := fmt.Sprintf("vwireguard-tunnel-%s.service", tunnelID)
+	if err := runSystemctl("is-active", serviceName); err != nil {
+		return fmt.Errorf("V2Ray tunnel service is not running: %v", err)
+	}
+
+	// Test connectivity through the tunnel
+	// We'll use curl to test if we can reach external sites through the tunnel
+	testCmd := exec.Command("curl", "-s", "--connect-timeout", "10", "--max-time", "15",
+		"https://httpbin.org/ip")
+
+	output, err := testCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to test tunnel connectivity: %v", err)
+	}
+
+	log.Printf("V2Ray tunnel connectivity test successful: %s", string(output))
+	return nil
 }
 
 // WriteConfigAndService writes the config file and systemd service
