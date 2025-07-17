@@ -16,5 +16,6 @@ func RegisterTunnelRoutes(g *echo.Group, db store.IStore) {
 	g.POST("/:id/disable", handler.DisableTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	g.PUT("/:id/start", handler.StartTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	g.PUT("/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
+	g.POST("/:id/test", handler.TestTunnel(db), handler.ValidSession, handler.ContentTypeJson)
 	g.GET("/health/stream", handler.TunnelHealthStream(), handler.ValidSession)
 }
