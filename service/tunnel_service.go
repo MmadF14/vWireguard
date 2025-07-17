@@ -84,8 +84,8 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"protocol": "wireguard",
 		"port":     51820, // Add port for WireGuard inbound
 		"settings": map[string]interface{}{
-			"address":    []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
-			"privateKey": tunnel.WGConfig.LocalPrivateKey,
+			"address":   []string{fmt.Sprintf("%s/32", tunnel.WGConfig.TunnelIP)},
+			"secretKey": tunnel.WGConfig.LocalPrivateKey, // Use secretKey instead of privateKey
 			// For V2Ray tunnels, we don't need peers since we're not connecting to a WireGuard server
 			// The WireGuard interface is just for local traffic routing
 		},
