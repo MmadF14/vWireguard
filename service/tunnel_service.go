@@ -288,8 +288,11 @@ func StartTunnel(db store.IStore, id string) error {
 	// For V2Ray tunnels, ensure configuration and service files exist
 	if tunnel.Type == model.TunnelTypeWireGuardToV2ray {
 		// Load TUN module for WireGuard inbound
+		log.Printf("Attempting to load TUN module for V2Ray tunnel %s", tunnel.ID)
 		if err := loadTunModule(); err != nil {
 			log.Printf("Warning: Failed to load TUN module: %v", err)
+		} else {
+			log.Printf("Successfully loaded TUN module for V2Ray tunnel %s", tunnel.ID)
 		}
 
 		// Check if config file exists
