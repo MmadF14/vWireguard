@@ -25,6 +25,28 @@ func runSystemctl(args ...string) error {
 	return nil
 }
 
+// loadTunModule loads the TUN kernel module if not already loaded
+func loadTunModule() error {
+	// Check if TUN module is already loaded
+	cmd := exec.Command("lsmod")
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to check loaded modules: %v", err)
+	}
+
+	if strings.Contains(string(output), "tun") {
+		return nil // TUN module is already loaded
+	}
+
+	// Load TUN module
+	cmd = exec.Command("modprobe", "tun")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to load TUN module: %v", err)
+	}
+
+	return nil
+}
+
 // GenerateXrayConfig builds an Xray config for WireGuard->V2Ray tunnels
 func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 	if tunnel == nil {
@@ -159,8 +181,7 @@ func GenerateXrayConfig(tunnel *model.Tunnel) (string, error) {
 		"outbounds": []interface{}{ob, map[string]interface{}{"tag": "direct", "protocol": "freedom"}},
 		"routing": map[string]interface{}{
 			"rules": []interface{}{
-				// Remove geosite:ir rule that requires geosite.dat
-				// Instead, route all traffic through V2Ray outbound
+				// Route all WireGuard inbound traffic through V2Ray outbound
 				map[string]interface{}{"type": "field", "inboundTag": []string{"wg-in"}, "outboundTag": "v2-out"},
 			},
 		},
@@ -266,6 +287,11 @@ func StartTunnel(db store.IStore, id string) error {
 
 	// For V2Ray tunnels, ensure configuration and service files exist
 	if tunnel.Type == model.TunnelTypeWireGuardToV2ray {
+		// Load TUN module for WireGuard inbound
+		if err := loadTunModule(); err != nil {
+			log.Printf("Warning: Failed to load TUN module: %v", err)
+		}
+
 		// Check if config file exists
 		cfgPath := filepath.Join("/etc/vwireguard/tunnels", fmt.Sprintf("%s.json", tunnel.ID))
 		servicePath := filepath.Join("/etc/systemd/system", fmt.Sprintf("vwireguard-tunnel-%s.service", tunnel.ID))
