@@ -219,12 +219,8 @@ func (o *JsonDB) GetUserByName(username string) (model.User, error) {
 }
 
 // SaveUser func to save user in the database
+// This method works as an Upsert: Update if exists, Create if new
 func (o *JsonDB) SaveUser(user model.User) error {
-	// بررسی وجود کاربر با نام مشابه
-	if _, err := o.GetUserByName(user.Username); err == nil {
-		return fmt.Errorf("user with username %s already exists", user.Username)
-	}
-
 	userPath := path.Join(path.Join(o.dbPath, "users"), user.Username+".json")
 	output := o.conn.Write("users", user.Username, user)
 	if output != nil {
