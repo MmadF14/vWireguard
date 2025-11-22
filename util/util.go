@@ -65,15 +65,38 @@ func BuildClientConfig(client model.Client, server model.Server, setting model.G
 		peerAllowedIPs = "AllowedIPs = 0.0.0.0/0\n"
 	}
 
+	// Relay Logic: If RelayEndpoint is set, use it as endpoint but keep main server's public key
 	desiredHost := setting.EndpointAddress
 	desiredPort := server.Interface.ListenPort
-	if strings.Contains(desiredHost, ":") {
-		split := strings.Split(desiredHost, ":")
-		desiredHost = split[0]
-		if n, err := strconv.Atoi(split[1]); err == nil {
-			desiredPort = n
-		} else {
-			log.Error("Endpoint appears to be incorrectly formatted: ", err)
+
+	// Check if relay endpoint is configured
+	if setting.RelayEndpoint != "" {
+		// Use relay endpoint as the connection endpoint
+		relayHost := setting.RelayEndpoint
+		relayPort := server.Interface.ListenPort
+
+		// Parse relay endpoint if it contains port
+		if strings.Contains(relayHost, ":") {
+			split := strings.Split(relayHost, ":")
+			relayHost = split[0]
+			if n, err := strconv.Atoi(split[1]); err == nil {
+				relayPort = n
+			} else {
+				log.Error("Relay endpoint appears to be incorrectly formatted: ", err)
+			}
+		}
+		desiredHost = relayHost
+		desiredPort = relayPort
+	} else {
+		// Fallback to default endpoint address
+		if strings.Contains(desiredHost, ":") {
+			split := strings.Split(desiredHost, ":")
+			desiredHost = split[0]
+			if n, err := strconv.Atoi(split[1]); err == nil {
+				desiredPort = n
+			} else {
+				log.Error("Endpoint appears to be incorrectly formatted: ", err)
+			}
 		}
 	}
 	peerEndpoint := fmt.Sprintf("Endpoint = %s:%d\n", desiredHost, desiredPort)

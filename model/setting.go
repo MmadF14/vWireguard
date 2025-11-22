@@ -7,6 +7,7 @@ import (
 // GlobalSetting model
 type GlobalSetting struct {
 	EndpointAddress     string    `json:"endpoint_address"`
+	RelayEndpoint       string    `json:"relay_endpoint"`
 	DNSServers          []string  `json:"dns_servers"`
 	MTU                 int       `json:"mtu,string"`
 	PersistentKeepalive int       `json:"persistent_keepalive,string"`

@@ -341,6 +341,12 @@ func main() {
 		app.Add(route.Method, route.Path, route.Handler(db), route.Middleware...)
 	}
 
+	// Register API v1 routes (public, no session required)
+	apiGroup := app.Group(util.BasePath + "/api/v1")
+	apiGroup.POST("/login", handler.APILogin(db))
+	apiGroup.POST("/connect", handler.APIConnect(db))
+	apiGroup.POST("/status", handler.APIStatus(db))
+
 	// Register public routes
 	app.GET(util.BasePath+"/health", handler.Health())
 	app.GET(util.BasePath+"/favicon.ico", handler.Favicon())
