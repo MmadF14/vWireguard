@@ -1720,16 +1720,30 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		}
 
 		// First try to add new peers without disrupting active ones
+		// Note: wg addconf and wg syncconf cannot modify [Interface] section,
+		// so they will fail if interface configuration changed. This is expected.
 		addCmd := exec.Command("sudo", "wg", "addconf", interfaceName, settings.ConfigFilePath)
 		addOutput, addErr := addCmd.CombinedOutput()
 		if addErr != nil {
-			log.Printf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, string(addOutput))
+			// Check if error is about Interface section (expected when interface config changes)
+			outputStr := string(addOutput)
+			if strings.Contains(outputStr, "Address") || strings.Contains(outputStr, "Interface") {
+				log.Debugf("wg addconf skipped (interface config changed): %s. Using service restart", outputStr)
+			} else {
+				log.Debugf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, outputStr)
+			}
 
 			// If adding fails, fall back to syncing the entire configuration
 			syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
 			syncOutput, syncErr := syncCmd.CombinedOutput()
 			if syncErr != nil {
-				log.Printf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, string(syncOutput))
+				// Check if error is about Interface section (expected when interface config changes)
+				outputStr := string(syncOutput)
+				if strings.Contains(outputStr, "Address") || strings.Contains(outputStr, "Interface") {
+					log.Debugf("wg syncconf skipped (interface config changed): %s. Using service restart", outputStr)
+				} else {
+					log.Debugf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, outputStr)
+				}
 
 				// Restart WireGuard service as a fallback
 				serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
