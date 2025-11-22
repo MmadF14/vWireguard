@@ -48,6 +48,34 @@ type APIStatusResponse struct {
 	Expired          bool      `json:"expired"`
 }
 
+// AdminCreateClientRequest represents the request for admin create client endpoint
+type AdminCreateClientRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Token    string `json:"token"`
+}
+
+// AdminCreateClientResponse represents the response for admin create client endpoint
+type AdminCreateClientResponse struct {
+	Status string `json:"status"`
+	Config string `json:"config"`
+}
+
+// AdminUpdateClientRequest represents the request for admin update client endpoint
+type AdminUpdateClientRequest struct {
+	Username   string `json:"username"`
+	AddDays    int    `json:"add_days"`
+	ResetQuota bool   `json:"reset_quota"`
+	Token      string `json:"token"`
+}
+
+// AdminUpdateClientResponse represents the response for admin update client endpoint
+type AdminUpdateClientResponse struct {
+	Status        string    `json:"status"`
+	NewExpiration time.Time `json:"new_expiration"`
+	Message       string    `json:"message"`
+}
+
 // APILogin handles POST /api/v1/login
 func APILogin(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -441,4 +469,314 @@ func createClientForUser(db store.IStore, user *model.User) (*model.Client, erro
 
 	log.Infof("Created WireGuard client for API user: %s (ID: %s)", user.Username, clientID)
 	return &client, nil
+}
+
+// verifyAdminToken verifies that the token belongs to an admin user
+func verifyAdminToken(db store.IStore, token string) (*model.User, error) {
+	if token == "" {
+		return nil, fmt.Errorf("token is required")
+	}
+
+	users, err := db.GetUsers()
+	if err != nil {
+		return nil, fmt.Errorf("cannot query users: %v", err)
+	}
+
+	var user *model.User
+	for _, u := range users {
+		if u.APIToken == token {
+			user = &u
+			break
+		}
+	}
+
+	if user == nil {
+		return nil, fmt.Errorf("invalid token")
+	}
+
+	// Check token expiration
+	if !user.TokenExpire.IsZero() && time.Now().UTC().After(user.TokenExpire) {
+		return nil, fmt.Errorf("token expired")
+	}
+
+	// Check if user is admin
+	if user.Role != model.RoleAdmin {
+		return nil, fmt.Errorf("user is not an admin")
+	}
+
+	return user, nil
+}
+
+// APIAdminCreateClient handles POST /api/v1/admin/create-client
+func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req AdminCreateClientRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Invalid request format",
+			})
+		}
+
+		// Validate required fields
+		if req.Username == "" || req.Email == "" || req.Token == "" {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Username, email, and token are required",
+			})
+		}
+
+		// Verify admin token
+		adminUser, err := verifyAdminToken(db, req.Token)
+		if err != nil {
+			return c.JSON(http.StatusForbidden, map[string]interface{}{
+				"status":  "error",
+				"message": err.Error(),
+			})
+		}
+		_ = adminUser // Admin user verified
+
+		// Check if client already exists
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get clients",
+			})
+		}
+
+		var existingClient *model.Client
+		for _, clientData := range clients {
+			if clientData.Client != nil && clientData.Client.Name == req.Username {
+				existingClient = clientData.Client
+				break
+			}
+		}
+
+		if existingClient != nil {
+			// Return existing client config
+			server, err := db.GetServer()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"status":  "error",
+					"message": "Cannot get server configuration",
+				})
+			}
+
+			globalSettings, err := db.GetGlobalSettings()
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"status":  "error",
+					"message": "Cannot get global settings",
+				})
+			}
+
+			config := util.BuildClientConfig(*existingClient, server, globalSettings)
+			return c.JSON(http.StatusOK, AdminCreateClientResponse{
+				Status: "success",
+				Config: config,
+			})
+		}
+
+		// Get server configuration
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get server configuration",
+			})
+		}
+
+		// Generate client ID
+		clientID := xid.New().String()
+
+		// Generate WireGuard key pair
+		key, err := wgtypes.GeneratePrivateKey()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot generate WireGuard key pair",
+			})
+		}
+
+		// Generate preshared key
+		presharedKey, err := wgtypes.GenerateKey()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot generate preshared key",
+			})
+		}
+
+		// Get available IP
+		allocatedIPs, err := util.GetAllocatedIPs("")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get allocated IPs",
+			})
+		}
+
+		// Suggest an IP from the first available subnet
+		var allocatedIP string
+		if len(server.Interface.Addresses) > 0 {
+			ip, err := util.GetAvailableIP(server.Interface.Addresses[0], allocatedIPs, server.Interface.Addresses)
+			if err != nil {
+				return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+					"status":  "error",
+					"message": fmt.Sprintf("Cannot get available IP: %v", err),
+				})
+			}
+			// Format as CIDR
+			if strings.Contains(ip, ":") {
+				allocatedIP = fmt.Sprintf("%s/128", ip)
+			} else {
+				allocatedIP = fmt.Sprintf("%s/32", ip)
+			}
+		} else {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Server has no interface addresses configured",
+			})
+		}
+
+		// Create client with 1-day trial
+		now := time.Now().UTC()
+		client := model.Client{
+			ID:           clientID,
+			PrivateKey:   key.String(),
+			PublicKey:    key.PublicKey().String(),
+			PresharedKey: presharedKey.String(),
+			Name:         req.Username,
+			Email:        req.Email,
+			AllocatedIPs: []string{allocatedIP},
+			AllowedIPs:   []string{"0.0.0.0/0"}, // Default: route all traffic
+			UseServerDNS: true,
+			Enabled:      true,
+			CreatedBy:    "admin-api",
+			CreatedAt:    now,
+			UpdatedAt:    now,
+			Expiration:   now.Add(24 * time.Hour), // 1 Day trial
+			Quota:        0,                       // Unlimited
+		}
+
+		// Save client
+		if err := db.SaveClient(client); err != nil {
+			log.Error("Cannot save client: ", err)
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Failed to save client",
+			})
+		}
+
+		// Get global settings for config generation
+		globalSettings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get global settings",
+			})
+		}
+
+		// Generate WireGuard config
+		config := util.BuildClientConfig(client, server, globalSettings)
+
+		log.Infof("Admin created WireGuard client: %s (ID: %s, Trial: 1 day)", req.Username, clientID)
+		return c.JSON(http.StatusOK, AdminCreateClientResponse{
+			Status: "success",
+			Config: config,
+		})
+	}
+}
+
+// APIAdminUpdateClient handles POST /api/v1/admin/update-client
+func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req AdminUpdateClientRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Invalid request format",
+			})
+		}
+
+		// Validate required fields
+		if req.Username == "" || req.Token == "" {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Username and token are required",
+			})
+		}
+
+		// Verify admin token
+		adminUser, err := verifyAdminToken(db, req.Token)
+		if err != nil {
+			return c.JSON(http.StatusForbidden, map[string]interface{}{
+				"status":  "error",
+				"message": err.Error(),
+			})
+		}
+		_ = adminUser // Admin user verified
+
+		// Find client by username
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get clients",
+			})
+		}
+
+		var client *model.Client
+		for _, clientData := range clients {
+			if clientData.Client != nil && clientData.Client.Name == req.Username {
+				client = clientData.Client
+				break
+			}
+		}
+
+		if client == nil {
+			return c.JSON(http.StatusNotFound, map[string]interface{}{
+				"status":  "error",
+				"message": fmt.Sprintf("Client with username %s not found", req.Username),
+			})
+		}
+
+		now := time.Now().UTC()
+
+		// Update expiration if AddDays > 0
+		if req.AddDays > 0 {
+			// Determine base time: if expired, use now; otherwise use current expiration
+			baseTime := client.Expiration
+			if client.Expiration.IsZero() || now.After(client.Expiration) {
+				baseTime = now
+			}
+			client.Expiration = baseTime.Add(time.Duration(req.AddDays) * 24 * time.Hour)
+		}
+
+		// Reset quota if requested
+		if req.ResetQuota {
+			client.UsedQuota = 0
+		}
+
+		// Ensure client is enabled
+		client.Enabled = true
+		client.UpdatedAt = now
+
+		// Save updated client
+		if err := db.SaveClient(*client); err != nil {
+			log.Error("Cannot save updated client: ", err)
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Failed to update client",
+			})
+		}
+
+		log.Infof("Admin updated WireGuard client: %s (ID: %s, AddDays: %d, ResetQuota: %v)", req.Username, client.ID, req.AddDays, req.ResetQuota)
+		return c.JSON(http.StatusOK, AdminUpdateClientResponse{
+			Status:        "success",
+			NewExpiration: client.Expiration,
+			Message:       "Subscription extended successfully",
+		})
+	}
 }
