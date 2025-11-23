@@ -1726,6 +1726,9 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
+		// Note: For runtime peer updates (add/remove/update), the API and quota checker
+		// now use hot reloading via wgctrl (see util/wgruntime.go), which doesn't restart the service.
+		// This manual apply is mainly for interface-level changes or bulk updates.
 		// First try to add new peers without disrupting active ones
 		// Note: wg addconf and wg syncconf cannot modify [Interface] section,
 		// so they will fail if interface configuration changed. This is expected.

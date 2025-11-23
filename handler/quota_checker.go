@@ -183,12 +183,26 @@ func checkQuotasAndExpiration(db store.IStore) {
 			setLastDisableTime(client.ID)
 			log.Printf("Client %s disabled due to %s", client.Name, disableReason)
 
-			// اعمال مستقیم کانفیگ
-			if err := applyWireGuardConfig(db); err != nil {
-				log.Printf("Error applying WireGuard config after disabling client %s: %v", client.Name, err)
-				// ادامه می‌دهیم چون کلاینت در هر صورت غیرفعال شده است
+			// Get settings to determine interface name
+			settings, err := db.GetGlobalSettings()
+			if err != nil {
+				log.Printf("Error getting global settings for hot reload: %v", err)
+				continue
+			}
+
+			// Get interface name from config file path
+			interfaceName := util.GetInterfaceNameFromConfig(settings.ConfigFilePath)
+
+			// Hot Reload: Remove peer instantly without restarting service
+			if client.PublicKey != "" {
+				if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
+					log.Printf("Error removing peer via hot reload for client %s: %v", client.Name, err)
+					// Continue - client is disabled in DB even if runtime update fails
+				} else {
+					log.Printf("Client %s disconnected immediately via Hot Reload (reason: %s)", client.Name, disableReason)
+				}
 			} else {
-				log.Printf("WireGuard config applied after disabling client %s", client.Name)
+				log.Printf("Warning: Client %s has no public key, cannot remove from interface", client.Name)
 			}
 		}
 	}

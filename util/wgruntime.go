@@ -8,11 +8,12 @@ import (
 	"strconv"
 	"strings"
 
+	"net"
+	"time"
+
 	"github.com/MmadF14/vwireguard/model"
 	"golang.zx2c4.com/wireguard/wgctrl"
 	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
-	"net"
-	"time"
 )
 
 // PeerState represents relevant runtime state of a WireGuard peer
@@ -252,4 +253,122 @@ func ApplyPeerDiffs(interfaceName string, diffs []PeerDiff, settings model.Globa
 		}
 	}
 	return nil
+}
+
+// GetInterfaceNameFromConfig extracts the interface name from the config file path
+// Defaults to "wg0" if not found
+func GetInterfaceNameFromConfig(configFilePath string) string {
+	if configFilePath == "" {
+		return "wg0"
+	}
+	parts := strings.Split(configFilePath, "/")
+	if len(parts) > 0 {
+		baseName := parts[len(parts)-1]
+		return strings.TrimSuffix(baseName, ".conf")
+	}
+	return "wg0"
+}
+
+// AddPeerToInterface adds or updates a peer on the WireGuard interface using wgctrl
+// This is a hot-reload operation that doesn't restart the service
+func AddPeerToInterface(client model.Client, server model.Server, settings model.GlobalSetting, interfaceName string) error {
+	if interfaceName == "" {
+		interfaceName = GetInterfaceNameFromConfig(settings.ConfigFilePath)
+	}
+
+	wgClient, err := wgctrl.New()
+	if err != nil {
+		return fmt.Errorf("failed to create wgctrl client: %v", err)
+	}
+	defer wgClient.Close()
+
+	pc, err := BuildPeerConfig(&client, settings)
+	if err != nil {
+		return fmt.Errorf("failed to build peer config: %v", err)
+	}
+
+	// Note: By default, ConfigureDevice only updates the specified peers without replacing all peers
+	// This is the append mode behavior we want - it won't disrupt other active peers
+	config := wgtypes.Config{
+		ReplacePeers: false, // Don't replace all peers, just add/update this one
+		Peers:        []wgtypes.PeerConfig{pc},
+	}
+
+	if err := wgClient.ConfigureDevice(interfaceName, config); err != nil {
+		return fmt.Errorf("failed to configure device: %v", err)
+	}
+
+	return nil
+}
+
+// RemovePeerFromInterface removes a peer from the WireGuard interface using wgctrl
+// This instantly disconnects the user without restarting the service
+func RemovePeerFromInterface(publicKey string, interfaceName string) error {
+	if interfaceName == "" {
+		interfaceName = "wg0"
+	}
+
+	wgClient, err := wgctrl.New()
+	if err != nil {
+		return fmt.Errorf("failed to create wgctrl client: %v", err)
+	}
+	defer wgClient.Close()
+
+	key, err := wgtypes.ParseKey(publicKey)
+	if err != nil {
+		return fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	// Crucial: Set Remove to true to instantly kick the user
+	pc := wgtypes.PeerConfig{
+		PublicKey: key,
+		Remove:    true,
+	}
+
+	config := wgtypes.Config{
+		Peers: []wgtypes.PeerConfig{pc},
+	}
+
+	if err := wgClient.ConfigureDevice(interfaceName, config); err != nil {
+		return fmt.Errorf("failed to remove peer: %v", err)
+	}
+
+	return nil
+}
+
+// UpdatePeerOnInterface updates a peer on the WireGuard interface
+// If client is disabled, expired, or over quota, it removes the peer
+// Otherwise, it adds/updates the peer
+func UpdatePeerOnInterface(client model.Client, server model.Server, settings model.GlobalSetting, interfaceName string) error {
+	if interfaceName == "" {
+		interfaceName = GetInterfaceNameFromConfig(settings.ConfigFilePath)
+	}
+
+	// Check if client should be removed
+	shouldRemove := false
+
+	// Check if disabled
+	if !client.Enabled {
+		shouldRemove = true
+	}
+
+	// Check if expired
+	if !shouldRemove && !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
+		shouldRemove = true
+	}
+
+	// Check if over quota
+	if !shouldRemove && client.Quota > 0 && client.UsedQuota >= client.Quota {
+		shouldRemove = true
+	}
+
+	if shouldRemove {
+		if client.PublicKey == "" {
+			return fmt.Errorf("cannot remove peer: public key is empty")
+		}
+		return RemovePeerFromInterface(client.PublicKey, interfaceName)
+	}
+
+	// Client is valid, add/update peer
+	return AddPeerToInterface(client, server, settings, interfaceName)
 }

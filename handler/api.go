@@ -250,6 +250,9 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
+		// Track if client was just created
+		clientJustCreated := false
+
 		// If client doesn't exist, create one
 		if client == nil {
 			client, err = createClientForUser(db, user)
@@ -260,6 +263,7 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 					"message": "Failed to create client configuration",
 				})
 			}
+			clientJustCreated = true
 		}
 
 		// Check if user is expired or has no bandwidth left
@@ -292,6 +296,17 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 				"status":  "error",
 				"message": "Cannot get global settings",
 			})
+		}
+
+		// Hot Reload: If client was just created, add peer to interface instantly
+		if clientJustCreated {
+			interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
+			if err := util.AddPeerToInterface(*client, server, globalSettings, interfaceName); err != nil {
+				log.Warnf("Failed to add peer via hot reload for newly created client %s: %v (client saved to DB)", client.Name, err)
+				// Continue - client is saved in DB even if runtime update fails
+			} else {
+				log.Infof("Newly created client %s added to interface via Hot Reload", client.Name)
+			}
 		}
 
 		// Generate WireGuard config using the relay logic
@@ -678,6 +693,15 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		// Hot Reload: Add peer to interface instantly without restarting service
+		interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
+		if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
+			log.Warnf("Failed to add peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+			// Continue - client is saved in DB even if runtime update fails
+		} else {
+			log.Infof("Client %s added to interface via Hot Reload", req.Username)
+		}
+
 		// Generate WireGuard config
 		config := util.BuildClientConfig(client, server, globalSettings)
 
@@ -770,6 +794,26 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 				"status":  "error",
 				"message": "Failed to update client",
 			})
+		}
+
+		// Get server and global settings for hot reload
+		server, err := db.GetServer()
+		if err != nil {
+			log.Warnf("Cannot get server config for hot reload: %v", err)
+		} else {
+			globalSettings, err := db.GetGlobalSettings()
+			if err != nil {
+				log.Warnf("Cannot get global settings for hot reload: %v", err)
+			} else {
+				// Hot Reload: Update peer on interface instantly (adds back if re-enabled, removes if disabled/expired)
+				interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
+				if err := util.UpdatePeerOnInterface(*client, server, globalSettings, interfaceName); err != nil {
+					log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+					// Continue - client is saved in DB even if runtime update fails
+				} else {
+					log.Infof("Client %s updated on interface via Hot Reload", req.Username)
+				}
+			}
 		}
 
 		log.Infof("Admin updated WireGuard client: %s (ID: %s, AddDays: %d, ResetQuota: %v)", req.Username, client.ID, req.AddDays, req.ResetQuota)
