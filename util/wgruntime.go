@@ -303,9 +303,14 @@ func AddPeerToInterface(client model.Client, server model.Server, settings model
 
 // RemovePeerFromInterface removes a peer from the WireGuard interface using wgctrl
 // This instantly disconnects the user without restarting the service
+// Returns nil if peer was removed successfully or if peer doesn't exist (idempotent)
 func RemovePeerFromInterface(publicKey string, interfaceName string) error {
 	if interfaceName == "" {
 		interfaceName = "wg0"
+	}
+
+	if publicKey == "" {
+		return fmt.Errorf("public key is empty")
 	}
 
 	wgClient, err := wgctrl.New()
@@ -314,9 +319,30 @@ func RemovePeerFromInterface(publicKey string, interfaceName string) error {
 	}
 	defer wgClient.Close()
 
+	// Check if device exists
+	device, err := wgClient.Device(interfaceName)
+	if err != nil {
+		// Device doesn't exist - this is not an error, peer is already "removed"
+		return nil
+	}
+
+	// Check if peer exists on the device
 	key, err := wgtypes.ParseKey(publicKey)
 	if err != nil {
 		return fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	peerExists := false
+	for _, peer := range device.Peers {
+		if peer.PublicKey.String() == publicKey {
+			peerExists = true
+			break
+		}
+	}
+
+	// If peer doesn't exist, consider it already removed (idempotent)
+	if !peerExists {
+		return nil
 	}
 
 	// Crucial: Set Remove to true to instantly kick the user
@@ -330,6 +356,11 @@ func RemovePeerFromInterface(publicKey string, interfaceName string) error {
 	}
 
 	if err := wgClient.ConfigureDevice(interfaceName, config); err != nil {
+		// Check if error is because peer doesn't exist (race condition)
+		// In this case, the peer was already removed, so we can ignore the error
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "does not exist") {
+			return nil
+		}
 		return fmt.Errorf("failed to remove peer: %v", err)
 	}
 

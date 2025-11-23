@@ -768,7 +768,20 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		}
 		log.Infof("Created wireguard client: %v", client)
 
-		// کانفیگ به صورت خودکار اعمال نمی‌شود
+		// Hot Reload: Add peer to interface instantly if client is enabled
+		if client.Enabled {
+			globalSettings, err := db.GetGlobalSettings()
+			if err == nil {
+				interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
+				if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
+					log.Warnf("Failed to add peer via hot reload for new client %s: %v (client saved to DB)", client.Name, err)
+					// Continue - client is saved in DB even if runtime update fails
+				} else {
+					log.Infof("New client %s added to interface via Hot Reload", client.Name)
+				}
+			}
+		}
+
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Created client successfully"})
 	}
 }
@@ -1002,7 +1015,18 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 		log.Infof("Updated client information successfully => %v", client)
 
-		// کانفیگ به صورت خودکار اعمال نمی‌شود
+		// Hot Reload: Update peer on interface instantly
+		globalSettings, err := db.GetGlobalSettings()
+		if err == nil {
+			interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
+			if err := util.UpdatePeerOnInterface(client, server, globalSettings, interfaceName); err != nil {
+				log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", client.Name, err)
+				// Continue - client is saved in DB even if runtime update fails
+			} else {
+				log.Infof("Client %s updated on interface via Hot Reload", client.Name)
+			}
+		}
+
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated client successfully"})
 	}
 }
@@ -1070,6 +1094,17 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
+		// Get server and settings for hot reload
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
+		}
+		globalSettings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
+		}
+		interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
+
 		// اگر درخواست فعال‌سازی دستی است
 		if status && !isAutomatic {
 			// بررسی شرایط فعال‌سازی
@@ -1087,6 +1122,15 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
 
+			// Hot Reload: Add peer to interface instantly
+			if client.PublicKey != "" {
+				if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
+					log.Warnf("Failed to add peer via hot reload for client %s: %v (client enabled in DB)", client.Name, err)
+				} else {
+					log.Infof("Client %s enabled and added to interface via Hot Reload", client.Name)
+				}
+			}
+
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
@@ -1096,13 +1140,12 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
-		// اگر غیرفعال‌سازی خودکار است، کانفیگ را اعمال می‌کنیم
-		if isAutomatic {
-			if err := applyWireGuardConfig(db); err != nil {
-				log.Printf("Error applying WireGuard config after automatic disable: %v", err)
-				// ادامه می‌دهیم چون کلاینت در هر صورت غیرفعال شده است
+		// Hot Reload: Remove peer from interface instantly (for both manual and automatic)
+		if client.PublicKey != "" {
+			if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
+				log.Warnf("Failed to remove peer via hot reload for client %s: %v (client disabled in DB)", client.Name, err)
 			} else {
-				log.Printf("WireGuard config applied after automatic disable of client %s", client.Name)
+				log.Infof("Client %s disabled and removed from interface via Hot Reload", client.Name)
 			}
 		}
 
@@ -1162,8 +1205,23 @@ func RemoveClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
-		// delete client from database
+		// Get client data before deletion to remove peer from interface
+		clientData, err := db.GetClientByID(client.ID, model.QRCodeSettings{Enabled: false})
+		if err == nil && clientData.Client != nil && clientData.Client.PublicKey != "" {
+			// Hot Reload: Remove peer from interface instantly before deleting from DB
+			settings, err := db.GetGlobalSettings()
+			if err == nil {
+				interfaceName := util.GetInterfaceNameFromConfig(settings.ConfigFilePath)
+				if err := util.RemovePeerFromInterface(clientData.Client.PublicKey, interfaceName); err != nil {
+					log.Warnf("Failed to remove peer via hot reload for client %s: %v (will continue with DB deletion)", clientData.Client.Name, err)
+					// Continue - we'll still delete from DB even if runtime update fails
+				} else {
+					log.Infof("Client %s removed from interface via Hot Reload", clientData.Client.Name)
+				}
+			}
+		}
 
+		// delete client from database
 		if err := db.DeleteClient(client.ID); err != nil {
 			log.Error("Cannot delete wireguard client: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot delete client from database"})
@@ -1729,34 +1787,27 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		// Note: For runtime peer updates (add/remove/update), the API and quota checker
 		// now use hot reloading via wgctrl (see util/wgruntime.go), which doesn't restart the service.
 		// This manual apply is mainly for interface-level changes or bulk updates.
-		// First try to add new peers without disrupting active ones
-		// Note: wg addconf and wg syncconf cannot modify [Interface] section,
-		// so they will fail if interface configuration changed. This is expected.
-		addCmd := exec.Command("sudo", "wg", "addconf", interfaceName, settings.ConfigFilePath)
-		addOutput, addErr := addCmd.CombinedOutput()
-		if addErr != nil {
+		// Try to use wg syncconf for zero-downtime updates (only updates peers, not interface settings)
+		// Note: wg syncconf cannot modify [Interface] section (Address, ListenPort, PrivateKey, etc.),
+		// so it will fail if interface configuration changed. In that case, we must restart the service.
+		syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
+		syncOutput, syncErr := syncCmd.CombinedOutput()
+		if syncErr != nil {
 			// Check if error is about Interface section (expected when interface config changes)
-			outputStr := string(addOutput)
-			if strings.Contains(outputStr, "Address") || strings.Contains(outputStr, "Interface") {
-				log.Debugf("wg addconf skipped (interface config changed): %s. Using service restart", outputStr)
+			outputStr := string(syncOutput)
+			interfaceConfigChanged := strings.Contains(outputStr, "Address") || 
+				strings.Contains(outputStr, "Interface") || 
+				strings.Contains(outputStr, "ListenPort") ||
+				strings.Contains(outputStr, "PrivateKey")
+			
+			if interfaceConfigChanged {
+				log.Infof("Interface configuration changed, service restart required: %s", outputStr)
 			} else {
-				log.Debugf("wg addconf failed: %v, output: %s. Falling back to full syncconf", addErr, outputStr)
+				log.Warnf("wg syncconf failed (non-interface error): %v, output: %s. Falling back to service restart", syncErr, outputStr)
 			}
 
-			// If adding fails, fall back to syncing the entire configuration
-			syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
-			syncOutput, syncErr := syncCmd.CombinedOutput()
-			if syncErr != nil {
-				// Check if error is about Interface section (expected when interface config changes)
-				outputStr := string(syncOutput)
-				if strings.Contains(outputStr, "Address") || strings.Contains(outputStr, "Interface") {
-					log.Debugf("wg syncconf skipped (interface config changed): %s. Using service restart", outputStr)
-				} else {
-					log.Debugf("wg syncconf failed: %v, output: %s. Falling back to service restart", syncErr, outputStr)
-				}
-
-				// Restart WireGuard service as a fallback
-				serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
+			// Restart WireGuard service as a fallback (only if syncconf failed)
+			serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 
 				// Try different service names if the first one fails
 				serviceNames := []string{
@@ -1767,33 +1818,35 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 					"wireguard",
 				}
 
-				var restartSuccess bool
-				var lastError error
-				var lastOutput string
+			var restartSuccess bool
+			var lastError error
+			var lastOutput string
 
-				for _, svcName := range serviceNames {
-					cmd := exec.Command("sudo", "systemctl", "restart", svcName)
-					output, err := cmd.CombinedOutput()
-					if err == nil {
-						// Check if service is active
-						checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
-						status, err := checkCmd.CombinedOutput()
-						if err == nil && strings.TrimSpace(string(status)) == "active" {
-							restartSuccess = true
-							break
-						}
+			for _, svcName := range serviceNames {
+				cmd := exec.Command("sudo", "systemctl", "restart", svcName)
+				output, err := cmd.CombinedOutput()
+				if err == nil {
+					// Check if service is active
+					checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
+					status, err := checkCmd.CombinedOutput()
+					if err == nil && strings.TrimSpace(string(status)) == "active" {
+						restartSuccess = true
+						log.Infof("WireGuard service restarted successfully: %s", svcName)
+						break
 					}
-					lastError = err
-					lastOutput = string(output)
 				}
-
-				if !restartSuccess {
-					log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
-					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-						false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
-					})
-				}
+				lastError = err
+				lastOutput = string(output)
 			}
+
+			if !restartSuccess {
+				log.Error("Cannot restart WireGuard service: ", lastError, ", Output: ", lastOutput)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
+					false, fmt.Sprintf("Cannot restart WireGuard service: %v. Please check if WireGuard is installed and running.", lastError),
+				})
+			}
+		} else {
+			log.Infof("Configuration applied successfully using wg syncconf (zero downtime)")
 		}
 
 		err = util.UpdateHashes(db)
