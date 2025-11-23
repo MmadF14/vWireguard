@@ -512,7 +512,10 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 					if lastSeen.IsZero() && clientData.Client.PersistentUsageData != nil {
 						lastSeen = clientData.Client.PersistentUsageData.LastSeen
 					}
-					clientData.Client.LastHandshake = lastSeen
+					// Only set LastHandshake if it's not zero, otherwise leave it as zero (will be null in JSON)
+					if !lastSeen.IsZero() {
+						clientData.Client.LastHandshake = lastSeen
+					}
 
 					// Update persistent usage data
 					if clientData.Client.PersistentUsageData == nil {
@@ -564,10 +567,14 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 					// Use persistent data if available
 					if clientData.Client.PersistentUsageData != nil {
 						clientData.Client.UsedQuota = int64(clientData.Client.PersistentUsageData.TotalBytesReceived + clientData.Client.PersistentUsageData.TotalBytesSent)
-						clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
+						// Only set LastHandshake if LastSeen is not zero
+						if !clientData.Client.PersistentUsageData.LastSeen.IsZero() {
+							clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
+						}
 					} else {
 						clientData.Client.UsedQuota = 0
-
+						// Ensure LastHandshake is zero (will be null in JSON)
+						clientData.Client.LastHandshake = time.Time{}
 					}
 				}
 

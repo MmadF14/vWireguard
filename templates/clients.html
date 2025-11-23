@@ -539,8 +539,15 @@ function createClientCard(client) {
     const usedQuotaText = formatBytes(usedQuota);
     const quotaProgress = clientData.quota ? Math.min((usedQuota / clientData.quota) * 100, 100) : 0;
     
-    // Last seen display
-    const lastSeen = clientData.last_handshake ? new Date(clientData.last_handshake) : null;
+    // Last seen display - handle null, empty, or invalid dates
+    let lastSeen = null;
+    if (clientData.last_handshake) {
+        const date = new Date(clientData.last_handshake);
+        // Check if date is valid and not from epoch (1970) or before 2020
+        if (!isNaN(date.getTime()) && date.getFullYear() >= 2020) {
+            lastSeen = date;
+        }
+    }
     const lastSeenText = lastSeen ? formatLastSeen(lastSeen) : 'Never';
     
     return `

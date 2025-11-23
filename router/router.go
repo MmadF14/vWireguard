@@ -154,11 +154,6 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 		log.Fatal(err)
 	}
 
-	tmplTunnelsString, err := util.StringFromEmbedFile(tmplDir, "tunnels.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// create template list
 	funcs := template.FuncMap{
 		"StringsJoin": strings.Join,
@@ -215,7 +210,6 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	templates["about.html"] = template.Must(template.New("about").Funcs(funcs).Parse(tmplBaseString + aboutPageString))
 	templates["system_monitor.html"] = template.Must(template.New("system_monitor").Funcs(funcs).Parse(tmplBaseString + tmplSystemMonitorString))
 	templates["utilities.html"] = template.Must(template.New("utilities").Funcs(funcs).Parse(tmplBaseString + tmplUtilitiesString))
-	templates["tunnels.html"] = template.Must(template.New("tunnels").Funcs(funcs).Parse(tmplBaseString + tmplTunnelsString))
 
 	lvl, err := util.ParseLogLevel(util.LookupEnvOrString(util.LogLevel, "INFO"))
 	if err != nil {

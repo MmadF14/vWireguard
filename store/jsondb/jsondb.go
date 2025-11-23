@@ -40,7 +40,6 @@ func (o *JsonDB) Init() error {
 	var serverPath = path.Join(o.dbPath, "server")
 	var userPath = path.Join(o.dbPath, "users")
 	var wakeOnLanHostsPath = path.Join(o.dbPath, "wake_on_lan_hosts")
-	var tunnelsPath = path.Join(o.dbPath, "tunnels")
 	var serverInterfacePath = path.Join(serverPath, "interfaces.json")
 	var serverKeyPairPath = path.Join(serverPath, "keypair.json")
 	var globalSettingPath = path.Join(serverPath, "global_settings.json")
@@ -59,17 +58,31 @@ func (o *JsonDB) Init() error {
 	if _, err := os.Stat(wakeOnLanHostsPath); os.IsNotExist(err) {
 		os.MkdirAll(wakeOnLanHostsPath, os.ModePerm)
 	}
-	if _, err := os.Stat(tunnelsPath); os.IsNotExist(err) {
-		os.MkdirAll(tunnelsPath, os.ModePerm)
-	}
 
 	// server's interface
 	if _, err := os.Stat(serverInterfacePath); os.IsNotExist(err) {
 		serverInterface := new(model.ServerInterface)
 		serverInterface.Addresses = util.LookupEnvOrStrings(util.ServerAddressesEnvVar, []string{util.DefaultServerAddress})
 		serverInterface.ListenPort = util.LookupEnvOrInt(util.ServerListenPortEnvVar, util.DefaultServerPort)
-		serverInterface.PostUp = util.LookupEnvOrString(util.ServerPostUpScriptEnvVar, "")
-		serverInterface.PostDown = util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, "")
+		
+		// Get default interface name for NAT masquerading
+		defaultInterface := util.GetDefaultInterfaceName()
+		
+		// Set default PostUp and PostDown scripts with NAT masquerading if not provided via env
+		postUp := util.LookupEnvOrString(util.ServerPostUpScriptEnvVar, "")
+		if postUp == "" {
+			// Default PostUp: Enable forwarding and NAT masquerading
+			postUp = fmt.Sprintf("iptables -A FORWARD -i %%i -j ACCEPT; iptables -A FORWARD -o %%i -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE", defaultInterface)
+		}
+		
+		postDown := util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, "")
+		if postDown == "" {
+			// Default PostDown: Remove forwarding and NAT masquerading rules
+			postDown = fmt.Sprintf("iptables -D FORWARD -i %%i -j ACCEPT; iptables -D FORWARD -o %%i -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE", defaultInterface)
+		}
+		
+		serverInterface.PostUp = postUp
+		serverInterface.PostDown = postDown
 		serverInterface.UpdatedAt = time.Now().UTC()
 		o.conn.Write("server", "interfaces", serverInterface)
 		err := util.ManagePerms(serverInterfacePath)

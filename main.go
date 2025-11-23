@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -314,25 +315,6 @@ func main() {
 	app.PUT(util.BasePath+"/wake_on_lan_host/:mac_address", handler.WakeOnHost(db), handler.ValidSession, handler.ContentTypeJson)
 	app.POST(util.BasePath+"/api/terminate-client", handler.TerminateClient(db, tmplDir), handler.ValidSession, handler.ContentTypeJson)
 
-	// Tunnel routes
-	app.GET(util.BasePath+"/tunnels", handler.TunnelsPage(db), handler.ValidSession, handler.RefreshSession)
-	app.GET(util.BasePath+"/api/tunnels", handler.GetTunnels(db), handler.ValidSession)
-	app.GET(util.BasePath+"/api/tunnel/:id", handler.GetTunnel(db), handler.ValidSession)
-	app.POST(util.BasePath+"/api/tunnel", handler.NewTunnel(db), handler.ValidSession, handler.ContentTypeJson)
-	app.PUT(util.BasePath+"/api/tunnel/:id", handler.UpdateTunnel(db), handler.ValidSession, handler.ContentTypeJson)
-	app.DELETE(util.BasePath+"/api/tunnel/:id", handler.DeleteTunnel(db), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/tunnel/:id/start", handler.StartTunnel(db), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/tunnel/:id/stop", handler.StopTunnel(db), handler.ValidSession, handler.ContentTypeJson)
-	app.GET(util.BasePath+"/api/tunnel/:id/stats", handler.GetTunnelStats(db), handler.ValidSession)
-	app.POST(util.BasePath+"/api/tunnel/:id/status", handler.SetTunnelStatus(db), handler.ValidSession, handler.ContentTypeJson)
-	app.GET(util.BasePath+"/api/tunnel/types", handler.GetTunnelTypes(), handler.ValidSession)
-	app.POST(util.BasePath+"/api/tunnel/generate-keypair", handler.GenerateKeypair(), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/tunnel/generate-preshared-key", handler.GeneratePreSharedKey(), handler.ValidSession, handler.ContentTypeJson)
-	app.POST(util.BasePath+"/api/tunnel/cleanup", handler.CleanupTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
-	app.DELETE(util.BasePath+"/api/tunnel/cleanup/all", handler.DeleteAllTunnels(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
-
-	tunnelGroup := app.Group(util.BasePath + "/api/tunnels")
-	router.RegisterTunnelRoutes(tunnelGroup, db)
 	utilsGroup := app.Group(util.BasePath + "/api/utils")
 	router.RegisterUtilsRoutes(utilsGroup, db)
 
@@ -346,7 +328,7 @@ func main() {
 	apiGroup.POST("/login", handler.APILogin(db))
 	apiGroup.POST("/connect", handler.APIConnect(db))
 	apiGroup.POST("/status", handler.APIStatus(db))
-	
+
 	// Register Admin API routes (require admin token)
 	apiGroup.POST("/admin/create-client", handler.APIAdminCreateClient(db))
 	apiGroup.POST("/admin/update-client", handler.APIAdminUpdateClient(db))
@@ -395,6 +377,25 @@ func initServerConfig(db store.IStore, tmplDir fs.FS) {
 	err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 	if err != nil {
 		log.Fatalf("Cannot create server config: %v", err)
+	}
+}
+
+// enableIPForwarding enables IP forwarding for IPv4 and IPv6
+func enableIPForwarding() {
+	// Enable IPv4 forwarding
+	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
+	if err := cmd.Run(); err != nil {
+		log.Warnf("Failed to enable IPv4 forwarding (may require root): %v", err)
+	} else {
+		log.Info("IPv4 forwarding enabled")
+	}
+
+	// Enable IPv6 forwarding
+	cmd = exec.Command("sysctl", "-w", "net.ipv6.conf.all.forwarding=1")
+	if err := cmd.Run(); err != nil {
+		log.Warnf("Failed to enable IPv6 forwarding (may require root): %v", err)
+	} else {
+		log.Info("IPv6 forwarding enabled")
 	}
 }
 

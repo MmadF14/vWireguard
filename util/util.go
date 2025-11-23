@@ -287,6 +287,59 @@ func GetIPFromCIDR(cidr string) (string, error) {
 	return ip.String(), nil
 }
 
+// GetDefaultInterfaceName detects the default network interface name
+// Returns the interface name that has the default route, or "eth0" as fallback
+func GetDefaultInterfaceName() string {
+	// Try to get default route interface
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return "eth0"
+	}
+
+	// Look for non-loopback, up interfaces with IPv4 addresses
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip != nil && ip.To4() != nil && !ip.IsLoopback() {
+				// Prefer common interface names
+				if iface.Name == "eth0" || iface.Name == "ens3" || iface.Name == "enp0s3" {
+					return iface.Name
+				}
+			}
+		}
+	}
+
+	// If no preferred interface found, return first non-loopback interface
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagLoopback == 0 && iface.Flags&net.FlagUp != 0 {
+			addrs, err := iface.Addrs()
+			if err == nil && len(addrs) > 0 {
+				return iface.Name
+			}
+		}
+	}
+
+	return "eth0" // Default fallback
+}
+
 // GetAllocatedIPs to get all ip addresses allocated to clients and server
 func GetAllocatedIPs(ignoreClientID string) ([]string, error) {
 	allocatedIPs := make([]string, 0)

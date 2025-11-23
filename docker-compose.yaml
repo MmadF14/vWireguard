@@ -6,8 +6,9 @@ services:
     #image: MmadF14/vwireguard:latest
     container_name: wgui
     cap_add:
-      - NET_ADMIN
-    network_mode: host
+      - NET_ADMIN  # Required for WireGuard and iptables
+      - SYS_MODULE # Required for loading kernel modules
+    network_mode: host  # Uses host network - UDP port 51820 is automatically available
     environment:
       - SENDGRID_API_KEY
       - EMAIL_FROM_ADDRESS

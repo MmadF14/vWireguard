@@ -710,11 +710,6 @@
                             <i class="fas fa-user-secret w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active ""}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
                             <span data-translate="Wireguard Clients">Wireguard Clients</span>
                         </a>
-                        
-                        <a href="{{.basePath}}/tunnels" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "tunnels"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
-                            <i class="fas fa-network-wired w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "tunnels"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
-                            <span data-translate="Tunnels">Tunnels</span>
-                        </a>
 
                         {{if .baseData.Admin}}
                         <a href="{{.basePath}}/wg-server" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "wg-server"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
