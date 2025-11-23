@@ -250,26 +250,9 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// Get server and global settings
-		server, err := db.GetServer()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"status":  "error",
-				"message": "Cannot get server configuration",
-			})
-		}
-
-		globalSettings, err := db.GetGlobalSettings()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"status":  "error",
-				"message": "Cannot get global settings",
-			})
-		}
-
 		// If client doesn't exist, create one
 		if client == nil {
-			client, err = createClientForUser(db, user, server, globalSettings)
+			client, err = createClientForUser(db, user)
 			if err != nil {
 				log.Error("Cannot create client for user: ", err)
 				return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -291,6 +274,23 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusForbidden, map[string]interface{}{
 				"status":  "error",
 				"message": "Bandwidth quota exceeded",
+			})
+		}
+
+		// Get server and global settings
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get server configuration",
+			})
+		}
+
+		globalSettings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get global settings",
 			})
 		}
 
@@ -399,7 +399,13 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 }
 
 // createClientForUser creates a new WireGuard client for a user
-func createClientForUser(db store.IStore, user *model.User, server *model.Server, globalSettings *model.GlobalSetting) (*model.Client, error) {
+func createClientForUser(db store.IStore, user *model.User) (*model.Client, error) {
+	// Get server configuration
+	server, err := db.GetServer()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get server config: %v", err)
+	}
+
 	// Generate client ID
 	clientID := xid.New().String()
 
@@ -459,24 +465,6 @@ func createClientForUser(db store.IStore, user *model.User, server *model.Server
 	// Save client
 	if err := db.SaveClient(client); err != nil {
 		return nil, fmt.Errorf("cannot save client: %v", err)
-	}
-
-	if err := util.AddPeerToInterface(client, *server); err != nil {
-		return nil, fmt.Errorf("cannot hot-add client: %v", err)
-	}
-
-	clients, err := db.GetClients(false)
-	if err != nil {
-		return nil, fmt.Errorf("cannot refresh clients: %v", err)
-	}
-
-	users, err := db.GetUsers()
-	if err != nil {
-		return nil, fmt.Errorf("cannot refresh users: %v", err)
-	}
-
-	if err := util.WriteWireGuardServerConfig(nil, *server, clients, users, *globalSettings); err != nil {
-		return nil, fmt.Errorf("cannot persist wireguard config: %v", err)
 	}
 
 	log.Infof("Created WireGuard client for API user: %s (ID: %s)", user.Username, clientID)
@@ -690,24 +678,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		if err := util.AddPeerToInterface(client, *server); err != nil {
-			log.Error("Cannot apply runtime peer: ", err)
-		}
-
-		clients, err := db.GetClients(false)
-		if err != nil {
-			log.Error("Cannot get clients for config persistence: ", err)
-		}
-
-		users, err := db.GetUsers()
-		if err != nil {
-			log.Error("Cannot get users for config persistence: ", err)
-		}
-
-		if err := util.WriteWireGuardServerConfig(nil, *server, clients, users, globalSettings); err != nil {
-			log.Error("Cannot persist WireGuard config: ", err)
-		}
-
 		// Generate WireGuard config
 		config := util.BuildClientConfig(client, server, globalSettings)
 
@@ -800,30 +770,6 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 				"status":  "error",
 				"message": "Failed to update client",
 			})
-		}
-
-		if err := util.UpdatePeerOnInterface(*client); err != nil {
-			log.Error("Cannot hot-update peer: ", err)
-		}
-
-		if server, err := db.GetServer(); err == nil {
-			if globalSettings, err := db.GetGlobalSettings(); err == nil {
-				clients, err := db.GetClients(false)
-				if err != nil {
-					log.Error("Cannot refresh clients for config persistence: ", err)
-				}
-				users, err := db.GetUsers()
-				if err != nil {
-					log.Error("Cannot refresh users for config persistence: ", err)
-				}
-				if err := util.WriteWireGuardServerConfig(nil, *server, clients, users, globalSettings); err != nil {
-					log.Error("Cannot persist WireGuard config after update: ", err)
-				}
-			} else {
-				log.Error("Cannot get settings for config persistence: ", err)
-			}
-		} else {
-			log.Error("Cannot get server for config persistence: ", err)
 		}
 
 		log.Infof("Admin updated WireGuard client: %s (ID: %s, AddDays: %d, ResetQuota: %v)", req.Username, client.ID, req.AddDays, req.ResetQuota)
