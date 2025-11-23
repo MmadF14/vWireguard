@@ -182,6 +182,69 @@ func BuildPeerConfig(cl *model.Client, settings model.GlobalSetting) (wgtypes.Pe
 	return pc, nil
 }
 
+func interfaceNameFromServer(_ model.Server) string {
+	// Currently the interface name is not explicitly configured in the server model.
+	// Default to the primary interface name used throughout the project.
+	return "wg0"
+}
+
+// AddPeerToInterface injects the given client into the running WireGuard interface.
+// ReplacePeers is intentionally left false to avoid overwriting existing peers.
+func AddPeerToInterface(client model.Client, server model.Server) error {
+	wgClient, err := wgctrl.New()
+	if err != nil {
+		return err
+	}
+	defer wgClient.Close()
+
+	peerConfig, err := BuildPeerConfig(&client, model.GlobalSetting{})
+	if err != nil {
+		return err
+	}
+
+	iface := interfaceNameFromServer(server)
+	cfg := wgtypes.Config{ReplacePeers: false, Peers: []wgtypes.PeerConfig{peerConfig}}
+
+	return wgClient.ConfigureDevice(iface, cfg)
+}
+
+// RemovePeerFromInterface removes a peer from the running WireGuard interface using its public key.
+func RemovePeerFromInterface(publicKey string) error {
+	wgClient, err := wgctrl.New()
+	if err != nil {
+		return err
+	}
+	defer wgClient.Close()
+
+	key, err := wgtypes.ParseKey(publicKey)
+	if err != nil {
+		return err
+	}
+
+	cfg := wgtypes.Config{ReplacePeers: false, Peers: []wgtypes.PeerConfig{{PublicKey: key, Remove: true}}}
+
+	return wgClient.ConfigureDevice(interfaceNameFromServer(model.Server{}), cfg)
+}
+
+// UpdatePeerOnInterface updates an existing peer with the latest client settings.
+func UpdatePeerOnInterface(client model.Client) error {
+	wgClient, err := wgctrl.New()
+	if err != nil {
+		return err
+	}
+	defer wgClient.Close()
+
+	peerConfig, err := BuildPeerConfig(&client, model.GlobalSetting{})
+	if err != nil {
+		return err
+	}
+	peerConfig.UpdateOnly = true
+
+	cfg := wgtypes.Config{ReplacePeers: false, Peers: []wgtypes.PeerConfig{peerConfig}}
+
+	return wgClient.ConfigureDevice(interfaceNameFromServer(model.Server{}), cfg)
+}
+
 // ComputePeerDiffs compares current interface state with target client list
 func ComputePeerDiffs(interfaceName string, clients []model.ClientData, settings model.GlobalSetting) ([]PeerDiff, error) {
 	current, err := getCurrentPeers(interfaceName)
