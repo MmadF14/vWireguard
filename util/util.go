@@ -527,6 +527,24 @@ func findSubnetRangeForIP(cidr string) (uint16, error) {
 }
 
 // FillClientSubnetRange to fill subnet ranges client belongs to, does nothing if SRs are not found
+// IsClientValid checks if a client is valid (not expired and not over quota)
+// Returns true if client can be enabled, false otherwise
+func IsClientValid(client model.Client) bool {
+	now := time.Now().UTC()
+
+	// Check expiration
+	if !client.Expiration.IsZero() && now.After(client.Expiration) {
+		return false
+	}
+
+	// Check quota
+	if client.Quota > 0 && client.UsedQuota >= client.Quota {
+		return false
+	}
+
+	return true
+}
+
 func FillClientSubnetRange(client model.ClientData) model.ClientData {
 	cl := *client.Client
 	for _, ip := range cl.AllocatedIPs {

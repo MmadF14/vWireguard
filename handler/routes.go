@@ -998,7 +998,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.Name = _client.Name
 		client.Email = _client.Email
 		client.TgUserid = _client.TgUserid
-		client.Enabled = _client.Enabled
 		client.UseServerDNS = _client.UseServerDNS
 		client.AllocatedIPs = _client.AllocatedIPs
 		client.AllowedIPs = _client.AllowedIPs
@@ -1009,11 +1008,29 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.UpdatedAt = time.Now().UTC()
 		client.AdditionalNotes = strings.ReplaceAll(strings.Trim(_client.AdditionalNotes, "\r\n"), "\r\n", "\n")
 
+		// Smart Renewal: Auto-enable if client becomes valid after update
+		// Check if client is now valid (not expired and not over quota)
+		wasEnabled := client.Enabled
+		if util.IsClientValid(client) {
+			// If client is valid after update (renewal), auto-enable it
+			// This handles the case where a client was disabled due to expiry/quota and is now renewed
+			// User can manually disable it later if needed
+			client.Enabled = true
+		} else {
+			// Client is not valid (expired or over quota), disable it
+			client.Enabled = false
+		}
+
 		// write to the database
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 		log.Infof("Updated client information successfully => %v", client)
+
+		// Log auto-enable if it happened
+		if !wasEnabled && client.Enabled && util.IsClientValid(client) {
+			log.Infof("Client %s auto-enabled after renewal (expiration extended or quota reset)", client.Name)
+		}
 
 		// Hot Reload: Update peer on interface instantly
 		globalSettings, err := db.GetGlobalSettings()
@@ -1107,14 +1124,22 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		// اگر درخواست فعال‌سازی دستی است
 		if status && !isAutomatic {
-			// بررسی شرایط فعال‌سازی
-			// if !client.Expiration.IsZero() && time.Now().After(client.Expiration) {
-			// 	return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: expiration date has passed"})
-			// }
+			// Validate client before enabling - prevent illegal activation
+			now := time.Now().UTC()
+			
+			// Check expiration
+			if !client.Expiration.IsZero() && now.After(client.Expiration) {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
+					false, "Cannot enable: Client is expired. Please extend first.",
+				})
+			}
 
-			// if client.Quota > 0 && client.UsedQuota >= client.Quota {
-			// 	return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Cannot enable client: quota limit exceeded"})
-			// }
+			// Check quota
+			if client.Quota > 0 && client.UsedQuota >= client.Quota {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
+					false, "Cannot enable: Quota exceeded. Please reset quota.",
+				})
+			}
 
 			// فعال‌سازی کلاینت
 			client.Enabled = true

@@ -60,8 +60,11 @@ func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
 			}
 
 			interval := server.Interface.CheckInterval
-			// اگر خارج از 1..5 بود، 5 بگذاریم
-			if interval < 1 || interval > 5 {
+			// Ensure interval is between 1 and 5 minutes for frequent checks
+			// Minimum 1 minute ensures immediate enforcement
+			if interval < 1 {
+				interval = 1
+			} else if interval > 5 {
 				interval = 5
 			}
 

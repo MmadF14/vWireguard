@@ -767,6 +767,7 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		now := time.Now().UTC()
+		wasEnabled := client.Enabled
 
 		// Update expiration if AddDays > 0
 		if req.AddDays > 0 {
@@ -783,8 +784,15 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			client.UsedQuota = 0
 		}
 
-		// Ensure client is enabled
-		client.Enabled = true
+		// Smart Renewal: Auto-enable if client becomes valid after update
+		// Check if client is now valid (not expired and not over quota)
+		if util.IsClientValid(*client) {
+			// If client is valid after renewal, enable it
+			client.Enabled = true
+		} else {
+			// Client is still not valid (shouldn't happen after renewal, but handle it)
+			client.Enabled = false
+		}
 		client.UpdatedAt = now
 
 		// Save updated client
@@ -794,6 +802,11 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 				"status":  "error",
 				"message": "Failed to update client",
 			})
+		}
+
+		// Log auto-enable if it happened
+		if !wasEnabled && client.Enabled && util.IsClientValid(*client) {
+			log.Infof("Client %s auto-enabled after renewal via API (expiration extended or quota reset)", req.Username)
 		}
 
 		// Get server and global settings for hot reload
