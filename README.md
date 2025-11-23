@@ -17,28 +17,28 @@ vWireguard is a web-based management interface for WireGuard VPN, providing an e
 
 ## Installation
 
-### Quick Install (Recommended)
+### One-Line Install (Recommended)
+
+Install vWireguard with a single command. The installer automatically downloads the latest pre-built binary from GitHub releases - **no compilation required**.
 
 ```bash
-# Download the installation script
-wget https://raw.githubusercontent.com/MmadF14/vwireguard/main/install.sh
-
-# Make it executable
-chmod +x install.sh
-
-# Run the installation script
-sudo ./install.sh
+bash <(curl -Ls https://raw.githubusercontent.com/MmadF14/vwireguard/master/install.sh)
 ```
 
-During installation you will be asked for a domain name. If provided, the script
-sets up Nginx and obtains a Let's Encrypt certificate so the panel is available
-over HTTPS.
+**Requirements:**
+- Linux (amd64 or arm64)
+- Root access
+- Systemd-based system
+- Internet connection
 
-=======
->>>>>>> parent of 37fbd02 (Add optional SSL setup)
-=======
->>>>>>> parent of 37fbd02 (Add optional SSL setup)
-### Manual Installation
+The installer will:
+- Detect your system architecture
+- Download the latest release from GitHub
+- Install to `/usr/local/vwireguard`
+- Create and enable systemd service
+- Install management CLI (`vwg` command)
+
+### Manual Installation (Build from Source)
 
 1. Install required packages:
 ```bash
@@ -85,12 +85,33 @@ sudo systemctl enable vwireguard
 sudo systemctl start vwireguard
 ```
 
+## Management CLI
+
+After installation, you can use the `vwg` command to manage the service:
+
+```bash
+# Service management (requires root)
+sudo vwg start      # Start the service
+sudo vwg stop       # Stop the service
+sudo vwg restart    # Restart the service
+vwg status          # Check service status
+vwg log             # View logs (last 50 lines)
+vwg log 100         # View last 100 lines
+vwg log -f          # Follow logs in real-time
+
+# Update to latest release (requires root)
+sudo vwg update     # Update to latest GitHub release
+
+# Show help
+vwg help
+```
+
 ## Default Credentials
 
-- The installer generates a random admin username and password.
-  They will be shown after installation and stored in `/root/vwireguard_credentials.txt`.
+- **Username:** `admin`
+- **Password:** `admin`
 
-**Important**: Save these credentials somewhere safe!
+**Important**: Change the default password immediately after first login!
 
 ## Accessing the Web Interface
 
