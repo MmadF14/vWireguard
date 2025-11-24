@@ -76,6 +76,23 @@ type AdminUpdateClientResponse struct {
 	Message       string    `json:"message"`
 }
 
+// AppUserInfoRequest represents the request for mobile app user info endpoint
+type AppUserInfoRequest struct {
+	Username string `json:"username"`
+}
+
+// AppUserInfoResponse represents the response for the mobile app user info endpoint
+type AppUserInfoResponse struct {
+	Status         string    `json:"status"`
+	PeerFound      bool      `json:"peer_found"`
+	IsExpired      bool      `json:"is_expired"`
+	IsOverQuota    bool      `json:"is_over_quota"`
+	QuotaRemaining int64     `json:"quota_remaining"`
+	ExpirationDate time.Time `json:"expiration_date"`
+	Config         string    `json:"config,omitempty"`
+	Message        string    `json:"message,omitempty"`
+}
+
 // APILogin handles POST /api/v1/login
 func APILogin(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -409,6 +426,95 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 			RemainingTraffic: remainingTraffic,
 			ExpireAt:         client.Expiration,
 			Expired:          expired,
+		})
+	}
+}
+
+// APIAppUserInfo handles POST /api/v1/app/user-info
+func APIAppUserInfo(db store.IStore) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req AppUserInfoRequest
+		if err := c.Bind(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Invalid request format",
+			})
+		}
+
+		if req.Username == "" {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"status":  "error",
+				"message": "Username is required",
+			})
+		}
+
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get global settings",
+			})
+		}
+
+		appSecretHeader := c.Request().Header.Get("X-App-Secret")
+		if settings.AppSecretToken == "" || subtle.ConstantTimeCompare([]byte(appSecretHeader), []byte(settings.AppSecretToken)) != 1 {
+			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
+				"status":  "error",
+				"message": "invalid app secret",
+			})
+		}
+
+		clients, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get clients",
+			})
+		}
+
+		var client *model.Client
+		for _, clientData := range clients {
+			if clientData.Client != nil && clientData.Client.Name == req.Username {
+				client = clientData.Client
+				break
+			}
+		}
+
+		if client == nil {
+			return c.JSON(http.StatusOK, AppUserInfoResponse{
+				Status:    "success",
+				PeerFound: false,
+				Message:   "client not found",
+			})
+		}
+
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status":  "error",
+				"message": "Cannot get server configuration",
+			})
+		}
+
+		now := time.Now().UTC()
+		isExpired := !client.Expiration.IsZero() && client.Expiration.Before(now)
+		isOverQuota := client.Quota > 0 && client.UsedQuota >= client.Quota
+
+		remaining := client.Quota - client.UsedQuota
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		config := util.BuildClientConfig(*client, server, settings)
+
+		return c.JSON(http.StatusOK, AppUserInfoResponse{
+			Status:         "success",
+			PeerFound:      true,
+			IsExpired:      isExpired,
+			IsOverQuota:    isOverQuota,
+			QuotaRemaining: remaining,
+			ExpirationDate: client.Expiration,
+			Config:         config,
 		})
 	}
 }

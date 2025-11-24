@@ -328,6 +328,7 @@ func main() {
 	apiGroup.POST("/login", handler.APILogin(db))
 	apiGroup.POST("/connect", handler.APIConnect(db))
 	apiGroup.POST("/status", handler.APIStatus(db))
+	apiGroup.POST("/app/user-info", handler.APIAppUserInfo(db))
 
 	// Register Admin API routes (require admin token)
 	apiGroup.POST("/admin/create-client", handler.APIAdminCreateClient(db))
