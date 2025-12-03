@@ -157,6 +157,31 @@
                         <div id="config_file_path-error" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
                     </div>
 
+                    <!-- App Secret Token -->
+                    <div class="space-y-2">
+                        <label for="app_secret_token" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-key mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="App Secret Token">App Secret Token</span>
+                        </label>
+                        <div class="flex space-x-2 rtl:space-x-reverse">
+                            <input type="text"
+                                   id="app_secret_token"
+                                   name="app_secret_token"
+                                   value="{{ .globalSettings.AppSecretToken }}"
+                                   placeholder="Enter or generate a secure secret"
+                                   class="flex-1 px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                            <button type="button"
+                                    onclick="generateAppSecret()"
+                                    class="inline-flex items-center px-4 py-3 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                                <i class="fas fa-random mr-2 rtl:mr-0 rtl:ml-2"></i>
+                                <span data-translate="Generate">Generate</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <span data-translate="The app secret secures API requests from the companion app.">The app secret secures API requests from the companion app.</span>
+                        </p>
+                    </div>
+
                     <!-- Submit Button -->
                     <div class="pt-6 border-t border-gray-200 dark:border-dark-700">
                         <button type="submit" 
@@ -522,7 +547,8 @@ $(document).ready(function() {
             persistent_keepalive: document.getElementById('persistent_keepalive').value,
             firewall_mark: document.getElementById('firewall_mark').value,
             table: document.getElementById('table').value,
-            config_file_path: document.getElementById('config_file_path').value
+            config_file_path: document.getElementById('config_file_path').value,
+            app_secret_token: document.getElementById('app_secret_token').value
         };
 
         $.ajax({
@@ -643,6 +669,23 @@ $(document).ready(function() {
             closeSuggestionModal();
             showToast('IP address selected successfully', 'success');
         }
+    };
+
+    window.generateAppSecret = function() {
+        const input = document.getElementById('app_secret_token');
+        if (!window.crypto || !window.crypto.getRandomValues) {
+            showToast(window.langManager.translate('Secure random generator not available'), 'error');
+            return;
+        }
+        const bytes = new Uint8Array(24);
+        window.crypto.getRandomValues(bytes);
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let secret = '';
+        bytes.forEach(b => {
+            secret += alphabet[b % alphabet.length];
+        });
+        input.value = secret;
+        showToast(window.langManager.translate('New secret generated'), 'success');
     };
 
     // Enable/disable use button based on selection

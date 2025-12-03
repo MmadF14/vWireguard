@@ -1604,23 +1604,91 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 // GlobalSettingSubmit handler to update the global settings
 func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		var globalSettings model.GlobalSetting
-		c.Bind(&globalSettings)
+		type globalSettingPayload struct {
+			EndpointAddress     string   `json:"endpoint_address"`
+			RelayEndpoint       string   `json:"relay_endpoint"`
+			DNSServers          []string `json:"dns_servers"`
+			MTU                 string   `json:"mtu"`
+			PersistentKeepalive string   `json:"persistent_keepalive"`
+			FirewallMark        string   `json:"firewall_mark"`
+			Table               string   `json:"table"`
+			ConfigFilePath      string   `json:"config_file_path"`
+			AppSecretToken      string   `json:"app_secret_token"`
+		}
 
-		// validate the input dns server list
-		if util.ValidateIPAddressList(globalSettings.DNSServers) == false {
-			log.Warnf("Invalid DNS server list input from user: %v", globalSettings.DNSServers)
+		var payload globalSettingPayload
+		if err := c.Bind(&payload); err != nil {
+			log.Warnf("Cannot parse global settings payload: %v", err)
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request payload"})
+		}
+
+		// trim DNS entries and drop empty values before validation
+		sanitizedDNS := make([]string, 0, len(payload.DNSServers))
+		for _, dns := range payload.DNSServers {
+			dns = strings.TrimSpace(dns)
+			if dns == "" {
+				continue
+			}
+			sanitizedDNS = append(sanitizedDNS, dns)
+		}
+
+		if len(sanitizedDNS) > 0 && !util.ValidateIPAddressList(sanitizedDNS) {
+			log.Warnf("Invalid DNS server list input from user: %v", sanitizedDNS)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid DNS server address"})
 		}
 
-		globalSettings.UpdatedAt = time.Now().UTC()
+		if strings.TrimSpace(payload.ConfigFilePath) == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "WireGuard config file path is required"})
+		}
+
+		currentSettings, err := db.GetGlobalSettings()
+		if err != nil {
+			log.Error("Cannot get current global settings: ", err)
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot load current global settings"})
+		}
+
+		currentSettings.EndpointAddress = strings.TrimSpace(payload.EndpointAddress)
+		currentSettings.RelayEndpoint = strings.TrimSpace(payload.RelayEndpoint)
+		currentSettings.DNSServers = sanitizedDNS
+		currentSettings.FirewallMark = strings.TrimSpace(payload.FirewallMark)
+		currentSettings.Table = strings.TrimSpace(payload.Table)
+		currentSettings.ConfigFilePath = strings.TrimSpace(payload.ConfigFilePath)
+		currentSettings.AppSecretToken = strings.TrimSpace(payload.AppSecretToken)
+
+		if currentSettings.AppSecretToken == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "App secret token is required"})
+		}
+
+		mtuInput := strings.TrimSpace(payload.MTU)
+		if mtuInput == "" {
+			currentSettings.MTU = 0
+		} else {
+			mtu, err := strconv.Atoi(mtuInput)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "MTU must be a number"})
+			}
+			currentSettings.MTU = mtu
+		}
+
+		keepaliveInput := strings.TrimSpace(payload.PersistentKeepalive)
+		if keepaliveInput == "" {
+			currentSettings.PersistentKeepalive = 0
+		} else {
+			keepalive, err := strconv.Atoi(keepaliveInput)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Persistent keepalive must be a number"})
+			}
+			currentSettings.PersistentKeepalive = keepalive
+		}
+
+		currentSettings.UpdatedAt = time.Now().UTC()
 
 		// write config to the database
-		if err := db.SaveGlobalSettings(globalSettings); err != nil {
+		if err := db.SaveGlobalSettings(currentSettings); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot save global settings"})
 		}
 
-		log.Infof("Updated global settings: %v", globalSettings)
+		log.Infof("Updated global settings for endpoint %s", currentSettings.EndpointAddress)
 
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated global settings successfully"})
 	}
