@@ -50,9 +50,10 @@ type APIStatusResponse struct {
 
 // AdminCreateClientRequest represents the request for admin create client endpoint
 type AdminCreateClientRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Token    string `json:"token"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	Token      string `json:"token"`
+	Expiration string `json:"expiration,omitempty"` // Optional RFC3339 format (e.g., "2024-12-05T15:00:00Z")
 }
 
 // AdminCreateClientResponse represents the response for admin create client endpoint
@@ -66,6 +67,7 @@ type AdminUpdateClientRequest struct {
 	Username   string `json:"username"`
 	AddDays    int    `json:"add_days"`
 	ResetQuota bool   `json:"reset_quota"`
+	Enable     *bool  `json:"enable,omitempty"` // Optional: explicitly enable/disable client
 	Token      string `json:"token"`
 }
 
@@ -761,8 +763,25 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Create client with 1-day trial
+		// Create client with expiration handling
 		now := time.Now().UTC()
+		var expirationTime time.Time
+		
+		// If expiration is provided, parse it; otherwise use default trial logic
+		if req.Expiration != "" {
+			parsedExpiration, err := time.Parse(time.RFC3339, req.Expiration)
+			if err != nil {
+				return c.JSON(http.StatusBadRequest, map[string]interface{}{
+					"status":  "error",
+					"message": fmt.Sprintf("Invalid expiration format. Expected RFC3339 (e.g., 2024-12-05T15:00:00Z): %v", err),
+				})
+			}
+			expirationTime = parsedExpiration.UTC()
+		} else {
+			// Default: 1 Day trial
+			expirationTime = now.Add(24 * time.Hour)
+		}
+		
 		client := model.Client{
 			ID:           clientID,
 			PrivateKey:   key.String(),
@@ -777,8 +796,8 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			CreatedBy:    "admin-api",
 			CreatedAt:    now,
 			UpdatedAt:    now,
-			Expiration:   now.Add(24 * time.Hour), // 1 Day trial
-			Quota:        0,                       // Unlimited
+			Expiration:   expirationTime,
+			Quota:        0, // Unlimited
 		}
 
 		// Save client
@@ -890,14 +909,19 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			client.UsedQuota = 0
 		}
 
-		// Smart Renewal: Auto-enable if client becomes valid after update
-		// Check if client is now valid (not expired and not over quota)
-		if util.IsClientValid(*client) {
-			// If client is valid after renewal, enable it
-			client.Enabled = true
+		// Handle explicit enable/disable from PHP backend (sync quota enforcement)
+		if req.Enable != nil {
+			client.Enabled = *req.Enable
 		} else {
-			// Client is still not valid (shouldn't happen after renewal, but handle it)
-			client.Enabled = false
+			// Smart Renewal: Auto-enable if client becomes valid after update
+			// Check if client is now valid (not expired and not over quota)
+			if util.IsClientValid(*client) {
+				// If client is valid after renewal, enable it
+				client.Enabled = true
+			} else {
+				// Client is still not valid (shouldn't happen after renewal, but handle it)
+				client.Enabled = false
+			}
 		}
 		client.UpdatedAt = now
 
@@ -924,13 +948,33 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			if err != nil {
 				log.Warnf("Cannot get global settings for hot reload: %v", err)
 			} else {
-				// Hot Reload: Update peer on interface instantly (adds back if re-enabled, removes if disabled/expired)
 				interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
-				if err := util.UpdatePeerOnInterface(*client, server, globalSettings, interfaceName); err != nil {
-					log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
-					// Continue - client is saved in DB even if runtime update fails
+				
+				// If Enable was explicitly set, handle add/remove directly
+				if req.Enable != nil {
+					if *req.Enable {
+						// Explicitly enabled: add peer to interface
+						if err := util.AddPeerToInterface(*client, server, globalSettings, interfaceName); err != nil {
+							log.Warnf("Failed to add peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+						} else {
+							log.Infof("Client %s enabled and added to interface via Hot Reload", req.Username)
+						}
+					} else {
+						// Explicitly disabled: remove peer from interface
+						if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
+							log.Warnf("Failed to remove peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+						} else {
+							log.Infof("Client %s disabled and removed from interface via Hot Reload", req.Username)
+						}
+					}
 				} else {
-					log.Infof("Client %s updated on interface via Hot Reload", req.Username)
+					// No explicit enable/disable: use UpdatePeerOnInterface (handles add/remove based on validity)
+					if err := util.UpdatePeerOnInterface(*client, server, globalSettings, interfaceName); err != nil {
+						log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+						// Continue - client is saved in DB even if runtime update fails
+					} else {
+						log.Infof("Client %s updated on interface via Hot Reload", req.Username)
+					}
 				}
 			}
 		}
