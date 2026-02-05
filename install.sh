@@ -3,9 +3,11 @@
 # vWireguard Panel - Binary Release Installation Script
 # This script downloads and installs pre-built binaries from GitHub releases
 # NO compilation required on the user's server
+# Full One-Click Setup (Dependencies + WireGuard + IP Forwarding + Panel)
 
 set -e
 
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -19,6 +21,7 @@ REPO_NAME="vwireguard"
 INSTALL_DIR="/usr/local/vwireguard"
 SERVICE_NAME="vwireguard"
 
+# Display Logo
 echo -e "${BLUE}"
 cat << "EOF"
 ██╗   ██╗██╗    ██╗██╗██████╗ ███████╗ ██████╗ ██╗   ██╗ █████╗ ██████╗ ██████╗ 
@@ -30,55 +33,98 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
+# Logging functions
 log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
 error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}"; exit 1; }
 warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}"; }
 
-# Check root access
+# 1. Check root access
 if [ "$EUID" -ne 0 ]; then 
     error "Please run with root access: sudo bash install.sh"
 fi
 
-# Check prerequisites
-check_prerequisites() {
-    log "Checking prerequisites..."
+# 2. Check and Install Prerequisites (Modified to include WireGuard)
+check_and_install_prerequisites() {
+    log "Checking system prerequisites..."
     
     local missing=()
+    local install_cmd=""
+    local package_manager=""
     
-    if ! command -v curl &> /dev/null; then
-        missing+=("curl")
+    # Detect package manager
+    if [ -f /etc/debian_version ]; then
+        package_manager="apt"
+        install_cmd="apt-get install -y"
+        # Update repo info first
+        apt-get update -y > /dev/null 2>&1
+    elif [ -f /etc/redhat-release ]; then
+        package_manager="yum"
+        install_cmd="yum install -y"
+        # Install EPEL for WireGuard on CentOS/RHEL
+        if ! rpm -qa | grep -q epel-release; then
+            log "Installing EPEL release..."
+            yum install -y epel-release > /dev/null 2>&1
+        fi
+    else
+        warn "Unknown OS. Automatic dependency installation might fail."
     fi
+
+    # List of required tools
+    local required_tools=("curl" "wget" "tar")
     
-    if ! command -v wget &> /dev/null; then
-        missing+=("wget")
+    # Check for basic tools
+    for tool in "${required_tools[@]}"; do
+        if ! command -v "$tool" &> /dev/null; then
+            missing+=("$tool")
+        fi
+    done
+
+    # Check for WireGuard tools (wg command)
+    if ! command -v wg &> /dev/null; then
+        if [ "$package_manager" == "apt" ]; then
+            missing+=("wireguard" "iptables")
+        elif [ "$package_manager" == "yum" ]; then
+            missing+=("wireguard-tools" "iptables")
+        fi
     fi
-    
-    if ! command -v tar &> /dev/null; then
-        missing+=("tar")
+
+    # Install missing packages
+    if [ ${#missing[@]} -gt 0 ]; then
+        log "Installing missing packages: ${missing[*]}..."
+        if [ -n "$install_cmd" ]; then
+            $install_cmd "${missing[@]}"
+        else
+            error "Cannot auto-install: ${missing[*]}. Please install them manually."
+        fi
+    else
+        log "All prerequisites (curl, wget, tar, wireguard) are satisfied."
     fi
-    
+
+    # Verify systemd
     if ! command -v systemctl &> /dev/null; then
         error "systemd is required but not found. This script only supports systemd-based systems."
     fi
-    
-    if [ ${#missing[@]} -gt 0 ]; then
-        warn "Missing required tools: ${missing[*]}"
-        log "Installing missing packages..."
-        
-        if [ -f /etc/debian_version ]; then
-            apt-get update -y
-            apt-get install -y "${missing[@]}"
-        elif [ -f /etc/redhat-release ]; then
-            yum install -y "${missing[@]}"
-        else
-            error "Cannot auto-install prerequisites. Please install: ${missing[*]}"
-        fi
-    fi
-    
-    log "All prerequisites satisfied"
 }
 
-# Detect architecture
+# 3. Enable IP Forwarding (Crucial for VPN)
+enable_ip_forwarding() {
+    log "Configuring IP forwarding..."
+    
+    local sysctl_file="/etc/sysctl.d/99-vwireguard.conf"
+    
+    # Create a persistent config file
+    cat > "$sysctl_file" <<EOF
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
+EOF
+
+    # Apply changes
+    sysctl -p "$sysctl_file" > /dev/null 2>&1
+    
+    log "IP forwarding enabled."
+}
+
+# 4. Detect architecture
 detect_arch() {
     local arch=$(uname -m)
     case $arch in
@@ -94,19 +140,28 @@ detect_arch() {
     esac
 }
 
-# Get latest release tag from GitHub API
+# 5. Get latest release tag from GitHub API
 get_latest_release() {
+    log "Fetching latest release version..."
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-    local tag=$(curl -sL "$api_url" | grep -oP '"tag_name": "\K[^"]*' | head -n1)
+    
+    # Use sed instead of grep -P for better compatibility
+    local tag=$(curl -sL "$api_url" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
     
     if [ -z "$tag" ]; then
-        error "Failed to fetch latest release tag from GitHub"
+        # Fallback method if API fails or limit reached (optional)
+        warn "GitHub API failed, trying to guess from redirects..."
+        tag=$(curl -sL -o /dev/null -w %{url_effective} "https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest" | rev | cut -d/ -f1 | rev)
+    fi
+
+    if [ -z "$tag" ] || [ "$tag" == "releases" ]; then
+        error "Failed to fetch latest release tag from GitHub."
     fi
     
     echo "$tag"
 }
 
-# Download release asset
+# 6. Download release asset
 download_release() {
     local tag=$1
     local arch=$2
@@ -117,7 +172,7 @@ download_release() {
     log "Downloading ${asset_name} from release ${tag}..."
     
     if ! wget -q --show-progress -O "$temp_file" "$download_url"; then
-        error "Failed to download release asset. URL: $download_url"
+        error "Failed to download release asset. Please check if the asset '${asset_name}' exists in release '${tag}'."
     fi
     
     if [ ! -f "$temp_file" ] || [ ! -s "$temp_file" ]; then
@@ -127,49 +182,64 @@ download_release() {
     echo "$temp_file"
 }
 
-# Stop service if running
+# 7. Stop service if running
 stop_service() {
     if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        log "Stopping ${SERVICE_NAME} service..."
-        systemctl stop "$SERVICE_NAME" || warn "Failed to stop service (may not exist yet)"
+        log "Stopping existing ${SERVICE_NAME} service..."
+        systemctl stop "$SERVICE_NAME" || warn "Failed to stop service"
     fi
 }
 
-# Preserve existing data
+# 8. Preserve existing data
 preserve_data() {
     if [ -d "$INSTALL_DIR/db" ]; then
         log "Backing up existing database..."
         local backup_dir="/tmp/vwireguard-db-backup-$(date +%Y%m%d_%H%M%S)"
         mkdir -p "$backup_dir"
+        
+        # Backup db folder
         cp -r "$INSTALL_DIR/db" "$backup_dir/" 2>/dev/null || true
+        
+        # Also backup config file if it exists
+        if [ -f "$INSTALL_DIR/config.json" ]; then
+             cp "$INSTALL_DIR/config.json" "$backup_dir/" 2>/dev/null || true
+        fi
+        
         echo "$backup_dir"
     fi
 }
 
-# Extract and install
+# 9. Extract and install
 install_files() {
     local archive=$1
     local backup_dir=$2
     
-    log "Extracting release package..."
+    log "Extracting release package to ${INSTALL_DIR}..."
     
     # Create installation directory
     mkdir -p "$INSTALL_DIR"
-    cd "$INSTALL_DIR"
     
     # Extract archive
-    tar -xzf "$archive" || error "Failed to extract archive"
+    # We use -C to extract directly into the dir
+    tar -xzf "$archive" -C "$INSTALL_DIR" || error "Failed to extract archive"
     
     # Restore database if it existed
     if [ -n "$backup_dir" ] && [ -d "$backup_dir/db" ]; then
         log "Restoring database from backup..."
         cp -r "$backup_dir/db"/* "$INSTALL_DIR/db/" 2>/dev/null || true
+        
+        if [ -f "$backup_dir/config.json" ]; then
+            cp "$backup_dir/config.json" "$INSTALL_DIR/" 2>/dev/null || true
+        fi
+        
         rm -rf "$backup_dir"
     fi
     
     # Set permissions
     chmod +x "$INSTALL_DIR/vWireguard"
-    chmod +x "$INSTALL_DIR/vwg"
+    if [ -f "$INSTALL_DIR/vwg" ]; then
+        chmod +x "$INSTALL_DIR/vwg"
+    fi
     
     # Ensure db directory structure exists
     mkdir -p "$INSTALL_DIR/db/{clients,server,users,wake_on_lan_hosts,tunnels}"
@@ -177,7 +247,7 @@ install_files() {
     log "Files installed successfully"
 }
 
-# Create systemd service
+# 10. Create systemd service
 create_service() {
     log "Creating systemd service..."
     
@@ -204,17 +274,21 @@ EOF
     log "Service created and enabled"
 }
 
-# Create symlink for vwg command
+# 11. Create symlink for vwg command
 create_symlink() {
-    if [ -L "/usr/bin/vwg" ]; then
-        rm -f "/usr/bin/vwg"
+    if [ -f "$INSTALL_DIR/vwg" ]; then
+        if [ -L "/usr/bin/vwg" ] || [ -f "/usr/bin/vwg" ]; then
+            rm -f "/usr/bin/vwg"
+        fi
+        ln -s "$INSTALL_DIR/vwg" "/usr/bin/vwg"
+        chmod +x "/usr/bin/vwg"
+        log "Management command 'vwg' installed to /usr/bin/vwg"
+    else
+        warn "'vwg' management script not found in archive. Skipping symlink."
     fi
-    ln -s "$INSTALL_DIR/vwg" "/usr/bin/vwg"
-    chmod +x "/usr/bin/vwg"
-    log "Management command 'vwg' installed to /usr/bin/vwg"
 }
 
-# Start service
+# 12. Start service
 start_service() {
     log "Starting ${SERVICE_NAME} service..."
     systemctl start "$SERVICE_NAME"
@@ -224,13 +298,17 @@ start_service() {
     if systemctl is-active --quiet "$SERVICE_NAME"; then
         log "Service started successfully"
     else
-        error "Failed to start service. Check logs: journalctl -u ${SERVICE_NAME}"
+        # Try to show logs if failed
+        warn "Service failed to start instantly. Checking logs..."
+        journalctl -u "$SERVICE_NAME" --no-pager -n 10
+        error "Failed to start service. Please check logs above."
     fi
 }
 
-# Show installation summary
+# 13. Show installation summary
 show_summary() {
-    local public_ip=$(curl -s ifconfig.me 2>/dev/null || curl -s icanhazip.com 2>/dev/null || echo "localhost")
+    # Try to get public IP
+    local public_ip=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null || curl -s --connect-timeout 5 icanhazip.com 2>/dev/null || echo "YOUR_SERVER_IP")
     
     echo ""
     echo -e "${GREEN}=====================================${NC}"
@@ -247,9 +325,9 @@ show_summary() {
     echo ""
     echo -e "${CYAN}⚙️  Useful Commands:${NC}"
     echo -e "  ${YELLOW}Status:${NC} vwg status"
-    echo -e "  ${YELLOW}Logs:${NC} vwg log"
+    echo -e "  ${YELLOW}Logs:${NC}   vwg log"
     echo -e "  ${YELLOW}Restart:${NC} vwg restart"
-    echo -e "  ${YELLOW}Update:${NC} vwg update"
+    echo -e "  ${YELLOW}Update:${NC}  vwg update"
     echo ""
     echo -e "${GREEN}🎉 Panel is ready!${NC}"
     echo -e "${GREEN}=====================================${NC}"
@@ -279,31 +357,45 @@ EOF
 main() {
     log "Starting vWireguard installation..."
     
-    check_prerequisites
+    # Step 1: Install Dependencies (Curl, Wget, WireGuard, IPtables)
+    check_and_install_prerequisites
     
+    # Step 2: Enable IP Forwarding
+    enable_ip_forwarding
+    
+    # Step 3: Architecture Check
     local arch=$(detect_arch)
     log "Detected architecture: $arch"
     
+    # Step 4: Get Version
     local tag=$(get_latest_release)
     log "Latest release: $tag"
     
+    # Step 5: Download
     local archive=$(download_release "$tag" "$arch")
     
+    # Step 6: Stop old service
     stop_service
     
+    # Step 7: Backup Data
     local backup_dir=$(preserve_data)
     
+    # Step 8: Install Files
     install_files "$archive" "$backup_dir"
     
+    # Step 9: Create Service
     create_service
     
+    # Step 10: Create CLI symlink
     create_symlink
     
+    # Step 11: Start
     start_service
     
     # Cleanup
     rm -f "$archive"
     
+    # Done
     show_summary
 }
 
