@@ -1,0 +1,1604 @@
+{{define "base.html"}}
+<!DOCTYPE html>
+<html lang="{{if .isRTL}}fa{{else}}en{{end}}" dir="{{if .isRTL}}rtl{{else}}ltr{{end}}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title data-translate="Wireguard VPN">Wireguard VPN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="{{.basePath}}/favicon">
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- TailwindCSS Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'Vazirmatn', 'system-ui', 'sans-serif'],
+                        'persian': ['Vazirmatn', 'system-ui', 'sans-serif'],
+                    },
+                    borderRadius: {
+                        'xl': '0.75rem',
+                        '2xl': '1rem',
+                        '3xl': '1.5rem',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Custom Styles -->
+    <style>
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        }
+        
+        [dir="rtl"] .notification-container {
+            right: auto;
+            left: 20px;
+        }
+        
+        .notification {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            margin-bottom: 10px;
+            overflow: hidden;
+            transform: translateX(100%);
+            opacity: 0;
+            transition: all 0.3s ease;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        [dir="rtl"] .notification {
+            transform: translateX(-100%);
+            border-left: none;
+            border-right: 4px solid #3b82f6;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        
+        .notification.success {
+            border-left-color: #10b981;
+        }
+        
+        [dir="rtl"] .notification.success {
+            border-left-color: transparent;
+            border-right-color: #10b981;
+        }
+        
+        .notification.error {
+            border-left-color: #ef4444;
+        }
+        
+        [dir="rtl"] .notification.error {
+            border-left-color: transparent;
+            border-right-color: #ef4444;
+        }
+        
+        .notification.warning {
+            border-left-color: #f59e0b;
+        }
+        
+        [dir="rtl"] .notification.warning {
+            border-left-color: transparent;
+            border-right-color: #f59e0b;
+        }
+        
+        .notification.info {
+            border-left-color: #3b82f6;
+        }
+        
+        [dir="rtl"] .notification.info {
+            border-left-color: transparent;
+            border-right-color: #3b82f6;
+        }
+        
+        .notification-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px 8px 20px;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #1f2937;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.2s ease;
+        }
+        
+        .notification-close:hover {
+            color: #374151;
+        }
+        
+        .notification-body {
+            padding: 0 20px 16px 20px;
+            color: #4b5563;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .notification-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+        }
+        
+        [dir="rtl"] .notification-icon {
+            margin-right: 0;
+            margin-left: 12px;
+        }
+        
+        .notification-content {
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        /* Dark mode notifications */
+        .dark .notification {
+            background: #1f2937;
+            color: #f9fafb;
+        }
+        
+        .dark .notification-title {
+            color: #f9fafb;
+        }
+        
+        .dark .notification-body {
+            color: #d1d5db;
+        }
+        
+        .dark .notification-close {
+            color: #9ca3af;
+        }
+        
+        .dark .notification-close:hover {
+            color: #d1d5db;
+        }
+        
+        /* Confirmation Modal */
+        .confirmation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .confirmation-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .confirmation-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .confirmation-modal.show .confirmation-content {
+            transform: scale(1);
+        }
+        
+        .dark .confirmation-content {
+            background: #1f2937;
+            color: #f9fafb;
+        }
+        
+        .confirmation-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1f2937;
+        }
+        
+        .dark .confirmation-title {
+            color: #f9fafb;
+        }
+        
+        .confirmation-message {
+            color: #6b7280;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .dark .confirmation-message {
+            color: #d1d5db;
+        }
+        
+        .confirmation-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .confirmation-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+        }
+        
+        .confirmation-btn.cancel {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .confirmation-btn.cancel:hover {
+            background: #e5e7eb;
+        }
+        
+        .dark .confirmation-btn.cancel {
+            background: #374151;
+            color: #d1d5db;
+        }
+        
+        .dark .confirmation-btn.cancel:hover {
+            background: #4b5563;
+        }
+        
+        .confirmation-btn.confirm {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .confirmation-btn.confirm:hover {
+            background: #dc2626;
+        }
+        
+        .confirmation-btn.success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .confirmation-btn.success:hover {
+            background: #059669;
+        }
+        /* RTL Support */
+        [dir="rtl"] {
+            font-family: 'Vazirmatn', 'Inter', system-ui, sans-serif;
+        }
+        
+        /* Smooth transitions */
+        * {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Scrollbar styling */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.1);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+        
+        /* Dark mode scrollbar */
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(71, 85, 105, 0.1);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.3);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(71, 85, 105, 0.5);
+        }
+        
+        /* Gradient animations */
+        .gradient-animation {
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Sidebar animations */
+        .sidebar-enter {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+        
+        .sidebar-enter-active {
+            transform: translateX(0);
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        
+        [dir="rtl"] .sidebar-enter {
+            transform: translateX(100%);
+        }
+        
+        [dir="rtl"] .sidebar-enter-active {
+            transform: translateX(0);
+        }
+        
+        /* Mobile menu overlay */
+        .mobile-menu-overlay {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        /* Card hover effects */
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .dark .card-hover:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Button animations */
+        .btn-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        /* Status indicators */
+        .status-dot {
+            position: relative;
+        }
+        
+        .status-dot::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+        
+        .status-dot.online::before {
+            background: rgba(34, 197, 94, 0.4);
+        }
+        
+        .status-dot.offline::before {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        
+        @keyframes ping {
+            75%, 100% {
+                transform: translate(-50%, -50%) scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+
+    <!-- Language Support -->
+    <script src="{{.basePath}}/static/dist/js/translations.js"></script>
+    <script src="{{.basePath}}/static/dist/js/language.js"></script>
+    
+    <!-- Theme Management -->
+    <script>
+        // Theme management
+        const themeManager = {
+            theme: localStorage.getItem('theme') || 'light',
+            
+            init() {
+                this.setTheme(this.theme);
+                this.bindEvents();
+            },
+            
+            setTheme(theme) {
+                this.theme = theme;
+                localStorage.setItem('theme', theme);
+                
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                
+                // Update theme toggle button
+                const toggleBtn = document.getElementById('theme-toggle');
+                if (toggleBtn) {
+                    const icon = toggleBtn.querySelector('i');
+                    if (icon) {
+                        icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+                    }
+                }
+            },
+            
+            toggleTheme() {
+                this.setTheme(this.theme === 'dark' ? 'light' : 'dark');
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toggleBtn = document.getElementById('theme-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleTheme());
+                    }
+                });
+            }
+        };
+        
+        // Language management
+        const languageManager = {
+            currentLang: localStorage.getItem('language') || 'en',
+            
+            init() {
+                this.setLanguage(this.currentLang);
+                this.bindEvents();
+            },
+            
+            setLanguage(lang) {
+                this.currentLang = lang;
+                localStorage.setItem('language', lang);
+                
+                // Update HTML attributes
+                document.documentElement.lang = lang === 'fa' ? 'fa' : 'en';
+                document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+                
+                // Update language toggle button
+                const toggleBtn = document.getElementById('language-toggle');
+                if (toggleBtn) {
+                    const text = toggleBtn.querySelector('span');
+                    if (text) {
+                        text.textContent = lang === 'fa' ? 'EN' : 'فا';
+                    }
+                }
+                
+                // Apply translations if available
+                if (window.langManager && window.langManager.forceRetranslate) {
+                    window.langManager.forceRetranslate();
+                }
+            },
+            
+            toggleLanguage() {
+                this.setLanguage(this.currentLang === 'fa' ? 'en' : 'fa');
+                // Reload page to apply RTL/LTR changes
+                        setTimeout(() => {
+                    window.location.reload();
+                }, 100);
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const toggleBtn = document.getElementById('language-toggle');
+                    if (toggleBtn) {
+                        toggleBtn.addEventListener('click', () => this.toggleLanguage());
+                    }
+                });
+            }
+        };
+        
+        // Sidebar management
+        const sidebarManager = {
+            isOpen: false,
+            
+            init() {
+                this.bindEvents();
+            },
+            
+            toggle() {
+                this.isOpen = !this.isOpen;
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (sidebar) {
+                    if (this.isOpen) {
+                        sidebar.classList.remove('-translate-x-full');
+                        sidebar.classList.add('translate-x-0');
+                        if (overlay) {
+                            overlay.classList.remove('hidden');
+                        }
+                    } else {
+                        sidebar.classList.add('-translate-x-full');
+                        sidebar.classList.remove('translate-x-0');
+                        if (overlay) {
+                            overlay.classList.add('hidden');
+                        }
+                    }
+                }
+            },
+            
+            close() {
+                this.isOpen = false;
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (sidebar) {
+                    sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('translate-x-0');
+                }
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                }
+            },
+            
+            bindEvents() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const menuBtn = document.getElementById('menu-toggle');
+                    const overlay = document.getElementById('mobile-overlay');
+                    
+                    if (menuBtn) {
+                        menuBtn.addEventListener('click', () => this.toggle());
+                    }
+                    
+                    if (overlay) {
+                        overlay.addEventListener('click', () => this.close());
+                    }
+                    
+                    // Close sidebar on escape key
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.isOpen) {
+                            this.close();
+                        }
+            });
+        });
+            }
+        };
+        
+        // Initialize managers
+        themeManager.init();
+        languageManager.init();
+        sidebarManager.init();
+    </script>
+
+    <!-- START: On page css -->
+    {{template "top_css" .}}
+    <!-- END: On page css -->
+</head>
+
+<body class="min-h-screen bg-gray-50 dark:bg-dark-900 font-sans antialiased">
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 mobile-menu-overlay z-40 lg:hidden hidden"></div>
+    
+    <!-- Main Container -->
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-dark-800 shadow-xl transform -translate-x-full transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 rtl:right-0 rtl:left-auto rtl:translate-x-full rtl:lg:translate-x-0 custom-scrollbar overflow-y-auto">
+            <!-- Logo Section -->
+            <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg">
+                        <i class="fas fa-shield-alt text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">vWireguard</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">VPN Management</p>
+                    </div>
+                </div>
+                <button id="sidebar-close" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 lg:hidden">
+                    <i class="fas fa-times text-gray-400"></i>
+                </button>
+            </div>
+            
+            <!-- User Info -->
+            <div class="p-6 border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                    <div class="relative">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <i class="fas fa-user-shield text-white text-lg"></i>
+                        </div>
+                        <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-dark-800 status-dot online"></div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                            {{if .baseData.CurrentUser}}
+                        <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-3 py-1 rounded-full text-xs font-medium mb-1">
+                            {{if .baseData.Admin}}
+                            <span data-translate="Administrator">Administrator</span>
+                            {{else}}
+                            <span data-translate="Manager">Manager</span>
+                            {{end}}
+                        </div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{.baseData.CurrentUser}}</p>
+                        {{else}}
+                        <div class="bg-gradient-to-r from-primary-500 to-primary-600 text-white px-3 py-1 rounded-full text-xs font-medium mb-1">
+                            <span data-translate="Administrator">Administrator</span>
+                        </div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">Admin</p>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+
+            <!-- Navigation Menu -->
+            <nav class="flex-1 px-4 py-6 space-y-2">
+                <!-- Main Section -->
+                <div class="mb-6">
+                    <div class="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3 rtl:mr-0 rtl:ml-3">
+                            <i class="fas fa-bolt text-white text-xs"></i>
+                        </div>
+                        <span data-translate="MAIN">MAIN</span>
+                    </div>
+                    <div class="space-y-1">
+                        <a href="{{.basePath}}/system-monitor" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "system-monitor"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-chart-line w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "system-monitor"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="System Monitor">System Monitor</span>
+                        </a>
+                        
+                        <a href="{{.basePath}}/" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active ""}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-user-secret w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active ""}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="Wireguard Clients">Wireguard Clients</span>
+                        </a>
+
+                        {{if .baseData.Admin}}
+                        <a href="{{.basePath}}/wg-server" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "wg-server"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-server w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "wg-server"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="Wireguard Server">Wireguard Server</span>
+                        </a>
+                        {{end}}
+                    </div>
+                </div>
+                
+                <!-- Settings Section -->
+                {{if .baseData.Admin}}
+                <div class="mb-6">
+                    <div class="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3 rtl:mr-0 rtl:ml-3">
+                            <i class="fas fa-cog text-white text-xs"></i>
+                        </div>
+                        <span data-translate="SETTINGS">SETTINGS</span>
+                    </div>
+                    <div class="space-y-1">
+                        <a href="{{.basePath}}/global-settings" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "global-settings"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-cog w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "global-settings"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="Global Settings">Global Settings</span>
+                        </a>
+                        
+                        {{if not .loginDisabled}}
+                        <a href="{{.basePath}}/users-settings" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "users-settings"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-users-cog w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "users-settings"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="Users Settings">Users Settings</span>
+                        </a>
+                        {{end}}
+                    </div>
+                </div>
+                        {{end}}
+
+                <!-- Utilities Section -->
+                <div class="mb-6">
+                    <div class="flex items-center px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                        <div class="w-6 h-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3 rtl:mr-0 rtl:ml-3">
+                            <i class="fas fa-tools text-white text-xs"></i>
+                        </div>
+                        <span data-translate="UTILITIES">UTILITIES</span>
+                    </div>
+                    <div class="space-y-1">
+                        <a href="{{.basePath}}/utilities" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "utilities"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-tools w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "utilities"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="System Utilities">System Utilities</span>
+                        </a>
+                        
+                        <a href="{{.basePath}}/status" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 hover:bg-gray-100 dark:hover:bg-dark-700 group {{if eq .baseData.Active "status"}}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg{{else}}text-gray-700 dark:text-gray-300{{end}}">
+                            <i class="fas fa-signal w-5 h-5 mr-3 rtl:mr-0 rtl:ml-3 {{if eq .baseData.Active "status"}}text-white{{else}}text-gray-400 group-hover:text-primary-500{{end}}"></i>
+                            <span data-translate="Status">Status</span>
+                        </a>
+                    </div>
+                </div>
+                </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white dark:bg-dark-800 shadow-sm border-b border-gray-200 dark:border-dark-700">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <!-- Left Side -->
+                    <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                        <button id="menu-toggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 lg:hidden">
+                            <i class="fas fa-bars text-gray-600 dark:text-gray-400"></i>
+                        </button>
+                        
+                        <!-- Page Title -->
+                        <div class="hidden md:block">
+                            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+                                {{template "page_title" .}}
+                            </h1>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Side -->
+                    <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                        {{if eq .baseData.Active ""}}
+                        <button onclick="document.getElementById('modal_new_client').style.display='flex'" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                            <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="New Client">New Client</span>
+                        </button>
+                        {{end}}
+                        
+                        <!-- Apply Config Button -->
+                        <button id="apply-config-button" onclick="window.applyConfig()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 btn-pulse">
+                            <i class="fas fa-check mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="Apply Config">Apply Config</span>
+                        </button>
+                        
+                        <!-- User Menu -->
+                        <div class="relative">
+                            <button onclick="toggleUserMenu()" class="flex items-center space-x-2 rtl:space-x-reverse text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-xl p-2 transition-all duration-200">
+                                <div class="w-8 h-8 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
+                                    {{if .baseData.CurrentUser}}{{substr .baseData.CurrentUser 0 1 | upper}}{{else}}A{{end}}
+                                </div>
+                                <span class="hidden md:block text-sm font-medium">{{.baseData.CurrentUser}}</span>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="user-menu-arrow"></i>
+                            </button>
+                            
+                            <!-- User Menu Dropdown -->
+                            <div id="user-menu" class="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-gray-200 dark:border-dark-700 py-2 z-50 hidden">
+                                <div class="px-4 py-3 border-b border-gray-200 dark:border-dark-700">
+                                    <p class="text-sm font-medium text-gray-900 dark:text-white">{{.baseData.CurrentUser}}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{if .baseData.Admin}}Administrator{{else}}Manager{{end}}</p>
+                                </div>
+                                
+                                <!-- Theme Toggle -->
+                                <button onclick="toggleTheme()" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 flex items-center">
+                                    <i class="fas fa-moon mr-3 rtl:mr-0 rtl:ml-3"></i>
+                                    <span data-translate="Toggle Theme">Toggle Theme</span>
+                                </button>
+                                
+                                <!-- Profile Link -->
+                                <a href="{{.basePath}}/profile" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                                    <i class="fas fa-user mr-3 rtl:mr-0 rtl:ml-3"></i>
+                                    <span data-translate="Profile">Profile</span>
+                                </a>
+                                
+                                <!-- Logout -->
+                                <a href="{{.basePath}}/logout" class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                    <i class="fas fa-sign-out-alt mr-3 rtl:mr-0 rtl:ml-3"></i>
+                                    <span data-translate="Logout">Logout</span>
+                                </a>
+                            </div>
+                        </div>
+                        </div>
+                </div>
+            </header>
+            
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-dark-900">
+                <div class="container mx-auto px-6 py-8">
+                    {{template "page_content" .}}
+                </div>
+            </main>
+            </div>
+        </div>
+
+    <!-- New Client Modal -->
+    <div id="modal_new_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="fas fa-plus text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span data-translate="New Wireguard Client">New Wireguard Client</span>
+                </h3>
+                <button onclick="document.getElementById('modal_new_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                    <i class="fas fa-times text-gray-400"></i>
+                        </button>
+                    </div>
+            
+            <form name="frm_new_client" id="frm_new_client" class="p-6 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Name">Name</span>
+                        </label>
+                        <input type="text" id="client_name" name="client_name" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                    </div>
+                    
+                    <div>
+                        <label for="client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Email">Email</span>
+                        </label>
+                        <input type="email" id="client_email" name="client_email" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Quota">Quota</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2">
+                            <select id="quota_preset" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" onchange="updateNewClientQuota()">
+                            <option value="custom" data-translate="Custom">Custom</option>
+                                <option value="10">10 GB</option>
+                                <option value="20">20 GB</option>
+                                <option value="30">30 GB</option>
+                                <option value="40">40 GB</option>
+                                <option value="50">50 GB</option>
+                                <option value="100">100 GB</option>
+                                <option value="200">200 GB</option>
+                                <option value="500">500 GB</option>
+                                <option value="1000">1 TB</option>
+                        </select>
+                            <input type="number" id="client_quota" name="client_quota" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Custom GB" step="0.1" min="0">
+            </div>
+                    </div>
+                    
+                    <div>
+                        <label for="client_expiration_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Expiration Days">Expiration Days</span>
+                        </label>
+                        <input type="number" id="client_expiration_days" name="client_expiration_days" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 30" min="0">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="IP Allocation">IP Allocation</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="client_allocated_ips" name="client_allocated_ips" class="block w-full px-3 py-2 pr-10 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 10.252.1.2/32">
+                            <button type="button" onclick="suggestIPAllocation()" class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-primary-500" title="Suggest IP">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="subnet_ranges" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Subnet Range">Subnet Range</span>
+                        </label>
+                        <select id="subnet_ranges" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white" onchange="updateIPAllocationSuggestion()">
+                            <option value="" data-translate="Select subnet range">Select subnet range</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="client_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Endpoint">Endpoint</span>
+                        </label>
+                        <input type="text" id="client_endpoint" name="client_endpoint" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. server.com:51820">
+                    </div>
+                    
+                    <div>
+                        <label for="client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <span data-translate="Telegram userid">Telegram userid</span>
+                        </label>
+                        <input type="text" id="client_telegram_userid" name="client_telegram_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Telegram user ID">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="client_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Allowed IPs">Allowed IPs</span>
+                    </label>
+                    <input type="text" id="client_allowed_ips" name="client_allowed_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="e.g. 0.0.0.0/0" value="0.0.0.0/0">
+                </div>
+                
+                <div>
+                    <label for="client_extra_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Extra Allowed IPs">Extra Allowed IPs</span>
+                    </label>
+                    <input type="text" id="client_extra_allowed_ips" name="client_extra_allowed_ips" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" placeholder="Additional allowed IPs">
+                </div>
+                
+                <div>
+                    <label for="client_additional_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Notes">Notes</span>
+                    </label>
+                    <textarea id="client_additional_notes" name="client_additional_notes" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" style="min-height: 4rem;" placeholder="Additional notes about this client"></textarea>
+        </div>
+
+                <div class="flex items-center space-x-4 rtl:space-x-reverse">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="use_server_dns" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="use_server_dns" class="ml-2 rtl:ml-0 rtl:mr-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Use server DNS">Use server DNS</span>
+                        </label>
+                        </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" id="enabled" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="enabled" class="ml-2 rtl:ml-0 rtl:mr-2 text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Enable after creation">Enable after creation</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 rtl:space-x-reverse pt-4">
+                    <button type="button" onclick="document.getElementById('modal_new_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <span data-translate="Cancel">Cancel</span>
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200">
+                        <i class="fas fa-plus mr-2 rtl:mr-0 rtl:ml-2"></i>
+                        <span data-translate="Create Client">Create Client</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="confirmation-modal">
+        <div class="confirmation-content">
+            <div class="confirmation-title" id="confirmation-title"></div>
+            <div class="confirmation-message" id="confirmation-message"></div>
+            <div class="confirmation-buttons">
+                <button class="confirmation-btn cancel" onclick="hideConfirmation()">
+                    <span data-translate="Cancel">Cancel</span>
+                </button>
+                <button class="confirmation-btn confirm" id="confirmation-confirm-btn">
+                    <span data-translate="Confirm">Confirm</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- jQuery and other scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery-tags-input@1.3.5/dist/jquery.tagsinput.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jquery-tags-input@1.3.5/dist/jquery.tagsinput.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery-validation@1.19.5/dist/jquery.validate.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    
+    <!-- Page specific scripts -->
+    {{template "bottom_js" .}}
+    
+    <!-- Notification System JavaScript -->
+    <script>
+        // Notification System
+        window.showNotification = function(message, type = 'info', duration = 5000) {
+            const container = document.getElementById('notification-container');
+            if (!container) return;
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle',
+                warning: 'fas fa-exclamation-triangle',
+                info: 'fas fa-info-circle'
+            };
+            
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-content">
+                        <i class="${icons[type]}" style="color: ${colors[type]};"></i>
+                        <div>
+                            <div class="notification-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                            <div class="notification-body">${message}</div>
+                        </div>
+                    </div>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Show animation
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+            
+            // Auto remove
+            if (duration > 0) {
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentElement) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, duration);
+            }
+        };
+        
+        // Confirmation System
+        window.showConfirmation = function(title, message, onConfirm, confirmText = 'Confirm', confirmType = 'confirm') {
+            const modal = document.getElementById('confirmation-modal');
+            const titleEl = document.getElementById('confirmation-title');
+            const messageEl = document.getElementById('confirmation-message');
+            const confirmBtn = document.getElementById('confirmation-confirm-btn');
+            
+            if (!modal || !titleEl || !messageEl || !confirmBtn) return;
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            confirmBtn.textContent = confirmText;
+            
+            // Update button class based on type
+            confirmBtn.className = `confirmation-btn ${confirmType}`;
+            
+            // Remove previous event listeners
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            
+            // Add new event listener
+            newConfirmBtn.addEventListener('click', () => {
+                hideConfirmation();
+                if (onConfirm) onConfirm();
+            });
+            
+            modal.classList.add('show');
+        };
+        
+        window.hideConfirmation = function() {
+            const modal = document.getElementById('confirmation-modal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        };
+        
+        // Global success and error functions
+        window.showSuccess = function(message) {
+            showNotification(message, 'success');
+        };
+        
+        window.showError = function(message) {
+            showNotification(message, 'error');
+        };
+        
+        window.showWarning = function(message) {
+            showNotification(message, 'warning');
+        };
+        
+        window.showInfo = function(message) {
+            showNotification(message, 'info');
+        };
+    </script>
+
+    <script>
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileMenu = document.getElementById('user-menu');
+            const profileButton = event.target.closest('[onclick*="toggleUserMenu"]');
+            
+            if (!profileButton && profileMenu && !profileMenu.contains(event.target)) {
+                profileMenu.classList.add('hidden');
+                const arrow = document.getElementById('user-menu-arrow');
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        });
+        
+        // User menu toggle function
+        window.toggleUserMenu = function() {
+            const menu = document.getElementById('user-menu');
+            const arrow = document.getElementById('user-menu-arrow');
+            
+            if (menu.classList.contains('hidden')) {
+                menu.classList.remove('hidden');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+            } else {
+                menu.classList.add('hidden');
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            }
+        };
+        
+        // Theme toggle function
+        window.toggleTheme = function() {
+            const html = document.documentElement;
+            const currentTheme = html.classList.contains('dark') ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            if (newTheme === 'dark') {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+            }
+            
+            // Close user menu after theme toggle
+            const menu = document.getElementById('user-menu');
+            const arrow = document.getElementById('user-menu-arrow');
+            if (menu) menu.classList.add('hidden');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        };
+        
+        // Enhanced mobile responsiveness
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 1024) {
+                // Desktop view
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('mobile-overlay');
+                
+                if (sidebar) {
+                    sidebar.classList.remove('-translate-x-full');
+                    sidebar.classList.add('translate-x-0');
+                }
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                }
+                sidebarManager.isOpen = false;
+            }
+        });
+        
+        // Initialize tooltips and other interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add smooth scrolling behavior
+            document.documentElement.style.scrollBehavior = 'smooth';
+            
+                    // Initialize new client form
+        initializeNewClientForm();
+        
+        // Load suggested IPs when new client modal opens
+        const newClientButton = document.querySelector('[onclick*="modal_new_client"]');
+        if (newClientButton) {
+            newClientButton.addEventListener('click', function() {
+                setTimeout(() => {
+                    initializeNewClientForm();
+                }, 100);
+            });
+        }
+        
+        // Also initialize when modal is shown (for any other way it might be opened)
+        const newClientModal = document.getElementById('modal_new_client');
+        if (newClientModal) {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const display = newClientModal.style.display;
+                        if (display === 'block' || display === 'flex') {
+                            if (window.DEBUG) console.log('Modal opened, initializing form');
+                            initializeNewClientForm();
+                        }
+                    }
+                });
+            });
+            observer.observe(newClientModal, { attributes: true });
+        }
+        
+        // Observer for edit client modal
+        const editClientModal = document.getElementById('modal_edit_client');
+        if (editClientModal) {
+            const editObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                        const display = editClientModal.style.display;
+                        if (display === 'block' || display === 'flex') {
+                            if (window.DEBUG) console.log('Edit modal opened');
+                        }
+                    }
+                });
+            });
+            editObserver.observe(editClientModal, { attributes: true });
+        }
+            
+            // Initialize any additional interactive elements
+            if (window.DEBUG) console.log('vWireguard Dashboard initialized');
+    });
+        
+        // New Client Form Functionality
+        function initializeNewClientForm() {
+            // Load subnet ranges
+            loadSubnetRanges();
+            
+            // Set default values
+            const useServerDns = document.getElementById('use_server_dns');
+            const enabled = document.getElementById('enabled');
+            if (useServerDns) useServerDns.checked = true;
+            if (enabled) enabled.checked = true;
+            
+            // Auto-suggest IP when modal opens
+            setTimeout(() => {
+                loadSuggestedIPs();
+            }, 100);
+        }
+        
+        // Initialize new client form submission (only once)
+        document.addEventListener('DOMContentLoaded', function() {
+            const newClientForm = document.getElementById('frm_new_client');
+            if (newClientForm) {
+                newClientForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    if (window.DEBUG) console.log('New client form submitted');
+                    
+                    const formData = new FormData(this);
+                    
+                    // Parse and format allocated IPs to CIDR
+                    let allocatedIps = formData.get('client_allocated_ips') ? 
+                        formData.get('client_allocated_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    allocatedIps = formatIPListToCIDR(allocatedIps);
+                    
+                    // Parse allowed IPs
+                    let allowedIps = formData.get('client_allowed_ips') ? 
+                        formData.get('client_allowed_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    allowedIps = formatIPListToCIDR(allowedIps);
+                    
+                    // Parse extra allowed IPs
+                    let extraAllowedIps = formData.get('client_extra_allowed_ips') ? 
+                        formData.get('client_extra_allowed_ips').split(',').map(ip => ip.trim()).filter(ip => ip) : [];
+                    extraAllowedIps = formatIPListToCIDR(extraAllowedIps);
+                    
+                    // Calculate quota in bytes
+                    let quota = 0;
+                    const quotaPreset = document.getElementById('quota_preset').value;
+                    const quotaInput = document.getElementById('client_quota').value;
+                    
+                    if (quotaPreset !== 'custom' && quotaPreset) {
+                        quota = parseInt(quotaPreset) * 1024 * 1024 * 1024; // Convert GB to bytes
+                    } else if (quotaInput) {
+                        quota = parseFloat(quotaInput) * 1024 * 1024 * 1024; // Convert GB to bytes
+                    }
+                    
+                    const clientData = {
+                        name: formData.get('client_name'),
+                        email: formData.get('client_email'),
+                        quota: quota,
+                        expiration_days: formData.get('client_expiration_days') ? parseInt(formData.get('client_expiration_days')) : null,
+                        allocated_ips: allocatedIps,
+                        endpoint: formData.get('client_endpoint'),
+                        tg_userid: formData.get('client_telegram_userid'),
+                        allowed_ips: allowedIps,
+                        extra_allowed_ips: extraAllowedIps,
+                        additional_notes: formData.get('client_additional_notes'),
+                        use_server_dns: document.getElementById('use_server_dns').checked,
+                        enabled: document.getElementById('enabled').checked,
+                    };
+                    
+                    if (window.DEBUG) console.log('Client data to send:', clientData);
+                    
+                    // Validate required fields
+                    if (!clientData.name.trim()) {
+                        showError('Name is required');
+                        return;
+                    }
+                    
+                    fetch('{{.basePath}}/new-client', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(clientData),
+                    })
+                    .then(response => {
+                        if (window.DEBUG) console.log('Response status:', response.status);
+                        if (window.DEBUG) console.log('Response headers:', response.headers);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (window.DEBUG) console.log('Response data:', data);
+                        if (data.success) {
+                            document.getElementById('modal_new_client').style.display = 'none';
+                            newClientForm.reset();
+                            showSuccess('Client created successfully');
+                            
+                            // Reset form to defaults
+                            initializeNewClientForm();
+                            
+                            // Reload clients if on clients page
+                            if (typeof loadClients === 'function') {
+                                loadClients();
+                            }
+                        } else {
+                            showError(data.message || 'Failed to create client');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Fetch error:', error);
+                        showError('Failed to create client: ' + error.message);
+                    });
+                });
+            }
+        });
+        
+        // Update new client quota function
+        function updateNewClientQuota() {
+            const quotaPreset = document.getElementById('quota_preset');
+            const quotaInput = document.getElementById('client_quota');
+            
+            if (quotaPreset && quotaInput) {
+                if (quotaPreset.value !== 'custom') {
+                    quotaInput.value = quotaPreset.value;
+                    quotaInput.disabled = true;
+                } else {
+                    quotaInput.disabled = false;
+                    quotaInput.value = '';
+                }
+            }
+        }
+        
+        // Apply config function
+        window.applyConfig = function() {
+            showConfirmation(
+                'Apply Configuration',
+                'Are you sure you want to apply the WireGuard configuration? This will restart the service.',
+                function() {
+                    fetch('{{.basePath}}/api/apply-wg-config', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showSuccess('Configuration applied successfully');
+                        } else {
+                            showError(data.message || 'Failed to apply configuration');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showError('Failed to apply configuration');
+                    });
+                }
+            );
+        };
+        
+        // Load suggested IPs function
+        function loadSuggestedIPs() {
+            fetch('{{.basePath}}/api/suggest-client-ips', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const allocatedIpsInput = document.getElementById('client_allocated_ips');
+                    if (allocatedIpsInput) {
+                        allocatedIpsInput.value = data[0];
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading suggested IPs:', error);
+            });
+        }
+        
+        // Suggest IP allocation function
+        function suggestIPAllocation() {
+            const subnetRange = document.getElementById('subnet_ranges').value;
+            const url = subnetRange ? 
+                `{{.basePath}}/api/suggest-client-ips?sr=${subnetRange}` : 
+                '{{.basePath}}/api/suggest-client-ips';
+            
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    const allocatedIpsInput = document.getElementById('client_allocated_ips');
+                    if (allocatedIpsInput) {
+                        allocatedIpsInput.value = data[0];
+                    }
+                    showSuccess('IP suggestion applied successfully');
+                } else {
+                    showError('No available IPs found');
+                }
+            })
+            .catch(error => {
+                console.error('Error suggesting IP:', error);
+                showError('Failed to suggest IP');
+            });
+        }
+        
+        // Update IP allocation suggestion when subnet range changes
+        function updateIPAllocationSuggestion() {
+            const subnetRange = document.getElementById('subnet_ranges').value;
+            if (subnetRange) {
+                suggestIPAllocation();
+            }
+        }
+        
+        // Load subnet ranges function
+        function loadSubnetRanges() {
+            fetch('{{.basePath}}/api/subnet-ranges', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                const select = document.getElementById('subnet_ranges');
+                if (select && data && data.length > 0) {
+                    // Clear existing options except the first one
+                    while (select.children.length > 1) {
+                        select.removeChild(select.lastChild);
+                    }
+                    
+                    data.forEach(range => {
+                        const option = document.createElement('option');
+                        option.value = range;
+                        option.textContent = range;
+                        select.appendChild(option);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading subnet ranges:', error);
+            });
+        }
+        
+        // Format IP addresses to CIDR format
+        function formatIPToCIDR(ip) {
+            if (!ip || ip.includes('/')) {
+                return ip; // Already in CIDR format or empty
+            }
+            
+            // Check if it's a valid IP address
+            const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+            if (ipRegex.test(ip.trim())) {
+                return ip.trim() + '/32';
+            }
+            
+            return ip; // Return as-is if not a valid IP
+        }
+        
+        // Format IP list to CIDR format
+        function formatIPListToCIDR(ipList) {
+            if (!ipList || !Array.isArray(ipList)) {
+                return ipList;
+            }
+            
+            return ipList.map(ip => formatIPToCIDR(ip));
+        }
+        
+        // Utility functions
+        function showSuccess(message) {
+            if (window.DEBUG) console.log('Success:', message);
+            alert(message);
+        }
+        
+        function showError(message) {
+            console.error('Error:', message);
+            alert('Error: ' + message);
+        }
+    </script>
+
+    <!-- Debug function to test API -->
+    <script>
+        // Debug function to test API
+        window.testCreateClient = function() {
+            const testData = {
+                name: "Test Client",
+                email: "test@example.com",
+                quota: 0,
+                expiration_days: null,
+                allocated_ips: ["10.252.1.100/32"],
+                endpoint: "",
+                tg_userid: "",
+                allowed_ips: ["0.0.0.0/0"],
+                extra_allowed_ips: [],
+                additional_notes: "",
+                use_server_dns: true,
+                enabled: true,
+            };
+            
+            if (window.DEBUG) console.log('Testing API with data:', testData);
+            
+            fetch('{{.basePath}}/new-client', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(testData),
+            })
+            .then(response => {
+                if (window.DEBUG) console.log('Test response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                if (window.DEBUG) console.log('Test response data:', data);
+                if (data.success) {
+                    showSuccess('Test client created successfully');
+                } else {
+                    showError('Test failed: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Test error:', error);
+                showError('Test failed: ' + error.message);
+            });
+        };
+    </script>
+</body>
+</html>
+{{end}}

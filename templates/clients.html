@@ -1,0 +1,1178 @@
+{{define "title"}}
+<span data-translate="Wireguard Clients">Wireguard Clients</span>
+{{end}}
+
+{{define "top_css"}}
+{{end}}
+
+{{define "username"}}
+{{ .username }}
+{{end}}
+
+{{define "page_title"}}
+<span data-translate="Wireguard Clients">Wireguard Clients</span>
+{{end}}
+
+{{define "page_content"}}
+<section class="content">
+    <div class="mx-auto px-4">
+        <!-- <h5 class="mt-4 mb-2">Wireguard Clients</h5> -->
+        <div class="mb-4 flex justify-end items-center space-x-4 rtl:space-x-reverse">
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="auto-refresh-toggle" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                <span class="ml-2 rtl:ml-0 rtl:mr-2 text-sm" data-translate="Auto Refresh">Auto Refresh</span>
+                </label>
+            <select id="refresh-interval" class="px-2 py-1 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 focus:outline-none" disabled>
+                <option value="5" data-translate="5 seconds">5 seconds</option>
+                <option value="10" data-translate="10 seconds">10 seconds</option>
+                <option value="30" data-translate="30 seconds">30 seconds</option>
+                <option value="60" data-translate="60 seconds">60 seconds</option>
+            </select>
+            <button type="button" id="refresh-status-btn" class="px-4 py-2 text-sm font-medium text-primary-600 border border-primary-500 rounded-xl hover:bg-primary-50 dark:hover:bg-dark-700 flex items-center space-x-2 rtl:space-x-reverse">
+                <i class="fas fa-sync-alt"></i>
+            <span data-translate="Refresh Status">Refresh Status</span>
+        </button>
+    </div>
+    
+        <!-- Search and Filter Row -->
+        <div class="mb-6 grid grid-cols-1 md:grid-cols-8 gap-4 hidden" id="search-form">
+            <div class="md:col-span-5">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-3 rtl:pl-0 rtl:pr-3 text-gray-400">
+                        <i class="fas fa-search"></i>
+                    </span>
+                    <input type="text" id="search-input" class="block w-full pl-10 rtl:pl-3 rtl:pr-10 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Search clients..." data-translate-placeholder="Search clients...">
+    </div>
+</div>
+            <div class="md:col-span-3">
+
+                <select id="status-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
+                <select id="status-selector" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+
+                    <option value="All" data-translate="All">All</option>
+                    <option value="Enabled" data-translate="Enabled">Enabled</option>
+                    <option value="Disabled" data-translate="Disabled">Disabled</option>
+                    <option value="Connected" data-translate="Connected">Connected</option>
+                    <option value="Disconnected" data-translate="Disconnected">Disconnected</option>
+                </select>
+            </div>
+                </div>
+                
+        <div id="loading-state" class="hidden flex flex-col items-center py-10">
+            <i class="fas fa-spinner fa-spin text-gray-500 text-xl"></i>
+            <span class="mt-2 text-gray-500 dark:text-gray-400" data-translate="Loading...">Loading...</span>
+            </div>
+        <div id="empty-state" class="hidden text-center py-10">
+            <span class="text-gray-500 dark:text-gray-400" data-translate="No clients found">No clients found</span>
+    </div>
+    
+        <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    </div>
+        <!-- /.row -->
+</div>
+</section>
+
+<div id="modal_email_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Email Configuration">Email Configuration</h4>
+            <button type="button" onclick="document.getElementById('modal_email_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+                </button>
+            </div>
+        <form name="frm_email_client" id="frm_email_client" class="p-6 space-y-4">
+                    <input type="hidden" id="e_client_id" name="e_client_id">
+            <div>
+                <label for="e_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" data-translate="Email address">Email address</label>
+                <input type="text" id="e_client_email" name="e_client_email" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+                    </div>
+            <div class="flex justify-end space-x-3 rtl:space-x-reverse">
+                <button type="button" onclick="document.getElementById('modal_email_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Send">Send</button>
+                </div>
+            </form>
+    </div>
+</div>
+
+<div id="modal_qr_code" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <span data-translate="QR Code">QR Code</span>
+            </h3>
+            <button type="button" onclick="document.getElementById('modal_qr_code').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+                </button>
+            </div>
+        <div class="p-6 text-center">
+                <input type="hidden" id="qr_client_id" name="qr_client_id">
+            <div class="bg-gray-100 dark:bg-dark-700 rounded-xl p-4 mb-4">
+                <img id="qr_code" class="w-full h-auto max-w-xs mx-auto" style="image-rendering: pixelated;" src="" alt="QR code" />
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400" data-translate="Scan this QR code with your Wireguard client">Scan this QR code with your Wireguard client</p>
+        </div>
+    </div>
+</div>
+
+
+<div id="modal_telegram_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Telegram Configuration">Telegram Configuration</h4>
+            <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        <form name="frm_telegram_client" id="frm_telegram_client" class="p-6 space-y-4">
+            <input type="hidden" id="tg_client_id" name="tg_client_id">
+            <div>
+                <label for="tg_client_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" data-translate="Telegram userid">Telegram userid</label>
+                <input type="text" id="tg_client_userid" name="tg_client_userid" class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500">
+            </div>
+            <div class="flex justify-end space-x-3 rtl:space-x-reverse">
+                <button type="button" onclick="document.getElementById('modal_telegram_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Send">Send</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Client Modal -->
+<div id="modal_edit_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="fas fa-edit text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="Edit Client">Edit Client</span>
+            </h3>
+            <button type="button" onclick="closeEditModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <form id="frm_edit_client" class="space-y-6">
+                <input type="hidden" id="edit_client_id" name="edit_client_id">
+                
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-user mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Name">Name</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_name" 
+                               name="edit_client_name"
+                               required
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-envelope mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Email">Email</span>
+                        </label>
+                        <input type="email" 
+                               id="edit_client_email" 
+                               name="edit_client_email"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+                </div>
+                
+                <!-- Quota and Expiration -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_quota" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-database mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Quota (GB)">Quota (GB)</span>
+                        </label>
+                        <input type="number" 
+                               id="edit_client_quota" 
+                               name="edit_client_quota"
+                               min="0"
+                               step="0.1"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for unlimited</p>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_expiration_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-calendar mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Expiration Days">Expiration Days</span>
+                        </label>
+                        <input type="number" 
+                               id="edit_client_expiration_days" 
+                               name="edit_client_expiration_days"
+                               min="0"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for no expiration</p>
+                    </div>
+                </div>
+                
+                <!-- IP Allocation -->
+                <div>
+                    <label for="edit_client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="IP Allocation">IP Allocation</span>
+                    </label>
+                    <input type="text" 
+                           id="edit_client_allocated_ips" 
+                           name="edit_client_allocated_ips"
+                           placeholder="10.0.0.2/32, 10.0.0.3/32"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated IP addresses in CIDR format</p>
+                </div>
+                
+                <!-- Allowed IPs -->
+                <div>
+                    <label for="edit_client_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-globe mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Allowed IPs">Allowed IPs</span>
+                    </label>
+                    <input type="text" 
+                           id="edit_client_allowed_ips" 
+                           name="edit_client_allowed_ips"
+                           placeholder="0.0.0.0/0, ::/0"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated IP ranges in CIDR format</p>
+                </div>
+                
+                <!-- Extra Allowed IPs -->
+                <div>
+                    <label for="edit_client_extra_allowed_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-plus-circle mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Extra Allowed IPs">Extra Allowed IPs</span>
+                    </label>
+                    <input type="text" 
+                           id="edit_client_extra_allowed_ips" 
+                           name="edit_client_extra_allowed_ips"
+                           placeholder="192.168.1.0/24, 10.0.0.0/8"
+                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Additional IP ranges to route through VPN</p>
+                </div>
+                
+                <!-- Advanced Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_public_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-key mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Public Key">Public Key</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_public_key" 
+                               name="edit_client_public_key"
+                               readonly
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm bg-gray-50 dark:bg-dark-600 text-gray-900 dark:text-white transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Auto-generated public key</p>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_preshared_key" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-shield-alt mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Preshared Key">Preshared Key</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_preshared_key" 
+                               name="edit_client_preshared_key"
+                               readonly
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm bg-gray-50 dark:bg-dark-600 text-gray-900 dark:text-white transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional additional security key</p>
+                    </div>
+                </div>
+                
+                <!-- Additional Settings -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="edit_client_telegram_userid" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fab fa-telegram mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Telegram User ID">Telegram User ID</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_telegram_userid" 
+                               name="edit_client_telegram_userid"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+                    
+                    <div>
+                        <label for="edit_client_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="fas fa-server mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Endpoint">Endpoint</span>
+                        </label>
+                        <input type="text" 
+                               id="edit_client_endpoint" 
+                               name="edit_client_endpoint"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+                </div>
+                
+                <!-- Checkboxes -->
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="edit_client_enabled" 
+                               name="edit_client_enabled"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="edit_client_enabled" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Enabled">Enabled</span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex items-center">
+                        <input type="checkbox" 
+                               id="edit_client_use_server_dns" 
+                               name="edit_client_use_server_dns"
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="edit_client_use_server_dns" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                            <span data-translate="Use Server DNS">Use Server DNS</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Notes -->
+                <div>
+                    <label for="edit_client_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-sticky-note mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Additional Notes">Additional Notes</span>
+                    </label>
+                    <textarea id="edit_client_notes" 
+                              name="edit_client_notes"
+                              rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200 resize-none"></textarea>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
+            <button type="button" 
+                    onclick="closeEditModal()"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                <span data-translate="Cancel">Cancel</span>
+            </button>
+            <button type="button" 
+                    onclick="saveEditClient()"
+                    class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="Save Changes">Save Changes</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="modal_pause_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700 bg-warning-100 dark:bg-warning-900/20">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Disable">Disable</h4>
+            <button type="button" onclick="document.getElementById('modal_pause_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        <div class="p-6" id="modal_pause_client_body"></div>
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 pt-0">
+            <button type="button" onclick="document.getElementById('modal_pause_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+            <button type="button" id="pause_client_confirm" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Apply">Apply</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal_remove_client" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700 bg-danger-100 dark:bg-danger-900/20">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white" data-translate="Remove">Remove</h4>
+            <button type="button" onclick="document.getElementById('modal_remove_client').style.display='none'" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        <div class="p-6" id="modal_remove_client_body"></div>
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 pt-0">
+            <button type="button" onclick="document.getElementById('modal_remove_client').style.display='none'" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Cancel">Cancel</button>
+            <button type="button" id="remove_client_confirm" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-translate="Apply">Apply</button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "bottom_js"}}
+    <script>
+// Global variables
+let clients = [];
+let filteredClients = [];
+let autoRefreshInterval = null;
+let isLoading = false;
+
+// DOM elements
+const clientsContainer = document.getElementById('clients-container');
+const loadingState = document.getElementById('loading-state');
+const emptyState = document.getElementById('empty-state');
+const searchInput = document.getElementById('search-input');
+const statusFilter = document.getElementById('status-filter');
+const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+const refreshBtn = document.getElementById('refresh-status-btn');
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    loadClients();
+    bindEvents();
+});
+
+// Bind events
+function bindEvents() {
+    if (searchInput) searchInput.addEventListener('input', debounce(filterClients, 300));
+    if (statusFilter) statusFilter.addEventListener('change', filterClients);
+    if (autoRefreshToggle) autoRefreshToggle.addEventListener('change', toggleAutoRefresh);
+    if (refreshBtn) refreshBtn.addEventListener('click', loadClients);
+}
+
+// Load clients from server
+async function loadClients() {
+    if (isLoading) return;
+    
+    isLoading = true;
+    showLoading();
+    
+    try {
+        const response = await fetch(`${basePath}/api/clients`);
+        if (response.ok) {
+            const data = await response.json();
+            // Handle both old and new API response formats
+            if (data.data) {
+                clients = data.data || [];
+            } else if (data.clients) {
+                clients = data.clients || [];
+            } else {
+                clients = data || [];
+            }
+            filteredClients = [...clients];
+            renderClients();
+        } else {
+            throw new Error('Failed to load clients');
+        }
+    } catch (error) {
+        console.error('Error loading clients:', error);
+        showError('Failed to load clients. Please try again.');
+    } finally {
+        isLoading = false;
+        hideLoading();
+    }
+}
+
+// Show loading state
+function showLoading() {
+    if (loadingState) loadingState.classList.remove('hidden');
+    if (clientsContainer) clientsContainer.classList.add('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
+}
+
+// Hide loading state
+function hideLoading() {
+    if (loadingState) loadingState.classList.add('hidden');
+    if (clientsContainer) clientsContainer.classList.remove('hidden');
+}
+
+// Filter clients
+function filterClients() {
+    if (!searchInput || !statusFilter) return;
+    
+    const searchTerm = searchInput.value.toLowerCase();
+    const statusFilterValue = statusFilter.value;
+    
+    filteredClients = clients.filter(client => {
+        const clientData = client.Client || client; // Handle both formats
+        const matchesSearch = clientData.name.toLowerCase().includes(searchTerm) ||
+                             (clientData.email && clientData.email.toLowerCase().includes(searchTerm)) ||
+                             (clientData.allocated_ips && clientData.allocated_ips.some(ip => ip.includes(searchTerm)));
+        
+        const matchesStatus = statusFilterValue === 'All' || 
+                             statusFilterValue === 'all' ||
+                             (statusFilterValue === 'Enabled' && clientData.enabled) ||
+                             (statusFilterValue === 'Disabled' && !clientData.enabled) ||
+                             (statusFilterValue === 'Connected' && clientData.status === 'online') ||
+                             (statusFilterValue === 'Disconnected' && clientData.status !== 'online');
+        
+        return matchesSearch && matchesStatus;
+    });
+    
+    renderClients();
+}
+
+// Render clients
+function renderClients() {
+    if (!clientsContainer) return;
+    
+    if (filteredClients.length === 0) {
+        clientsContainer.classList.add('hidden');
+        if (emptyState) emptyState.classList.remove('hidden');
+                return;
+            }
+
+    clientsContainer.classList.remove('hidden');
+    if (emptyState) emptyState.classList.add('hidden');
+    
+    clientsContainer.innerHTML = filteredClients.map(client => createClientCard(client)).join('');
+}
+
+// Create client card HTML
+function createClientCard(client) {
+    const clientData = client.Client || client;
+    // مینیمال: فقط اسم، ایمیل، حجم، زمان، IP Allocation و دکمه‌ها
+    const name = clientData.name || '';
+    const email = clientData.email || '';
+    const quotaText = clientData.quota ? formatBytes(clientData.quota) : 'Unlimited';
+    const quotaBytes = clientData.quota ? clientData.quota : 0;
+    const expirationText = clientData.expiration && clientData.expiration !== '0001-01-01T00:00:00Z'
+        ? formatTimeRemaining(clientData.expiration)
+        : (clientData.expiration_days ? `${clientData.expiration_days} days` : 'No expiration');
+    const allocatedIps = clientData.allocated_ips || [];
+    const allocatedIpsHtml = allocatedIps.map(ip => `<span class=\"inline-block bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded mr-1 mb-1\">${ip}</span>`).join('');
+    
+    // Online status indicator
+    const isOnline = clientData.status === 'online' || (clientData.last_handshake && (Date.now() - new Date(clientData.last_handshake).getTime()) < 180000); // 3 minutes
+    const onlineStatusClass = isOnline ? 'bg-green-500' : 'bg-gray-400';
+    const onlineStatusTitle = isOnline ? 'Online' : 'Offline';
+    
+    // Data usage display
+    const usedQuota = clientData.used_quota || 0;
+    const usedQuotaText = formatBytes(usedQuota);
+    const quotaProgress = clientData.quota ? Math.min((usedQuota / clientData.quota) * 100, 100) : 0;
+    
+    // Last seen display - handle null, empty, or invalid dates
+    let lastSeen = null;
+    if (clientData.last_handshake) {
+        const date = new Date(clientData.last_handshake);
+        // Check if date is valid and not from epoch (1970) or before 2020
+        if (!isNaN(date.getTime()) && date.getFullYear() >= 2020) {
+            lastSeen = date;
+        }
+    }
+    const lastSeenText = lastSeen ? formatLastSeen(lastSeen) : 'Never';
+    
+    return `
+        <div class=\"client-card bg-white dark:bg-dark-800 rounded-2xl shadow-lg border border-gray-200 dark:border-dark-700 overflow-hidden p-4 flex flex-col justify-between\">
+            <div>
+                <div class=\"flex items-center justify-between mb-2\">
+                    <div class=\"flex items-center space-x-2 rtl:space-x-reverse\">
+                        <div class=\"w-3 h-3 rounded-full ${onlineStatusClass} flex-shrink-0\" title=\"${onlineStatusTitle}\"></div>
+                        <h3 class=\"text-lg font-semibold truncate max-w-[120px] text-gray-900 dark:text-white\" title=\"${name}\">${name}</h3>
+                    </div>
+                    <div class=\"flex items-center space-x-1 rtl:space-x-reverse\">
+                        <button onclick=\"editClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Edit\"><i class=\"fas fa-edit\"></i></button>
+                        <button onclick=\"showQRCode('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"QR Code\"><i class=\"fas fa-qrcode\"></i></button>
+                        <button onclick=\"downloadClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-primary-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Download\"><i class=\"fas fa-download\"></i></button>
+                        ${email ? `<button onclick=\"showEmailModal('${clientData.id}', '${email}')\" class=\"action-button p-2 text-blue-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Send via Email\"><i class=\"fas fa-envelope\"></i></button>` : ''}
+                        ${clientData.telegram_userid ? `<button onclick=\"sendTelegramConfig('${clientData.id}', '${clientData.telegram_userid}')\" class=\"action-button p-2 text-blue-400 hover:text-blue-500 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Send via Telegram\"><i class=\"fab fa-telegram\"></i></button>` : ''}
+                        <button onclick=\"toggleClient('${clientData.id}')\" class=\"action-button p-2 ${clientData.enabled ? 'text-red-400 hover:text-red-500' : 'text-green-400 hover:text-green-500'} rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"${clientData.enabled ? 'Disable' : 'Enable'}\"><i class=\"fas fa-${clientData.enabled ? 'pause' : 'play'}\"></i></button>
+                        <button onclick=\"deleteClient('${clientData.id}')\" class=\"action-button p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-100 dark:hover:bg-dark-700\" title=\"Delete\"><i class=\"fas fa-trash\"></i></button>
+                    </div>
+                </div>
+                
+                <div class=\"space-y-3\">
+                    <!-- Email -->
+                    ${email ? `<div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\"><i class=\"fas fa-envelope mr-2 rtl:mr-0 rtl:ml-2\"></i><span class=\"truncate\" title=\"${email}\">${email}</span></div>` : ''}
+                    
+                    <!-- IP Allocation -->
+                    ${allocatedIpsHtml ? `<div class=\"flex items-start text-sm text-gray-600 dark:text-gray-400\"><i class=\"fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2 mt-0.5\"></i><div class=\"flex flex-wrap gap-1\">${allocatedIpsHtml}</div></div>` : ''}
+                    
+                    <!-- Data Usage -->
+                    <div class=\"space-y-1\">
+                        <div class=\"flex items-center justify-between text-sm\">
+                            <span class=\"text-gray-600 dark:text-gray-400\">Data Usage</span>
+                            <span class=\"text-gray-900 dark:text-white font-medium\">${clientData.quota ? `${usedQuotaText} / ${quotaText}` : usedQuotaText}</span>
+                        </div>
+                        ${clientData.quota ? `<div class=\"w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2\"><div class=\"bg-primary-500 h-2 rounded-full transition-all duration-300\" style=\"width: ${quotaProgress}%\"></div></div>` : ''}
+                        ${clientData.quota ? `<div class=\"flex justify-between text-xs text-gray-500 dark:text-gray-400\"><span>Remaining ${formatBytes(Math.max(quotaBytes - usedQuota, 0))}</span><span>${Math.round(quotaProgress)}%</span></div>` : ''}
+                    </div>
+                    
+                    <!-- Last Seen -->
+                    <div class=\"flex items-center text-sm text-gray-600 dark:text-gray-400\">
+                        <i class=\"fas fa-clock mr-2 rtl:mr-0 rtl:ml-2\"></i>
+                        <span>Last seen: ${lastSeenText}</span>
+                    </div>
+                    
+                    <!-- Quota & Expiration -->
+                    <div class=\"flex flex-wrap gap-2 text-xs\">
+                        <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200\">
+                            <i class=\"fas fa-database mr-1 rtl:mr-0 rtl:ml-1\"></i>${quotaText}
+                        </span>
+                        <span class=\"inline-flex items-center px-2 py-1 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200\">
+                            <i class=\"fas fa-calendar mr-1 rtl:mr-0 rtl:ml-1\"></i>${expirationText}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Toggle auto refresh
+function toggleAutoRefresh() {
+    if (autoRefreshToggle && autoRefreshToggle.checked) {
+        autoRefreshInterval = setInterval(loadClients, 10000); // 10 seconds
+    } else {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+    }
+}
+
+
+
+// Utility functions
+function formatBytes(bytes) {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function formatLastSeen(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    if (days < 7) return `${days} day${days > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+}
+
+function formatTimeRemaining(expiration) {
+    if (!expiration) return 'No expiration';
+    const expDate = new Date(expiration);
+    if (isNaN(expDate.getTime())) return 'No expiration';
+    const now = new Date();
+    if (expDate <= now) return 'Expired';
+    const diff = expDate - now;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    return `${days}d ${hours}h left`;
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function prettyDateTime(timeStr) {
+    if (!timeStr || timeStr === 'Never') return 'Never';
+    const dt = new Date(timeStr);
+    const offsetMs = dt.getTimezoneOffset() * 60 * 1000;
+    const dateLocal = new Date(dt.getTime() - offsetMs);
+    return dateLocal.toISOString().slice(0, 19).replace(/-/g, "/").replace("T", " ");
+}
+
+function showSuccess(message) {
+    window.showSuccess(message);
+}
+
+function showError(message) {
+    window.showError(message);
+}
+
+// Global base path
+const basePath = '{{.basePath}}';
+
+// Apply config function
+window.applyConfig = function() {
+    showConfirmation(
+        'Apply WireGuard Config',
+        'Are you sure you want to apply the WireGuard configuration? This will restart the service.',
+        () => {
+            showInfo('Applying configuration...');
+            fetch(`${basePath}/api/apply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Configuration applied successfully');
+                        } else {
+                    showError(data.message || 'Failed to apply configuration');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to apply configuration');
+            });
+        },
+        'Apply',
+        'confirm'
+    );
+};
+
+// Make functions globally available
+window.editClient = function(clientId) {
+    if (window.DEBUG) console.log('editClient called with', clientId); // Debug log
+    if (window.DEBUG) console.log('Available clients:', clients); // Debug log
+    
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
+    if (!client) {
+        console.error('Client not found:', clientId);
+        console.error('Available client IDs:', clients.map(c => (c.Client || c).id));
+        showError('Client not found!');
+        return;
+    }
+    
+    const clientData = client.Client || client;
+    
+    // Fill the edit form
+    document.getElementById('edit_client_id').value = clientData.id;
+    document.getElementById('edit_client_name').value = clientData.name;
+    document.getElementById('edit_client_email').value = clientData.email || '';
+    
+    // Handle quota field
+    const quotaGB = clientData.quota ? Math.round(clientData.quota / (1024 * 1024 * 1024)) : 0;
+    document.getElementById('edit_client_quota').value = quotaGB;
+    
+    // Set quota preset if it matches a preset value (skip for edit modal as it doesn't have preset dropdown)
+    // The edit modal only has the direct quota input field
+    
+    document.getElementById('edit_client_expiration_days').value = clientData.expiration_days || '';
+    document.getElementById('edit_client_notes').value = clientData.additional_notes || '';
+    document.getElementById('edit_client_enabled').checked = clientData.enabled;
+    document.getElementById('edit_client_use_server_dns').checked = clientData.use_server_dns;
+    document.getElementById('edit_client_telegram_userid').value = clientData.telegram_userid || '';
+    document.getElementById('edit_client_endpoint').value = clientData.endpoint || '';
+    const pubKeyField = document.getElementById('edit_client_public_key');
+    if (pubKeyField) pubKeyField.value = clientData.public_key || '';
+    const preKeyField = document.getElementById('edit_client_preshared_key');
+    if (preKeyField) preKeyField.value = clientData.preshared_key || '';
+    
+    // Set allocated IPs
+    const allocatedIpsField = document.getElementById('edit_client_allocated_ips');
+    if (allocatedIpsField) {
+        allocatedIpsField.value = (clientData.allocated_ips && clientData.allocated_ips.length > 0) ? clientData.allocated_ips.join(',') : '';
+    }
+    
+    // Set allowed IPs
+    const allowedField = document.getElementById('edit_client_allowed_ips');
+    if (allowedField) {
+        allowedField.value = (clientData.allowed_ips && clientData.allowed_ips.length > 0) ? clientData.allowed_ips.join(',') : '';
+    }
+    
+    // Set extra allowed IPs
+    const extraAllowedField = document.getElementById('edit_client_extra_allowed_ips');
+    if (extraAllowedField) {
+        extraAllowedField.value = (clientData.extra_allowed_ips && clientData.extra_allowed_ips.length > 0) ? clientData.extra_allowed_ips.join(',') : '';
+    }
+    
+    // Show the modal
+    const modal = document.getElementById('modal_edit_client');
+    if (window.DEBUG) console.log('Modal element found:', modal); // Debug log
+    if (modal) {
+        if (window.DEBUG) console.log('Modal classes before:', modal.classList.toString()); // Debug log
+        modal.style.display = 'flex';
+        modal.classList.remove('hidden');
+        if (window.DEBUG) console.log('Modal classes after:', modal.classList.toString()); // Debug log
+        if (window.DEBUG) console.log('Modal style display:', modal.style.display); // Debug log
+    } else {
+        console.error('modal_edit_client not found in DOM');
+        showError('Edit modal not found!');
+    }
+};
+
+window.showQRCode = function(clientId) {
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
+    if (!client) return;
+    
+    const clientData = client.Client || client;
+    document.getElementById('qr_client_id').value = clientData.id;
+    document.getElementById('qr_code').src = `${basePath}/api/client/${clientData.id}/qr`;
+    document.getElementById('modal_qr_code').style.display = 'block';
+};
+
+window.downloadClient = function(clientId) {
+    window.open(`${basePath}/download?clientid=${clientId}`, '_blank');
+};
+
+window.toggleClient = function(clientId) {
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
+    if (!client) return;
+    
+    const clientData = client.Client || client;
+    
+    const action = clientData.enabled ? 'disable' : 'enable';
+    const actionText = clientData.enabled ? 'Disable' : 'Enable';
+    
+    showConfirmation(
+        `${actionText} Client`,
+        `Are you sure you want to ${action} client "${clientData.name}"?`,
+        () => {
+            fetch(`${basePath}/api/client/${clientData.id}/status/${!clientData.enabled}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadClients();
+                    showSuccess(`Client ${action}d successfully`);
+                } else {
+                    showError(`Failed to ${action} client`);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError(`Failed to ${action} client`);
+            });
+        },
+        actionText,
+        clientData.enabled ? 'confirm' : 'success'
+    );
+};
+
+window.deleteClient = function(clientId) {
+    const client = clients.find(c => {
+        const clientData = c.Client || c;
+        return clientData.id === clientId;
+    });
+    
+    if (!client) return;
+    
+    const clientData = client.Client || client;
+    
+    showConfirmation(
+        'Delete Client',
+        `Are you sure you want to delete client "${clientData.name}"? This action cannot be undone.`,
+        () => {
+            fetch(`${basePath}/api/client/${clientData.id}/remove`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id: clientData.id }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadClients();
+                    showSuccess('Client deleted successfully');
+            } else {
+                    showError('Failed to delete client');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to delete client');
+            });
+        },
+        'Delete',
+        'confirm'
+    );
+};
+
+window.updateQuotaInput = function() {
+    const quotaPreset = document.getElementById('_quota_preset');
+    const quotaInput = document.getElementById('_client_quota');
+    
+    if (quotaPreset && quotaInput) {
+        if (quotaPreset.value === 'custom') {
+            quotaInput.disabled = false;
+            quotaInput.value = '';
+        } else if (quotaPreset.value) {
+            quotaInput.disabled = true;
+            quotaInput.value = quotaPreset.value;
+        }
+    }
+};
+
+// Handle edit client form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const editForm = document.getElementById('frm_edit_client');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const clientId = document.getElementById('edit_client_id').value;
+            
+            const updateData = {
+                id: clientId, // Add client ID to request body
+                name: document.getElementById('edit_client_name').value,
+                email: document.getElementById('edit_client_email').value,
+                quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+                expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
+                additional_notes: document.getElementById('edit_client_notes').value,
+                enabled: document.getElementById('edit_client_enabled').checked,
+                use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
+                telegram_userid: document.getElementById('edit_client_telegram_userid').value,
+                endpoint: document.getElementById('edit_client_endpoint').value,
+                allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
+            };
+
+            const publicKeyInput = document.getElementById('edit_client_public_key');
+            if (publicKeyInput) updateData.public_key = publicKeyInput.value;
+
+            const preKeyInput = document.getElementById('edit_client_preshared_key');
+            if (preKeyInput) updateData.preshared_key = preKeyInput.value;
+
+            const allowedIpsInput = document.getElementById('edit_client_allowed_ips');
+            if (allowedIpsInput) {
+                updateData.allowed_ips = allowedIpsInput.value.split(',').filter(ip => ip.trim());
+            }
+
+            const extraAllowedInput = document.getElementById('edit_client_extra_allowed_ips');
+            if (extraAllowedInput) {
+                updateData.extra_allowed_ips = extraAllowedInput.value.split(',').filter(ip => ip.trim());
+            }
+            
+            fetch(`${basePath}/api/client/${clientId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('modal_edit_client').style.display = 'none';
+                    loadClients();
+                    showSuccess('Client updated successfully');
+                } else {
+                    showError(data.message || 'Failed to update client');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to update client');
+            });
+        });
+    }
+});
+
+// New edit modal functions
+window.closeEditModal = function() {
+    const modal = document.getElementById('modal_edit_client');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.add('hidden');
+    }
+};
+
+window.saveEditClient = function() {
+    const clientId = document.getElementById('edit_client_id').value;
+    
+                const updateData = {
+                id: clientId, // Add client ID to request body
+                name: document.getElementById('edit_client_name').value,
+                email: document.getElementById('edit_client_email').value,
+                quota: document.getElementById('edit_client_quota').value ? parseFloat(document.getElementById('edit_client_quota').value) * 1024 * 1024 * 1024 : null,
+                expiration_days: document.getElementById('edit_client_expiration_days').value ? parseInt(document.getElementById('edit_client_expiration_days').value) : null,
+                additional_notes: document.getElementById('edit_client_notes').value,
+                enabled: document.getElementById('edit_client_enabled').checked,
+                use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
+                telegram_userid: document.getElementById('edit_client_telegram_userid').value,
+                endpoint: document.getElementById('edit_client_endpoint').value,
+                allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
+            };
+
+    const sPubKey = document.getElementById('edit_client_public_key');
+    if (sPubKey) updateData.public_key = sPubKey.value;
+
+    const sPreKey = document.getElementById('edit_client_preshared_key');
+    if (sPreKey) updateData.preshared_key = sPreKey.value;
+
+    const sAllowed = document.getElementById('edit_client_allowed_ips');
+    if (sAllowed) updateData.allowed_ips = sAllowed.value.split(',').filter(ip => ip.trim());
+
+    const sExtra = document.getElementById('edit_client_extra_allowed_ips');
+    if (sExtra) updateData.extra_allowed_ips = sExtra.value.split(',').filter(ip => ip.trim());
+    
+    // Show loading state
+    const saveBtn = document.querySelector('#modal_edit_client button[onclick="saveEditClient()"]');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Saving...">Saving...</span>';
+    
+    fetch(`${basePath}/api/client/${clientId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+    })
+    .then(response => response.json())
+    .then(data => {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+        
+        if (data.success) {
+            closeEditModal();
+            loadClients();
+            showSuccess('Client updated successfully');
+        } else {
+            showError(data.message || 'Failed to update client');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+        showError('Failed to update client');
+    });
+};
+
+// Email and Telegram sending functions
+window.showEmailModal = function(clientId, email) {
+    document.getElementById('e_client_id').value = clientId;
+    document.getElementById('e_client_email').value = email;
+    document.getElementById('modal_email_client').style.display = 'block';
+};
+
+window.sendTelegramConfig = function(clientId, userid) {
+    showConfirmation(
+        'Send via Telegram',
+        `Are you sure you want to send the configuration to Telegram user ID ${userid}?`,
+        () => {
+            fetch(`${basePath}/send-telegram-client`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: clientId,
+                    userid: userid
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess('Configuration sent via Telegram successfully');
+                } else {
+                    showError(data.message || 'Failed to send via Telegram');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to send via Telegram');
+            });
+        },
+        'Send',
+        'confirm'
+    );
+};
+
+window.showTelegramModal = function(clientId, userid) {
+    document.getElementById('tg_client_id').value = clientId;
+    document.getElementById('tg_client_userid').value = userid || '';
+    document.getElementById('modal_telegram_client').style.display = 'block';
+};
+
+// Add event handlers for email and telegram forms
+document.addEventListener('DOMContentLoaded', function() {
+    // Email form handler
+    const emailForm = document.getElementById('frm_email_client');
+    if (emailForm) {
+        emailForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const clientId = document.getElementById('e_client_id').value;
+            const email = document.getElementById('e_client_email').value;
+            
+            if (!email.trim()) {
+                showError('Email address is required');
+                return;
+            }
+            
+            fetch(`${basePath}/email-client`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: clientId,
+                    email: email
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('modal_email_client').style.display = 'none';
+                    showSuccess('Configuration sent via email successfully');
+                } else {
+                    showError(data.message || 'Failed to send via email');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to send via email');
+            });
+        });
+    }
+    
+    // Telegram form handler
+    const telegramForm = document.getElementById('frm_telegram_client');
+    if (telegramForm) {
+        telegramForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const clientId = document.getElementById('tg_client_id').value;
+            const userid = document.getElementById('tg_client_userid').value;
+            
+            if (!userid.trim()) {
+                showError('Telegram user ID is required');
+                return;
+            }
+            
+            fetch(`${basePath}/send-telegram-client`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: clientId,
+                    userid: userid
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('modal_telegram_client').style.display = 'none';
+                    showSuccess('Configuration sent via Telegram successfully');
+                } else {
+                    showError(data.message || 'Failed to send via Telegram');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to send via Telegram');
+            });
+        });
+    }
+});
+
+    </script>
+{{end}}
