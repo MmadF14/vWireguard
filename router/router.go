@@ -134,11 +134,6 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 		log.Fatal(err)
 	}
 
-	tmplWakeOnLanHostsString, err := util.StringFromEmbedFile(tmplDir, "wake_on_lan_hosts.html")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	aboutPageString, err := util.StringFromEmbedFile(tmplDir, "about.html")
 	if err != nil {
 		log.Fatal(err)
@@ -206,7 +201,6 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	templates["global_settings.html"] = template.Must(template.New("global_settings").Funcs(funcs).Parse(tmplBaseString + tmplGlobalSettingsString))
 	templates["users_settings.html"] = template.Must(template.New("users_settings").Funcs(funcs).Parse(tmplBaseString + tmplUsersSettingsString))
 	templates["status.html"] = template.Must(template.New("status").Funcs(funcs).Parse(tmplBaseString + tmplStatusString))
-	templates["wake_on_lan_hosts.html"] = template.Must(template.New("wake_on_lan_hosts").Funcs(funcs).Parse(tmplBaseString + tmplWakeOnLanHostsString))
 	templates["about.html"] = template.Must(template.New("about").Funcs(funcs).Parse(tmplBaseString + aboutPageString))
 	templates["system_monitor.html"] = template.Must(template.New("system_monitor").Funcs(funcs).Parse(tmplBaseString + tmplSystemMonitorString))
 	templates["utilities.html"] = template.Must(template.New("utilities").Funcs(funcs).Parse(tmplBaseString + tmplUtilitiesString))
