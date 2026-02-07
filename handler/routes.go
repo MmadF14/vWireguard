@@ -33,7 +33,6 @@ import (
 
 var usernameRegexp = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9-_.]*[a-zA-Z0-9]$")
 
-// Route represents an internal API route
 type Route struct {
 	Method     string
 	Path       string
@@ -43,13 +42,11 @@ type Route struct {
 
 var internalRoutes []Route
 
-// DeviceVM view model
 type DeviceVM struct {
 	Name  string
 	Peers []PeerVM
 }
 
-// PeerVM view model
 type PeerVM struct {
 	PublicKey         string
 	Name              string
@@ -63,7 +60,6 @@ type PeerVM struct {
 	Connected         bool
 }
 
-// Health check handler
 func Health() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
@@ -79,14 +75,12 @@ func Favicon() echo.HandlerFunc {
 	}
 }
 
-// LoginPage handler
 func LoginPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "login.html", map[string]interface{}{})
 	}
 }
 
-// Login for signing in handler
 func Login(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		data := make(map[string]interface{})
@@ -139,7 +133,6 @@ func Login(db store.IStore) echo.HandlerFunc {
 				SameSite: http.SameSiteLaxMode,
 			}
 
-			// set session_token
 			tokenUID := xid.New().String()
 			now := time.Now().UTC().Unix()
 			sess.Values["username"] = dbuser.Username
@@ -151,7 +144,6 @@ func Login(db store.IStore) echo.HandlerFunc {
 			sess.Values["updated_at"] = now
 			sess.Save(c.Request(), c.Response())
 
-			// set session_token in cookie
 			cookie := new(http.Cookie)
 			cookie.Name = "session_token"
 			cookie.Path = cookiePath
@@ -168,7 +160,6 @@ func Login(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GetUsers handler return a JSON list of all users
 func GetUsers(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		usersList, err := db.GetUsers()
@@ -182,7 +173,6 @@ func GetUsers(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GetUser handler returns a JSON object of single user
 func GetUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		username := c.Param("username")
@@ -204,7 +194,6 @@ func GetUser(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// Logout to log a user out
 func Logout() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clearSession(c)
@@ -212,7 +201,6 @@ func Logout() echo.HandlerFunc {
 	}
 }
 
-// LoadProfile to load user information
 func LoadProfile(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		user, _ := db.GetUserByName(currentUser(c))
@@ -222,7 +210,6 @@ func LoadProfile(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// UsersSettings handler
 func UsersSettings(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		user, _ := db.GetUserByName(currentUser(c))
@@ -232,7 +219,6 @@ func UsersSettings(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// UpdateUser to update user information
 func UpdateUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		data := make(map[string]interface{})
@@ -247,23 +233,20 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 		previousUsername := data["previous_username"].(string)
 		role := model.UserRole(data["role"].(string))
 
-		// اعتبارسنجی نام کاربری
 		if !usernameRegexp.MatchString(username) {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد"})
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid username format"})
 		}
 
-		// اعتبارسنجی طول نام کاربری
 		if len(username) < 3 || len(username) > 32 {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نام کاربری باید بین 3 تا 32 کاراکتر باشد"})
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Username must be between 3 and 32 characters"})
 		}
 
-		// اعتبارسنجی نقش
 		if role != model.RoleAdmin && role != model.RoleManager && role != model.RoleUser {
-			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "نقش کاربر نامعتبر است"})
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid user role"})
 		}
 
 		if !isAdmin(c) && (previousUsername != currentUser(c)) {
-			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "مدیر نمی‌تواند اطلاعات کاربران دیگر را تغییر دهد"})
+			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "Permission denied"})
 		}
 
 		if !isAdmin(c) {
@@ -318,15 +301,12 @@ func UpdateUser(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// CreateUser to create a new user
 func CreateUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var username, password, role string
 
-		// سعی می‌کنیم اول داده‌ها را از JSON بخوانیم
 		data := make(map[string]interface{})
 		if err := json.NewDecoder(c.Request().Body).Decode(&data); err == nil {
-			// اگر داده‌ها به صورت JSON ارسال شده‌اند
 			if u, ok := data["username"].(string); ok {
 				username = u
 			}
@@ -337,46 +317,40 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 				role = r
 			}
 		} else {
-			// اگر داده‌ها به صورت فرم ارسال شده‌اند
 			username = c.FormValue("username")
 			password = c.FormValue("password")
 			role = c.FormValue("role")
 		}
 
-		// اعتبارسنجی نام کاربری و رمز عبور
 		if username == "" || password == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error":   "نام کاربری و رمز عبور نمی‌توانند خالی باشند",
+				"error":   "Username and password are required",
 			})
 		}
 
-		// اعتبارسنجی نام کاربری
 		if !usernameRegexp.MatchString(username) {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error":   "نام کاربری باید با حرف یا عدد شروع و تمام شود و فقط شامل حروف، اعداد، خط تیره، نقطه و زیرخط باشد",
+				"error":   "Invalid username format",
 			})
 		}
 
-		// اعتبارسنجی طول نام کاربری
 		if len(username) < 3 || len(username) > 32 {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error":   "نام کاربری باید بین 3 تا 32 کاراکتر باشد",
+				"error":   "Username must be between 3 and 32 characters",
 			})
 		}
 
-		// بررسی وجود کاربر
 		_, err := db.GetUserByName(username)
 		if err == nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"success": false,
-				"error":   "این نام کاربری قبلاً استفاده شده است",
+				"error":   "Username already exists",
 			})
 		}
 
-		// تعیین نقش کاربر
 		var userRole model.UserRole
 		switch role {
 		case "admin":
@@ -387,38 +361,34 @@ func CreateUser(db store.IStore) echo.HandlerFunc {
 			userRole = model.RoleUser
 		}
 
-		// ایجاد کاربر جدید
 		user := model.User{
 			Username: username,
 			Role:     userRole,
 		}
 
-		// هش کردن رمز عبور
 		hashedPassword, err := util.HashPassword(password)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
-				"error":   "خطا در پردازش رمز عبور",
+				"error":   "Password processing error",
 			})
 		}
 		user.PasswordHash = hashedPassword
 
-		// ذخیره کاربر
 		if err := db.SaveUser(user); err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"success": false,
-				"error":   "خطا در ذخیره کاربر",
+				"error":   "Failed to save user",
 			})
 		}
 
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
-			"message": "کاربر با موفقیت ایجاد شد",
+			"message": "User created successfully",
 		})
 	}
 }
 
-// RemoveUser handler
 func RemoveUser(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		data := make(map[string]interface{})
@@ -437,7 +407,6 @@ func RemoveUser(db store.IStore) echo.HandlerFunc {
 		if username == currentUser(c) {
 			return c.JSON(http.StatusForbidden, jsonHTTPResponse{false, "User cannot delete itself"})
 		}
-		// delete user from database
 
 		if err := db.DeleteUser(username); err != nil {
 			log.Error("Cannot delete user: ", err)
@@ -450,7 +419,6 @@ func RemoveUser(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// WireGuardClients handler
 func WireGuardClients(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clientDataList, err := db.GetClients(true)
@@ -467,7 +435,6 @@ func WireGuardClients(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GetClients handler return a JSON list of Wireguard client data
 func GetClients(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clientDataList, err := db.GetClients(true)
@@ -478,46 +445,36 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// اگر لیست خالی باشد، یک آرایه خالی برگردانیم نه null
 		if clientDataList == nil {
 			clientDataList = make([]model.ClientData, 0)
 		}
 
-		// Get WireGuard usage data for online status and data usage
 		usageMap, err := getWireGuardUsage()
 		if err != nil {
 			log.Error("Error getting WireGuard usage: ", err)
-			// Continue without usage data
 			usageMap = make(map[string]peerUsage)
 		}
 
-		// Process each client and fill subnet range
 		processedList := make([]model.ClientData, 0, len(clientDataList))
 		for _, clientData := range clientDataList {
-			if clientData.Client != nil { // اطمینان از معتبر بودن داده
-				// Add online status and data usage
+			if clientData.Client != nil {
 				if usage, ok := usageMap[clientData.Client.PublicKey]; ok {
-					// Check if client is online (last handshake within 3 minutes)
 					clientData.Client.Status = "offline"
 					if !usage.LastHandshake.IsZero() && time.Since(usage.LastHandshake).Minutes() < 3 {
 						clientData.Client.Status = "online"
 					}
 
-					// Update used quota
 					totalBytes := usage.Rx + usage.Tx
 					clientData.Client.UsedQuota = int64(totalBytes)
 
-					// Add last handshake time; preserve previous if no handshake yet
 					lastSeen := usage.LastHandshake
 					if lastSeen.IsZero() && clientData.Client.PersistentUsageData != nil {
 						lastSeen = clientData.Client.PersistentUsageData.LastSeen
 					}
-					// Only set LastHandshake if it's not zero, otherwise leave it as zero (will be null in JSON)
 					if !lastSeen.IsZero() {
 						clientData.Client.LastHandshake = lastSeen
 					}
 
-					// Update persistent usage data
 					if clientData.Client.PersistentUsageData == nil {
 						clientData.Client.PersistentUsageData = &model.ClientUsageData{
 							LastInterfaceBytesReceived: usage.Rx,
@@ -525,17 +482,14 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 						}
 					}
 
-					// Only update if we have new data
 					if !usage.LastHandshake.IsZero() {
 						clientData.Client.PersistentUsageData.LastSeen = usage.LastHandshake
 
-						// Update first seen if not set
 						if clientData.Client.PersistentUsageData.FirstSeen.IsZero() {
 							clientData.Client.PersistentUsageData.FirstSeen = usage.LastHandshake
 						}
 					}
 
-					// Compute usage delta based on last counters
 					deltaRx := usage.Rx
 					if usage.Rx >= clientData.Client.PersistentUsageData.LastInterfaceBytesReceived {
 						deltaRx = usage.Rx - clientData.Client.PersistentUsageData.LastInterfaceBytesReceived
@@ -545,35 +499,28 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 						deltaTx = usage.Tx - clientData.Client.PersistentUsageData.LastInterfaceBytesSent
 					}
 
-					// Accumulate totals
 					clientData.Client.PersistentUsageData.TotalBytesReceived += deltaRx
 					clientData.Client.PersistentUsageData.TotalBytesSent += deltaTx
 
-					// Update last interface counters
 					clientData.Client.PersistentUsageData.LastInterfaceBytesReceived = usage.Rx
 					clientData.Client.PersistentUsageData.LastInterfaceBytesSent = usage.Tx
 
 					clientData.Client.PersistentUsageData.UpdatedAt = time.Now().UTC()
 
-					// Update UsedQuota from persistent totals
 					clientData.Client.UsedQuota = int64(clientData.Client.PersistentUsageData.TotalBytesReceived + clientData.Client.PersistentUsageData.TotalBytesSent)
 
-					// Save the updated client data
 					if err := db.SaveClient(*clientData.Client); err != nil {
 						log.Error("Error saving client persistent data: ", err)
 					}
 				} else {
 					clientData.Client.Status = "offline"
-					// Use persistent data if available
 					if clientData.Client.PersistentUsageData != nil {
 						clientData.Client.UsedQuota = int64(clientData.Client.PersistentUsageData.TotalBytesReceived + clientData.Client.PersistentUsageData.TotalBytesSent)
-						// Only set LastHandshake if LastSeen is not zero
 						if !clientData.Client.PersistentUsageData.LastSeen.IsZero() {
 							clientData.Client.LastHandshake = clientData.Client.PersistentUsageData.LastSeen
 						}
 					} else {
 						clientData.Client.UsedQuota = 0
-						// Ensure LastHandshake is zero (will be null in JSON)
 						clientData.Client.LastHandshake = time.Time{}
 					}
 				}
@@ -582,7 +529,6 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// Return as a structured response
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"success": true,
 			"clients": processedList,
@@ -590,7 +536,6 @@ func GetClients(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GetClient handler returns a JSON object of Wireguard client data
 func GetClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clientID := c.Param("id")
@@ -614,7 +559,6 @@ func GetClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GetClientQRCode handler returns QR code image for a client
 func GetClientQRCode(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clientID := c.Param("id")
@@ -638,16 +582,13 @@ func GetClientQRCode(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "QR code not available"})
 		}
 
-		// Remove data:image/png;base64, prefix if present
 		qrData := strings.TrimPrefix(clientData.QRCode, "data:image/png;base64,")
 
-		// Decode base64 to bytes
 		qrBytes, err := base64.StdEncoding.DecodeString(qrData)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Invalid QR code data"})
 		}
 
-		// Set response headers for image
 		c.Response().Header().Set(echo.HeaderContentType, "image/png")
 		c.Response().Header().Set(echo.HeaderCacheControl, "public, max-age=3600")
 
@@ -655,13 +596,11 @@ func GetClientQRCode(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// NewClient handler
 func NewClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var client model.Client
 		c.Bind(&client)
 
-		// اعتبارسنجی مقدار Quota
 		if client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
@@ -671,7 +610,6 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		client.Expiration = time.Time{}
 		client.FirstConnectedAt = time.Time{}
 
-		// Validate Telegram userid if provided
 		if client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(client.TgUserid, 10, 64)
 			if err != nil || idNum == 0 {
@@ -679,37 +617,31 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// read server information
 		server, err := db.GetServer()
 		if err != nil {
 			log.Error("Cannot fetch server from database: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
-		// validate the input Allocation IPs
 		allocatedIPs, err := util.GetAllocatedIPs("")
 		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, client.AllocatedIPs)
 		if !check {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
 		}
 
-		// validate the input AllowedIPs
 		if util.ValidateAllowedIPs(client.AllowedIPs) == false {
 			log.Warnf("Invalid Allowed IPs input from user: %v", client.AllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
 		}
 
-		// validate extra AllowedIPs
 		if util.ValidateExtraAllowedIPs(client.ExtraAllowedIPs) == false {
 			log.Warnf("Invalid Extra AllowedIPs input from user: %v", client.ExtraAllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra AllowedIPs must be in CIDR format"})
 		}
 
-		// gen ID
 		guid := xid.New()
 		client.ID = guid.String()
 
-		// gen Wireguard key pair
 		if client.PublicKey == "" {
 			key, err := wgtypes.GeneratePrivateKey()
 			if err != nil {
@@ -724,7 +656,6 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 				log.Error("Cannot verify wireguard public key: ", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard public key"})
 			}
-			// check for duplicates
 			clients, err := db.GetClients(false)
 			if err != nil {
 				log.Error("Cannot get clients for duplicate check")
@@ -762,22 +693,19 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		client.CreatedAt = time.Now().UTC()
 		client.UpdatedAt = client.CreatedAt
 
-		// write client to the database
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 		log.Infof("Created wireguard client: %v", client)
 
-		// Hot Reload: Add peer to interface instantly if client is enabled
 		if client.Enabled {
 			globalSettings, err := db.GetGlobalSettings()
 			if err == nil {
 				interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
 				if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
-					log.Warnf("Failed to add peer via hot reload for new client %s: %v (client saved to DB)", client.Name, err)
-					// Continue - client is saved in DB even if runtime update fails
+					log.Warnf("Failed to add peer via hot reload for new client %s: %v", client.Name, err)
 				} else {
-					log.Infof("New client %s added to interface via Hot Reload", client.Name)
+					log.Infof("New client %s added to interface", client.Name)
 				}
 			}
 		}
@@ -786,7 +714,6 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// EmailClient handler to send the configuration via email
 func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailContent string) echo.HandlerFunc {
 	type clientIdEmailPayload struct {
 		ID    string `json:"id"`
@@ -796,7 +723,6 @@ func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailCon
 	return func(c echo.Context) error {
 		var payload clientIdEmailPayload
 		c.Bind(&payload)
-		// TODO validate email
 
 		if _, err := xid.FromString(payload.ID); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
@@ -813,7 +739,6 @@ func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailCon
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
-		// build config
 		server, _ := db.GetServer()
 		globalSettings, _ := db.GetGlobalSettings()
 		config := util.BuildClientConfig(*clientData.Client, server, globalSettings)
@@ -846,7 +771,6 @@ func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailCon
 	}
 }
 
-// SendTelegramClient handler to send the configuration via Telegram
 func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 	type clientIdUseridPayload struct {
 		ID     string `json:"id"`
@@ -862,7 +786,6 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
-		// build config
 		server, _ := db.GetServer()
 		globalSettings, _ := db.GetGlobalSettings()
 		config := util.BuildClientConfig(*clientData.Client, server, globalSettings)
@@ -891,7 +814,6 @@ func SendTelegramClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// UpdateClient handler to update client information
 func UpdateClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var _client model.Client
@@ -901,13 +823,11 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
-		// validate client existence
 		clientData, err := db.GetClientByID(_client.ID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
-		// Validate Telegram userid if provided
 		if _client.TgUserid != "" {
 			idNum, err := strconv.ParseInt(_client.TgUserid, 10, 64)
 			if err != nil || idNum == 0 {
@@ -924,14 +844,12 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
-		// validate the input Allocation IPs
 		allocatedIPs, err := util.GetAllocatedIPs(client.ID)
 		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, _client.AllocatedIPs)
 		if !check {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
 		}
 
-		// validate the input AllowedIPs
 		if util.ValidateAllowedIPs(_client.AllowedIPs) == false {
 			log.Warnf("Invalid Allowed IPs input from user: %v", _client.AllowedIPs)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Allowed IPs must be in CIDR format"})
@@ -942,14 +860,12 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Extra Allowed IPs must be in CIDR format"})
 		}
 
-		// update Wireguard Client PublicKey
 		if client.PublicKey != _client.PublicKey && _client.PublicKey != "" {
 			_, err := wgtypes.ParseKey(_client.PublicKey)
 			if err != nil {
 				log.Error("Cannot verify provided Wireguard public key: ", err)
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard public key"})
 			}
-			// check for duplicates
 			clients, err := db.GetClients(false)
 			if err != nil {
 				log.Error("Cannot get client list for duplicate public key check")
@@ -962,14 +878,11 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 				}
 			}
 
-			// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
-			// Client PubKey no longer corresponds to locally stored PrivKey.
 			if client.PrivateKey != "" {
 				client.PrivateKey = ""
 			}
 		}
 
-		// update Wireguard Client PresharedKey
 		if client.PresharedKey != _client.PresharedKey && _client.PresharedKey != "" {
 			_, err := wgtypes.ParseKey(_client.PresharedKey)
 			if err != nil {
@@ -978,7 +891,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// حالا فیلدهای جدید را از _client به client منتقل می‌کنیم
 		client.Quota = _client.Quota
 		client.ExpirationDays = _client.ExpirationDays
 		client.Expiration = _client.Expiration
@@ -986,7 +898,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			client.FirstConnectedAt = _client.FirstConnectedAt
 		}
 
-		// اعتبارسنجی Quota و Expiration
 		if client.Quota < 0 {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Quota cannot be negative"})
 		}
@@ -994,7 +905,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Expiration days cannot be negative"})
 		}
 
-		// map other data
 		client.Name = _client.Name
 		client.Email = _client.Email
 		client.TgUserid = _client.TgUserid
@@ -1008,39 +918,29 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.UpdatedAt = time.Now().UTC()
 		client.AdditionalNotes = strings.ReplaceAll(strings.Trim(_client.AdditionalNotes, "\r\n"), "\r\n", "\n")
 
-		// Smart Renewal: Auto-enable if client becomes valid after update
-		// Check if client is now valid (not expired and not over quota)
 		wasEnabled := client.Enabled
 		if util.IsClientValid(client) {
-			// If client is valid after update (renewal), auto-enable it
-			// This handles the case where a client was disabled due to expiry/quota and is now renewed
-			// User can manually disable it later if needed
 			client.Enabled = true
 		} else {
-			// Client is not valid (expired or over quota), disable it
 			client.Enabled = false
 		}
 
-		// write to the database
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 		log.Infof("Updated client information successfully => %v", client)
 
-		// Log auto-enable if it happened
 		if !wasEnabled && client.Enabled && util.IsClientValid(client) {
-			log.Infof("Client %s auto-enabled after renewal (expiration extended or quota reset)", client.Name)
+			log.Infof("Client %s auto-enabled after renewal", client.Name)
 		}
 
-		// Hot Reload: Update peer on interface instantly
 		globalSettings, err := db.GetGlobalSettings()
 		if err == nil {
 			interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
 			if err := util.UpdatePeerOnInterface(client, server, globalSettings, interfaceName); err != nil {
-				log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", client.Name, err)
-				// Continue - client is saved in DB even if runtime update fails
+				log.Warnf("Failed to update peer via hot reload for client %s: %v", client.Name, err)
 			} else {
-				log.Infof("Client %s updated on interface via Hot Reload", client.Name)
+				log.Infof("Client %s updated on interface", client.Name)
 			}
 		}
 
@@ -1048,14 +948,12 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// SetClientStatus handler to enable / disable a client
 func SetClientStatus(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var clientID string
 		var status bool
 		var isAutomatic bool
 
-		// پشتیبانی از هر دو متد GET و POST
 		switch c.Request().Method {
 		case "GET":
 			clientID = c.Param("id")
@@ -1097,7 +995,6 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
-		// Get client data
 		clientData, err := db.GetClientByID(clientID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
 			log.Printf("Error getting client: %v", err)
@@ -1106,12 +1003,10 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 
 		client := *clientData.Client
 
-		// اگر وضعیت فعلی با وضعیت درخواستی یکسان است، نیازی به تغییر نیست
 		if client.Enabled == status {
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client status already set"})
 		}
 
-		// Get server and settings for hot reload
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
@@ -1122,55 +1017,47 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		}
 		interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
 
-		// اگر درخواست فعال‌سازی دستی است
 		if status && !isAutomatic {
-			// Validate client before enabling - prevent illegal activation
 			now := time.Now().UTC()
-			
-			// Check expiration
+
 			if !client.Expiration.IsZero() && now.After(client.Expiration) {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
 					false, "Cannot enable: Client is expired. Please extend first.",
 				})
 			}
 
-			// Check quota
 			if client.Quota > 0 && client.UsedQuota >= client.Quota {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
 					false, "Cannot enable: Quota exceeded. Please reset quota.",
 				})
 			}
 
-			// فعال‌سازی کلاینت
 			client.Enabled = true
 			if err := db.SaveClient(client); err != nil {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 			}
 
-			// Hot Reload: Add peer to interface instantly
 			if client.PublicKey != "" {
 				if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
-					log.Warnf("Failed to add peer via hot reload for client %s: %v (client enabled in DB)", client.Name, err)
+					log.Warnf("Failed to add peer via hot reload for client %s: %v", client.Name, err)
 				} else {
-					log.Infof("Client %s enabled and added to interface via Hot Reload", client.Name)
+					log.Infof("Client %s enabled and added to interface", client.Name)
 				}
 			}
 
 			return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Client enabled successfully"})
 		}
 
-		// اگر درخواست غیرفعال‌سازی است (دستی یا خودکار)
 		client.Enabled = false
 		if err := db.SaveClient(client); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
-		// Hot Reload: Remove peer from interface instantly (for both manual and automatic)
 		if client.PublicKey != "" {
 			if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
-				log.Warnf("Failed to remove peer via hot reload for client %s: %v (client disabled in DB)", client.Name, err)
+				log.Warnf("Failed to remove peer via hot reload for client %s: %v", client.Name, err)
 			} else {
-				log.Infof("Client %s disabled and removed from interface via Hot Reload", client.Name)
+				log.Infof("Client %s disabled and removed from interface", client.Name)
 			}
 		}
 
@@ -1182,7 +1069,6 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// DownloadClient handler
 func DownloadClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		clientID := c.QueryParam("clientid")
@@ -1200,7 +1086,6 @@ func DownloadClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
-		// build config
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
@@ -1211,16 +1096,13 @@ func DownloadClient(db store.IStore) echo.HandlerFunc {
 		}
 		config := util.BuildClientConfig(*clientData.Client, server, globalSettings)
 
-		// create io reader from string
 		reader := strings.NewReader(config)
 
-		// set response header for downloading
 		c.Response().Header().Set(echo.HeaderContentDisposition, fmt.Sprintf("attachment; filename=%s.conf", clientData.Client.Name))
 		return c.Stream(http.StatusOK, "text/conf", reader)
 	}
 }
 
-// RemoveClient handler
 func RemoveClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		client := new(model.Client)
@@ -1230,23 +1112,19 @@ func RemoveClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
-		// Get client data before deletion to remove peer from interface
 		clientData, err := db.GetClientByID(client.ID, model.QRCodeSettings{Enabled: false})
 		if err == nil && clientData.Client != nil && clientData.Client.PublicKey != "" {
-			// Hot Reload: Remove peer from interface instantly before deleting from DB
 			settings, err := db.GetGlobalSettings()
 			if err == nil {
 				interfaceName := util.GetInterfaceNameFromConfig(settings.ConfigFilePath)
 				if err := util.RemovePeerFromInterface(clientData.Client.PublicKey, interfaceName); err != nil {
-					log.Warnf("Failed to remove peer via hot reload for client %s: %v (will continue with DB deletion)", clientData.Client.Name, err)
-					// Continue - we'll still delete from DB even if runtime update fails
+					log.Warnf("Failed to remove peer via hot reload for client %s: %v", clientData.Client.Name, err)
 				} else {
-					log.Infof("Client %s removed from interface via Hot Reload", clientData.Client.Name)
+					log.Infof("Client %s removed from interface", clientData.Client.Name)
 				}
 			}
 		}
 
-		// delete client from database
 		if err := db.DeleteClient(client.ID); err != nil {
 			log.Error("Cannot delete wireguard client: ", err)
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot delete client from database"})
@@ -1257,10 +1135,8 @@ func RemoveClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// TerminateClient handler to terminate a client connection
 func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Parse request body
 		data := make(map[string]interface{})
 		if err := json.NewDecoder(c.Request().Body).Decode(&data); err != nil {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Bad post data"})
@@ -1271,19 +1147,16 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Please provide a valid client ID"})
 		}
 
-		// Get client data
 		clientData, err := db.GetClientByID(clientID, model.QRCodeSettings{Enabled: false})
 		if err != nil {
 			return c.JSON(http.StatusNotFound, jsonHTTPResponse{false, "Client not found"})
 		}
 
-		// Get settings for interface name
 		settings, err := db.GetGlobalSettings()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
 		}
 
-		// Get interface name from config file path or use default
 		interfaceName := "wg0"
 		if settings.ConfigFilePath != "" {
 			parts := strings.Split(settings.ConfigFilePath, "/")
@@ -1293,20 +1166,17 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// Create WireGuard client
 		wgClient, err := wgctrl.New()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot create WireGuard client"})
 		}
 		defer wgClient.Close()
 
-		// Parse public key
 		pubKey, err := wgtypes.ParseKey(clientData.Client.PublicKey)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot parse client public key"})
 		}
 
-		// Remove peer from interface
 		peerConfig := wgtypes.PeerConfig{
 			PublicKey: pubKey,
 			Remove:    true,
@@ -1319,7 +1189,6 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, fmt.Sprintf("Cannot remove peer: %v", err)})
 		}
 
-		// Write new configuration
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get server config"})
@@ -1345,7 +1214,6 @@ func TerminateClient(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	}
 }
 
-// WireGuardServer handler
 func WireGuardServer(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		server, err := db.GetServer()
@@ -1361,7 +1229,6 @@ func WireGuardServer(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// WireGuardServerInterfaces handler
 func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var serverInterface model.ServerInterface
@@ -1370,7 +1237,6 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request"})
 		}
 
-		// validate the input addresses
 		if util.ValidateServerAddresses(serverInterface.Addresses) == false {
 			log.Warnf("Invalid server interface addresses input from user: %v", serverInterface.Addresses)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
@@ -1383,8 +1249,6 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 
 		serverInterface.UpdatedAt = time.Now().UTC()
 
-		// write config to the database
-
 		if err := db.SaveServerInterface(serverInterface); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
 		}
@@ -1394,10 +1258,8 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// WireGuardServerKeyPair handler to generate private and public keys
 func WireGuardServerKeyPair(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// gen Wireguard key pair
 		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
 			log.Error("Cannot generate wireguard key pair: ", err)
@@ -1418,7 +1280,6 @@ func WireGuardServerKeyPair(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GlobalSettings handler
 func GlobalSettings(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		globalSettings, err := db.GetGlobalSettings()
@@ -1433,7 +1294,6 @@ func GlobalSettings(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// Status handler to show wireguard connection status
 func Status(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		wgClient, err := wgctrl.New()
@@ -1516,7 +1376,6 @@ func Status(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// StatusData handler to return JSON status data for clients
 func StatusData(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		log.Debug("Starting StatusData handler")
@@ -1601,7 +1460,6 @@ func StatusData(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// GlobalSettingSubmit handler to update the global settings
 func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		type globalSettingPayload struct {
@@ -1622,7 +1480,6 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request payload"})
 		}
 
-		// trim DNS entries and drop empty values before validation
 		sanitizedDNS := make([]string, 0, len(payload.DNSServers))
 		for _, dns := range payload.DNSServers {
 			dns = strings.TrimSpace(dns)
@@ -1683,7 +1540,6 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 
 		currentSettings.UpdatedAt = time.Now().UTC()
 
-		// write config to the database
 		if err := db.SaveGlobalSettings(currentSettings); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot save global settings"})
 		}
@@ -1694,7 +1550,6 @@ func GlobalSettingSubmit(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// DisplaySettingsSubmit handler to update display settings
 func DisplaySettingsSubmit(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var displaySettings struct {
@@ -1703,28 +1558,23 @@ func DisplaySettingsSubmit(db store.IStore) echo.HandlerFunc {
 		}
 		c.Bind(&displaySettings)
 
-		// Validate timezone
 		if displaySettings.Timezone == "" {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Timezone is required"})
 		}
 
-		// Validate language
 		if displaySettings.Language == "" {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Language is required"})
 		}
 
-		// Get current global settings
 		currentSettings, err := db.GetGlobalSettings()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get current settings"})
 		}
 
-		// Update display settings
 		currentSettings.Timezone = displaySettings.Timezone
 		currentSettings.Language = displaySettings.Language
 		currentSettings.UpdatedAt = time.Now().UTC()
 
-		// Save updated settings
 		if err := db.SaveGlobalSettings(currentSettings); err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot save display settings"})
 		}
@@ -1735,22 +1585,17 @@ func DisplaySettingsSubmit(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// MachineIPAddresses handler to get local interface ip addresses
 func MachineIPAddresses() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// get private ip addresses
 		interfaceList, err := util.GetInterfaceIPs()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get machine ip addresses"})
 		}
 
-		// get public ip address
-		// TODO: Remove the go-external-ip dependency
 		publicInterface, err := util.GetPublicIP()
 		if err != nil {
 			log.Warn("Cannot get machine public ip address: ", err)
 		} else {
-			// prepend public ip to the list
 			interfaceList = append([]model.Interface{publicInterface}, interfaceList...)
 		}
 
@@ -1758,14 +1603,12 @@ func MachineIPAddresses() echo.HandlerFunc {
 	}
 }
 
-// GetOrderedSubnetRanges handler to get the ordered list of subnet ranges
 func GetOrderedSubnetRanges() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.JSON(http.StatusOK, util.SubnetRangesOrder)
 	}
 }
 
-// SuggestIPAllocation handler to get the list of ip address for client
 func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		server, err := db.GetServer()
@@ -1774,9 +1617,6 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, err.Error()})
 		}
 
-		// return the list of suggestedIPs
-		// we take the first available ip address from
-		// each server's network addresses.
 		suggestedIPs := make([]string, 0)
 		allocatedIPs, err := util.GetAllocatedIPs("")
 		if err != nil {
@@ -1790,7 +1630,6 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 		searchCIDRList := make([]string, 0)
 		found := false
 
-		// Use subnet range or default to interface addresses
 		if util.SubnetRanges[sr] != nil {
 			for _, cidr := range util.SubnetRanges[sr] {
 				searchCIDRList = append(searchCIDRList, cidr.String())
@@ -1799,7 +1638,6 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 			searchCIDRList = append(searchCIDRList, server.Interface.Addresses...)
 		}
 
-		// Save only unique IPs
 		ipSet := make(map[string]struct{})
 
 		for _, cidr := range searchCIDRList {
@@ -1831,7 +1669,6 @@ func SuggestIPAllocation(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// ApplyServerConfig handler to write config file and restart Wireguard server
 func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		server, err := db.GetServer()
@@ -1858,7 +1695,6 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
 		}
 
-		// Write config file
 		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 		if err != nil {
 			log.Error("Cannot apply server config: ", err)
@@ -1867,7 +1703,6 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			})
 		}
 
-		// Get interface name from config file path
 		interfaceName := "wg0"
 		if settings.ConfigFilePath != "" {
 			parts := strings.Split(settings.ConfigFilePath, "/")
@@ -1877,39 +1712,30 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			}
 		}
 
-		// Note: For runtime peer updates (add/remove/update), the API and quota checker
-		// now use hot reloading via wgctrl (see util/wgruntime.go), which doesn't restart the service.
-		// This manual apply is mainly for interface-level changes or bulk updates.
-		// Try to use wg syncconf for zero-downtime updates (only updates peers, not interface settings)
-		// Note: wg syncconf cannot modify [Interface] section (Address, ListenPort, PrivateKey, etc.),
-		// so it will fail if interface configuration changed. In that case, we must restart the service.
 		syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
 		syncOutput, syncErr := syncCmd.CombinedOutput()
 		if syncErr != nil {
-			// Check if error is about Interface section (expected when interface config changes)
 			outputStr := string(syncOutput)
-			interfaceConfigChanged := strings.Contains(outputStr, "Address") || 
-				strings.Contains(outputStr, "Interface") || 
+			interfaceConfigChanged := strings.Contains(outputStr, "Address") ||
+				strings.Contains(outputStr, "Interface") ||
 				strings.Contains(outputStr, "ListenPort") ||
 				strings.Contains(outputStr, "PrivateKey")
-			
+
 			if interfaceConfigChanged {
 				log.Infof("Interface configuration changed, service restart required: %s", outputStr)
 			} else {
 				log.Warnf("wg syncconf failed (non-interface error): %v, output: %s. Falling back to service restart", syncErr, outputStr)
 			}
 
-			// Restart WireGuard service as a fallback (only if syncconf failed)
 			serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 
-				// Try different service names if the first one fails
-				serviceNames := []string{
-					serviceName,
-					"wg-quick@" + interfaceName,
-					"wireguard@" + interfaceName,
-					"wg-quick",
-					"wireguard",
-				}
+			serviceNames := []string{
+				serviceName,
+				"wg-quick@" + interfaceName,
+				"wireguard@" + interfaceName,
+				"wg-quick",
+				"wireguard",
+			}
 
 			var restartSuccess bool
 			var lastError error
@@ -1919,7 +1745,6 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 				cmd := exec.Command("sudo", "systemctl", "restart", svcName)
 				output, err := cmd.CombinedOutput()
 				if err == nil {
-					// Check if service is active
 					checkCmd := exec.Command("sudo", "systemctl", "is-active", svcName)
 					status, err := checkCmd.CombinedOutput()
 					if err == nil && strings.TrimSpace(string(status)) == "active" {
@@ -1939,7 +1764,7 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 				})
 			}
 		} else {
-			log.Infof("Configuration applied successfully using wg syncconf (zero downtime)")
+			log.Infof("Configuration applied successfully using wg syncconf")
 		}
 
 		err = util.UpdateHashes(db)
@@ -1954,7 +1779,6 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	}
 }
 
-// GetHashesChanges handler returns if database hashes have changed
 func GetHashesChanges(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if util.HashesChanged(db) {
@@ -1965,7 +1789,6 @@ func GetHashesChanges(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// AboutPage handler
 func AboutPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		return c.Render(http.StatusOK, "about.html", map[string]interface{}{
@@ -1976,7 +1799,6 @@ func AboutPage() echo.HandlerFunc {
 
 func init() {
 	internalRoutes = make([]Route, 0)
-	// اضافه کردن روت داخلی برای غیرفعال‌سازی خودکار
 	internalRoutes = append(internalRoutes, Route{
 		Method:     "POST",
 		Path:       "/internal/client/:id/status/:status",
@@ -1985,7 +1807,6 @@ func init() {
 	})
 }
 
-// InternalOnly middleware to ensure request is from localhost
 func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		if c.Request().RemoteAddr != "127.0.0.1" && c.Request().RemoteAddr != "::1" {
@@ -1995,7 +1816,6 @@ func InternalOnly(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// GetInternalRoutes returns the list of internal routes
 func GetInternalRoutes() []Route {
 	return internalRoutes
 }

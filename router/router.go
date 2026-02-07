@@ -18,13 +18,11 @@ import (
 	"github.com/labstack/gommon/log"
 )
 
-// TemplateRegistry is a custom html/template renderer for Echo framework
 type TemplateRegistry struct {
 	templates map[string]*template.Template
 	extraData map[string]interface{}
 }
 
-// Render e.Renderer interface
 func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	tmpl, ok := t.templates[name]
 	if !ok {
@@ -32,7 +30,6 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 		return err
 	}
 
-	// inject more app data information. E.g. appVersion
 	if reflect.TypeOf(data).Kind() == reflect.Map {
 		for k, v := range t.extraData {
 			data.(map[string]interface{})[k] = v
@@ -41,7 +38,6 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 		data.(map[string]interface{})["client_defaults"] = util.ClientDefaultsFromEnv()
 	}
 
-	// login page does not need the base layout
 	if name == "login.html" {
 		return tmpl.Execute(w, data)
 	}
@@ -49,7 +45,6 @@ func (t *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c 
 	return tmpl.ExecuteTemplate(w, "base.html", data)
 }
 
-// formatBytes formats bytes into human readable format
 func formatBytes(bytes int64) string {
 	if bytes == 0 {
 		return "0 B"
@@ -80,7 +75,6 @@ func formatBytes(bytes int64) string {
 	return fmt.Sprintf("%.2f %s", result, sizes[i])
 }
 
-// New function
 func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo.Echo {
 	e := echo.New()
 
@@ -93,7 +87,6 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 
 	e.Use(session.Middleware(cookieStore))
 
-	// read html template file to string
 	tmplBaseString, err := util.StringFromEmbedFile(tmplDir, "base.html")
 	if err != nil {
 		log.Fatal(err)
@@ -149,7 +142,6 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 		log.Fatal(err)
 	}
 
-	// create template list
 	funcs := template.FuncMap{
 		"StringsJoin": strings.Join,
 		"formatBytes": formatBytes,
@@ -212,11 +204,11 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	logConfig := middleware.DefaultLoggerConfig
 	logConfig.Skipper = func(c echo.Context) bool {
 		resp := c.Response()
-		if resp.Status >= 500 && lvl > log.ERROR { // do not log if response is 5XX but log level is higher than ERROR
+		if resp.Status >= 500 && lvl > log.ERROR {
 			return true
-		} else if resp.Status >= 400 && lvl > log.WARN { // do not log if response is 4XX but log level is higher than WARN
+		} else if resp.Status >= 400 && lvl > log.WARN {
 			return true
-		} else if lvl > log.DEBUG { // do not log if log level is higher than DEBUG
+		} else if lvl > log.DEBUG {
 			return true
 		}
 		return false
@@ -226,18 +218,16 @@ func New(tmplDir fs.FS, extraData map[string]interface{}, secret [64]byte) *echo
 	e.Pre(middleware.RemoveTrailingSlash())
 	e.Use(middleware.LoggerWithConfig(logConfig))
 	e.HideBanner = true
-	e.HidePort = lvl > log.INFO // hide the port output if the log level is higher than INFO
+	e.HidePort = lvl > log.INFO
 	e.Validator = NewValidator()
 	e.Renderer = &TemplateRegistry{
 		templates: templates,
 		extraData: extraData,
 	}
 
-	// Middleware
 	e.Use(middleware.Recover())
 	e.Use(handler.StaticHandler)
 
-	// Static files
 	e.Static("/static", "static")
 
 	return e

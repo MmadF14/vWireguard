@@ -22,7 +22,6 @@ type JsonDB struct {
 	dbPath string
 }
 
-// New returns a new pointer JsonDB
 func New(dbPath string) (*JsonDB, error) {
 	conn, err := scribble.New(dbPath, nil)
 	if err != nil {
@@ -44,7 +43,6 @@ func (o *JsonDB) Init() error {
 	var globalSettingPath = path.Join(serverPath, "global_settings.json")
 	var hashesPath = path.Join(serverPath, "hashes.json")
 
-	// create directories if they do not exist
 	if _, err := os.Stat(clientPath); os.IsNotExist(err) {
 		os.MkdirAll(clientPath, os.ModePerm)
 	}
@@ -55,28 +53,23 @@ func (o *JsonDB) Init() error {
 		os.MkdirAll(userPath, os.ModePerm)
 	}
 
-	// server's interface
 	if _, err := os.Stat(serverInterfacePath); os.IsNotExist(err) {
 		serverInterface := new(model.ServerInterface)
 		serverInterface.Addresses = util.LookupEnvOrStrings(util.ServerAddressesEnvVar, []string{util.DefaultServerAddress})
 		serverInterface.ListenPort = util.LookupEnvOrInt(util.ServerListenPortEnvVar, util.DefaultServerPort)
-		
-		// Get default interface name for NAT masquerading
+
 		defaultInterface := util.GetDefaultInterfaceName()
-		
-		// Set default PostUp and PostDown scripts with NAT masquerading if not provided via env
+
 		postUp := util.LookupEnvOrString(util.ServerPostUpScriptEnvVar, "")
 		if postUp == "" {
-			// Default PostUp: Enable forwarding and NAT masquerading
 			postUp = fmt.Sprintf("iptables -A FORWARD -i %%i -j ACCEPT; iptables -A FORWARD -o %%i -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE", defaultInterface)
 		}
-		
+
 		postDown := util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, "")
 		if postDown == "" {
-			// Default PostDown: Remove forwarding and NAT masquerading rules
 			postDown = fmt.Sprintf("iptables -D FORWARD -i %%i -j ACCEPT; iptables -D FORWARD -o %%i -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE", defaultInterface)
 		}
-		
+
 		serverInterface.PostUp = postUp
 		serverInterface.PostDown = postDown
 		serverInterface.UpdatedAt = time.Now().UTC()
@@ -87,7 +80,6 @@ func (o *JsonDB) Init() error {
 		}
 	}
 
-	// server's key pair
 	if _, err := os.Stat(serverKeyPairPath); os.IsNotExist(err) {
 		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
@@ -104,11 +96,9 @@ func (o *JsonDB) Init() error {
 		}
 	}
 
-	// global settings
 	if _, err := os.Stat(globalSettingPath); os.IsNotExist(err) {
 		endpointAddress := util.LookupEnvOrString(util.EndpointAddressEnvVar, "")
 		if endpointAddress == "" {
-			// automatically find an external IP address
 			publicInterface, err := util.GetPublicIP()
 			if err != nil {
 				return err
@@ -134,7 +124,6 @@ func (o *JsonDB) Init() error {
 		}
 	}
 
-	// hashes
 	if _, err := os.Stat(hashesPath); os.IsNotExist(err) {
 		clientServerHashes := new(model.ClientServerHashes)
 		clientServerHashes.Client = "none"
@@ -146,7 +135,6 @@ func (o *JsonDB) Init() error {
 		}
 	}
 
-	// user info
 	results, err := o.conn.ReadAll("users")
 	if err != nil || len(results) < 1 {
 		user := new(model.User)
@@ -176,7 +164,6 @@ func (o *JsonDB) Init() error {
 		}
 	}
 
-	// init cache
 	for _, i := range results {
 		user := model.User{}
 
@@ -201,7 +188,6 @@ func (o *JsonDB) Init() error {
 	return nil
 }
 
-// GetUsers func to get all users from the database
 func (o *JsonDB) GetUsers() ([]model.User, error) {
 	var users []model.User
 	results, err := o.conn.ReadAll("users")
@@ -218,7 +204,6 @@ func (o *JsonDB) GetUsers() ([]model.User, error) {
 	return users, err
 }
 
-// GetUserByName func to get single user from the database
 func (o *JsonDB) GetUserByName(username string) (model.User, error) {
 	user := model.User{}
 	if err := o.conn.Read("users", username, &user); err != nil {
@@ -227,8 +212,6 @@ func (o *JsonDB) GetUserByName(username string) (model.User, error) {
 	return user, nil
 }
 
-// SaveUser func to save user in the database
-// This method works as an Upsert: Update if exists, Create if new
 func (o *JsonDB) SaveUser(user model.User) error {
 	userPath := path.Join(path.Join(o.dbPath, "users"), user.Username+".json")
 	output := o.conn.Write("users", user.Username, user)
@@ -245,9 +228,7 @@ func (o *JsonDB) SaveUser(user model.User) error {
 	return nil
 }
 
-// DeleteUser func to remove user from the database
 func (o *JsonDB) DeleteUser(username string) error {
-	// بررسی وجود کاربر قبل از حذف
 	if _, err := o.GetUserByName(username); err != nil {
 		return fmt.Errorf("user with username %s does not exist", username)
 	}
@@ -256,28 +237,23 @@ func (o *JsonDB) DeleteUser(username string) error {
 	return o.conn.Delete("users", username)
 }
 
-// GetGlobalSettings func to query global settings from the database
 func (o *JsonDB) GetGlobalSettings() (model.GlobalSetting, error) {
 	settings := model.GlobalSetting{}
 	return settings, o.conn.Read("server", "global_settings", &settings)
 }
 
-// GetServer func to query Server settings from the database
 func (o *JsonDB) GetServer() (model.Server, error) {
 	server := model.Server{}
-	// read server interface information
 	serverInterface := model.ServerInterface{}
 	if err := o.conn.Read("server", "interfaces", &serverInterface); err != nil {
 		return server, err
 	}
 
-	// read server key pair information
 	serverKeyPair := model.ServerKeypair{}
 	if err := o.conn.Read("server", "keypair", &serverKeyPair); err != nil {
 		return server, err
 	}
 
-	// create Server object and return
 	server.Interface = &serverInterface
 	server.KeyPair = &serverKeyPair
 	return server, nil
@@ -286,23 +262,19 @@ func (o *JsonDB) GetServer() (model.Server, error) {
 func (o *JsonDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 	var clients []model.ClientData
 
-	// read all client json files in "clients" directory
 	records, err := o.conn.ReadAll("clients")
 	if err != nil {
 		return clients, err
 	}
 
-	// build the ClientData list
 	for _, f := range records {
 		client := model.Client{}
 		clientData := model.ClientData{}
 
-		// get client info
 		if err := json.Unmarshal(f, &client); err != nil {
 			return clients, fmt.Errorf("cannot decode client json structure: %v", err)
 		}
 
-		// generate client qrcode image in base64
 		if hasQRCode && client.PrivateKey != "" {
 			server, _ := o.GetServer()
 			globalSettings, _ := o.GetGlobalSettings()
@@ -315,7 +287,6 @@ func (o *JsonDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 			}
 		}
 
-		// create the list of clients and their qrcode data
 		clientData.Client = &client
 		clients = append(clients, clientData)
 	}
@@ -327,12 +298,10 @@ func (o *JsonDB) GetClientByID(clientID string, qrCodeSettings model.QRCodeSetti
 	client := model.Client{}
 	clientData := model.ClientData{}
 
-	// read client information
 	if err := o.conn.Read("clients", clientID, &client); err != nil {
 		return clientData, err
 	}
 
-	// generate client qrcode image in base64
 	if qrCodeSettings.Enabled && client.PrivateKey != "" {
 		server, _ := o.GetServer()
 		globalSettings, _ := o.GetGlobalSettings()
