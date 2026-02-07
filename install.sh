@@ -1,26 +1,13 @@
 #!/bin/bash
 
-# vWireguard Panel - Binary Release Installation Script
-# Fixed: Logs are now sent to stderr to prevent variable corruption
-
 set -e
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-
-# Repository information
 REPO_OWNER="MmadF14"
 REPO_NAME="vwireguard"
 INSTALL_DIR="/usr/local/vwireguard"
 SERVICE_NAME="vwireguard"
 
-# Display Logo
-echo -e "${BLUE}"
+echo -e "\033[0;34m"
 cat << "EOF"
 ██╗   ██╗██╗    ██╗██╗██████╗ ███████╗ ██████╗ ██╗   ██╗ █████╗ ██████╗ ██████╗ 
 ██║   ██║██║    ██║██║██╔══██╗██╔════╝██╔════╝ ██║   ██║██╔══██╗██╔══██╗██╔══██╗
@@ -29,19 +16,16 @@ cat << "EOF"
  ╚████╔╝ ╚███╔███╔╝██║██║  ██║███████╗╚██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝
   ╚═══╝   ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ 
 EOF
-echo -e "${NC}"
+echo -e "\033[0m"
 
-# Logging functions (Fixed to output to stderr >&2)
-log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}" >&2; }
-error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}" >&2; exit 1; }
-warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}" >&2; }
+log() { echo -e "\033[0;32m[$(date '+%H:%M:%S')] $1\033[0m" >&2; }
+error() { echo -e "\033[0;31m[$(date '+%H:%M:%S')] ❌ $1\033[0m" >&2; exit 1; }
+warn() { echo -e "\033[1;33m[$(date '+%H:%M:%S')] ⚠️  $1\033[0m" >&2; }
 
-# 1. Check root access
 if [ "$EUID" -ne 0 ]; then 
     error "Please run with root access: sudo bash install.sh"
 fi
 
-# 2. Check and Install Prerequisites
 check_and_install_prerequisites() {
     log "Checking system prerequisites..."
     
@@ -94,7 +78,6 @@ check_and_install_prerequisites() {
     fi
 }
 
-# 3. Enable IP Forwarding
 enable_ip_forwarding() {
     log "Configuring IP forwarding..."
     cat > "/etc/sysctl.d/99-vwireguard.conf" <<EOF
@@ -104,7 +87,6 @@ EOF
     sysctl -p "/etc/sysctl.d/99-vwireguard.conf" > /dev/null 2>&1
 }
 
-# 4. Detect architecture
 detect_arch() {
     local arch=$(uname -m)
     case $arch in
@@ -114,14 +96,12 @@ detect_arch() {
     esac
 }
 
-# 5. Get latest release tag
 get_latest_release() {
     log "Fetching latest release version..."
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
     local tag=$(curl -sL "$api_url" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p')
     
     if [ -z "$tag" ]; then
-        # Fallback
         tag=$(curl -sL -o /dev/null -w %{url_effective} "https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest" | rev | cut -d/ -f1 | rev)
     fi
 
@@ -132,7 +112,6 @@ get_latest_release() {
     echo "$tag"
 }
 
-# 6. Download release asset
 download_release() {
     local tag=$1
     local arch=$2
@@ -142,7 +121,6 @@ download_release() {
     
     log "Downloading ${asset_name} from release ${tag}..."
     
-    # We send wget output to stderr explicitly to keep stdout clean (though log function handles it now)
     if ! wget -q --show-progress -O "$temp_file" "$download_url"; then
         error "Failed to download release asset."
     fi
@@ -154,7 +132,6 @@ download_release() {
     echo "$temp_file"
 }
 
-# 7. Stop service
 stop_service() {
     if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
         log "Stopping existing service..."
@@ -162,7 +139,6 @@ stop_service() {
     fi
 }
 
-# 8. Preserve data
 preserve_data() {
     if [ -d "$INSTALL_DIR/db" ]; then
         log "Backing up existing database..."
@@ -176,7 +152,6 @@ preserve_data() {
     fi
 }
 
-# 9. Install files
 install_files() {
     local archive=$1
     local backup_dir=$2
@@ -184,10 +159,8 @@ install_files() {
     log "Extracting release package to ${INSTALL_DIR}..."
     mkdir -p "$INSTALL_DIR"
     
-    # Force overwrite extract
     tar -xzf "$archive" -C "$INSTALL_DIR" || error "Failed to extract archive"
     
-    # Restore DB
     if [ -n "$backup_dir" ] && [ -d "$backup_dir/db" ]; then
         log "Restoring database..."
         cp -r "$backup_dir/db"/* "$INSTALL_DIR/db/" 2>/dev/null || true
@@ -205,7 +178,6 @@ install_files() {
     mkdir -p "$INSTALL_DIR/db/{clients,server,users,wake_on_lan_hosts,tunnels}"
 }
 
-# 10. Create Service
 create_service() {
     log "Creating systemd service..."
     cat > "/etc/systemd/system/${SERVICE_NAME}.service" <<EOF
@@ -229,7 +201,6 @@ EOF
     systemctl enable "$SERVICE_NAME" > /dev/null 2>&1
 }
 
-# 11. Symlink
 create_symlink() {
     if [ -f "$INSTALL_DIR/vwg" ]; then
         rm -f "/usr/bin/vwg"
@@ -238,7 +209,6 @@ create_symlink() {
     fi
 }
 
-# 12. Start
 start_service() {
     log "Starting service..."
     systemctl start "$SERVICE_NAME"
@@ -250,16 +220,15 @@ start_service() {
     fi
 }
 
-# 13. Summary
 show_summary() {
     local public_ip=$(curl -s --connect-timeout 5 ifconfig.me 2>/dev/null || echo "YOUR_IP")
     echo ""
-    echo -e "${GREEN}=====================================${NC}"
-    echo -e "${GREEN}✅ Installation completed successfully!${NC}"
-    echo -e "${GREEN}=====================================${NC}"
-    echo -e "${CYAN}Panel URL:${NC} http://${public_ip}:5000"
-    echo -e "${CYAN}Default:${NC}   admin / admin"
-    echo -e "${CYAN}Command:${NC}   vwg"
+    echo -e "\033[0;32m=====================================\033[0m"
+    echo -e "\033[0;32m✅ Installation completed successfully!\033[0m"
+    echo -e "\033[0;32m=====================================\033[0m"
+    echo -e "\033[0;36mPanel URL:\033[0m http://${public_ip}:5000"
+    echo -e "\033[0;36mDefault:\033[0m   admin / admin"
+    echo -e "\033[0;36mCommand:\033[0m   vwg"
     echo ""
 }
 
@@ -268,7 +237,7 @@ main() {
     enable_ip_forwarding
     
     local arch=$(detect_arch)
-    local tag=$(get_latest_release) # Now this will only contain the version string
+    local tag=$(get_latest_release)
     
     log "Detected: $arch | Version: $tag"
     

@@ -63,8 +63,8 @@ func SaveWakeOnLanHost(db store.IStore) echo.HandlerFunc {
 			MacAddress: payload.MacAddress,
 			Name:       payload.Name,
 		}
-		if len(payload.OldMacAddress) != 0 { // Edit
-			if payload.OldMacAddress != payload.MacAddress { // modified mac address
+		if len(payload.OldMacAddress) != 0 {
+			if payload.OldMacAddress != payload.MacAddress {
 				oldHost, err := db.GetWakeOnLanHost(payload.OldMacAddress)
 				if err != nil {
 					return createError(c, err, fmt.Sprintf("Wake On Host Update Err: %s", err))
@@ -84,7 +84,7 @@ func SaveWakeOnLanHost(db store.IStore) echo.HandlerFunc {
 				host.LatestUsed = oldHost.LatestUsed
 			}
 			err = db.SaveWakeOnLanHost(host)
-		} else { // new
+		} else {
 			existHost, _ := db.GetWakeOnLanHost(payload.MacAddress)
 			if existHost != nil {
 				return createError(c, nil, "Mac Address already exists.")
@@ -147,7 +147,6 @@ func WakeOnHost(db store.IStore) echo.HandlerFunc {
 			return createError(c, err, fmt.Sprintf("ResolveUDPAddr Error: %s", macAddress))
 		}
 
-		// Grab a UDP connection to send our packet of bytes.
 		conn, err := net.DialUDP("udp", nil, udpAddr)
 		if err != nil {
 			return err

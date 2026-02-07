@@ -7,14 +7,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// StaticHandler handles serving static files with proper MIME types
 func StaticHandler(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		path := c.Request().URL.Path
 
-		// Handle static files
 		if strings.HasPrefix(path, "/static/") {
-			// Set proper MIME types
 			ext := filepath.Ext(path)
 			var contentType string
 			switch ext {

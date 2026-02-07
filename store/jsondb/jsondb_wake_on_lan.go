@@ -12,22 +12,18 @@ import (
 func (o *JsonDB) GetWakeOnLanHosts() ([]model.WakeOnLanHost, error) {
 	var hosts []model.WakeOnLanHost
 
-	// read all client json file in "hosts" directory
 	records, err := o.conn.ReadAll(model.WakeOnLanHostCollectionName)
 	if err != nil {
 		return hosts, err
 	}
 
-	// build the ClientData list
 	for _, f := range records {
 		host := model.WakeOnLanHost{}
 
-		// get client info
 		if err := json.Unmarshal(f, &host); err != nil {
 			return hosts, fmt.Errorf("cannot decode client json structure: %v", err)
 		}
 
-		// create the list of hosts and their qrcode data
 		hosts = append(hosts, host)
 	}
 

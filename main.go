@@ -13,47 +13,46 @@ import (
 	"strings"
 	"time"
 
-	"github.com/MmadF14/vwireguard/store"
-	"github.com/MmadF14/vwireguard/telegram"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 
 	"github.com/MmadF14/vwireguard/emailer"
 	"github.com/MmadF14/vwireguard/handler"
 	"github.com/MmadF14/vwireguard/router"
+	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/store/jsondb"
+	"github.com/MmadF14/vwireguard/telegram"
 	"github.com/MmadF14/vwireguard/util"
 )
 
 var (
-	// command-line banner information
 	appVersion = "development"
 	gitCommit  = "N/A"
 	gitRef     = "N/A"
 	buildTime  = fmt.Sprintf(time.Now().UTC().Format("01-02-2006 15:04:05"))
-	// configuration variables
-	flagDisableLogin             = false
-	flagBindAddress              = "0.0.0.0:5000"
-	flagSmtpHostname             = "127.0.0.1"
-	flagSmtpPort                 = 25
-	flagSmtpUsername             string
-	flagSmtpPassword             string
-	flagSmtpAuthType             = "NONE"
-	flagSmtpNoTLSCheck           = false
-	flagSmtpEncryption           = "STARTTLS"
-	flagSmtpHelo                 = "localhost"
-	flagSendgridApiKey           string
-	flagEmailFrom                string
-	flagEmailFromName            = "vWireguard"
-	flagTelegramToken            string
-	flagTelegramAllowConfRequest = false
-	flagTelegramFloodWait        = 60
-	flagSessionSecret            = util.RandomString(32)
-	flagSessionMaxDuration       = 90
-	flagSessionMaxAge            = 7
-	flagWgConfTemplate           string
-	flagBasePath                 = "/"
-	flagSubnetRanges             string
+
+	disableLogin             = false
+	bindAddress              = "0.0.0.0:5000"
+	smtpHostname             = "127.0.0.1"
+	smtpPort                 = 25
+	smtpUsername             string
+	smtpPassword             string
+	smtpAuthType             = "NONE"
+	smtpNoTLSCheck           = false
+	smtpEncryption           = "STARTTLS"
+	smtpHelo                 = "localhost"
+	sendgridApiKey           string
+	emailFrom                string
+	emailFromName            = "vWireguard"
+	telegramToken            string
+	telegramAllowConfRequest = false
+	telegramFloodWait        = 60
+	sessionSecret            = util.RandomString(32)
+	sessionMaxDuration       = 90
+	sessionMaxAge            = 7
+	wgConfTemplate           string
+	basePath                 = "/"
+	subnetRanges             string
 )
 
 const (
@@ -65,98 +64,87 @@ const (
 `
 )
 
-// embed the "templates" directory
-//
 //go:embed templates/*
 var embeddedTemplates embed.FS
 
-// embed the "assets" directory
-//
 //go:embed assets/*
 var embeddedAssets embed.FS
 
 func init() {
-	// command-line flags and env variables
-	flag.BoolVar(&flagDisableLogin, "disable-login", util.LookupEnvOrBool("DISABLE_LOGIN", flagDisableLogin), "Disable authentication on the app. This is potentially dangerous.")
-	flag.StringVar(&flagBindAddress, "bind-address", util.LookupEnvOrString("BIND_ADDRESS", flagBindAddress), "Address:Port to which the app will be bound.")
-	flag.StringVar(&flagSmtpHostname, "smtp-hostname", util.LookupEnvOrString("SMTP_HOSTNAME", flagSmtpHostname), "SMTP Hostname")
-	flag.IntVar(&flagSmtpPort, "smtp-port", util.LookupEnvOrInt("SMTP_PORT", flagSmtpPort), "SMTP Port")
-	flag.StringVar(&flagSmtpHelo, "smtp-helo", util.LookupEnvOrString("SMTP_HELO", flagSmtpHelo), "SMTP HELO Hostname")
-	flag.StringVar(&flagSmtpUsername, "smtp-username", util.LookupEnvOrString("SMTP_USERNAME", flagSmtpUsername), "SMTP Username")
-	flag.BoolVar(&flagSmtpNoTLSCheck, "smtp-no-tls-check", util.LookupEnvOrBool("SMTP_NO_TLS_CHECK", flagSmtpNoTLSCheck), "Disable TLS verification for SMTP. This is potentially dangerous.")
-	flag.StringVar(&flagSmtpEncryption, "smtp-encryption", util.LookupEnvOrString("SMTP_ENCRYPTION", flagSmtpEncryption), "SMTP Encryption : NONE, SSL, SSLTLS, TLS or STARTTLS (by default)")
-	flag.StringVar(&flagSmtpAuthType, "smtp-auth-type", util.LookupEnvOrString("SMTP_AUTH_TYPE", flagSmtpAuthType), "SMTP Auth Type : PLAIN, LOGIN or NONE.")
-	flag.StringVar(&flagEmailFrom, "email-from", util.LookupEnvOrString("EMAIL_FROM_ADDRESS", flagEmailFrom), "'From' email address.")
-	flag.StringVar(&flagEmailFromName, "email-from-name", util.LookupEnvOrString("EMAIL_FROM_NAME", flagEmailFromName), "'From' email name.")
-	flag.StringVar(&flagTelegramToken, "telegram-token", util.LookupEnvOrString("TELEGRAM_TOKEN", flagTelegramToken), "Telegram bot token for distributing configs to clients.")
-	flag.BoolVar(&flagTelegramAllowConfRequest, "telegram-allow-conf-request", util.LookupEnvOrBool("TELEGRAM_ALLOW_CONF_REQUEST", flagTelegramAllowConfRequest), "Allow users to get configs from the bot by sending a message.")
-	flag.IntVar(&flagTelegramFloodWait, "telegram-flood-wait", util.LookupEnvOrInt("TELEGRAM_FLOOD_WAIT", flagTelegramFloodWait), "Time in minutes before the next conf request is processed.")
-	flag.StringVar(&flagWgConfTemplate, "wg-conf-template", util.LookupEnvOrString("WG_CONF_TEMPLATE", flagWgConfTemplate), "Path to custom wg.conf template.")
-	flag.StringVar(&flagBasePath, "base-path", util.LookupEnvOrString("BASE_PATH", flagBasePath), "The base path of the URL")
-	flag.StringVar(&flagSubnetRanges, "subnet-ranges", util.LookupEnvOrString("SUBNET_RANGES", flagSubnetRanges), "IP ranges to choose from when assigning an IP for a client.")
-	flag.IntVar(&flagSessionMaxDuration, "session-max-duration", util.LookupEnvOrInt("SESSION_MAX_DURATION", flagSessionMaxDuration), "Max time in days a remembered session is refreshed and valid.")
-	flag.IntVar(&flagSessionMaxAge, "session-max-age", util.LookupEnvOrInt(util.SessionMaxAgeEnvVar, flagSessionMaxAge), "Duration in days for 'remember me' sessions.")
+	flag.BoolVar(&disableLogin, "disable-login", util.LookupEnvOrBool("DISABLE_LOGIN", disableLogin), "Disable authentication on the app. This is potentially dangerous.")
+	flag.StringVar(&bindAddress, "bind-address", util.LookupEnvOrString("BIND_ADDRESS", bindAddress), "Address:Port to which the app will be bound.")
+	flag.StringVar(&smtpHostname, "smtp-hostname", util.LookupEnvOrString("SMTP_HOSTNAME", smtpHostname), "SMTP Hostname")
+	flag.IntVar(&smtpPort, "smtp-port", util.LookupEnvOrInt("SMTP_PORT", smtpPort), "SMTP Port")
+	flag.StringVar(&smtpHelo, "smtp-helo", util.LookupEnvOrString("SMTP_HELO", smtpHelo), "SMTP HELO Hostname")
+	flag.StringVar(&smtpUsername, "smtp-username", util.LookupEnvOrString("SMTP_USERNAME", smtpUsername), "SMTP Username")
+	flag.BoolVar(&smtpNoTLSCheck, "smtp-no-tls-check", util.LookupEnvOrBool("SMTP_NO_TLS_CHECK", smtpNoTLSCheck), "Disable TLS verification for SMTP. This is potentially dangerous.")
+	flag.StringVar(&smtpEncryption, "smtp-encryption", util.LookupEnvOrString("SMTP_ENCRYPTION", smtpEncryption), "SMTP Encryption : NONE, SSL, SSLTLS, TLS or STARTTLS (by default)")
+	flag.StringVar(&smtpAuthType, "smtp-auth-type", util.LookupEnvOrString("SMTP_AUTH_TYPE", smtpAuthType), "SMTP Auth Type : PLAIN, LOGIN or NONE.")
+	flag.StringVar(&emailFrom, "email-from", util.LookupEnvOrString("EMAIL_FROM_ADDRESS", emailFrom), "'From' email address.")
+	flag.StringVar(&emailFromName, "email-from-name", util.LookupEnvOrString("EMAIL_FROM_NAME", emailFromName), "'From' email name.")
+	flag.StringVar(&telegramToken, "telegram-token", util.LookupEnvOrString("TELEGRAM_TOKEN", telegramToken), "Telegram bot token for distributing configs to clients.")
+	flag.BoolVar(&telegramAllowConfRequest, "telegram-allow-conf-request", util.LookupEnvOrBool("TELEGRAM_ALLOW_CONF_REQUEST", telegramAllowConfRequest), "Allow users to get configs from the bot by sending a message.")
+	flag.IntVar(&telegramFloodWait, "telegram-flood-wait", util.LookupEnvOrInt("TELEGRAM_FLOOD_WAIT", telegramFloodWait), "Time in minutes before the next conf request is processed.")
+	flag.StringVar(&wgConfTemplate, "wg-conf-template", util.LookupEnvOrString("WG_CONF_TEMPLATE", wgConfTemplate), "Path to custom wg.conf template.")
+	flag.StringVar(&basePath, "base-path", util.LookupEnvOrString("BASE_PATH", basePath), "The base path of the URL")
+	flag.StringVar(&subnetRanges, "subnet-ranges", util.LookupEnvOrString("SUBNET_RANGES", subnetRanges), "IP ranges to choose from when assigning an IP for a client.")
+	flag.IntVar(&sessionMaxDuration, "session-max-duration", util.LookupEnvOrInt("SESSION_MAX_DURATION", sessionMaxDuration), "Max time in days a remembered session is refreshed and valid.")
+	flag.IntVar(&sessionMaxAge, "session-max-age", util.LookupEnvOrInt(util.SessionMaxAgeEnvVar, sessionMaxAge), "Duration in days for 'remember me' sessions.")
 
 	var (
-		smtpPasswordLookup   = util.LookupEnvOrString("SMTP_PASSWORD", flagSmtpPassword)
-		sendgridApiKeyLookup = util.LookupEnvOrString("SENDGRID_API_KEY", flagSendgridApiKey)
-		sessionSecretLookup  = util.LookupEnvOrString("SESSION_SECRET", flagSessionSecret)
+		smtpPasswordLookup   = util.LookupEnvOrString("SMTP_PASSWORD", smtpPassword)
+		sendgridApiKeyLookup = util.LookupEnvOrString("SENDGRID_API_KEY", sendgridApiKey)
+		sessionSecretLookup  = util.LookupEnvOrString("SESSION_SECRET", sessionSecret)
 	)
 
-	// check empty smtpPassword env var
 	if smtpPasswordLookup != "" {
-		flag.StringVar(&flagSmtpPassword, "smtp-password", smtpPasswordLookup, "SMTP Password")
+		flag.StringVar(&smtpPassword, "smtp-password", smtpPasswordLookup, "SMTP Password")
 	} else {
-		flag.StringVar(&flagSmtpPassword, "smtp-password", util.LookupEnvOrFile("SMTP_PASSWORD_FILE", flagSmtpPassword), "SMTP Password File")
+		flag.StringVar(&smtpPassword, "smtp-password", util.LookupEnvOrFile("SMTP_PASSWORD_FILE", smtpPassword), "SMTP Password File")
 	}
 
-	// check empty sendgridApiKey env var
 	if sendgridApiKeyLookup != "" {
-		flag.StringVar(&flagSendgridApiKey, "sendgrid-api-key", sendgridApiKeyLookup, "Your sendgrid api key.")
+		flag.StringVar(&sendgridApiKey, "sendgrid-api-key", sendgridApiKeyLookup, "Your sendgrid api key.")
 	} else {
-		flag.StringVar(&flagSendgridApiKey, "sendgrid-api-key", util.LookupEnvOrFile("SENDGRID_API_KEY_FILE", flagSendgridApiKey), "File containing your sendgrid api key.")
+		flag.StringVar(&sendgridApiKey, "sendgrid-api-key", util.LookupEnvOrFile("SENDGRID_API_KEY_FILE", sendgridApiKey), "File containing your sendgrid api key.")
 	}
 
-	// check empty sessionSecret env var
 	if sessionSecretLookup != "" {
-		flag.StringVar(&flagSessionSecret, "session-secret", sessionSecretLookup, "The key used to encrypt session cookies.")
+		flag.StringVar(&sessionSecret, "session-secret", sessionSecretLookup, "The key used to encrypt session cookies.")
 	} else {
-		flag.StringVar(&flagSessionSecret, "session-secret", util.LookupEnvOrFile("SESSION_SECRET_FILE", flagSessionSecret), "File containing the key used to encrypt session cookies.")
+		flag.StringVar(&sessionSecret, "session-secret", util.LookupEnvOrFile("SESSION_SECRET_FILE", sessionSecret), "File containing the key used to encrypt session cookies.")
 	}
 
 	flag.Parse()
 
-	// update runtime config
-	util.DisableLogin = flagDisableLogin
-	util.BindAddress = flagBindAddress
-	util.SmtpHostname = flagSmtpHostname
-	util.SmtpPort = flagSmtpPort
-	util.SmtpHelo = flagSmtpHelo
-	util.SmtpUsername = flagSmtpUsername
-	util.SmtpPassword = flagSmtpPassword
-	util.SmtpAuthType = flagSmtpAuthType
-	util.SmtpNoTLSCheck = flagSmtpNoTLSCheck
-	util.SmtpEncryption = flagSmtpEncryption
-	util.SendgridApiKey = flagSendgridApiKey
-	util.EmailFrom = flagEmailFrom
-	util.EmailFromName = flagEmailFromName
-	util.SessionSecret = sha512.Sum512([]byte(flagSessionSecret))
-	util.SessionMaxDuration = int64(flagSessionMaxDuration) * 86_400 // Store in seconds
-	util.SessionMaxAge = flagSessionMaxAge * 86_400
-	util.WgConfTemplate = flagWgConfTemplate
-	util.BasePath = util.ParseBasePath(flagBasePath)
-	util.SubnetRanges = util.ParseSubnetRanges(flagSubnetRanges)
+	util.DisableLogin = disableLogin
+	util.BindAddress = bindAddress
+	util.SmtpHostname = smtpHostname
+	util.SmtpPort = smtpPort
+	util.SmtpHelo = smtpHelo
+	util.SmtpUsername = smtpUsername
+	util.SmtpPassword = smtpPassword
+	util.SmtpAuthType = smtpAuthType
+	util.SmtpNoTLSCheck = smtpNoTLSCheck
+	util.SmtpEncryption = smtpEncryption
+	util.SendgridApiKey = sendgridApiKey
+	util.EmailFrom = emailFrom
+	util.EmailFromName = emailFromName
+	util.SessionSecret = sha512.Sum512([]byte(sessionSecret))
+	util.SessionMaxDuration = int64(sessionMaxDuration) * 86_400
+	util.SessionMaxAge = sessionMaxAge * 86_400
+	util.WgConfTemplate = wgConfTemplate
+	util.BasePath = util.ParseBasePath(basePath)
+	util.SubnetRanges = util.ParseSubnetRanges(subnetRanges)
 
 	lvl, _ := util.ParseLogLevel(util.LookupEnvOrString(util.LogLevel, "INFO"))
 
-	telegram.Token = flagTelegramToken
-	telegram.AllowConfRequest = flagTelegramAllowConfRequest
-	telegram.FloodWait = flagTelegramFloodWait
+	telegram.Token = telegramToken
+	telegram.AllowConfRequest = telegramAllowConfRequest
+	telegram.FloodWait = telegramFloodWait
 	telegram.LogLevel = lvl
 
-	// print only if log level is INFO or lower
 	if lvl <= log.INFO {
-		// print app information
 		fmt.Println("vWireguard")
 		fmt.Println("App Version\t:", appVersion)
 		fmt.Println("Git Commit\t:", gitCommit)
@@ -165,10 +153,8 @@ func init() {
 		fmt.Println("Git Repo\t:", "https://github.com/MmadF14/vWireguard")
 		fmt.Println("Authentication\t:", !util.DisableLogin)
 		fmt.Println("Bind address\t:", util.BindAddress)
-		//fmt.Println("Sendgrid key\t:", util.SendgridApiKey)
 		fmt.Println("Email from\t:", util.EmailFrom)
 		fmt.Println("Email from name\t:", util.EmailFromName)
-		//fmt.Println("Session secret\t:", util.SessionSecret)
 		fmt.Println("Custom wg.conf\t:", util.WgConfTemplate)
 		fmt.Println("Base path\t:", util.BasePath+"/")
 		fmt.Println("Subnet ranges\t:", util.GetSubnetRangesString())
@@ -183,40 +169,30 @@ func main() {
 	if err := db.Init(); err != nil {
 		panic(err)
 	}
-	// set app extra data
 	extraData := make(map[string]interface{})
 	extraData["appVersion"] = appVersion
 	extraData["gitCommit"] = gitCommit
 	extraData["basePath"] = util.BasePath
-	extraData["loginDisabled"] = flagDisableLogin
+	extraData["loginDisabled"] = disableLogin
 
-	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name
 	tmplDir, _ := fs.Sub(fs.FS(embeddedTemplates), "templates")
 
-	// strip the "assets/" prefix from the embedded directory and prepare assets
 	assetsDir, _ := fs.Sub(fs.FS(embeddedAssets), "assets")
 
-	// Initialize the quota checker
 	handler.StartQuotaChecker(db, tmplDir)
 
-	// create the wireguard config on start, if it doesn't exist
 	initServerConfig(db, tmplDir)
 
-	// Check if subnet ranges are valid for the server configuration
-	// Remove any non-valid CIDRs
 	if err := util.ValidateAndFixSubnetRanges(db); err != nil {
 		panic(err)
 	}
 
-	// Print valid ranges
 	if lvl, _ := util.ParseLogLevel(util.LookupEnvOrString(util.LogLevel, "INFO")); lvl <= log.INFO {
 		fmt.Println("Valid subnet ranges:", util.GetSubnetRangesString())
 	}
 
-	// register routes
 	app := router.New(tmplDir, extraData, util.SessionSecret)
 
-	// Serve static files from prepared assets with proper MIME types
 	app.Static(util.BasePath+"/assets", "assets")
 	app.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -224,7 +200,6 @@ func main() {
 				if strings.HasSuffix(c.Path(), ".js") {
 					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
 				}
-				// Get the requested file path
 				path := strings.TrimPrefix(c.Path(), util.BasePath+"/assets/")
 				file, err := assetsDir.Open(path)
 				if err != nil {
@@ -244,10 +219,6 @@ func main() {
 	})
 
 	app.GET(util.BasePath, handler.WireGuardClients(db), handler.ValidSession, handler.RefreshSession)
-
-	// Important: Make sure that all non-GET routes check the request content type using handler.ContentTypeJson to
-	// mitigate CSRF attacks. This is effective, because browsers don't allow setting the Content-Type header on
-	// cross-origin requests.
 
 	if !util.DisableLogin {
 		app.GET(util.BasePath+"/login", handler.LoginPage())
@@ -273,7 +244,6 @@ func main() {
 	app.GET(util.BasePath+"/about", handler.AboutPage())
 	app.GET(util.BasePath+"/utilities", handler.UtilitiesPage(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 
-	// Utilities routes
 	app.POST(util.BasePath+"/api/utilities/restart-service", handler.RestartWireGuardService(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/utilities/flush-dns", handler.FlushDNSCache(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/utilities/check-updates", handler.CheckForUpdates(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
@@ -318,33 +288,27 @@ func main() {
 	utilsGroup := app.Group(util.BasePath + "/api/utils")
 	router.RegisterUtilsRoutes(utilsGroup, db)
 
-	// Register internal routes
 	for _, route := range handler.GetInternalRoutes() {
 		app.Add(route.Method, route.Path, route.Handler(db), route.Middleware...)
 	}
 
-	// Register API v1 routes (public, no session required)
 	apiGroup := app.Group(util.BasePath + "/api/v1")
 	apiGroup.POST("/login", handler.APILogin(db))
 	apiGroup.POST("/connect", handler.APIConnect(db))
 	apiGroup.POST("/status", handler.APIStatus(db))
 	apiGroup.POST("/app/user-info", handler.APIAppUserInfo(db))
 
-	// Register Admin API routes (require admin token)
 	apiGroup.POST("/admin/create-client", handler.APIAdminCreateClient(db))
 	apiGroup.POST("/admin/update-client", handler.APIAdminUpdateClient(db))
 
-	// Register public routes
 	app.GET(util.BasePath+"/health", handler.Health())
 	app.GET(util.BasePath+"/favicon.ico", handler.Favicon())
 
-	// Add system monitoring routes
 	app.GET(util.BasePath+"/system-monitor", handler.SystemMonitorPage(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/system-metrics", handler.GetSystemMetrics(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/backup", handler.BackupSystem(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/restore", handler.RestoreSystem(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 
-	// Start the server
 	app.Start(util.BindAddress)
 }
 
@@ -355,7 +319,6 @@ func initServerConfig(db store.IStore, tmplDir fs.FS) {
 	}
 
 	if _, err := os.Stat(settings.ConfigFilePath); err == nil {
-		// file exists, don't overwrite it implicitly
 		return
 	}
 
@@ -374,16 +337,13 @@ func initServerConfig(db store.IStore, tmplDir fs.FS) {
 		log.Fatalf("Cannot get user config: %v", err)
 	}
 
-	// write config file
 	err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 	if err != nil {
 		log.Fatalf("Cannot create server config: %v", err)
 	}
 }
 
-// enableIPForwarding enables IP forwarding for IPv4 and IPv6
 func enableIPForwarding() {
-	// Enable IPv4 forwarding
 	cmd := exec.Command("sysctl", "-w", "net.ipv4.ip_forward=1")
 	if err := cmd.Run(); err != nil {
 		log.Warnf("Failed to enable IPv4 forwarding (may require root): %v", err)
@@ -391,7 +351,6 @@ func enableIPForwarding() {
 		log.Info("IPv4 forwarding enabled")
 	}
 
-	// Enable IPv6 forwarding
 	cmd = exec.Command("sysctl", "-w", "net.ipv6.conf.all.forwarding=1")
 	if err := cmd.Run(); err != nil {
 		log.Warnf("Failed to enable IPv6 forwarding (may require root): %v", err)

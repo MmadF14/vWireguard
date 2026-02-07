@@ -25,8 +25,6 @@ func ValidSession(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// RefreshSession must only be used after ValidSession middleware
-// RefreshSession checks if the session is eligible for the refresh, but doesn't check if it's fully valid
 func RefreshSession(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		doRefreshSession(c)
@@ -53,12 +51,10 @@ func isValidSession(c echo.Context) bool {
 		return false
 	}
 
-	// Check time bounds
 	createdAt := getCreatedAt(sess)
 	updatedAt := getUpdatedAt(sess)
 	maxAge := getMaxAge(sess)
-	// Temporary session is considered valid within 24h if browser is not closed before
-	// This value is not saved and is used as virtual expiration
+
 	if maxAge == 0 {
 		maxAge = 86400
 	}
@@ -68,7 +64,6 @@ func isValidSession(c echo.Context) bool {
 		return false
 	}
 
-	// Check if user still exists and unchanged
 	username := fmt.Sprintf("%s", sess.Values["username"])
 	userHash := getUserHash(sess)
 	if uHash, ok := util.DBUsersToCRC32[username]; !ok || userHash != uHash {
@@ -78,9 +73,6 @@ func isValidSession(c echo.Context) bool {
 	return true
 }
 
-// Refreshes a "remember me" session when the user visits web pages (not API)
-// Session must be valid before calling this function
-// Refresh is performed at most once per 24h
 func doRefreshSession(c echo.Context) {
 	if util.DisableLogin {
 		return
@@ -97,7 +89,6 @@ func doRefreshSession(c echo.Context) {
 		return
 	}
 
-	// Refresh no sooner than 24h
 	createdAt := getCreatedAt(sess)
 	updatedAt := getUpdatedAt(sess)
 	expiration := updatedAt + int64(getMaxAge(sess))
@@ -127,7 +118,6 @@ func doRefreshSession(c echo.Context) {
 	c.SetCookie(cookie)
 }
 
-// Get time in seconds this session is valid without updating
 func getMaxAge(sess *sessions.Session) int {
 	if util.DisableLogin {
 		return 0
@@ -143,7 +133,6 @@ func getMaxAge(sess *sessions.Session) int {
 	}
 }
 
-// Get a timestamp in seconds of the time the session was created
 func getCreatedAt(sess *sessions.Session) int64 {
 	if util.DisableLogin {
 		return 0
@@ -159,7 +148,6 @@ func getCreatedAt(sess *sessions.Session) int64 {
 	}
 }
 
-// Get a timestamp in seconds of the last session update
 func getUpdatedAt(sess *sessions.Session) int64 {
 	if util.DisableLogin {
 		return 0
@@ -175,8 +163,6 @@ func getUpdatedAt(sess *sessions.Session) int64 {
 	}
 }
 
-// Get CRC32 of a user at the moment of log in
-// Any changes to user will result in logout of other (not updated) sessions
 func getUserHash(sess *sessions.Session) uint32 {
 	if util.DisableLogin {
 		return 0
@@ -192,7 +178,6 @@ func getUserHash(sess *sessions.Session) uint32 {
 	}
 }
 
-// currentUser to get username of logged in user
 func currentUser(c echo.Context) string {
 	if util.DisableLogin {
 		return ""
@@ -203,7 +188,6 @@ func currentUser(c echo.Context) string {
 	return username
 }
 
-// isAdmin to get user type: admin or manager
 func isAdmin(c echo.Context) bool {
 	if util.DisableLogin {
 		return true
@@ -222,7 +206,6 @@ func setUser(c echo.Context, username string, admin bool, userCRC32 uint32) {
 	sess.Save(c.Request(), c.Response())
 }
 
-// clearSession to remove current session
 func clearSession(c echo.Context) {
 	sess, _ := session.Get("session", c)
 	sess.Values["username"] = ""

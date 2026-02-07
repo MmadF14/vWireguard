@@ -1,36 +1,21 @@
 #!/bin/bash
 
-# vWireguard Management CLI Tool (vwg)
-# Corrected & Optimized Version
-
 set -e
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
-
-# Config
 SERVICE_NAME="vwireguard"
 INSTALL_DIR="/usr/local/vwireguard"
 REPO_OWNER="MmadF14"
 REPO_NAME="vwireguard"
 
-log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
-error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}"; exit 1; }
-warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}"; }
+log() { echo -e "\033[0;32m[$(date '+%H:%M:%S')] $1\033[0m"; }
+error() { echo -e "\033[0;31m[$(date '+%H:%M:%S')] ❌ $1\033[0m"; exit 1; }
+warn() { echo -e "\033[1;33m[$(date '+%H:%M:%S')] ⚠️  $1\033[0m"; }
 
-# Check root access for modification commands
 check_root() {
     if [ "$EUID" -ne 0 ]; then
         error "This command requires root access. Please run with: sudo vwg $1"
     fi
 }
-
-# --- Service Commands ---
 
 cmd_start() {
     check_root "start"
@@ -65,13 +50,13 @@ cmd_restart() {
 
 cmd_status() {
     if systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${GREEN}● Service is RUNNING${NC}"
+        echo -e "\033[0;32m● Service is RUNNING\033[0m"
         echo -e "---------------------------------------------------"
         systemctl status "$SERVICE_NAME" --no-pager -n 5
     elif systemctl is-enabled --quiet "$SERVICE_NAME" 2>/dev/null; then
-        echo -e "${YELLOW}● Service is STOPPED${NC}"
+        echo -e "\033[1;33m● Service is STOPPED\033[0m"
     else
-        echo -e "${RED}❌ Service not found or not installed.${NC}"
+        echo -e "\033[0;31m❌ Service not found or not installed.\033[0m"
     fi
 }
 
@@ -90,8 +75,6 @@ cmd_log() {
     fi
 }
 
-# --- Update Command ---
-
 cmd_update() {
     check_root "update"
     
@@ -101,7 +84,6 @@ cmd_update() {
     
     log "Checking for updates..."
     
-    # 1. Detect Architecture
     local arch=$(uname -m)
     case $arch in
         x86_64) arch="amd64" ;;
@@ -109,7 +91,6 @@ cmd_update() {
         *) error "Unsupported architecture: $arch" ;;
     esac
     
-    # 2. Get Latest Tag from GitHub
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
     local tag=$(curl -sL "$api_url" | grep -oP '"tag_name": "\K[^"]*' | head -n1)
     
@@ -117,7 +98,7 @@ cmd_update() {
         error "Failed to fetch latest version info."
     fi
     
-    log "Latest version available: ${CYAN}$tag${NC}"
+    log "Latest version available: \033[0;36m$tag\033[0m"
     log "Note: Assuming update is needed (Version check skipped)."
 
     read -p "Do you want to proceed with the update? (y/N): " -n 1 -r
@@ -127,17 +108,14 @@ cmd_update() {
         exit 0
     fi
     
-    # 3. Backup
     local backup_dir="/tmp/vwireguard-backup-$(date +%Y%m%d_%H%M%S)"
     mkdir -p "$backup_dir"
-    # Only backup DB and Config
     cp -r "$INSTALL_DIR/db" "$backup_dir/" 2>/dev/null || true
     if [ -f "$INSTALL_DIR/config.json" ]; then cp "$INSTALL_DIR/config.json" "$backup_dir/"; fi
     cp "$INSTALL_DIR/vWireguard" "$backup_dir/vWireguard.old"
     
     log "Backup created at: $backup_dir"
     
-    # 4. Download & Install
     local asset_name="vWireguard-linux-${arch}.tar.gz"
     local download_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}/${asset_name}"
     local temp_file="/tmp/${asset_name}"
@@ -150,38 +128,30 @@ cmd_update() {
     log "Installing..."
     systemctl stop "$SERVICE_NAME"
     
-    # Extract
     tar -xzf "$temp_file" -C "/tmp/"
     
-    # Replace Binary Only (Because assets are embedded)
     if [ -f "/tmp/vWireguard" ]; then
         mv "/tmp/vWireguard" "$INSTALL_DIR/vWireguard"
         chmod +x "$INSTALL_DIR/vWireguard"
     else
-        # Restore backup if extraction failed
         cp "$backup_dir/vWireguard.old" "$INSTALL_DIR/vWireguard"
         error "New binary not found in archive. Update failed."
     fi
 
-    # Update the CLI tool itself if present
     if [ -f "/tmp/vwg" ]; then
         mv "/tmp/vwg" "$INSTALL_DIR/vwg"
         chmod +x "$INSTALL_DIR/vwg"
     fi
     
-    # Clean up
     rm -f "$temp_file" "/tmp/vWireguard" "/tmp/vwg"
     
-    # Restart
     systemctl start "$SERVICE_NAME"
     log "✅ Updated to $tag successfully!"
 }
 
-# --- Help & Main ---
-
 show_help() {
     cat << EOF
-${BLUE}vWireguard Management CLI (vwg)${NC}
+\033[0;34mvWireguard Management CLI (vwg)\033[0m
 
 Usage: vwg <command> [options]
 

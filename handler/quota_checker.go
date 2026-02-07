@@ -15,17 +15,14 @@ import (
 )
 
 var (
-	configMutex sync.Mutex
-	// نگهداری زمان آخرین غیرفعال‌سازی برای هر کلاینت
+	configMutex         sync.Mutex
 	lastDisableTime     = make(map[string]time.Time)
 	lastDisableMutex    sync.RWMutex
 	quotaCheckerTmplDir fs.FS
 )
 
-// cooldownPeriod مدت زمان انتظار بین غیرفعال‌سازی‌های متوالی
 const cooldownPeriod = 5 * time.Minute
 
-// StartQuotaChecker starts a goroutine that periodically checks client quotas and expiration dates
 func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
 	quotaCheckerTmplDir = tmplDir
 	go func() {
@@ -37,7 +34,6 @@ func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
 			}
 		}()
 
-		// اولین بررسی را با تاخیر انجام می‌دهیم تا سیستم کاملاً بالا بیاید
 		time.Sleep(30 * time.Second)
 
 		for {
@@ -50,18 +46,14 @@ func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
 				checkQuotasAndExpiration(db)
 			}()
 
-			// از Server Interface بخوانیم
 			server, err := db.GetServer()
 			if err != nil {
 				log.Printf("Error retrieving server config for check interval: %v", err)
-				// پیشفرض 5 دقیقه
 				time.Sleep(5 * time.Minute)
 				continue
 			}
 
 			interval := server.Interface.CheckInterval
-			// Ensure interval is between 1 and 5 minutes for frequent checks
-			// Minimum 1 minute ensures immediate enforcement
 			if interval < 1 {
 				interval = 1
 			} else if interval > 5 {
@@ -73,7 +65,6 @@ func StartQuotaChecker(db store.IStore, tmplDir fs.FS) {
 	}()
 }
 
-// isInCooldown checks if a client is in cooldown period
 func isInCooldown(clientID string) bool {
 	lastDisableMutex.RLock()
 	defer lastDisableMutex.RUnlock()
@@ -84,17 +75,14 @@ func isInCooldown(clientID string) bool {
 	return false
 }
 
-// setLastDisableTime updates the last disable time for a client
 func setLastDisableTime(clientID string) {
 	lastDisableMutex.Lock()
 	defer lastDisableMutex.Unlock()
 	lastDisableTime[clientID] = time.Now()
 }
 
-// checkQuotasAndExpiration checks all clients for quota limits and expiration dates
 func checkQuotasAndExpiration(db store.IStore) {
 	log.Printf("Starting quota and expiration check")
-	// دریافت لیست تمام کلاینت‌ها
 	clients, err := db.GetClients(false)
 	if err != nil {
 		log.Printf("Error getting clients for quota check: %v", err)
@@ -102,7 +90,6 @@ func checkQuotasAndExpiration(db store.IStore) {
 	}
 	log.Printf("Successfully retrieved %d clients", len(clients))
 
-	// دریافت آمار ترافیک از WireGuard
 	usageMap, err := getWireGuardUsage()
 	if err != nil {
 		log.Printf("Error getting WireGuard usage: %v", err)
@@ -116,12 +103,10 @@ func checkQuotasAndExpiration(db store.IStore) {
 			continue
 		}
 
-		// فقط کلاینت‌های فعال را بررسی می‌کنیم
 		if !client.Enabled {
 			continue
 		}
 
-		// اگر کلاینت در دوره cooldown است، آن را بررسی نمی‌کنیم
 		if isInCooldown(client.ID) {
 			log.Printf("Client %s (%s) is in cooldown period, skipping check", client.Name, client.ID)
 			continue
@@ -129,9 +114,8 @@ func checkQuotasAndExpiration(db store.IStore) {
 
 		log.Printf("Checking client: %s", client.Name)
 
-		// بروزرسانی مصرف کلاینت
 		if usage, ok := usageMap[client.PublicKey]; ok {
-			total := usage.Rx + usage.Tx // جمع ارسال و دریافت
+			total := usage.Rx + usage.Tx
 			client.UsedQuota = int64(total)
 			if client.FirstConnectedAt.IsZero() && !usage.LastHandshake.IsZero() {
 				client.FirstConnectedAt = usage.LastHandshake
@@ -149,7 +133,6 @@ func checkQuotasAndExpiration(db store.IStore) {
 		shouldDisable := false
 		disableReason := ""
 
-		// بررسی Expiration - اگر تاریخ انقضا تنظیم نشده باشد (zero time)، به معنی unlimited است
 		if client.ExpirationDays > 0 && !client.FirstConnectedAt.IsZero() && client.Expiration.IsZero() {
 			client.Expiration = client.FirstConnectedAt.Add(time.Duration(client.ExpirationDays) * 24 * time.Hour)
 			if err := db.SaveClient(*client); err != nil {
@@ -162,7 +145,6 @@ func checkQuotasAndExpiration(db store.IStore) {
 			disableReason = "expiration"
 		}
 
-		// بررسی Quota
 		if client.Quota > 0 {
 			if usage, ok := usageMap[client.PublicKey]; ok {
 				total := usage.Rx + usage.Tx
@@ -173,36 +155,29 @@ func checkQuotasAndExpiration(db store.IStore) {
 			}
 		}
 
-		// اگر نیاز به غیرفعال کردن کلاینت باشد
 		if shouldDisable {
-			// غیرفعال‌سازی مستقیم کلاینت
 			client.Enabled = false
 			if err := db.SaveClient(*client); err != nil {
 				log.Printf("Error saving disabled state for client %s: %v", client.Name, err)
 				continue
 			}
 
-			// ثبت زمان غیرفعال‌سازی
 			setLastDisableTime(client.ID)
 			log.Printf("Client %s disabled due to %s", client.Name, disableReason)
 
-			// Get settings to determine interface name
 			settings, err := db.GetGlobalSettings()
 			if err != nil {
-				log.Printf("Error getting global settings for hot reload: %v", err)
+				log.Printf("Error getting global settings: %v", err)
 				continue
 			}
 
-			// Get interface name from config file path
 			interfaceName := util.GetInterfaceNameFromConfig(settings.ConfigFilePath)
 
-			// Hot Reload: Remove peer instantly without restarting service
 			if client.PublicKey != "" {
 				if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
 					log.Printf("Error removing peer via hot reload for client %s: %v", client.Name, err)
-					// Continue - client is disabled in DB even if runtime update fails
 				} else {
-					log.Printf("Client %s disconnected immediately via Hot Reload (reason: %s)", client.Name, disableReason)
+					log.Printf("Client %s disconnected immediately (reason: %s)", client.Name, disableReason)
 				}
 			} else {
 				log.Printf("Warning: Client %s has no public key, cannot remove from interface", client.Name)
@@ -211,7 +186,6 @@ func checkQuotasAndExpiration(db store.IStore) {
 	}
 }
 
-// applyWireGuardConfig applies the current configuration to WireGuard
 func applyWireGuardConfig(db store.IStore) error {
 	configMutex.Lock()
 	defer configMutex.Unlock()
@@ -245,7 +219,6 @@ func applyWireGuardConfig(db store.IStore) error {
 	}
 	log.Printf("Successfully got global settings")
 
-	// Write config file
 	err = util.WriteWireGuardServerConfig(quotaCheckerTmplDir, server, clients, users, settings)
 	if err != nil {
 		log.Printf("Error writing WireGuard config: %v", err)
@@ -253,7 +226,6 @@ func applyWireGuardConfig(db store.IStore) error {
 	}
 	log.Printf("Successfully wrote WireGuard config")
 
-	// Get interface name from config file path
 	interfaceName := "wg0"
 	if settings.ConfigFilePath != "" {
 		parts := strings.Split(settings.ConfigFilePath, "/")
@@ -263,7 +235,6 @@ func applyWireGuardConfig(db store.IStore) error {
 		}
 	}
 
-	// Restart WireGuard service
 	serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 	cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
 	output, err := cmd.CombinedOutput()
@@ -273,7 +244,6 @@ func applyWireGuardConfig(db store.IStore) error {
 	}
 	log.Printf("Successfully restarted WireGuard service")
 
-	// Verify service is active
 	checkCmd := exec.Command("sudo", "systemctl", "is-active", serviceName)
 	status, err := checkCmd.CombinedOutput()
 	if err != nil || strings.TrimSpace(string(status)) != "active" {
@@ -285,7 +255,6 @@ func applyWireGuardConfig(db store.IStore) error {
 	return nil
 }
 
-// getWireGuardUsage returns a map of public keys to their traffic usage [received, sent]
 type peerUsage struct {
 	Rx            uint64
 	Tx            uint64

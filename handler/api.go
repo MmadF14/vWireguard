@@ -17,14 +17,12 @@ import (
 	"github.com/MmadF14/vwireguard/util"
 )
 
-// APIRequest represents a generic API request
 type APIRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Token    string `json:"token"`
 }
 
-// APILoginResponse represents the response for login endpoint
 type APILoginResponse struct {
 	Status           string    `json:"status"`
 	Token            string    `json:"token"`
@@ -33,12 +31,10 @@ type APILoginResponse struct {
 	RemainingTraffic int64     `json:"remaining_traffic"`
 }
 
-// APIConnectResponse represents the response for connect endpoint
 type APIConnectResponse struct {
 	Config string `json:"config"`
 }
 
-// APIStatusResponse represents the response for status endpoint
 type APIStatusResponse struct {
 	Status           string    `json:"status"`
 	TotalTraffic     int64     `json:"total_traffic"`
@@ -48,42 +44,36 @@ type APIStatusResponse struct {
 	Expired          bool      `json:"expired"`
 }
 
-// AdminCreateClientRequest represents the request for admin create client endpoint
 type AdminCreateClientRequest struct {
 	Username   string `json:"username"`
 	Email      string `json:"email"`
 	Token      string `json:"token"`
-	Expiration string `json:"expiration,omitempty"` // Optional RFC3339 format (e.g., "2024-12-05T15:00:00Z")
+	Expiration string `json:"expiration,omitempty"`
 }
 
-// AdminCreateClientResponse represents the response for admin create client endpoint
 type AdminCreateClientResponse struct {
 	Status string `json:"status"`
 	Config string `json:"config"`
 }
 
-// AdminUpdateClientRequest represents the request for admin update client endpoint
 type AdminUpdateClientRequest struct {
 	Username   string `json:"username"`
 	AddDays    int    `json:"add_days"`
 	ResetQuota bool   `json:"reset_quota"`
-	Enable     *bool  `json:"enable,omitempty"` // Optional: explicitly enable/disable client
+	Enable     *bool  `json:"enable,omitempty"`
 	Token      string `json:"token"`
 }
 
-// AdminUpdateClientResponse represents the response for admin update client endpoint
 type AdminUpdateClientResponse struct {
 	Status        string    `json:"status"`
 	NewExpiration time.Time `json:"new_expiration"`
 	Message       string    `json:"message"`
 }
 
-// AppUserInfoRequest represents the request for mobile app user info endpoint
 type AppUserInfoRequest struct {
 	Username string `json:"username"`
 }
 
-// AppUserInfoResponse represents the response for the mobile app user info endpoint
 type AppUserInfoResponse struct {
 	Status         string    `json:"status"`
 	PeerFound      bool      `json:"peer_found"`
@@ -95,7 +85,6 @@ type AppUserInfoResponse struct {
 	Message        string    `json:"message,omitempty"`
 }
 
-// APILogin handles POST /api/v1/login
 func APILogin(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req APIRequest
@@ -113,7 +102,6 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get user from database
 		user, err := db.GetUserByName(req.Username)
 		if err != nil {
 			log.Infof("Cannot query user %s from DB: %v", req.Username, err)
@@ -123,7 +111,6 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Verify password
 		var passwordCorrect bool
 		if user.PasswordHash != "" {
 			match, err := util.VerifyHash(user.PasswordHash, req.Password)
@@ -145,11 +132,9 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Generate API token
 		token := xid.New().String()
-		expireAt := time.Now().UTC().Add(30 * 24 * time.Hour) // 30 days
+		expireAt := time.Now().UTC().Add(30 * 24 * time.Hour)
 
-		// Update user with token
 		user.APIToken = token
 		user.TokenExpire = expireAt
 		if err := db.SaveUser(user); err != nil {
@@ -160,7 +145,6 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get user's client to calculate traffic
 		clients, err := db.GetClients(false)
 		if err != nil {
 			log.Error("Cannot get clients: ", err)
@@ -170,7 +154,6 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 		var usedTraffic int64
 		var client *model.Client
 
-		// Find client associated with this user (by username or email)
 		for _, clientData := range clients {
 			if clientData.Client != nil {
 				if clientData.Client.Name == req.Username || clientData.Client.Email == req.Username {
@@ -200,7 +183,6 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// APIConnect handles POST /api/v1/connect
 func APIConnect(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req APIRequest
@@ -218,7 +200,6 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Find user by token
 		users, err := db.GetUsers()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -242,7 +223,6 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Check token expiration
 		if !user.TokenExpire.IsZero() && time.Now().UTC().After(user.TokenExpire) {
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"status":  "error",
@@ -250,7 +230,6 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get or create client for this user
 		clients, err := db.GetClients(false)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -269,10 +248,8 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		// Track if client was just created
 		clientJustCreated := false
 
-		// If client doesn't exist, create one
 		if client == nil {
 			client, err = createClientForUser(db, user)
 			if err != nil {
@@ -285,7 +262,6 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			clientJustCreated = true
 		}
 
-		// Check if user is expired or has no bandwidth left
 		if !client.Expiration.IsZero() && time.Now().UTC().After(client.Expiration) {
 			return c.JSON(http.StatusForbidden, map[string]interface{}{
 				"status":  "error",
@@ -300,7 +276,6 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get server and global settings
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -317,18 +292,15 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Hot Reload: If client was just created, add peer to interface instantly
 		if clientJustCreated {
 			interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
 			if err := util.AddPeerToInterface(*client, server, globalSettings, interfaceName); err != nil {
-				log.Warnf("Failed to add peer via hot reload for newly created client %s: %v (client saved to DB)", client.Name, err)
-				// Continue - client is saved in DB even if runtime update fails
+				log.Warnf("Failed to add peer via hot reload for newly created client %s: %v", client.Name, err)
 			} else {
-				log.Infof("Newly created client %s added to interface via Hot Reload", client.Name)
+				log.Infof("Newly created client %s added to interface", client.Name)
 			}
 		}
 
-		// Generate WireGuard config using the relay logic
 		config := util.BuildClientConfig(*client, server, globalSettings)
 
 		return c.JSON(http.StatusOK, APIConnectResponse{
@@ -337,7 +309,6 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// APIStatus handles POST /api/v1/status
 func APIStatus(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req APIRequest
@@ -355,7 +326,6 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Find user by token
 		users, err := db.GetUsers()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -379,7 +349,6 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get user's client
 		clients, err := db.GetClients(false)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -432,7 +401,6 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// APIAppUserInfo handles POST /api/v1/app/user-info
 func APIAppUserInfo(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req AppUserInfoRequest
@@ -521,43 +489,35 @@ func APIAppUserInfo(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// createClientForUser creates a new WireGuard client for a user
 func createClientForUser(db store.IStore, user *model.User) (*model.Client, error) {
-	// Get server configuration
 	server, err := db.GetServer()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get server config: %v", err)
 	}
 
-	// Generate client ID
 	clientID := xid.New().String()
 
-	// Generate WireGuard key pair
 	key, err := wgtypes.GeneratePrivateKey()
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate wireguard key pair: %v", err)
 	}
 
-	// Generate preshared key
 	presharedKey, err := wgtypes.GenerateKey()
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate preshared key: %v", err)
 	}
 
-	// Get available IP
 	allocatedIPs, err := util.GetAllocatedIPs("")
 	if err != nil {
 		return nil, fmt.Errorf("cannot get allocated IPs: %v", err)
 	}
 
-	// Suggest an IP from the first available subnet
 	var allocatedIP string
 	if len(server.Interface.Addresses) > 0 {
 		ip, err := util.GetAvailableIP(server.Interface.Addresses[0], allocatedIPs, server.Interface.Addresses)
 		if err != nil {
 			return nil, fmt.Errorf("cannot get available IP: %v", err)
 		}
-		// Format as CIDR
 		if strings.Contains(ip, ":") {
 			allocatedIP = fmt.Sprintf("%s/128", ip)
 		} else {
@@ -567,25 +527,23 @@ func createClientForUser(db store.IStore, user *model.User) (*model.Client, erro
 		return nil, fmt.Errorf("server has no interface addresses configured")
 	}
 
-	// Create client
 	client := model.Client{
 		ID:           clientID,
 		PrivateKey:   key.String(),
 		PublicKey:    key.PublicKey().String(),
 		PresharedKey: presharedKey.String(),
 		Name:         user.Username,
-		Email:        user.Username, // Use username as email if not set
+		Email:        user.Username,
 		AllocatedIPs: []string{allocatedIP},
-		AllowedIPs:   []string{"0.0.0.0/0"}, // Default: route all traffic
+		AllowedIPs:   []string{"0.0.0.0/0"},
 		UseServerDNS: true,
 		Enabled:      true,
 		CreatedBy:    "api",
 		CreatedAt:    time.Now().UTC(),
 		UpdatedAt:    time.Now().UTC(),
-		Quota:        0, // Unlimited by default, can be set via admin panel
+		Quota:        0,
 	}
 
-	// Save client
 	if err := db.SaveClient(client); err != nil {
 		return nil, fmt.Errorf("cannot save client: %v", err)
 	}
@@ -594,7 +552,6 @@ func createClientForUser(db store.IStore, user *model.User) (*model.Client, erro
 	return &client, nil
 }
 
-// verifyAdminToken verifies that the token belongs to an admin user
 func verifyAdminToken(db store.IStore, token string) (*model.User, error) {
 	if token == "" {
 		return nil, fmt.Errorf("token is required")
@@ -617,12 +574,10 @@ func verifyAdminToken(db store.IStore, token string) (*model.User, error) {
 		return nil, fmt.Errorf("invalid token")
 	}
 
-	// Check token expiration
 	if !user.TokenExpire.IsZero() && time.Now().UTC().After(user.TokenExpire) {
 		return nil, fmt.Errorf("token expired")
 	}
 
-	// Check if user is admin
 	if user.Role != model.RoleAdmin {
 		return nil, fmt.Errorf("user is not an admin")
 	}
@@ -630,7 +585,6 @@ func verifyAdminToken(db store.IStore, token string) (*model.User, error) {
 	return user, nil
 }
 
-// APIAdminCreateClient handles POST /api/v1/admin/create-client
 func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req AdminCreateClientRequest
@@ -641,7 +595,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Validate required fields
 		if req.Username == "" || req.Email == "" || req.Token == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"status":  "error",
@@ -649,17 +602,14 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Verify admin token
-		adminUser, err := verifyAdminToken(db, req.Token)
+		_, err := verifyAdminToken(db, req.Token)
 		if err != nil {
 			return c.JSON(http.StatusForbidden, map[string]interface{}{
 				"status":  "error",
 				"message": err.Error(),
 			})
 		}
-		_ = adminUser // Admin user verified
 
-		// Check if client already exists
 		clients, err := db.GetClients(false)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -677,7 +627,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		if existingClient != nil {
-			// Return existing client config
 			server, err := db.GetServer()
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -701,7 +650,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get server configuration
 		server, err := db.GetServer()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -710,10 +658,8 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Generate client ID
 		clientID := xid.New().String()
 
-		// Generate WireGuard key pair
 		key, err := wgtypes.GeneratePrivateKey()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -722,7 +668,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Generate preshared key
 		presharedKey, err := wgtypes.GenerateKey()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -731,7 +676,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get available IP
 		allocatedIPs, err := util.GetAllocatedIPs("")
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -740,7 +684,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Suggest an IP from the first available subnet
 		var allocatedIP string
 		if len(server.Interface.Addresses) > 0 {
 			ip, err := util.GetAvailableIP(server.Interface.Addresses[0], allocatedIPs, server.Interface.Addresses)
@@ -750,7 +693,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 					"message": fmt.Sprintf("Cannot get available IP: %v", err),
 				})
 			}
-			// Format as CIDR
 			if strings.Contains(ip, ":") {
 				allocatedIP = fmt.Sprintf("%s/128", ip)
 			} else {
@@ -763,25 +705,22 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Create client with expiration handling
 		now := time.Now().UTC()
 		var expirationTime time.Time
-		
-		// If expiration is provided, parse it; otherwise use default trial logic
+
 		if req.Expiration != "" {
 			parsedExpiration, err := time.Parse(time.RFC3339, req.Expiration)
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, map[string]interface{}{
 					"status":  "error",
-					"message": fmt.Sprintf("Invalid expiration format. Expected RFC3339 (e.g., 2024-12-05T15:00:00Z): %v", err),
+					"message": fmt.Sprintf("Invalid expiration format. Expected RFC3339: %v", err),
 				})
 			}
 			expirationTime = parsedExpiration.UTC()
 		} else {
-			// Default: 1 Day trial
 			expirationTime = now.Add(24 * time.Hour)
 		}
-		
+
 		client := model.Client{
 			ID:           clientID,
 			PrivateKey:   key.String(),
@@ -790,17 +729,16 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			Name:         req.Username,
 			Email:        req.Email,
 			AllocatedIPs: []string{allocatedIP},
-			AllowedIPs:   []string{"0.0.0.0/0"}, // Default: route all traffic
+			AllowedIPs:   []string{"0.0.0.0/0"},
 			UseServerDNS: true,
 			Enabled:      true,
 			CreatedBy:    "admin-api",
 			CreatedAt:    now,
 			UpdatedAt:    now,
 			Expiration:   expirationTime,
-			Quota:        0, // Unlimited
+			Quota:        0,
 		}
 
-		// Save client
 		if err := db.SaveClient(client); err != nil {
 			log.Error("Cannot save client: ", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -809,7 +747,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Get global settings for config generation
 		globalSettings, err := db.GetGlobalSettings()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -818,19 +755,16 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Hot Reload: Add peer to interface instantly without restarting service
 		interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
 		if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
-			log.Warnf("Failed to add peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
-			// Continue - client is saved in DB even if runtime update fails
+			log.Warnf("Failed to add peer via hot reload for client %s: %v", req.Username, err)
 		} else {
-			log.Infof("Client %s added to interface via Hot Reload", req.Username)
+			log.Infof("Client %s added to interface", req.Username)
 		}
 
-		// Generate WireGuard config
 		config := util.BuildClientConfig(client, server, globalSettings)
 
-		log.Infof("Admin created WireGuard client: %s (ID: %s, Trial: 1 day)", req.Username, clientID)
+		log.Infof("Admin created WireGuard client: %s (ID: %s)", req.Username, clientID)
 		return c.JSON(http.StatusOK, AdminCreateClientResponse{
 			Status: "success",
 			Config: config,
@@ -838,7 +772,6 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 	}
 }
 
-// APIAdminUpdateClient handles POST /api/v1/admin/update-client
 func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req AdminUpdateClientRequest
@@ -849,7 +782,6 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Validate required fields
 		if req.Username == "" || req.Token == "" {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
 				"status":  "error",
@@ -857,17 +789,14 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Verify admin token
-		adminUser, err := verifyAdminToken(db, req.Token)
+		_, err := verifyAdminToken(db, req.Token)
 		if err != nil {
 			return c.JSON(http.StatusForbidden, map[string]interface{}{
 				"status":  "error",
 				"message": err.Error(),
 			})
 		}
-		_ = adminUser // Admin user verified
 
-		// Find client by username
 		clients, err := db.GetClients(false)
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -894,9 +823,7 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 		now := time.Now().UTC()
 		wasEnabled := client.Enabled
 
-		// Update expiration if AddDays > 0
 		if req.AddDays > 0 {
-			// Determine base time: if expired, use now; otherwise use current expiration
 			baseTime := client.Expiration
 			if client.Expiration.IsZero() || now.After(client.Expiration) {
 				baseTime = now
@@ -904,28 +831,21 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			client.Expiration = baseTime.Add(time.Duration(req.AddDays) * 24 * time.Hour)
 		}
 
-		// Reset quota if requested
 		if req.ResetQuota {
 			client.UsedQuota = 0
 		}
 
-		// Handle explicit enable/disable from PHP backend (sync quota enforcement)
 		if req.Enable != nil {
 			client.Enabled = *req.Enable
 		} else {
-			// Smart Renewal: Auto-enable if client becomes valid after update
-			// Check if client is now valid (not expired and not over quota)
 			if util.IsClientValid(*client) {
-				// If client is valid after renewal, enable it
 				client.Enabled = true
 			} else {
-				// Client is still not valid (shouldn't happen after renewal, but handle it)
 				client.Enabled = false
 			}
 		}
 		client.UpdatedAt = now
 
-		// Save updated client
 		if err := db.SaveClient(*client); err != nil {
 			log.Error("Cannot save updated client: ", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -934,52 +854,45 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Log auto-enable if it happened
 		if !wasEnabled && client.Enabled && util.IsClientValid(*client) {
-			log.Infof("Client %s auto-enabled after renewal via API (expiration extended or quota reset)", req.Username)
+			log.Infof("Client %s auto-enabled after renewal", req.Username)
 		}
 
-		// Get server and global settings for hot reload
 		server, err := db.GetServer()
 		if err != nil {
-			log.Warnf("Cannot get server config for hot reload: %v", err)
+			log.Warnf("Cannot get server config: %v", err)
 		} else {
 			globalSettings, err := db.GetGlobalSettings()
 			if err != nil {
-				log.Warnf("Cannot get global settings for hot reload: %v", err)
+				log.Warnf("Cannot get global settings: %v", err)
 			} else {
 				interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
-				
-				// If Enable was explicitly set, handle add/remove directly
+
 				if req.Enable != nil {
 					if *req.Enable {
-						// Explicitly enabled: add peer to interface
 						if err := util.AddPeerToInterface(*client, server, globalSettings, interfaceName); err != nil {
-							log.Warnf("Failed to add peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+							log.Warnf("Failed to add peer via hot reload for client %s: %v", req.Username, err)
 						} else {
-							log.Infof("Client %s enabled and added to interface via Hot Reload", req.Username)
+							log.Infof("Client %s enabled and added to interface", req.Username)
 						}
 					} else {
-						// Explicitly disabled: remove peer from interface
 						if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
-							log.Warnf("Failed to remove peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+							log.Warnf("Failed to remove peer via hot reload for client %s: %v", req.Username, err)
 						} else {
-							log.Infof("Client %s disabled and removed from interface via Hot Reload", req.Username)
+							log.Infof("Client %s disabled and removed from interface", req.Username)
 						}
 					}
 				} else {
-					// No explicit enable/disable: use UpdatePeerOnInterface (handles add/remove based on validity)
 					if err := util.UpdatePeerOnInterface(*client, server, globalSettings, interfaceName); err != nil {
-						log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
-						// Continue - client is saved in DB even if runtime update fails
+						log.Warnf("Failed to update peer via hot reload for client %s: %v", req.Username, err)
 					} else {
-						log.Infof("Client %s updated on interface via Hot Reload", req.Username)
+						log.Infof("Client %s updated on interface", req.Username)
 					}
 				}
 			}
 		}
 
-		log.Infof("Admin updated WireGuard client: %s (ID: %s, AddDays: %d, ResetQuota: %v)", req.Username, client.ID, req.AddDays, req.ResetQuota)
+		log.Infof("Admin updated WireGuard client: %s (ID: %s)", req.Username, client.ID)
 		return c.JSON(http.StatusOK, AdminUpdateClientResponse{
 			Status:        "success",
 			NewExpiration: client.Expiration,
