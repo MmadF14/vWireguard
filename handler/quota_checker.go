@@ -263,7 +263,23 @@ func applyWireGuardConfig(db store.IStore) error {
 		}
 	}
 
-	// Restart WireGuard service
+	// Prefer a zero-downtime `wg syncconf`, exactly like ApplyServerConfig does.
+	// A full `systemctl restart` tears down EVERY peer's handshake and drops all
+	// connected users for 1-5s - far too blunt when the usual trigger is a single
+	// client's config changing. Only fall back to restart when syncconf genuinely
+	// cannot apply the change (i.e. the [Interface] section itself changed, which
+	// syncconf is not allowed to touch).
+	if settings.ConfigFilePath != "" {
+		syncCmd := exec.Command("sudo", "wg", "syncconf", interfaceName, settings.ConfigFilePath)
+		if syncOut, syncErr := syncCmd.CombinedOutput(); syncErr == nil {
+			log.Printf("Applied config via wg syncconf (zero downtime)")
+			return nil
+		} else {
+			log.Printf("wg syncconf could not apply (%v: %s); falling back to service restart", syncErr, strings.TrimSpace(string(syncOut)))
+		}
+	}
+
+	// Fallback: restart the service.
 	serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 	cmd := exec.Command("sudo", "systemctl", "restart", serviceName)
 	output, err := cmd.CombinedOutput()

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -16,6 +17,74 @@ import (
 	"github.com/MmadF14/vwireguard/store"
 	"github.com/MmadF14/vwireguard/util"
 )
+
+// ---------------------------------------------------------------------------
+// Login throttling.
+//
+// APILogin has no rate limit, and every node ships with admin/admin. Anyone who
+// finds port 5000 can brute-force it. This is a small in-memory limiter keyed by
+// source IP: after loginMaxFailures failed attempts inside loginWindow, further
+// attempts from that IP are refused for loginLockout regardless of the password.
+//
+// In-memory is deliberate - a node runs a single process, and a limiter that
+// survives a restart is not worth a datastore dependency here. A restart clears
+// it, which at worst grants an attacker one more small window.
+// ---------------------------------------------------------------------------
+const (
+	loginMaxFailures = 5
+	loginWindow      = 5 * time.Minute
+	loginLockout     = 15 * time.Minute
+)
+
+type loginAttempt struct {
+	failures  int
+	firstSeen time.Time
+	blockedTo time.Time
+}
+
+var (
+	loginAttempts   = make(map[string]*loginAttempt)
+	loginAttemptsMu sync.Mutex
+)
+
+// loginBlocked reports whether this IP is currently locked out, and if so for
+// how much longer.
+func loginBlocked(ip string) (bool, time.Duration) {
+	loginAttemptsMu.Lock()
+	defer loginAttemptsMu.Unlock()
+	a := loginAttempts[ip]
+	if a == nil {
+		return false, 0
+	}
+	if now := time.Now(); now.Before(a.blockedTo) {
+		return true, time.Until(a.blockedTo)
+	}
+	return false, 0
+}
+
+// loginNoteFailure records a failed attempt and arms the lockout once the
+// threshold is crossed inside the window.
+func loginNoteFailure(ip string) {
+	loginAttemptsMu.Lock()
+	defer loginAttemptsMu.Unlock()
+	now := time.Now()
+	a := loginAttempts[ip]
+	if a == nil || now.Sub(a.firstSeen) > loginWindow {
+		a = &loginAttempt{firstSeen: now}
+		loginAttempts[ip] = a
+	}
+	a.failures++
+	if a.failures >= loginMaxFailures {
+		a.blockedTo = now.Add(loginLockout)
+	}
+}
+
+// loginNoteSuccess clears the counter for an IP after a good login.
+func loginNoteSuccess(ip string) {
+	loginAttemptsMu.Lock()
+	defer loginAttemptsMu.Unlock()
+	delete(loginAttempts, ip)
+}
 
 // APIRequest represents a generic API request
 type APIRequest struct {
@@ -50,10 +119,9 @@ type APIStatusResponse struct {
 
 // AdminCreateClientRequest represents the request for admin create client endpoint
 type AdminCreateClientRequest struct {
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	Token      string `json:"token"`
-	Expiration string `json:"expiration,omitempty"` // Optional RFC3339 format (e.g., "2024-12-05T15:00:00Z")
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Token    string `json:"token"`
 }
 
 // AdminCreateClientResponse represents the response for admin create client endpoint
@@ -67,7 +135,6 @@ type AdminUpdateClientRequest struct {
 	Username   string `json:"username"`
 	AddDays    int    `json:"add_days"`
 	ResetQuota bool   `json:"reset_quota"`
-	Enable     *bool  `json:"enable,omitempty"` // Optional: explicitly enable/disable client
 	Token      string `json:"token"`
 }
 
@@ -90,6 +157,13 @@ type AppUserInfoResponse struct {
 	IsExpired      bool      `json:"is_expired"`
 	IsOverQuota    bool      `json:"is_over_quota"`
 	QuotaRemaining int64     `json:"quota_remaining"`
+	// QuotaTotal / QuotaUsed let the site sync real traffic usage. The site's
+	// fetchUsageFromNode() already reads both keys and ignores them when absent,
+	// so populating them here starts usage sync with no site-side change. Without
+	// them, quota_remaining alone is uninformative (it floors to 0 whenever the
+	// panel-created client has Quota = 0). See ZeroDelaySite PANEL-INTEGRATION.md.
+	QuotaTotal     int64     `json:"quota_total"`
+	QuotaUsed      int64     `json:"quota_used"`
 	ExpirationDate time.Time `json:"expiration_date"`
 	Config         string    `json:"config,omitempty"`
 	Message        string    `json:"message,omitempty"`
@@ -98,6 +172,17 @@ type AppUserInfoResponse struct {
 // APILogin handles POST /api/v1/login
 func APILogin(db store.IStore) echo.HandlerFunc {
 	return func(c echo.Context) error {
+		// Refuse early if this source IP is locked out. Done before any DB work so
+		// a brute-force attempt costs nothing.
+		ip := c.RealIP()
+		if blocked, wait := loginBlocked(ip); blocked {
+			log.Warnf("Login blocked for %s (too many failures); %s remaining", ip, wait.Round(time.Second))
+			return c.JSON(http.StatusTooManyRequests, map[string]interface{}{
+				"status":  "error",
+				"message": "Too many failed attempts. Try again later.",
+			})
+		}
+
 		var req APIRequest
 		if err := c.Bind(&req); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]interface{}{
@@ -117,6 +202,7 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 		user, err := db.GetUserByName(req.Username)
 		if err != nil {
 			log.Infof("Cannot query user %s from DB: %v", req.Username, err)
+			loginNoteFailure(ip)
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"status":  "error",
 				"message": "Invalid credentials",
@@ -139,11 +225,15 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 		}
 
 		if !passwordCorrect {
+			loginNoteFailure(ip)
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"status":  "error",
 				"message": "Invalid credentials",
 			})
 		}
+
+		// Good login: clear this IP's failure counter.
+		loginNoteSuccess(ip)
 
 		// Generate API token
 		token := xid.New().String()
@@ -515,6 +605,8 @@ func APIAppUserInfo(db store.IStore) echo.HandlerFunc {
 			IsExpired:      isExpired,
 			IsOverQuota:    isOverQuota,
 			QuotaRemaining: remaining,
+			QuotaTotal:     client.Quota,
+			QuotaUsed:      client.UsedQuota,
 			ExpirationDate: client.Expiration,
 			Config:         config,
 		})
@@ -763,25 +855,8 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Create client with expiration handling
+		// Create client with 1-day trial
 		now := time.Now().UTC()
-		var expirationTime time.Time
-		
-		// If expiration is provided, parse it; otherwise use default trial logic
-		if req.Expiration != "" {
-			parsedExpiration, err := time.Parse(time.RFC3339, req.Expiration)
-			if err != nil {
-				return c.JSON(http.StatusBadRequest, map[string]interface{}{
-					"status":  "error",
-					"message": fmt.Sprintf("Invalid expiration format. Expected RFC3339 (e.g., 2024-12-05T15:00:00Z): %v", err),
-				})
-			}
-			expirationTime = parsedExpiration.UTC()
-		} else {
-			// Default: 1 Day trial
-			expirationTime = now.Add(24 * time.Hour)
-		}
-		
 		client := model.Client{
 			ID:           clientID,
 			PrivateKey:   key.String(),
@@ -796,8 +871,8 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			CreatedBy:    "admin-api",
 			CreatedAt:    now,
 			UpdatedAt:    now,
-			Expiration:   expirationTime,
-			Quota:        0, // Unlimited
+			Expiration:   now.Add(24 * time.Hour), // 1 Day trial
+			Quota:        0,                       // Unlimited
 		}
 
 		// Save client
@@ -909,19 +984,14 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			client.UsedQuota = 0
 		}
 
-		// Handle explicit enable/disable from PHP backend (sync quota enforcement)
-		if req.Enable != nil {
-			client.Enabled = *req.Enable
+		// Smart Renewal: Auto-enable if client becomes valid after update
+		// Check if client is now valid (not expired and not over quota)
+		if util.IsClientValid(*client) {
+			// If client is valid after renewal, enable it
+			client.Enabled = true
 		} else {
-			// Smart Renewal: Auto-enable if client becomes valid after update
-			// Check if client is now valid (not expired and not over quota)
-			if util.IsClientValid(*client) {
-				// If client is valid after renewal, enable it
-				client.Enabled = true
-			} else {
-				// Client is still not valid (shouldn't happen after renewal, but handle it)
-				client.Enabled = false
-			}
+			// Client is still not valid (shouldn't happen after renewal, but handle it)
+			client.Enabled = false
 		}
 		client.UpdatedAt = now
 
@@ -948,33 +1018,13 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			if err != nil {
 				log.Warnf("Cannot get global settings for hot reload: %v", err)
 			} else {
+				// Hot Reload: Update peer on interface instantly (adds back if re-enabled, removes if disabled/expired)
 				interfaceName := util.GetInterfaceNameFromConfig(globalSettings.ConfigFilePath)
-				
-				// If Enable was explicitly set, handle add/remove directly
-				if req.Enable != nil {
-					if *req.Enable {
-						// Explicitly enabled: add peer to interface
-						if err := util.AddPeerToInterface(*client, server, globalSettings, interfaceName); err != nil {
-							log.Warnf("Failed to add peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
-						} else {
-							log.Infof("Client %s enabled and added to interface via Hot Reload", req.Username)
-						}
-					} else {
-						// Explicitly disabled: remove peer from interface
-						if err := util.RemovePeerFromInterface(client.PublicKey, interfaceName); err != nil {
-							log.Warnf("Failed to remove peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
-						} else {
-							log.Infof("Client %s disabled and removed from interface via Hot Reload", req.Username)
-						}
-					}
+				if err := util.UpdatePeerOnInterface(*client, server, globalSettings, interfaceName); err != nil {
+					log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
+					// Continue - client is saved in DB even if runtime update fails
 				} else {
-					// No explicit enable/disable: use UpdatePeerOnInterface (handles add/remove based on validity)
-					if err := util.UpdatePeerOnInterface(*client, server, globalSettings, interfaceName); err != nil {
-						log.Warnf("Failed to update peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
-						// Continue - client is saved in DB even if runtime update fails
-					} else {
-						log.Infof("Client %s updated on interface via Hot Reload", req.Username)
-					}
+					log.Infof("Client %s updated on interface via Hot Reload", req.Username)
 				}
 			}
 		}
