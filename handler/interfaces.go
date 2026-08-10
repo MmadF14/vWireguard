@@ -160,6 +160,25 @@ func SaveInterface(db store.IStore) echo.HandlerFunc {
 		iface.Description = req.Description
 		iface.Enabled = req.Enabled
 		iface.Addresses = req.Addresses
+
+		// Without a PostUp that adds FORWARD + MASQUERADE rules, peers on this
+		// interface get an address and handshake fine but have NO internet -
+		// the packets are never NATed out of the box. The original wg0 gets
+		// these rules generated for it at first run; a hand-created interface
+		// would silently miss them, so fill in the same defaults when the user
+		// leaves the field empty.
+		wan := util.GetDefaultInterfaceName()
+		if strings.TrimSpace(req.PostUp) == "" {
+			req.PostUp = fmt.Sprintf(
+				"iptables -A FORWARD -i %%i -j ACCEPT; iptables -A FORWARD -o %%i -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE",
+				wan)
+		}
+		if strings.TrimSpace(req.PostDown) == "" {
+			req.PostDown = fmt.Sprintf(
+				"iptables -D FORWARD -i %%i -j ACCEPT; iptables -D FORWARD -o %%i -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE",
+				wan)
+		}
+
 		iface.ListenPort = req.ListenPort
 		iface.MTU = req.MTU
 		iface.PostUp = req.PostUp

@@ -686,9 +686,24 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, err.Error()})
 		}
 
+		// Which interface is this client for? Empty means the default one.
+		// The address must be validated against THAT interface's subnet - using
+		// the default server record would reject every client placed on wg1/wg2
+		// because their addresses legitimately live in a different range.
+		client.Interface = strings.TrimSpace(client.Interface)
+		subnets := server.Interface.Addresses
+		if client.Interface != "" && client.Interface != model.DefaultInterfaceName {
+			iface, ifErr := db.GetInterface(client.Interface)
+			if ifErr != nil {
+				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false,
+					fmt.Sprintf("Unknown interface %q", client.Interface)})
+			}
+			subnets = iface.Addresses
+		}
+
 		// validate the input Allocation IPs
 		allocatedIPs, err := util.GetAllocatedIPs("")
-		check, err := util.ValidateIPAllocation(server.Interface.Addresses, allocatedIPs, client.AllocatedIPs)
+		check, err := util.ValidateIPAllocation(subnets, allocatedIPs, client.AllocatedIPs)
 		if !check {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("%s", err)})
 		}

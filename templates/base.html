@@ -915,6 +915,19 @@
                     </div>
                 </div>
                 
+                <div>
+                    <label for="client_interface" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Interface">Interface</span>
+                    </label>
+                    <select id="client_interface" name="client_interface" onchange="onNewClientInterfaceChange()"
+                            class="block w-full px-3 py-2 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                        <option value="">wg0 (default)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" data-translate="Picking an interface fills the IP from that interface subnet">
+                        Picking an interface fills the IP from that interface's subnet.
+                    </p>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="client_allocated_ips" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1335,8 +1348,9 @@
                         additional_notes: formData.get('client_additional_notes'),
                         use_server_dns: document.getElementById('use_server_dns').checked,
                         enabled: document.getElementById('enabled').checked,
+                        interface: (document.getElementById('client_interface') || {}).value || '',
                     };
-                    
+
                     if (window.DEBUG) console.log('Client data to send:', clientData);
                     
                     // Validate required fields
@@ -1555,6 +1569,79 @@
             console.error('Error:', message);
             alert('Error: ' + message);
         }
+
+        // -------------------------------------------------------------------
+        //  Multi-interface support for the "New Client" modal.
+        //
+        //  The IP-suggestion endpoint only knows about the default interface's
+        //  subnet, so when a client is placed on wg1 the suggested address
+        //  would still come from wg0's range and the peer would never route.
+        //  We therefore derive the address from the chosen interface's own
+        //  subnet, skipping addresses already taken on that interface.
+        // -------------------------------------------------------------------
+        window.__zdInterfaces = [];
+
+        window.loadNewClientInterfaces = async function () {
+            const sel = document.getElementById('client_interface');
+            if (!sel) return;
+            try {
+                const res = await fetch('{{.basePath}}/api/interfaces');
+                if (!res.ok) return;                       // non-admin or API off: keep the default option
+                const list = await res.json() || [];
+                window.__zdInterfaces = list;
+                if (!list.length) return;
+
+                sel.innerHTML = '';
+                list.forEach(i => {
+                    const opt = document.createElement('option');
+                    opt.value = i.name;
+                    opt.textContent = i.name + (i.description ? ' — ' + i.description : '') + (i.enabled ? '' : ' [disabled]');
+                    sel.appendChild(opt);
+                });
+                sel.value = 'wg0';
+                if (!sel.value) sel.value = list[0].name;
+                onNewClientInterfaceChange();
+            } catch (e) {
+                if (window.DEBUG) console.warn('Cannot load interfaces:', e);
+            }
+        };
+
+        window.onNewClientInterfaceChange = async function () {
+            const sel = document.getElementById('client_interface');
+            const ipField = document.getElementById('client_allocated_ips');
+            if (!sel || !ipField) return;
+
+            const iface = (window.__zdInterfaces || []).find(i => i.name === sel.value);
+            if (!iface || !iface.addresses || !iface.addresses.length) return;
+
+            // "10.67.0.1/24" -> base "10.67.0."
+            const cidr = iface.addresses[0];
+            const m = /^(\d+)\.(\d+)\.(\d+)\.(\d+)\/(\d+)$/.exec(cidr.trim());
+            if (!m) return;
+            const base = `${m[1]}.${m[2]}.${m[3]}.`;
+
+            // Collect addresses already used on this interface.
+            const taken = new Set([`${base}1`]);          // .1 is the server itself
+            (window.clients || []).forEach(c => {
+                const cd = c.Client || c;
+                if ((cd.interface || 'wg0') !== sel.value) return;
+                (cd.allocated_ips || []).forEach(ip => taken.add(String(ip).split('/')[0]));
+            });
+
+            for (let host = 2; host < 255; host++) {
+                const candidate = base + host;
+                if (!taken.has(candidate)) {
+                    ipField.value = candidate + '/32';
+                    return;
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (document.getElementById('client_interface')) {
+                window.loadNewClientInterfaces();
+            }
+        });
     </script>
 
     <!-- Debug function to test API -->
