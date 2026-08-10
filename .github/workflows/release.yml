@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
 
+# Required: creating a release and uploading assets needs write access to
+# repository contents. Newer repositories give GITHUB_TOKEN read-only
+# permissions by default, and the upload step then fails with HTTP 403.
+permissions:
+  contents: write
+
 jobs:
   build-release:
     name: Build Release Assets
@@ -49,7 +55,9 @@ jobs:
           CGO_ENABLED: 0
         run: |
           go mod download
-          go build -ldflags="-s -w -X 'main.appVersion=${APP_VERSION}' -X 'main.buildTime=${BUILD_TIME}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.gitRef=${GIT_REF}'" -o vWireguard main.go
+          # Build the whole package ("."), not just main.go - building a single
+          # file breaks as soon as a second file joins package main.
+          go build -trimpath -ldflags="-s -w -X 'main.appVersion=${APP_VERSION}' -X 'main.buildTime=${BUILD_TIME}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.gitRef=${GIT_REF}'" -o vWireguard .
 
       - name: Create Release Package
         run: |
@@ -81,9 +89,15 @@ jobs:
           tar -czf ../vWireguard-linux-${{ matrix.arch }}.tar.gz *
           cd ..
 
+      - name: Generate checksum
+        run: sha256sum vWireguard-linux-${{ matrix.arch }}.tar.gz > vWireguard-linux-${{ matrix.arch }}.tar.gz.sha256
+
       - name: Upload Release Asset
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          files: vWireguard-linux-${{ matrix.arch }}.tar.gz
+          files: |
+            vWireguard-linux-${{ matrix.arch }}.tar.gz
+            vWireguard-linux-${{ matrix.arch }}.tar.gz.sha256
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
