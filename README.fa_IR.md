@@ -45,26 +45,91 @@
 
 برای نصب سریع می‌توانید اسکریپت `install.sh` را دانلود و اجرا کنید تا آخرین نسخه آماده از گیت‌هاب دریافت و پیکربندی شود.
 
-1. کلون کردن مخزن:
+> **دو نکته که تقریباً همه را موقع بیلد از سورس گیر می‌اندازد:**
+>
+> ۱. **قبل از `go build` حتماً باید `./prepare_assets.sh` را اجرا کنی.** پوشهٔ
+> `assets/` در گیت نادیده گرفته شده (فقط `.gitkeep` کامیت شده) ولی `main.go`
+> آن را با `//go:embed assets/*` داخل باینری جاسازی می‌کند. اگر این مرحله را رد
+> کنی، یا بیلد با خطای `pattern assets/*: no matching files found` می‌شکند، یا
+> باینری‌ای می‌سازی که رابط وبش هیچ CSS/JS ندارد.
+>
+> ۲. **از `apt install golang-go` استفاده نکن.** نسخهٔ Go در مخزن دبیان/اوبونتو
+> قدیمی است (اوبونتو ۲۲.۰۴ نسخهٔ ۱.۱۸ دارد) ولی `go.mod` حداقل **Go 1.21**
+> می‌خواهد و بیلد با `go.mod requires go >= 1.21` شکست می‌خورد.
+
+**۱. بسته‌های سیستمی:**
+```bash
+sudo apt-get update
+sudo apt-get install -y git curl wireguard wireguard-tools
+```
+
+**۲. نصب Go 1.21 یا بالاتر (از go.dev، نه apt):**
+```bash
+GO_VERSION=1.21.13
+# روی سرور ARM به‌جای linux-amd64 بنویس linux-arm64
+curl -fsSLO "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
+echo 'export PATH=$PATH:/usr/local/go/bin' | sudo tee /etc/profile.d/go.sh
+export PATH=$PATH:/usr/local/go/bin
+go version
+```
+
+**۳. نصب Node.js و Yarn (فقط برای ساخت فایل‌های رابط کاربری):**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+sudo npm install -g yarn
+```
+
+**۴. کلون کردن مخزن:**
 ```bash
 git clone https://github.com/MmadF14/vwireguard.git
 cd vwireguard
 ```
 
-2. نصب وابستگی‌ها:
+**۵. ساخت فایل‌های رابط کاربری ← همان مرحله‌ای که فراموش می‌شود:**
+```bash
+chmod +x prepare_assets.sh
+./prepare_assets.sh
+
+# بررسی کن که واقعاً ساخته شده باشد
+ls assets/dist/js assets/dist/css assets/plugins
+```
+
+**۶. ساخت برنامه:**
 ```bash
 go mod download
+go build -trimpath -ldflags "-s -w" -o vwireguard .
 ```
 
-3. ساخت برنامه:
-```bash
-go build
-```
-
-4. اجرای برنامه:
+**۷. اجرای برنامه:**
 ```bash
 ./vwireguard
 ```
+
+> **یادآوری مهم:** فعال کردن سرویس پنل، تانل را فعال نمی‌کند. اگر
+> `systemctl enable wg-quick@wg0` را نزنی، بعد از ریبوت پنل بالا می‌آید ولی
+> `wg show` خالی است و هیچ‌کس وصل نمی‌شود تا وقتی دستی «Apply Config» بزنی.
+
+### بیلد مجدد بعد از تغییر کد
+
+```bash
+git pull
+./prepare_assets.sh          # فقط اگر فایل‌های فرانت‌اند یا وابستگی‌ها عوض شده
+go build -trimpath -o vwireguard .
+sudo systemctl restart vwireguard
+```
+
+### رفع اشکال
+
+| خطا | علت | راه‌حل |
+|---|---|---|
+| `pattern assets/*: no matching files found` | `prepare_assets.sh` اجرا نشده | مرحلهٔ ۵ |
+| رابط وب بدون استایل بالا می‌آید | موقع بیلد `assets/` خالی بوده | مرحلهٔ ۵ و بیلد مجدد |
+| `go.mod requires go >= 1.21` | Go نصب‌شده از apt قدیمی است | مرحلهٔ ۲ |
+| `yarn: command not found` | Node/Yarn نصب نیست | مرحلهٔ ۳ |
+| بعد از ریبوت کسی وصل نمی‌شود | `wg-quick@wg0` فعال نشده | `sudo systemctl enable wg-quick@wg0` |
 
 ## 📋 پیش‌نیازها
 
