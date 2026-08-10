@@ -1003,6 +1003,9 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.AllowedIPs = _client.AllowedIPs
 		client.ExtraAllowedIPs = _client.ExtraAllowedIPs
 		client.Endpoint = _client.Endpoint
+		// Which WireGuard interface this client lives on. Empty means the
+		// default (wg0), which is what every pre-multi-interface record has.
+		client.Interface = strings.TrimSpace(_client.Interface)
 		client.PublicKey = _client.PublicKey
 		client.PresharedKey = _client.PresharedKey
 		client.UpdatedAt = time.Now().UTC()
@@ -1126,7 +1129,7 @@ func SetClientStatus(db store.IStore) echo.HandlerFunc {
 		if status && !isAutomatic {
 			// Validate client before enabling - prevent illegal activation
 			now := time.Now().UTC()
-			
+
 			// Check expiration
 			if !client.Expiration.IsZero() && now.After(client.Expiration) {
 				return c.JSON(http.StatusBadRequest, jsonHTTPResponse{
@@ -1888,11 +1891,11 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		if syncErr != nil {
 			// Check if error is about Interface section (expected when interface config changes)
 			outputStr := string(syncOutput)
-			interfaceConfigChanged := strings.Contains(outputStr, "Address") || 
-				strings.Contains(outputStr, "Interface") || 
+			interfaceConfigChanged := strings.Contains(outputStr, "Address") ||
+				strings.Contains(outputStr, "Interface") ||
 				strings.Contains(outputStr, "ListenPort") ||
 				strings.Contains(outputStr, "PrivateKey")
-			
+
 			if interfaceConfigChanged {
 				log.Infof("Interface configuration changed, service restart required: %s", outputStr)
 			} else {
@@ -1902,14 +1905,14 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			// Restart WireGuard service as a fallback (only if syncconf failed)
 			serviceName := fmt.Sprintf("wg-quick@%s", interfaceName)
 
-				// Try different service names if the first one fails
-				serviceNames := []string{
-					serviceName,
-					"wg-quick@" + interfaceName,
-					"wireguard@" + interfaceName,
-					"wg-quick",
-					"wireguard",
-				}
+			// Try different service names if the first one fails
+			serviceNames := []string{
+				serviceName,
+				"wg-quick@" + interfaceName,
+				"wireguard@" + interfaceName,
+				"wg-quick",
+				"wireguard",
+			}
 
 			var restartSuccess bool
 			var lastError error

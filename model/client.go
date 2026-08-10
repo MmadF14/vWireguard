@@ -31,6 +31,10 @@ type Client struct {
 	FirstConnectedAt time.Time `json:"first_connected_at,omitempty"`
 	Status           string    `json:"status,omitempty"`
 	LastHandshake    time.Time `json:"last_handshake,omitempty"`
+	// Interface is which WireGuard interface (wg0/wg1/...) this client lives on.
+	// Empty means DefaultInterfaceName, so records written before multi-interface
+	// support keep working unchanged.
+	Interface string `json:"interface,omitempty"`
 	// Persistent storage for usage data
 	PersistentUsageData *ClientUsageData `json:"persistent_usage_data,omitempty"`
 }

@@ -18,6 +18,14 @@ type IStore interface {
 	DeleteClient(clientID string) error
 	SaveServerInterface(serverInterface model.ServerInterface) error
 	SaveServerKeyPair(serverKeyPair model.ServerKeypair) error
+
+	// Multi-interface support. GetInterfaces migrates the legacy single-server
+	// record into DefaultInterfaceName the first time it is called, so these
+	// never return an empty list on a working install.
+	GetInterfaces() ([]model.WGInterface, error)
+	GetInterface(name string) (model.WGInterface, error)
+	SaveInterface(iface model.WGInterface) error
+	DeleteInterface(name string) error
 	SaveGlobalSettings(globalSettings model.GlobalSetting) error
 	GetWakeOnLanHosts() ([]model.WakeOnLanHost, error)
 	GetWakeOnLanHost(macAddress string) (*model.WakeOnLanHost, error)

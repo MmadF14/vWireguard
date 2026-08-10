@@ -18,4 +18,4 @@ func NewWriter(w io.Writer) *Writer {
 // OpenReader opens a zip archive for reading
 func OpenReader(filename string) (*zip.ReadCloser, error) {
 	return zip.OpenReader(filename)
-} 
+}

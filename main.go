@@ -294,6 +294,16 @@ func main() {
 	app.POST(util.BasePath+"/api/client/:id/remove", handler.RemoveClient(db), handler.ValidSession, handler.ContentTypeJson)
 	app.PUT(util.BasePath+"/api/client/:id", handler.UpdateClient(db), handler.ValidSession, handler.ContentTypeJson)
 	app.GET(util.BasePath+"/download", handler.DownloadClient(db), handler.ValidSession)
+	// Multi-interface management (wg0 / wg1 / wg2 ...)
+	app.GET(util.BasePath+"/interfaces", handler.InterfacesPage(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
+	app.GET(util.BasePath+"/api/interfaces", handler.GetInterfaces(db), handler.ValidSession, handler.NeedsAdmin)
+	app.GET(util.BasePath+"/api/interfaces/:name", handler.GetInterface(db), handler.ValidSession, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces", handler.SaveInterface(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces/apply-all", handler.ApplyAllInterfaceConfigs(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces/:name/apply", handler.ApplyInterfaceConfig(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces/:name/service/:action", handler.InterfaceService(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces/:name/delete", handler.DeleteInterface(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+
 	app.GET(util.BasePath+"/wg-server", handler.WireGuardServer(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/wg-server/interfaces", handler.WireGuardServerInterfaces(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/wg-server/keypair", handler.WireGuardServerKeyPair(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
@@ -333,6 +343,10 @@ func main() {
 	// Register Admin API routes (require admin token)
 	apiGroup.POST("/admin/create-client", handler.APIAdminCreateClient(db))
 	apiGroup.POST("/admin/update-client", handler.APIAdminUpdateClient(db))
+
+	// Monitoring. Prometheus text by default, ?format=json for anything else.
+	// Auth: VWG_METRICS_TOKEN env var (preferred) or any admin API token.
+	apiGroup.GET("/metrics", handler.APIMetrics(db))
 
 	// Register public routes
 	app.GET(util.BasePath+"/health", handler.Health())

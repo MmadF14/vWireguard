@@ -64,23 +64,23 @@ func (o *JsonDB) Init() error {
 		serverInterface := new(model.ServerInterface)
 		serverInterface.Addresses = util.LookupEnvOrStrings(util.ServerAddressesEnvVar, []string{util.DefaultServerAddress})
 		serverInterface.ListenPort = util.LookupEnvOrInt(util.ServerListenPortEnvVar, util.DefaultServerPort)
-		
+
 		// Get default interface name for NAT masquerading
 		defaultInterface := util.GetDefaultInterfaceName()
-		
+
 		// Set default PostUp and PostDown scripts with NAT masquerading if not provided via env
 		postUp := util.LookupEnvOrString(util.ServerPostUpScriptEnvVar, "")
 		if postUp == "" {
 			// Default PostUp: Enable forwarding and NAT masquerading
 			postUp = fmt.Sprintf("iptables -A FORWARD -i %%i -j ACCEPT; iptables -A FORWARD -o %%i -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE", defaultInterface)
 		}
-		
+
 		postDown := util.LookupEnvOrString(util.ServerPostDownScriptEnvVar, "")
 		if postDown == "" {
 			// Default PostDown: Remove forwarding and NAT masquerading rules
 			postDown = fmt.Sprintf("iptables -D FORWARD -i %%i -j ACCEPT; iptables -D FORWARD -o %%i -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE", defaultInterface)
 		}
-		
+
 		serverInterface.PostUp = postUp
 		serverInterface.PostDown = postDown
 		serverInterface.UpdatedAt = time.Now().UTC()

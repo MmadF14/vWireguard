@@ -1,0 +1,372 @@
+{{define "title"}}
+<span data-translate="Interfaces">Interfaces</span>
+{{end}}
+
+{{define "top_css"}}
+{{end}}
+
+{{define "username"}}
+{{ .username }}
+{{end}}
+
+{{define "page_title"}}
+<span data-translate="Interfaces">Interfaces</span>
+{{end}}
+
+{{define "page_content"}}
+<div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                <span data-translate="WireGuard Interfaces">WireGuard Interfaces</span>
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <span data-translate="Run several tunnels on one node">Run several tunnels on one node — e.g. wg0 for direct users, wg1 for relayed users, wg2 for free users.</span>
+            </p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="applyAll()" class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-dark-600 transition">
+                <i class="fas fa-bolt mr-2"></i><span data-translate="Apply all">Apply all</span>
+            </button>
+            <button onclick="openInterfaceModal()" class="px-4 py-2 rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition shadow">
+                <i class="fas fa-plus mr-2"></i><span data-translate="New interface">New interface</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- List -->
+    <div id="iface-list" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="text-gray-500 dark:text-gray-400 p-8 text-center col-span-full">
+            <i class="fas fa-spinner fa-spin mr-2"></i><span data-translate="Loading...">Loading...</span>
+        </div>
+    </div>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Modal                                                               -->
+<!-- ------------------------------------------------------------------ -->
+<div id="iface-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-dark-700 flex items-center justify-between">
+            <h3 id="iface-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">New interface</h3>
+            <button onclick="closeInterfaceModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <input type="hidden" id="f-original-name">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Name">Name</span> <span class="text-red-500">*</span>
+                    </label>
+                    <input id="f-name" type="text" placeholder="wg1"
+                           class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    <p class="text-xs text-gray-500 mt-1">a-z, 0-9, - and _ · max 15 chars · becomes /etc/wireguard/&lt;name&gt;.conf</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        <span data-translate="Listen port">Listen port</span> <span class="text-red-500">*</span>
+                    </label>
+                    <input id="f-port" type="number" placeholder="51821"
+                           class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    <p class="text-xs text-gray-500 mt-1" data-translate="Must be unique across interfaces">Must be unique across interfaces</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <span data-translate="Addresses">Addresses</span> <span class="text-red-500">*</span>
+                </label>
+                <input id="f-addresses" type="text" placeholder="10.67.0.1/24"
+                       class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                <p class="text-xs text-gray-500 mt-1" data-translate="Comma separated. Use a different subnet per interface.">Comma separated. Use a different subnet per interface.</p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span data-translate="Description">Description</span></label>
+                <input id="f-description" type="text" placeholder="Relayed users via Iran"
+                       class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">MTU</label>
+                    <input id="f-mtu" type="number" placeholder="1420"
+                           class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    <p class="text-xs text-gray-500 mt-1" data-translate="Empty = use global setting">Empty = use global setting</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span data-translate="Endpoint">Endpoint</span></label>
+                    <input id="f-endpoint" type="text" placeholder="relay.example.com:51821"
+                           class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    <p class="text-xs text-gray-500 mt-1" data-translate="What clients on this interface dial">What clients on this interface dial. Empty = global.</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"><span data-translate="DNS servers">DNS servers</span></label>
+                <input id="f-dns" type="text" placeholder="1.1.1.1, 8.8.8.8"
+                       class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+            </div>
+
+            <details class="rounded-xl border border-gray-200 dark:border-dark-600 p-4">
+                <summary class="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span data-translate="Advanced">Advanced</span> — PostUp / PreDown / PostDown / <span data-translate="keys">keys</span>
+                </summary>
+                <div class="mt-4 space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">PostUp</label>
+                        <textarea id="f-postup" rows="2" class="w-full px-3 py-2 text-sm font-mono rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">PreDown</label>
+                        <textarea id="f-predown" rows="2" class="w-full px-3 py-2 text-sm font-mono rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">PostDown</label>
+                        <textarea id="f-postdown" rows="2" class="w-full px-3 py-2 text-sm font-mono rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                            <span data-translate="Private key">Private key</span>
+                        </label>
+                        <input id="f-privatekey" type="text" placeholder="leave empty to generate"
+                               class="w-full px-3 py-2 text-sm font-mono rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    </div>
+                    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input id="f-regen" type="checkbox" class="rounded border-gray-300">
+                        <span data-translate="Regenerate keys (invalidates all client configs on this interface)">Regenerate keys — invalidates every client config on this interface</span>
+                    </label>
+                </div>
+            </details>
+
+            <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <input id="f-enabled" type="checkbox" checked class="rounded border-gray-300">
+                <span data-translate="Enabled">Enabled</span>
+            </label>
+        </div>
+
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-dark-700 flex justify-end gap-2">
+            <button onclick="closeInterfaceModal()" class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-100">
+                <span data-translate="Cancel">Cancel</span>
+            </button>
+            <button onclick="saveInterface()" class="px-4 py-2 rounded-xl bg-primary-600 text-white hover:bg-primary-700">
+                <span data-translate="Save">Save</span>
+            </button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "bottom_js"}}
+<script>
+const BASE = '{{.basePath}}' || '';
+
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+function badge(ok, okText, badText, warn) {
+    const cls = ok
+        ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+        : (warn
+            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+            : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300');
+    return `<span class="px-2 py-0.5 rounded-full text-xs font-medium ${cls}">${esc(ok ? okText : badText)}</span>`;
+}
+
+async function loadInterfaces() {
+    const box = document.getElementById('iface-list');
+    try {
+        const res = await fetch(BASE + '/api/interfaces');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const list = await res.json();
+
+        if (!list || list.length === 0) {
+            box.innerHTML = `<div class="col-span-full p-8 text-center text-gray-500 dark:text-gray-400">
+                No interfaces yet. Click "New interface" to add one.</div>`;
+            return;
+        }
+
+        box.innerHTML = list.map(i => `
+            <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-200 dark:border-dark-700 flex items-center justify-between">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">${esc(i.name)}</h3>
+                            ${badge(i.running, 'running', 'stopped')}
+                            ${badge(i.enabled_at_boot, 'starts at boot', 'NOT at boot', true)}
+                            ${i.enabled ? '' : '<span class="px-2 py-0.5 rounded-full text-xs bg-gray-200 text-gray-700 dark:bg-dark-600 dark:text-gray-300">disabled</span>'}
+                        </div>
+                        ${i.description ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">${esc(i.description)}</p>` : ''}
+                    </div>
+                </div>
+
+                <div class="px-5 py-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div class="text-gray-500 dark:text-gray-400">Listen port</div>
+                    <div class="text-gray-900 dark:text-white font-mono">${esc(i.listen_port)}</div>
+
+                    <div class="text-gray-500 dark:text-gray-400">Addresses</div>
+                    <div class="text-gray-900 dark:text-white font-mono break-all">${esc((i.addresses || []).join(', '))}</div>
+
+                    <div class="text-gray-500 dark:text-gray-400">Clients</div>
+                    <div class="text-gray-900 dark:text-white">${esc(i.client_count)} <span class="text-gray-400">(${esc(i.peers_up)} connected)</span></div>
+
+                    ${i.mtu ? `<div class="text-gray-500 dark:text-gray-400">MTU</div><div class="text-gray-900 dark:text-white font-mono">${esc(i.mtu)}</div>` : ''}
+                    ${i.endpoint ? `<div class="text-gray-500 dark:text-gray-400">Endpoint</div><div class="text-gray-900 dark:text-white font-mono break-all">${esc(i.endpoint)}</div>` : ''}
+
+                    <div class="text-gray-500 dark:text-gray-400">Config</div>
+                    <div class="font-mono text-xs break-all ${i.config_exists ? 'text-gray-900 dark:text-white' : 'text-amber-600 dark:text-amber-400'}">
+                        ${esc(i.config_path)} ${i.config_exists ? '' : '(not written yet)'}
+                    </div>
+
+                    <div class="text-gray-500 dark:text-gray-400">Public key</div>
+                    <div class="text-gray-900 dark:text-white font-mono text-xs break-all">${esc(i.public_key)}</div>
+                </div>
+
+                <div class="px-5 py-3 bg-gray-50 dark:bg-dark-900/40 flex flex-wrap gap-2">
+                    <button onclick="applyOne('${esc(i.name)}')" class="px-3 py-1.5 text-sm rounded-lg bg-primary-600 text-white hover:bg-primary-700">
+                        <i class="fas fa-bolt mr-1"></i>Apply
+                    </button>
+                    <button onclick="svc('${esc(i.name)}','restart')" class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">Restart</button>
+                    <button onclick="svc('${esc(i.name)}','${i.running ? 'stop' : 'start'}')" class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">${i.running ? 'Stop' : 'Start'}</button>
+                    <button onclick="svc('${esc(i.name)}','${i.enabled_at_boot ? 'disable' : 'enable'}')" class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">
+                        ${i.enabled_at_boot ? 'Disable at boot' : 'Enable at boot'}
+                    </button>
+                    <button onclick='editInterface(${JSON.stringify(i).replace(/'/g, "&#39;")})' class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">Edit</button>
+                    <button onclick="removeInterface('${esc(i.name)}')" class="px-3 py-1.5 text-sm rounded-lg bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Delete</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        box.innerHTML = `<div class="col-span-full p-8 text-center text-red-600">Could not load interfaces: ${esc(e.message)}</div>`;
+    }
+}
+
+function openInterfaceModal() {
+    document.getElementById('iface-modal-title').textContent = 'New interface';
+    document.getElementById('f-original-name').value = '';
+    ['f-name','f-port','f-addresses','f-description','f-mtu','f-endpoint','f-dns','f-postup','f-predown','f-postdown','f-privatekey']
+        .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-enabled').checked = true;
+    document.getElementById('f-regen').checked = false;
+    document.getElementById('f-name').readOnly = false;
+    const m = document.getElementById('iface-modal');
+    m.classList.remove('hidden'); m.classList.add('flex');
+}
+
+function closeInterfaceModal() {
+    const m = document.getElementById('iface-modal');
+    m.classList.add('hidden'); m.classList.remove('flex');
+}
+
+function editInterface(i) {
+    openInterfaceModal();
+    document.getElementById('iface-modal-title').textContent = 'Edit ' + i.name;
+    document.getElementById('f-original-name').value = i.name;
+    document.getElementById('f-name').value = i.name;
+    document.getElementById('f-name').readOnly = true;   // renaming would orphan the config file
+    document.getElementById('f-port').value = i.listen_port || '';
+    document.getElementById('f-addresses').value = (i.addresses || []).join(', ');
+    document.getElementById('f-description').value = i.description || '';
+    document.getElementById('f-mtu').value = i.mtu || '';
+    document.getElementById('f-endpoint').value = i.endpoint || '';
+    document.getElementById('f-dns').value = (i.dns_servers || []).join(', ');
+    document.getElementById('f-postup').value = i.post_up || '';
+    document.getElementById('f-predown').value = i.pre_down || '';
+    document.getElementById('f-postdown').value = i.post_down || '';
+    document.getElementById('f-enabled').checked = !!i.enabled;
+}
+
+function splitList(v) {
+    return v.split(',').map(s => s.trim()).filter(Boolean);
+}
+
+async function saveInterface() {
+    const payload = {
+        name:        document.getElementById('f-name').value.trim(),
+        description: document.getElementById('f-description').value.trim(),
+        enabled:     document.getElementById('f-enabled').checked,
+        addresses:   splitList(document.getElementById('f-addresses').value),
+        listen_port: parseInt(document.getElementById('f-port').value, 10) || 0,
+        mtu:         parseInt(document.getElementById('f-mtu').value, 10) || 0,
+        post_up:     document.getElementById('f-postup').value,
+        pre_down:    document.getElementById('f-predown').value,
+        post_down:   document.getElementById('f-postdown').value,
+        endpoint:    document.getElementById('f-endpoint').value.trim(),
+        dns_servers: splitList(document.getElementById('f-dns').value),
+        private_key: document.getElementById('f-privatekey').value.trim(),
+        regenerate_keys: document.getElementById('f-regen').checked
+    };
+
+    if (!payload.name)            return notify(false, 'Name is required');
+    if (!payload.listen_port)     return notify(false, 'Listen port is required');
+    if (!payload.addresses.length) return notify(false, 'At least one address is required');
+
+    await post(BASE + '/api/interfaces', payload, () => {
+        closeInterfaceModal();
+        loadInterfaces();
+    });
+}
+
+async function removeInterface(name) {
+    if (!confirm(`Delete interface "${name}"?\n\nThe config file is left on disk; clients must be moved off it first.`)) return;
+    await post(BASE + `/api/interfaces/${encodeURIComponent(name)}/delete`, {}, loadInterfaces);
+}
+
+async function applyOne(name) {
+    await post(BASE + `/api/interfaces/${encodeURIComponent(name)}/apply`, {}, loadInterfaces);
+}
+
+async function applyAll() {
+    await post(BASE + '/api/interfaces/apply-all', {}, loadInterfaces);
+}
+
+async function svc(name, action) {
+    await post(BASE + `/api/interfaces/${encodeURIComponent(name)}/service/${action}`, {}, loadInterfaces);
+}
+
+async function post(url, body, onOk) {
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body || {})
+        });
+        const data = await res.json().catch(() => ({}));
+        notify(res.ok && data.success !== false, data.message || (res.ok ? 'Done' : 'Request failed'));
+        if (res.ok && data.success !== false && onOk) onOk();
+    } catch (e) {
+        notify(false, e.message);
+    }
+}
+
+function notify(ok, msg) {
+    if (typeof toastr !== 'undefined') {
+        ok ? toastr.success(msg) : toastr.error(msg);
+        return;
+    }
+    let box = document.getElementById('toast-container');
+    if (!box) {
+        box = document.createElement('div');
+        box.id = 'toast-container';
+        box.className = 'fixed top-4 right-4 z-[60] space-y-2';
+        document.body.appendChild(box);
+    }
+    const el = document.createElement('div');
+    el.className = 'px-4 py-3 rounded-xl shadow-lg text-sm text-white ' + (ok ? 'bg-green-600' : 'bg-red-600');
+    el.textContent = msg;
+    box.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+}
+
+document.addEventListener('DOMContentLoaded', loadInterfaces);
+</script>
+{{end}}

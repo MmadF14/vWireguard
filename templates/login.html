@@ -532,20 +532,57 @@
                 });
             });
             
-            // Focus management
+            // Focus management.
+            //
+            // The previous version advanced focus on Enter for every input whose
+            // index was < inputs.length - 1. Because the "Remember me" CHECKBOX is
+            // the last element in that list, pressing Enter in the password field
+            // (index 1 of 3) just moved focus onto the checkbox, and Enter on a
+            // checkbox does not submit a form - so Enter behaved exactly like Tab
+            // and the form could never be submitted from the keyboard.
+            //
+            // Now only the text-entry fields take part in Enter-to-advance, and
+            // Enter on the LAST one submits instead of moving focus.
             const inputs = form.querySelectorAll('input');
-            inputs.forEach((input, index) => {
+            const textInputs = Array.from(inputs).filter(
+                el => el.type !== 'checkbox' && el.type !== 'radio' && el.type !== 'hidden'
+            );
+
+            function submitForm() {
+                if (submitButton.disabled) return;   // already in flight
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();            // fires the 'submit' handler above
+                } else {
+                    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+            }
+
+            textInputs.forEach((input, index) => {
                 input.addEventListener('keydown', function(e) {
-                    if (e.key === 'Enter' && index < inputs.length - 1) {
-                        e.preventDefault();
-                        inputs[index + 1].focus();
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    const next = textInputs[index + 1];
+                    // Advance only if the next field is still empty; otherwise the
+                    // user has filled everything in and means "log me in".
+                    if (next && !next.value.trim()) {
+                        next.focus();
+                    } else {
+                        submitForm();
                     }
                 });
             });
-            
-            // Auto-focus first input
-            if (inputs.length > 0) {
-                inputs[0].focus();
+
+            // Enter on the checkbox (or anywhere else in the form) should submit too.
+            inputs.forEach(input => {
+                if (textInputs.includes(input)) return;
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') { e.preventDefault(); submitForm(); }
+                });
+            });
+
+            // Auto-focus first text input
+            if (textInputs.length > 0) {
+                textInputs[0].focus();
             }
             
             // Add smooth scroll to page

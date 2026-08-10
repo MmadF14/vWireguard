@@ -331,7 +331,24 @@
                         </label>
                     </div>
                 </div>
-                
+
+                <!-- WireGuard interface -->
+                <div>
+                    <label for="edit_client_interface" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <i class="fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                        <span data-translate="Interface">Interface</span>
+                    </label>
+                    <select id="edit_client_interface"
+                            name="edit_client_interface"
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500">
+                        <option value="">wg0 (default)</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                       data-translate="Which tunnel this client connects through">
+                        Which tunnel this client connects through. Apply that interface afterwards for the change to take effect.
+                    </p>
+                </div>
+
                 <!-- Notes -->
                 <div>
                     <label for="edit_client_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -719,6 +736,44 @@ window.applyConfig = function() {
     );
 };
 
+// Fill the interface dropdown from /api/interfaces and preselect `selected`.
+// Falls back to a single wg0 entry if the list cannot be fetched, so editing a
+// client never breaks just because the interfaces API is unavailable.
+window.loadInterfaceOptions = async function(selected) {
+    const sel = document.getElementById('edit_client_interface');
+    if (!sel) return;
+
+    const base = '{{.basePath}}' || '';
+    let list = [];
+    try {
+        const res = await fetch(base + '/api/interfaces');
+        if (res.ok) list = await res.json() || [];
+    } catch (e) {
+        if (window.DEBUG) console.warn('Cannot load interfaces:', e);
+    }
+
+    sel.innerHTML = '';
+    if (!list.length) {
+        sel.innerHTML = '<option value="">wg0 (default)</option>';
+        sel.value = '';
+        return;
+    }
+
+    list.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.name;
+        let label = i.name;
+        if (i.description) label += ' — ' + i.description;
+        if (!i.enabled) label += ' [disabled]';
+        opt.textContent = label;
+        sel.appendChild(opt);
+    });
+
+    // An empty stored value means the default interface.
+    sel.value = selected || 'wg0';
+    if (!sel.value && list.length) sel.value = list[0].name;
+};
+
 // Make functions globally available
 window.editClient = function(clientId) {
     if (window.DEBUG) console.log('editClient called with', clientId); // Debug log
@@ -737,8 +792,9 @@ window.editClient = function(clientId) {
     }
     
     const clientData = client.Client || client;
-    
+
     // Fill the edit form
+
     document.getElementById('edit_client_id').value = clientData.id;
     document.getElementById('edit_client_name').value = clientData.name;
     document.getElementById('edit_client_email').value = clientData.email || '';
@@ -756,6 +812,8 @@ window.editClient = function(clientId) {
     document.getElementById('edit_client_use_server_dns').checked = clientData.use_server_dns;
     document.getElementById('edit_client_telegram_userid').value = clientData.telegram_userid || '';
     document.getElementById('edit_client_endpoint').value = clientData.endpoint || '';
+    // Populate the interface list, then select this client's interface.
+    loadInterfaceOptions(clientData.interface || '');
     const pubKeyField = document.getElementById('edit_client_public_key');
     if (pubKeyField) pubKeyField.value = clientData.public_key || '';
     const preKeyField = document.getElementById('edit_client_preshared_key');
@@ -929,6 +987,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
                 telegram_userid: document.getElementById('edit_client_telegram_userid').value,
                 endpoint: document.getElementById('edit_client_endpoint').value,
+                interface: (document.getElementById('edit_client_interface') || {}).value || '',
                 allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
             };
 
@@ -996,6 +1055,7 @@ window.saveEditClient = function() {
                 use_server_dns: document.getElementById('edit_client_use_server_dns').checked,
                 telegram_userid: document.getElementById('edit_client_telegram_userid').value,
                 endpoint: document.getElementById('edit_client_endpoint').value,
+                interface: (document.getElementById('edit_client_interface') || {}).value || '',
                 allocated_ips: document.getElementById('edit_client_allocated_ips').value.split(',').filter(ip => ip.trim()),
             };
 

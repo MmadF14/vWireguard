@@ -235,13 +235,19 @@ func APILogin(db store.IStore) echo.HandlerFunc {
 		// Good login: clear this IP's failure counter.
 		loginNoteSuccess(ip)
 
-		// Generate API token
+		// Issue a NEW, INDEPENDENT token. This used to overwrite user.APIToken,
+		// which invalidated every other logged-in device for the same account
+		// (the site, the Windows client and a phone kept knocking each other
+		// out). AddAPIToken appends instead, prunes expired entries and caps the
+		// list, so each device keeps its own session with its own expiry.
 		token := xid.New().String()
 		expireAt := time.Now().UTC().Add(30 * 24 * time.Hour) // 30 days
 
-		// Update user with token
-		user.APIToken = token
-		user.TokenExpire = expireAt
+		label := c.Request().UserAgent()
+		if len(label) > 80 {
+			label = label[:80]
+		}
+		user.AddAPIToken(token, expireAt, label)
 		if err := db.SaveUser(user); err != nil {
 			log.Error("Cannot save user token: ", err)
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -317,10 +323,12 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		// ValidateAPIToken checks every token this user holds (and the legacy
+		// single-token field), including each one's own expiry.
 		var user *model.User
-		for _, u := range users {
-			if u.APIToken == req.Token {
-				user = &u
+		for i := range users {
+			if users[i].ValidateAPIToken(req.Token) {
+				user = &users[i]
 				break
 			}
 		}
@@ -328,15 +336,7 @@ func APIConnect(db store.IStore) echo.HandlerFunc {
 		if user == nil {
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"status":  "error",
-				"message": "Invalid token",
-			})
-		}
-
-		// Check token expiration
-		if !user.TokenExpire.IsZero() && time.Now().UTC().After(user.TokenExpire) {
-			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
-				"status":  "error",
-				"message": "Token expired",
+				"message": "Invalid or expired token",
 			})
 		}
 
@@ -455,9 +455,9 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 		}
 
 		var user *model.User
-		for _, u := range users {
-			if u.APIToken == req.Token {
-				user = &u
+		for i := range users {
+			if users[i].ValidateAPIToken(req.Token) {
+				user = &users[i]
 				break
 			}
 		}
@@ -465,7 +465,7 @@ func APIStatus(db store.IStore) echo.HandlerFunc {
 		if user == nil {
 			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
 				"status":  "error",
-				"message": "Invalid token",
+				"message": "Invalid or expired token",
 			})
 		}
 
@@ -698,20 +698,15 @@ func verifyAdminToken(db store.IStore, token string) (*model.User, error) {
 	}
 
 	var user *model.User
-	for _, u := range users {
-		if u.APIToken == token {
-			user = &u
+	for i := range users {
+		if users[i].ValidateAPIToken(token) {
+			user = &users[i]
 			break
 		}
 	}
 
 	if user == nil {
-		return nil, fmt.Errorf("invalid token")
-	}
-
-	// Check token expiration
-	if !user.TokenExpire.IsZero() && time.Now().UTC().After(user.TokenExpire) {
-		return nil, fmt.Errorf("token expired")
+		return nil, fmt.Errorf("invalid or expired token")
 	}
 
 	// Check if user is admin
