@@ -30,9 +30,16 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
-log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}"; }
-error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}"; exit 1; }
-warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}"; }
+# All three MUST print to stderr (>&2), never stdout. Several functions below
+# are called as `x=$(some_func ...)`, and some_func itself calls log/warn to
+# report progress. If those went to stdout, their text gets glued onto the
+# function's real return value inside the $(...) capture - e.g.
+# download_release() used to return "\033[0;32m[..] Downloading ...\033[0m\n/tmp/foo.tar.gz"
+# instead of just "/tmp/foo.tar.gz", and the subsequent `tar -xzf "$archive"`
+# failed with a confusing "Cannot open" error that had nothing to do with tar.
+log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}" >&2; }
+error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}" >&2; exit 1; }
+warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}" >&2; }
 
 # Check root access
 if [ "$EUID" -ne 0 ]; then 

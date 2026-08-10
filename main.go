@@ -358,8 +358,17 @@ func main() {
 	app.GET(util.BasePath+"/api/backup", handler.BackupSystem(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/restore", handler.RestoreSystem(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 
-	// Start the server
-	app.Start(util.BindAddress)
+	// Start the server.
+	//
+	// The return value used to be discarded here. If binding the address
+	// failed for any reason (port already in use, no permission, IPv6
+	// disabled, ...), Echo just returned an error, nothing printed it, and
+	// main() fell through to a normal, silent exit(0) - systemd then saw a
+	// "successful" exit and restarted the service in an infinite loop with
+	// no clue in the logs why it never stayed up. Log the real reason now.
+	if err := app.Start(util.BindAddress); err != nil {
+		log.Fatalf("vWireguard could not start on %s: %v", util.BindAddress, err)
+	}
 }
 
 func initServerConfig(db store.IStore, tmplDir fs.FS) {
