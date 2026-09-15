@@ -119,9 +119,10 @@ type APIStatusResponse struct {
 
 // AdminCreateClientRequest represents the request for admin create client endpoint
 type AdminCreateClientRequest struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Token    string `json:"token"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Token     string `json:"token"`
+	Unlimited bool   `json:"unlimited"`
 }
 
 // AdminCreateClientResponse represents the response for admin create client endpoint
@@ -136,6 +137,8 @@ type AdminUpdateClientRequest struct {
 	AddDays    int    `json:"add_days"`
 	ResetQuota bool   `json:"reset_quota"`
 	Token      string `json:"token"`
+	Enable     *bool  `json:"enable"`
+	Unlimited  *bool  `json:"unlimited"`
 }
 
 // AdminUpdateClientResponse represents the response for admin update client endpoint
@@ -152,11 +155,11 @@ type AppUserInfoRequest struct {
 
 // AppUserInfoResponse represents the response for the mobile app user info endpoint
 type AppUserInfoResponse struct {
-	Status         string    `json:"status"`
-	PeerFound      bool      `json:"peer_found"`
-	IsExpired      bool      `json:"is_expired"`
-	IsOverQuota    bool      `json:"is_over_quota"`
-	QuotaRemaining int64     `json:"quota_remaining"`
+	Status         string `json:"status"`
+	PeerFound      bool   `json:"peer_found"`
+	IsExpired      bool   `json:"is_expired"`
+	IsOverQuota    bool   `json:"is_over_quota"`
+	QuotaRemaining int64  `json:"quota_remaining"`
 	// QuotaTotal / QuotaUsed let the site sync real traffic usage. The site's
 	// fetchUsageFromNode() already reads both keys and ignores them when absent,
 	// so populating them here starts usage sync with no site-side change. Without
@@ -850,7 +853,8 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Create client with 1-day trial
+		// The site owns billing and revocation for site-metered clients. Do not
+		// create a short local expiry that can reject a funded wallet user.
 		now := time.Now().UTC()
 		client := model.Client{
 			ID:           clientID,
@@ -866,8 +870,10 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			CreatedBy:    "admin-api",
 			CreatedAt:    now,
 			UpdatedAt:    now,
-			Expiration:   now.Add(24 * time.Hour), // 1 Day trial
-			Quota:        0,                       // Unlimited
+			Quota:        0, // Unlimited
+		}
+		if !req.Unlimited {
+			client.Expiration = now.Add(24 * time.Hour) // legacy panel trial
 		}
 
 		// Save client
@@ -900,7 +906,7 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 		// Generate WireGuard config
 		config := util.BuildClientConfig(client, server, globalSettings)
 
-		log.Infof("Admin created WireGuard client: %s (ID: %s, Trial: 1 day)", req.Username, clientID)
+		log.Infof("Admin created WireGuard client: %s (ID: %s, Unlimited: %v)", req.Username, clientID, req.Unlimited)
 		return c.JSON(http.StatusOK, AdminCreateClientResponse{
 			Status: "success",
 			Config: config,
@@ -964,6 +970,15 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 		now := time.Now().UTC()
 		wasEnabled := client.Enabled
 
+		// A site-metered peer has no panel-side expiry or quota. The calling site
+		// disables it as soon as its own authorisation says the session is over.
+		if req.Unlimited != nil && *req.Unlimited {
+			client.Expiration = time.Time{}
+			client.ExpirationDays = 0
+			client.Quota = 0
+			client.UsedQuota = 0
+		}
+
 		// Update expiration if AddDays > 0
 		if req.AddDays > 0 {
 			// Determine base time: if expired, use now; otherwise use current expiration
@@ -979,14 +994,12 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			client.UsedQuota = 0
 		}
 
-		// Smart Renewal: Auto-enable if client becomes valid after update
-		// Check if client is now valid (not expired and not over quota)
-		if util.IsClientValid(*client) {
-			// If client is valid after renewal, enable it
-			client.Enabled = true
+		// Explicit enable/disable is required for site-side metering. Preserve the
+		// former smart-renewal behaviour for older callers that omit this field.
+		if req.Enable != nil {
+			client.Enabled = *req.Enable && util.IsClientValid(*client)
 		} else {
-			// Client is still not valid (shouldn't happen after renewal, but handle it)
-			client.Enabled = false
+			client.Enabled = util.IsClientValid(*client)
 		}
 		client.UpdatedAt = now
 
@@ -1024,7 +1037,7 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 			}
 		}
 
-		log.Infof("Admin updated WireGuard client: %s (ID: %s, AddDays: %d, ResetQuota: %v)", req.Username, client.ID, req.AddDays, req.ResetQuota)
+		log.Infof("Admin updated WireGuard client: %s (ID: %s, AddDays: %d, ResetQuota: %v, Unlimited: %v, Enable: %v)", req.Username, client.ID, req.AddDays, req.ResetQuota, req.Unlimited != nil && *req.Unlimited, req.Enable)
 		return c.JSON(http.StatusOK, AdminUpdateClientResponse{
 			Status:        "success",
 			NewExpiration: client.Expiration,
