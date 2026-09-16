@@ -972,11 +972,18 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 
 		// A site-metered peer has no panel-side expiry or quota. The calling site
 		// disables it as soon as its own authorisation says the session is over.
+		//
+		// Deliberately does NOT touch UsedQuota. Quota is a limit; UsedQuota is a
+		// measurement, and clearing the measurement to lift the limit destroys the
+		// only record of what the peer actually transferred. The site sends
+		// unlimited=true on every enable - once per config fetch and once per
+		// session start - so zeroing here reset every user's traffic counter at
+		// the start of each boost, which is why usage sync always read zero.
+		// ResetQuota remains the explicit way to clear it on purpose.
 		if req.Unlimited != nil && *req.Unlimited {
 			client.Expiration = time.Time{}
 			client.ExpirationDays = 0
 			client.Quota = 0
-			client.UsedQuota = 0
 		}
 
 		// Update expiration if AddDays > 0
