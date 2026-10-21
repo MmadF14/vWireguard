@@ -33,11 +33,19 @@ bash <(curl -Ls https://raw.githubusercontent.com/MmadF14/vwireguard/master/inst
 - Internet connection
 
 The installer will:
+- Install WireGuard, iptables, iproute2, sudo and the other required packages (Debian/Ubuntu, RHEL-family)
+- Enable IP forwarding permanently and start `wg-quick@wg0` at boot
 - Detect your system architecture
 - Download the latest release from GitHub
 - Install to `/usr/local/vwireguard`
 - Create and enable systemd service
 - Install management CLI (`vwg` command)
+
+To also install [AmneziaWG](#amneziawg-dpi-resistant-interfaces) (Ubuntu only), add `--amneziawg`:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/MmadF14/vWireguard/master/install.sh) --amneziawg
+```
 
 ### Manual Installation (Build from Source)
 
