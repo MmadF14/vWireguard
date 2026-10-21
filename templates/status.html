@@ -1,0 +1,85 @@
+{{define "title"}}
+Connected Peers
+{{end}}
+
+{{define "top_css"}}
+{{end}}
+
+{{define "username"}}
+{{ .username }}
+{{end}}
+
+{{define "page_title"}}
+Connected Peers
+{{end}}
+
+{{define "page_content"}}
+<script>
+  function bytesToHumanReadable(temporal) {
+    const units = [" ", " K", " M", " G", " T", " P", " E", " Z", " Y"]
+    let pow = 0
+
+    while (temporal > 1024) {
+      temporal /= 1024
+      pow ++
+      if (pow == units.length-1) break
+    }
+
+    return parseFloat(temporal.toFixed(2)) + units[pow]+"B"
+  }
+</script>
+<section class="content">
+    <div class="mx-auto px-4">
+        {{ if .error }}
+        <div class="mb-4 px-4 py-3 text-yellow-800 bg-yellow-50 rounded-xl border border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-200" role="alert">{{.error}}</div>
+        {{ end }}
+        {{ range $dev := .devices }}
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 mb-8">
+            <div class="px-6 py-4 bg-gradient-to-r from-primary-500 to-primary-600 rounded-t-2xl">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2"></i>
+                    <span>Device: {{ $dev.Name }}</span>
+                </h3>
+            </div>
+            <div class="p-6 overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-dark-600 text-sm text-left rtl:text-right">
+                    <caption class="sr-only">List of connected peers for device {{ $dev.Name }}</caption>
+                    <thead class="bg-gray-50 dark:bg-dark-700">
+                        <tr>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">#</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Name</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Email</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Allocated IPs</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Endpoint</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Public Key</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Received</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Transmitted</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Connected (Approximation)</th>
+                            <th scope="col" class="px-4 py-2 font-semibold text-gray-600 dark:text-gray-300">Last Handshake</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-dark-700">
+                    {{ range $idx, $peer := $dev.Peers }}
+                    <tr {{ if $peer.Connected }}class="bg-green-50 dark:bg-green-900/20"{{ end }}>
+                        <th scope="row" class="px-4 py-2 font-medium text-gray-700 dark:text-gray-200">{{ $idx }}</th>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.Name }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.Email }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.AllocatedIP }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.Endpoint }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.PublicKey }}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300" title="{{ $peer.ReceivedBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.ReceivedBytes }}))</script></td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300" title="{{ $peer.TransmitBytes }} Bytes"><script>document.write(bytesToHumanReadable({{ $peer.TransmitBytes }}))</script></td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ if $peer.Connected }}✓{{end}}</td>
+                        <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $peer.LastHandshakeTime.Format "2006-01-02 15:04:05 MST" }}</td>
+                    </tr>
+                    {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+</section>
+{{end}}
+{{define "bottom_js"}}
+{{end}}

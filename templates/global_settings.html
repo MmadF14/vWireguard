@@ -1,0 +1,749 @@
+{{define "title"}}
+<span data-translate="Global Settings">Global Settings</span>
+{{end}}
+
+{{define "top_css"}}
+{{end}}
+
+{{define "username"}}
+{{ .username }}
+{{end}}
+
+{{define "page_title"}}
+<span data-translate="Global Settings">Global Settings</span>
+{{end}}
+
+{{define "page_content"}}
+<div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- WireGuard Global Settings Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden">
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fas fa-cog mr-3 rtl:mr-0 rtl:ml-3"></i>
+                    <span data-translate="Wireguard Global Settings">Wireguard Global Settings</span>
+                </h3>
+            </div>
+            
+            <!-- Card Body -->
+            <div class="p-6">
+                <form id="frm_global_settings" name="frm_global_settings" data-custom-submit="true" class="space-y-6">
+                    <!-- Endpoint Address -->
+                    <div class="space-y-2">
+                        <label for="endpoint_address" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-globe mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Endpoint Address">Endpoint Address</span>
+                        </label>
+                        <div class="flex space-x-2 rtl:space-x-reverse">
+                            <input type="text" 
+                                   id="endpoint_address" 
+                                   name="endpoint_address"
+                                   value="{{ .globalSettings.EndpointAddress }}"
+                                   placeholder="Enter endpoint address"
+                                   class="flex-1 px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                            <button type="button" 
+                                    onclick="openSuggestionModal()"
+                                    class="inline-flex items-center px-4 py-3 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                                <i class="fas fa-magic mr-2 rtl:mr-0 rtl:ml-2"></i>
+                                <span data-translate="Suggest">Suggest</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Relay/Tunnel Endpoint -->
+                    <div class="space-y-2">
+                        <label for="relay_endpoint" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-network-wired mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Relay/Tunnel Endpoint (Optional)">Relay/Tunnel Endpoint (Optional)</span>
+                        </label>
+                        <input type="text" 
+                               id="relay_endpoint" 
+                               name="relay_endpoint"
+                               value="{{ .globalSettings.RelayEndpoint }}"
+                               placeholder="Enter relay endpoint (e.g., Iran server IP)"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <span data-translate="If set, clients will connect through this relay server but use the main server's public key">If set, clients will connect through this relay server but use the main server's public key.</span>
+                        </p>
+                    </div>
+
+                    <!-- DNS Servers -->
+                    <div class="space-y-2">
+                        <label for="dns_servers" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-dns mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="DNS Servers">DNS Servers</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="dns_servers" 
+                                   name="dns_servers"
+                                   placeholder="Enter DNS servers (e.g., 8.8.8.8, 1.1.1.1)"
+                                   class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                            <div id="dns-tags" class="flex flex-wrap gap-2 mt-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- MTU -->
+                    <div class="space-y-2">
+                        <label for="mtu" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-ethernet mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="MTU">MTU</span>
+                        </label>
+                        <input type="text" 
+                               id="mtu" 
+                               name="mtu"
+                               value="{{if .globalSettings.MTU}}{{ .globalSettings.MTU }}{{end}}"
+                               placeholder="1450"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <div id="mtu-error" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
+                    </div>
+
+                    <!-- Persistent Keepalive -->
+                    <div class="space-y-2">
+                        <label for="persistent_keepalive" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-heartbeat mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Persistent Keepalive">Persistent Keepalive</span>
+                        </label>
+                        <input type="text" 
+                               id="persistent_keepalive" 
+                               name="persistent_keepalive"
+                               value="{{if .globalSettings.PersistentKeepalive }}{{ .globalSettings.PersistentKeepalive }}{{end}}"
+                               placeholder="25"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <div id="persistent_keepalive-error" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
+                    </div>
+
+                    <!-- Firewall Mark -->
+                    <div class="space-y-2">
+                        <label for="firewall_mark" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-shield-alt mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Firewall Mark">Firewall Mark</span>
+                        </label>
+                        <input type="text" 
+                               id="firewall_mark" 
+                               name="firewall_mark"
+                               value="{{ .globalSettings.FirewallMark }}"
+                               placeholder="0xca6c"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+
+                    <!-- Table -->
+                    <div class="space-y-2">
+                        <label for="table" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-table mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Table">Table</span>
+                        </label>
+                        <input type="text" 
+                               id="table" 
+                               name="table"
+                               value="{{ .globalSettings.Table }}"
+                               placeholder="auto"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                    </div>
+
+                    <!-- WireGuard Config File Path -->
+                    <div class="space-y-2">
+                        <label for="config_file_path" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-file-code mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Wireguard Config File Path">Wireguard Config File Path</span>
+                        </label>
+                        <input type="text" 
+                               id="config_file_path" 
+                               name="config_file_path"
+                               value="{{ .globalSettings.ConfigFilePath }}"
+                               placeholder="/etc/wireguard/wg0.conf"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                        <div id="config_file_path-error" class="text-sm text-red-600 dark:text-red-400 hidden"></div>
+                    </div>
+
+                    <!-- App Secret Token -->
+                    <div class="space-y-2">
+                        <label for="app_secret_token" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-key mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="App Secret Token">App Secret Token</span>
+                        </label>
+                        <div class="flex space-x-2 rtl:space-x-reverse">
+                            <input type="text"
+                                   id="app_secret_token"
+                                   name="app_secret_token"
+                                   value="{{ .globalSettings.AppSecretToken }}"
+                                   placeholder="Enter or generate a secure secret"
+                                   class="flex-1 px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
+                            <button type="button"
+                                    onclick="generateAppSecret()"
+                                    class="inline-flex items-center px-4 py-3 border border-gray-300 dark:border-dark-600 text-sm font-medium rounded-xl text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200">
+                                <i class="fas fa-random mr-2 rtl:mr-0 rtl:ml-2"></i>
+                                <span data-translate="Generate">Generate</span>
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <span data-translate="The app secret secures API requests from the companion app.">The app secret secures API requests from the companion app.</span>
+                        </p>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-6 border-t border-gray-200 dark:border-dark-700">
+                        <button type="submit" 
+                                class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="Save">Save</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Display Settings Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden">
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-secondary-500 to-secondary-600 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fas fa-display mr-3 rtl:mr-0 rtl:ml-3"></i>
+                    <span data-translate="Display Settings">Display Settings</span>
+                </h3>
+            </div>
+            
+            <!-- Card Body -->
+            <div class="p-6">
+                <form id="frm_display_settings" name="frm_display_settings" data-custom-submit="true" class="space-y-6">
+                    <!-- Timezone -->
+                    <div class="space-y-2">
+                        <label for="timezone" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-clock mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Timezone">Timezone</span>
+                        </label>
+                        <select id="timezone" 
+                                name="timezone"
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                            <option value="Asia/Tehran" {{if eq .globalSettings.Timezone "Asia/Tehran"}}selected{{end}}>Asia/Tehran (UTC+3:30)</option>
+                            <option value="America/New_York" {{if eq .globalSettings.Timezone "America/New_York"}}selected{{end}}>America/New_York (UTC-5)</option>
+                            <option value="Europe/London" {{if eq .globalSettings.Timezone "Europe/London"}}selected{{end}}>Europe/London (UTC+0)</option>
+                            <option value="Europe/Berlin" {{if eq .globalSettings.Timezone "Europe/Berlin"}}selected{{end}}>Europe/Berlin (UTC+1)</option>
+                            <option value="Asia/Tokyo" {{if eq .globalSettings.Timezone "Asia/Tokyo"}}selected{{end}}>Asia/Tokyo (UTC+9)</option>
+                            <option value="Australia/Sydney" {{if eq .globalSettings.Timezone "Australia/Sydney"}}selected{{end}}>Australia/Sydney (UTC+10)</option>
+                            <option value="UTC" {{if eq .globalSettings.Timezone "UTC"}}selected{{end}}>UTC (UTC+0)</option>
+                        </select>
+                    </div>
+
+                    <!-- Language -->
+                    <div class="space-y-2">
+                        <label for="language" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <i class="fas fa-language mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
+                            <span data-translate="Language">Language</span>
+                        </label>
+                        <select id="language" 
+                                name="language"
+                                class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                            <option value="en" {{if eq .globalSettings.Language "en"}}selected{{end}}>English</option>
+                            <option value="fa" {{if eq .globalSettings.Language "fa"}}selected{{end}}>فارسی (Persian)</option>
+                        </select>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-6 border-t border-gray-200 dark:border-dark-700">
+                        <button type="submit" 
+                                class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-secondary-500 to-secondary-600 hover:from-secondary-600 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="fas fa-save mr-2 rtl:mr-0 rtl:ml-2"></i>
+                            <span data-translate="Save Display Settings">Save Display Settings</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Section Card -->
+        <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 overflow-hidden">
+            <!-- Card Header -->
+            <div class="bg-gradient-to-r from-secondary-500 to-secondary-600 px-6 py-4">
+                <h3 class="text-lg font-semibold text-white flex items-center">
+                    <i class="fas fa-question-circle mr-3 rtl:mr-0 rtl:ml-3"></i>
+                    <span data-translate="Help">Help</span>
+                </h3>
+            </div>
+            
+            <!-- Card Body -->
+            <div class="p-6 custom-scrollbar overflow-y-auto max-h-[calc(100vh-200px)]">
+                <div class="space-y-6">
+                    <!-- Endpoint Address Help -->
+                    <div class="border-b border-gray-200 dark:border-dark-700 pb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">1</span>
+                            <span data-translate="Endpoint Address">Endpoint Address</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            <span data-translate="The public IP address of your Wireguard server">The public IP address of your Wireguard server that the client will connect to.</span>
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="Click on Suggest button to auto detect">Click on <strong>Suggest</strong> button to auto detect the public IP address of your server.</span>
+                        </p>
+                    </div>
+
+                    <!-- DNS Servers Help -->
+                    <div class="border-b border-gray-200 dark:border-dark-700 pb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">2</span>
+                            <span data-translate="DNS Servers">DNS Servers</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="The DNS servers will be set to client config">The DNS servers will be set to client config.</span>
+                        </p>
+                    </div>
+
+                    <!-- MTU Help -->
+                    <div class="border-b border-gray-200 dark:border-dark-700 pb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">3</span>
+                            <span data-translate="MTU">MTU</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            <span data-translate="The MTU will be set to server and client config">The MTU will be set to server and client config.</span>
+                            <span data-translate="By default it is">By default it is</span>
+                            <code class="px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-xs">1450</code>.
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="Leave blank to omit this setting">Leave blank to omit this setting in the configs.</span>
+                        </p>
+                    </div>
+
+                    <!-- Persistent Keepalive Help -->
+                    <div class="border-b border-gray-200 dark:border-dark-700 pb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">4</span>
+                            <span data-translate="Persistent Keepalive">Persistent Keepalive</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            By default, WireGuard peers remain silent while they do not need to communicate, so peers located behind a NAT and/or firewall may be unreachable from other peers until they reach out to other peers themselves. Adding <code class="px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-xs">PersistentKeepalive</code> can ensure that the connection remains open.
+                        </p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="Leave blank to omit this setting">Leave blank to omit this setting in the Client config.</span>
+                        </p>
+                    </div>
+
+                    <!-- Firewall Mark Help -->
+                    <div class="border-b border-gray-200 dark:border-dark-700 pb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">5</span>
+                            <span data-translate="Firewall Mark">Firewall Mark</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Add a matching <code class="px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-xs">fwmark</code> on all packets going out of a WireGuard non-default-route tunnel. Default value: <code class="px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-xs">0xca6c</code>
+                        </p>
+                    </div>
+
+                    <!-- Table Help -->
+                    <div class="border-b border-gray-200 dark:border-dark-700 pb-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">6</span>
+                            <span data-translate="Table">Table</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Value for the <code class="px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-xs">Table</code> setting in the wg conf file. Default value: <code class="px-2 py-1 bg-gray-100 dark:bg-dark-700 rounded text-xs">auto</code>
+                        </p>
+                    </div>
+
+                    <!-- Config File Path Help -->
+                    <div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                            <span class="flex items-center justify-center w-6 h-6 bg-primary-500 text-white rounded-full text-xs font-bold mr-2 rtl:mr-0 rtl:ml-2">7</span>
+                            <span data-translate="Wireguard Config File Path">Wireguard Config File Path</span>
+                        </h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            <span data-translate="The path of your Wireguard server config file">The path of your Wireguard server config file. Please make sure the parent directory exists and is writable.</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- IP Suggestion Modal -->
+<div id="modal_endpoint_address_suggestion" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md">
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="fas fa-magic text-primary-500 mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="Endpoint Address Suggestion">Endpoint Address Suggestion</span>
+            </h3>
+            <button onclick="closeSuggestionModal()" class="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg">
+                <i class="fas fa-times text-gray-400"></i>
+            </button>
+        </div>
+        
+        <div class="p-6">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <span data-translate="IP addresses for your consideration">Following is the list of public and local IP addresses for your consideration.</span>
+            </p>
+            
+            <div class="space-y-2">
+                <label for="ip_suggestion" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <span data-translate="Select an IP address">Select an IP address</span>
+                </label>
+                <select id="ip_suggestion" 
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
+                    <option value="" disabled selected>Loading IP addresses...</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 rtl:space-x-reverse p-6 border-t border-gray-200 dark:border-dark-700">
+            <button onclick="closeSuggestionModal()" 
+                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-700 border border-gray-300 dark:border-dark-600 rounded-xl hover:bg-gray-50 dark:hover:bg-dark-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <span data-translate="Cancel">Cancel</span>
+            </button>
+            <button id="btn_use_ip" 
+                    onclick="useSelectedIP()"
+                    disabled
+                    class="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-primary-500 to-primary-600 border border-transparent rounded-xl hover:from-primary-600 hover:to-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                <i class="fas fa-check mr-2 rtl:mr-0 rtl:ml-2"></i>
+                <span data-translate="Use selected IP address">Use selected IP address</span>
+            </button>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "bottom_js"}}
+<script>
+$(document).ready(function() {
+    // Initialize DNS servers with values from server
+    let dnsServers = [];
+    {{range .globalSettings.DNSServers}}
+        dnsServers.push('{{.}}');
+    {{end}}
+    
+    // Initialize DNS tags
+    updateDnsTags(dnsServers);
+    
+    // DNS servers management
+    function updateDnsTags(servers) {
+        const container = document.getElementById('dns-tags');
+        container.innerHTML = '';
+        
+        servers.forEach(server => {
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200';
+            tag.innerHTML = `
+                ${server}
+                <button type="button" onclick="removeDnsServer('${server}')" class="ml-2 rtl:ml-0 rtl:mr-2 inline-flex items-center p-0.5 text-primary-400 hover:text-primary-600 focus:outline-none">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            `;
+            container.appendChild(tag);
+        });
+        
+        // Update hidden input value
+        document.getElementById('dns_servers').value = servers.join(',');
+    }
+    
+    // Global function to remove DNS server
+    window.removeDnsServer = function(server) {
+        dnsServers = dnsServers.filter(s => s !== server);
+        updateDnsTags(dnsServers);
+    };
+    
+    // Add DNS server on Enter key or comma
+    document.getElementById('dns_servers').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const value = this.value.trim();
+            if (value && !dnsServers.includes(value)) {
+                // Basic IP validation
+                const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+                if (ipRegex.test(value) || value.includes(':')) { // IPv4 or IPv6
+                    dnsServers.push(value);
+                    updateDnsTags(dnsServers);
+                    this.value = '';
+                } else {
+                    showToast('Please enter a valid IP address', 'error');
+                }
+            } else if (dnsServers.includes(value)) {
+                showToast('DNS server already added', 'error');
+                this.value = '';
+            }
+        }
+    });
+
+    // Form validation and submission
+    $("#frm_global_settings").submit(function(e) {
+        e.preventDefault();
+        
+        if (validateForm()) {
+            submitGlobalSettings();
+        }
+    });
+
+    function validateForm() {
+        let isValid = true;
+        
+        // Clear previous errors
+        clearValidationErrors();
+        
+        // MTU validation
+        const mtu = document.getElementById('mtu').value;
+        if (mtu && (isNaN(mtu) || mtu < 68 || mtu > 65535)) {
+            showFieldError('mtu', 'MTU must be a number between 68 and 65535');
+            isValid = false;
+        }
+        
+        // Persistent keepalive validation
+        const keepalive = document.getElementById('persistent_keepalive').value;
+        if (keepalive && isNaN(keepalive)) {
+            showFieldError('persistent_keepalive', 'Persistent keepalive must be a number');
+            isValid = false;
+        }
+        
+        // Config file path validation
+        const configPath = document.getElementById('config_file_path').value.trim();
+        if (!configPath) {
+            showFieldError('config_file_path', 'Please enter WireGuard config file path');
+            isValid = false;
+        }
+        
+        return isValid;
+    }
+
+    function showFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        const errorElement = document.getElementById(fieldId + '-error');
+        
+        field.classList.add('border-red-500', 'focus:ring-red-500');
+        field.classList.remove('border-gray-300', 'dark:border-dark-600', 'focus:ring-primary-500');
+        
+        if (errorElement) {
+            errorElement.textContent = window.langManager.translate(message);
+            errorElement.classList.remove('hidden');
+        }
+    }
+
+    function clearValidationErrors() {
+        const fields = ['mtu', 'persistent_keepalive', 'config_file_path'];
+        
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const errorElement = document.getElementById(fieldId + '-error');
+            
+            field.classList.remove('border-red-500', 'focus:ring-red-500');
+            field.classList.add('border-gray-300', 'dark:border-dark-600', 'focus:ring-primary-500');
+            
+            if (errorElement) {
+                errorElement.classList.add('hidden');
+            }
+        });
+    }
+
+    function submitGlobalSettings() {
+        const submitBtn = document.querySelector('#frm_global_settings button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Processing...">Processing...</span>';
+        
+        const formData = {
+            endpoint_address: document.getElementById('endpoint_address').value,
+            relay_endpoint: document.getElementById('relay_endpoint').value,
+            dns_servers: dnsServers,
+            mtu: document.getElementById('mtu').value,
+            persistent_keepalive: document.getElementById('persistent_keepalive').value,
+            firewall_mark: document.getElementById('firewall_mark').value,
+            table: document.getElementById('table').value,
+            config_file_path: document.getElementById('config_file_path').value,
+            app_secret_token: document.getElementById('app_secret_token').value
+        };
+
+        $.ajax({
+            url: "{{.basePath}}/global-settings",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(formData),
+            success: function(response) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                
+                if(response.success !== false) {
+                    showToast(window.langManager.translate('Settings saved successfully'), 'success');
+                } else {
+                    showToast(response.message || window.langManager.translate('Unknown error'), 'error');
+                }
+            },
+            error: function(xhr) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                
+                let errorMessage = 'An error occurred';
+                try {
+                    const responseJson = xhr.responseJSON;
+                    errorMessage = responseJson?.message || xhr.statusText || errorMessage;
+                } catch(e) {
+                    errorMessage = 'Network error';
+                }
+                showToast(window.langManager.translate(errorMessage), 'error');
+            }
+        });
+    }
+
+    // Display Settings Form Submission
+    $("#frm_display_settings").submit(function(e) {
+        e.preventDefault();
+        
+        const timezone = document.getElementById('timezone').value;
+        const language = document.getElementById('language').value;
+
+        const formData = {
+            timezone: timezone,
+            language: language
+        };
+
+        const submitBtn = document.querySelector('#frm_display_settings button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Processing...">Processing...</span>';
+
+        $.ajax({
+            url: "{{.basePath}}/display-settings",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(formData),
+            success: function(response) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                
+                if(response.success !== false) {
+                    showToast(window.langManager.translate('Display settings saved successfully'), 'success');
+                } else {
+                    showToast(response.message || window.langManager.translate('Unknown error'), 'error');
+                }
+            },
+            error: function(xhr) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                
+                let errorMessage = 'An error occurred';
+                try {
+                    const responseJson = xhr.responseJSON;
+                    errorMessage = responseJson?.message || xhr.statusText || errorMessage;
+                } catch(e) {
+                    errorMessage = 'Network error';
+                }
+                showToast(window.langManager.translate(errorMessage), 'error');
+            }
+        });
+    });
+
+    // IP Suggestion Modal functions
+    window.openSuggestionModal = function() {
+        document.getElementById('modal_endpoint_address_suggestion').classList.remove('hidden');
+        
+        // Load IP addresses
+        $.getJSON("{{.basePath}}/machine-ip-addresses", function(data) {
+            const select = document.getElementById('ip_suggestion');
+            select.innerHTML = '';
+            
+            if (data.length === 0) {
+                select.innerHTML = '<option value="" disabled>No IP addresses found</option>';
+                document.getElementById('btn_use_ip').disabled = true;
+            } else {
+                select.innerHTML = '<option value="" disabled selected>Select an IP address</option>';
+                data.forEach(function(ip) {
+                    const option = document.createElement('option');
+                    option.value = ip.ip_address;
+                    option.textContent = ip.ip_address;
+                    select.appendChild(option);
+                });
+                document.getElementById('btn_use_ip').disabled = false;
+            }
+        }).fail(function() {
+            document.getElementById('ip_suggestion').innerHTML = '<option value="" disabled>Failed to load IP addresses</option>';
+            document.getElementById('btn_use_ip').disabled = true;
+        });
+    };
+
+    window.closeSuggestionModal = function() {
+        document.getElementById('modal_endpoint_address_suggestion').classList.add('hidden');
+    };
+
+    window.useSelectedIP = function() {
+        const selectedIP = document.getElementById('ip_suggestion').value;
+        if(selectedIP) {
+            document.getElementById('endpoint_address').value = selectedIP;
+            closeSuggestionModal();
+            showToast('IP address selected successfully', 'success');
+        }
+    };
+
+    window.generateAppSecret = function() {
+        const input = document.getElementById('app_secret_token');
+        if (!window.crypto || !window.crypto.getRandomValues) {
+            showToast(window.langManager.translate('Secure random generator not available'), 'error');
+            return;
+        }
+        const bytes = new Uint8Array(24);
+        window.crypto.getRandomValues(bytes);
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let secret = '';
+        bytes.forEach(b => {
+            secret += alphabet[b % alphabet.length];
+        });
+        input.value = secret;
+        showToast(window.langManager.translate('New secret generated'), 'success');
+    };
+
+    // Enable/disable use button based on selection
+    document.getElementById('ip_suggestion').addEventListener('change', function() {
+        document.getElementById('btn_use_ip').disabled = !this.value;
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('modal_endpoint_address_suggestion').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSuggestionModal();
+        }
+    });
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeSuggestionModal();
+        }
+    });
+
+    // Custom toast function
+    function showToast(message, type) {
+        const toastContainer = document.getElementById('toast-container') || createToastContainer();
+        const toast = document.createElement('div');
+        const bgColor = type === 'error' ? 'bg-red-500' : 'bg-green-500';
+        
+        toast.className = `fixed top-4 right-4 rtl:right-auto rtl:left-4 ${bgColor} text-white px-6 py-4 rounded-xl shadow-lg z-50 transform translate-x-full transition-transform duration-300`;
+        toast.innerHTML = `
+            <div class="flex items-center space-x-3 rtl:space-x-reverse">
+                <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 'check-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        
+        // Show toast
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+        }, 100);
+        
+        // Hide toast after 3 seconds
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 3000);
+    }
+
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed top-0 right-0 p-4 z-50';
+        document.body.appendChild(container);
+        return container;
+    }
+});
+</script>
+{{end}}

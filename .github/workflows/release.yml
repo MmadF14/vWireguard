@@ -1,0 +1,103 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# Required: creating a release and uploading assets needs write access to
+# repository contents. Newer repositories give GITHUB_TOKEN read-only
+# permissions by default, and the upload step then fails with HTTP 403.
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build Release Assets
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Yarn
+        run: npm install -g yarn
+
+      - name: Build Frontend Assets
+        run: |
+          chmod +x ./prepare_assets.sh
+          ./prepare_assets.sh
+
+      - name: Set build variables
+        run: |
+          echo "APP_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "BUILD_TIME=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_ENV
+          echo "GIT_COMMIT=${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "GIT_REF=${GITHUB_REF}" >> $GITHUB_ENV
+
+      - name: Build Go Binary
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+        run: |
+          go mod download
+          # Build the whole package ("."), not just main.go - building a single
+          # file breaks as soon as a second file joins package main.
+          go build -trimpath -ldflags="-s -w -X 'main.appVersion=${APP_VERSION}' -X 'main.buildTime=${BUILD_TIME}' -X 'main.gitCommit=${GIT_COMMIT}' -X 'main.gitRef=${GIT_REF}'" -o vWireguard .
+
+      - name: Create Release Package
+        run: |
+          # Create temporary directory for packaging
+          mkdir -p release-package
+          
+          # Copy binary
+          cp vWireguard release-package/vWireguard
+          chmod +x release-package/vWireguard
+          
+          # Copy static assets (built frontend)
+          cp -r static release-package/
+          
+          # Copy templates
+          cp -r templates release-package/
+          
+          # Copy custom assets
+          cp -r custom release-package/
+          
+          # Create empty db directory structure (preserve existing data on install)
+          mkdir -p release-package/db/{clients,server,users,wake_on_lan_hosts,tunnels}
+          
+          # Copy manage.sh as vwg
+          cp manage.sh release-package/vwg
+          chmod +x release-package/vwg
+          
+          # Create archive
+          cd release-package
+          tar -czf ../vWireguard-linux-${{ matrix.arch }}.tar.gz *
+          cd ..
+
+      - name: Generate checksum
+        run: sha256sum vWireguard-linux-${{ matrix.arch }}.tar.gz > vWireguard-linux-${{ matrix.arch }}.tar.gz.sha256
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            vWireguard-linux-${{ matrix.arch }}.tar.gz
+            vWireguard-linux-${{ matrix.arch }}.tar.gz.sha256
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
