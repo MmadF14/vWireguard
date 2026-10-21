@@ -85,6 +85,109 @@ check_prerequisites() {
     log "All prerequisites satisfied"
 }
 
+# Install everything the panel shells out to: WireGuard itself, iptables (NAT
+# rules in PostUp), iproute2, sudo (the panel runs `sudo wg ...`) and a DNS
+# helper for wg-quick's DNS= line. Without these the panel starts fine but
+# no tunnel can ever come up.
+install_dependencies() {
+    log "Installing WireGuard and required packages..."
+
+    if [ -f /etc/debian_version ]; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update -y
+        local pkgs=(wireguard wireguard-tools iptables iproute2 sudo curl wget tar ca-certificates)
+        # wg-quick needs a resolvconf provider to apply DNS=; systemd-resolved
+        # already supplies one on recent Ubuntu/Debian.
+        if ! command -v resolvconf &> /dev/null && ! command -v resolvectl &> /dev/null; then
+            pkgs+=(resolvconf)
+        fi
+        apt-get install -y "${pkgs[@]}" || error "Failed to install required packages"
+    elif command -v dnf &> /dev/null || command -v yum &> /dev/null; then
+        local pm=yum
+        command -v dnf &> /dev/null && pm=dnf
+        $pm install -y epel-release 2>/dev/null || true
+        $pm install -y wireguard-tools iptables iproute sudo curl wget tar ca-certificates \
+            || error "Failed to install required packages"
+        # Kernels without built-in WireGuard need the module package.
+        if ! modprobe wireguard 2>/dev/null; then
+            $pm install -y kmod-wireguard 2>/dev/null || true
+        fi
+    else
+        error "Unsupported distribution. Install manually: wireguard, wireguard-tools, iptables, iproute2, sudo, curl, wget, tar"
+    fi
+
+    for cmd in wg wg-quick iptables ip sudo; do
+        command -v "$cmd" &> /dev/null || error "'$cmd' is still missing after installation"
+    done
+
+    if modprobe wireguard 2>/dev/null || ip link add wgtest type wireguard 2>/dev/null; then
+        ip link del wgtest 2>/dev/null || true
+    else
+        warn "The kernel has no WireGuard support (common on OpenVZ/LXC VPS). Tunnels will not start."
+    fi
+
+    log "Dependencies installed ($(wg --version 2>/dev/null | head -n1))"
+}
+
+# Packet forwarding must survive reboots; the panel only sets it at runtime.
+enable_ip_forwarding() {
+    log "Enabling IP forwarding..."
+    cat > /etc/sysctl.d/99-vwireguard.conf <<SYSCTL
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
+SYSCTL
+    sysctl --system > /dev/null 2>&1 || sysctl -w net.ipv4.ip_forward=1 > /dev/null
+    mkdir -p /etc/wireguard
+    chmod 700 /etc/wireguard
+}
+
+# Optional AmneziaWG (DPI-resistant interfaces): INSTALL_AMNEZIAWG=1 or --amneziawg
+install_amneziawg() {
+    if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
+        warn "AmneziaWG auto-install supports Ubuntu only. See the README for manual steps."
+        return
+    fi
+    log "Installing AmneziaWG..."
+    apt-get install -y software-properties-common "linux-headers-$(uname -r)" \
+        || warn "Kernel headers for $(uname -r) not found; the AmneziaWG module may fail to build"
+    add-apt-repository -y ppa:amnezia/ppa
+    apt-get update -y
+    apt-get install -y amneziawg || { warn "AmneziaWG installation failed; plain WireGuard still works"; return; }
+    mkdir -p /etc/amnezia/amneziawg
+    chmod 700 /etc/amnezia/amneziawg
+}
+
+# The panel writes /etc/wireguard/wg0.conf on first start. wg-quick@wg0 has to
+# be running for the panel to add peers, and enabled so it returns after reboot.
+enable_wireguard_service() {
+    log "Waiting for the panel to create its WireGuard config..."
+    local i
+    for i in $(seq 1 20); do
+        [ -f /etc/wireguard/wg0.conf ] && break
+        sleep 1
+    done
+
+    if [ ! -f /etc/wireguard/wg0.conf ]; then
+        warn "No /etc/wireguard/wg0.conf yet. Open the panel, then run: systemctl enable --now wg-quick@wg0"
+        return
+    fi
+
+    if systemctl enable --now wg-quick@wg0; then
+        log "wg-quick@wg0 is running and enabled at boot"
+    else
+        warn "Could not start wg-quick@wg0. Check: journalctl -u wg-quick@wg0"
+    fi
+}
+
+# Open the ports if ufw is in use (it silently drops them otherwise)
+open_firewall() {
+    if command -v ufw &> /dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
+        log "ufw is active, opening panel and WireGuard ports..."
+        ufw allow 5000/tcp > /dev/null
+        ufw allow 51820/udp > /dev/null
+    fi
+}
+
 # Detect architecture
 detect_arch() {
     local arch=$(uname -m)
@@ -179,7 +282,7 @@ install_files() {
     chmod +x "$INSTALL_DIR/vwg"
     
     # Ensure db directory structure exists
-    mkdir -p "$INSTALL_DIR/db/{clients,server,users,wake_on_lan_hosts,tunnels}"
+    mkdir -p "$INSTALL_DIR"/db/{clients,server,users,wake_on_lan_hosts,tunnels}
     
     log "Files installed successfully"
 }
@@ -287,7 +390,15 @@ main() {
     log "Starting vWireguard installation..."
     
     check_prerequisites
-    
+
+    install_dependencies
+
+    enable_ip_forwarding
+
+    if [ "$INSTALL_AMNEZIAWG" = "1" ] || [[ " $* " == *" --amneziawg "* ]]; then
+        install_amneziawg
+    fi
+
     local arch=$(detect_arch)
     log "Detected architecture: $arch"
     
@@ -307,6 +418,10 @@ main() {
     create_symlink
     
     start_service
+
+    enable_wireguard_service
+
+    open_firewall
     
     # Cleanup
     rm -f "$archive"
