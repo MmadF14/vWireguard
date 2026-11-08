@@ -538,6 +538,13 @@ func MigrateClientsInterface(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			allocatedMap[ip] = true
 		}
 
+		// Ensure interface own addresses (server-side interface IPs) are not assigned to clients
+		for _, ifAddr := range toIface.Addresses {
+			if ipOnly, err := util.GetIPFromCIDR(ifAddr); err == nil {
+				allocatedMap[ipOnly] = true
+			}
+		}
+
 		migratedCount := 0
 		var failedClients []string
 
@@ -549,10 +556,13 @@ func MigrateClientsInterface(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 
 			// Free old IP from allocated set
 			for _, oldIP := range client.AllocatedIPs {
+				if ipOnly, err := util.GetIPFromCIDR(oldIP); err == nil {
+					delete(allocatedMap, ipOnly)
+				}
 				delete(allocatedMap, oldIP)
 			}
 
-			// Rebuild active allocatedIPs list
+			// Rebuild active allocatedIPs list (pure IP strings without CIDR mask)
 			curAllocated := make([]string, 0, len(allocatedMap))
 			for ip := range allocatedMap {
 				curAllocated = append(curAllocated, ip)
@@ -565,10 +575,16 @@ func MigrateClientsInterface(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 				failedClients = append(failedClients, fmt.Sprintf("%s (no IP available)", client.Name))
 				// re-add old IP back
 				for _, oldIP := range client.AllocatedIPs {
+					if ipOnly, err := util.GetIPFromCIDR(oldIP); err == nil {
+						allocatedMap[ipOnly] = true
+					}
 					allocatedMap[oldIP] = true
 				}
 				continue
 			}
+
+			// Mark bare IP as allocated so next iteration in the batch sees it!
+			allocatedMap[newIP] = true
 
 			// Format CIDR
 			var formattedIP string
@@ -577,8 +593,6 @@ func MigrateClientsInterface(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			} else {
 				formattedIP = fmt.Sprintf("%s/32", newIP)
 			}
-
-			allocatedMap[formattedIP] = true
 
 			// 3. Update client model and save
 			client.AllocatedIPs = []string{formattedIP}
