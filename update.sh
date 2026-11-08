@@ -204,8 +204,21 @@ update_binary() {
     local temp_file="/tmp/${asset_name}"
     
     log "Downloading ${asset_name}..."
-    if ! wget -q --show-progress -O "$temp_file" "$download_url"; then
-        error "Failed to download release from $download_url"
+    local download_success=false
+    
+    # 1. Try wget
+    if wget -q --show-progress -O "$temp_file" "$download_url"; then
+        download_success=true
+    # 2. Try curl if wget fails
+    elif curl -fL -H "User-Agent: vWireguard-Updater" -o "$temp_file" "$download_url"; then
+        download_success=true
+    fi
+
+    # Verify download
+    if [ "$download_success" != "true" ] || [ ! -s "$temp_file" ]; then
+        # Check if the downloaded file is an error html/empty
+        rm -f "$temp_file"
+        error "Failed to download release from $download_url (Check internet connection or GitHub access on server)"
     fi
     
     local temp_extract="/tmp/vwireguard-extract-$$"

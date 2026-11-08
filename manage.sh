@@ -234,8 +234,17 @@ cmd_update() {
     local temp_file="/tmp/${asset_name}"
     
     log "Downloading ${asset_name}..."
-    if ! wget -q --show-progress -O "$temp_file" "$download_url"; then
-        error "Failed to download release"
+    local download_success=false
+    
+    if wget -q --show-progress -O "$temp_file" "$download_url"; then
+        download_success=true
+    elif curl -fL -H "User-Agent: vwg-cli" -o "$temp_file" "$download_url"; then
+        download_success=true
+    fi
+
+    if [ "$download_success" != "true" ] || [ ! -s "$temp_file" ]; then
+        rm -f "$temp_file"
+        error "Failed to download release from $download_url"
     fi
     
     # Extract to temporary directory
