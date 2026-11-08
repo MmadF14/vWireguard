@@ -30,13 +30,7 @@ cat << "EOF"
 EOF
 echo -e "${NC}"
 
-# All three MUST print to stderr (>&2), never stdout. Several functions below
-# are called as `x=$(some_func ...)`, and some_func itself calls log/warn to
-# report progress. If those went to stdout, their text gets glued onto the
-# function's real return value inside the $(...) capture - e.g.
-# download_release() used to return "\033[0;32m[..] Downloading ...\033[0m\n/tmp/foo.tar.gz"
-# instead of just "/tmp/foo.tar.gz", and the subsequent `tar -xzf "$archive"`
-# failed with a confusing "Cannot open" error that had nothing to do with tar.
+# All logs go to stderr so command substitutions don't capture them.
 log() { echo -e "${GREEN}[$(date '+%H:%M:%S')] $1${NC}" >&2; }
 error() { echo -e "${RED}[$(date '+%H:%M:%S')] ❌ $1${NC}" >&2; exit 1; }
 warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}" >&2; }
@@ -51,18 +45,11 @@ check_prerequisites() {
     log "Checking prerequisites..."
     
     local missing=()
-    
-    if ! command -v curl &> /dev/null; then
-        missing+=("curl")
-    fi
-    
-    if ! command -v wget &> /dev/null; then
-        missing+=("wget")
-    fi
-    
-    if ! command -v tar &> /dev/null; then
-        missing+=("tar")
-    fi
+    for cmd in curl wget tar; do
+        if ! command -v "$cmd" &> /dev/null; then
+            missing+=("$cmd")
+        fi
+    done
     
     if ! command -v systemctl &> /dev/null; then
         error "systemd is required but not found. This script only supports systemd-based systems."
@@ -70,50 +57,47 @@ check_prerequisites() {
     
     if [ ${#missing[@]} -gt 0 ]; then
         warn "Missing required tools: ${missing[*]}"
-        log "Installing missing packages..."
+        log "Installing missing basic packages..."
         
         if [ -f /etc/debian_version ]; then
+            export DEBIAN_FRONTEND=noninteractive
             apt-get update -y
             apt-get install -y "${missing[@]}"
-        elif [ -f /etc/redhat-release ]; then
-            yum install -y "${missing[@]}"
+        elif command -v dnf &> /dev/null || command -v yum &> /dev/null; then
+            local pm=yum
+            command -v dnf &> /dev/null && pm=dnf
+            $pm install -y "${missing[@]}"
         else
             error "Cannot auto-install prerequisites. Please install: ${missing[*]}"
         fi
     fi
     
-    log "All prerequisites satisfied"
+    log "Basic prerequisites satisfied"
 }
 
-# Install everything the panel shells out to: WireGuard itself, iptables (NAT
-# rules in PostUp), iproute2, sudo (the panel runs `sudo wg ...`) and a DNS
-# helper for wg-quick's DNS= line. Without these the panel starts fine but
-# no tunnel can ever come up.
+# Install WireGuard, iptables, iproute2, sudo and resolvconf
 install_dependencies() {
-    log "Installing WireGuard and required packages..."
+    log "Installing WireGuard and network dependencies..."
 
     if [ -f /etc/debian_version ]; then
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -y
         local pkgs=(wireguard wireguard-tools iptables iproute2 sudo curl wget tar ca-certificates)
-        # wg-quick needs a resolvconf provider to apply DNS=; systemd-resolved
-        # already supplies one on recent Ubuntu/Debian.
         if ! command -v resolvconf &> /dev/null && ! command -v resolvectl &> /dev/null; then
             pkgs+=(resolvconf)
         fi
-        apt-get install -y "${pkgs[@]}" || error "Failed to install required packages"
+        apt-get install -y "${pkgs[@]}" || error "Failed to install required WireGuard packages"
     elif command -v dnf &> /dev/null || command -v yum &> /dev/null; then
         local pm=yum
         command -v dnf &> /dev/null && pm=dnf
         $pm install -y epel-release 2>/dev/null || true
         $pm install -y wireguard-tools iptables iproute sudo curl wget tar ca-certificates \
-            || error "Failed to install required packages"
-        # Kernels without built-in WireGuard need the module package.
+            || error "Failed to install required WireGuard packages"
         if ! modprobe wireguard 2>/dev/null; then
             $pm install -y kmod-wireguard 2>/dev/null || true
         fi
     else
-        error "Unsupported distribution. Install manually: wireguard, wireguard-tools, iptables, iproute2, sudo, curl, wget, tar"
+        error "Unsupported distribution. Please install manually: wireguard, wireguard-tools, iptables, iproute2, sudo"
     fi
 
     for cmd in wg wg-quick iptables ip sudo; do
@@ -123,13 +107,46 @@ install_dependencies() {
     if modprobe wireguard 2>/dev/null || ip link add wgtest type wireguard 2>/dev/null; then
         ip link del wgtest 2>/dev/null || true
     else
-        warn "The kernel has no WireGuard support (common on OpenVZ/LXC VPS). Tunnels will not start."
+        warn "Kernel WireGuard support not detected (common in OpenVZ/LXC VPS). Kernel module might be needed."
     fi
 
-    log "Dependencies installed ($(wg --version 2>/dev/null | head -n1))"
+    log "WireGuard dependencies installed ($(wg --version 2>/dev/null | head -n1 || echo 'wireguard-tools'))"
 }
 
-# Packet forwarding must survive reboots; the panel only sets it at runtime.
+# Install AmneziaWG (DPI-resistant tunnels)
+install_amneziawg() {
+    log "Checking and installing AmneziaWG..."
+    if command -v awg &> /dev/null && command -v awg-quick &> /dev/null; then
+        log "AmneziaWG tools are already installed"
+        mkdir -p /etc/amnezia/amneziawg
+        chmod 700 /etc/amnezia/amneziawg
+        return
+    fi
+
+    if grep -qi ubuntu /etc/os-release 2>/dev/null; then
+        log "Installing AmneziaWG on Ubuntu..."
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get install -y software-properties-common "linux-headers-$(uname -r)" 2>/dev/null || true
+        add-apt-repository -y ppa:amnezia/ppa
+        apt-get update -y
+        apt-get install -y amneziawg amneziawg-tools || warn "AmneziaWG package install failed; plain WireGuard will still work."
+    elif grep -qi debian /etc/os-release 2>/dev/null; then
+        log "Installing AmneziaWG on Debian..."
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get install -y curl gpg "linux-headers-$(uname -r)" 2>/dev/null || true
+        curl -s --compressed "https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/dists/jammy/Release.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/amnezia.gpg 2>/dev/null || true
+        echo "deb https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/amnezia.list
+        apt-get update -y
+        apt-get install -y amneziawg amneziawg-tools || warn "AmneziaWG package install failed; plain WireGuard will still work."
+    else
+        warn "AmneziaWG auto-install currently supports Ubuntu/Debian. Plain WireGuard is ready."
+    fi
+
+    mkdir -p /etc/amnezia/amneziawg
+    chmod 700 /etc/amnezia/amneziawg
+}
+
+# Enable and persist IP Forwarding
 enable_ip_forwarding() {
     log "Enabling IP forwarding..."
     cat > /etc/sysctl.d/99-vwireguard.conf <<SYSCTL
@@ -141,50 +158,12 @@ SYSCTL
     chmod 700 /etc/wireguard
 }
 
-# Optional AmneziaWG (DPI-resistant interfaces): INSTALL_AMNEZIAWG=1 or --amneziawg
-install_amneziawg() {
-    if ! grep -qi ubuntu /etc/os-release 2>/dev/null; then
-        warn "AmneziaWG auto-install supports Ubuntu only. See the README for manual steps."
-        return
-    fi
-    log "Installing AmneziaWG..."
-    apt-get install -y software-properties-common "linux-headers-$(uname -r)" \
-        || warn "Kernel headers for $(uname -r) not found; the AmneziaWG module may fail to build"
-    add-apt-repository -y ppa:amnezia/ppa
-    apt-get update -y
-    apt-get install -y amneziawg || { warn "AmneziaWG installation failed; plain WireGuard still works"; return; }
-    mkdir -p /etc/amnezia/amneziawg
-    chmod 700 /etc/amnezia/amneziawg
-}
-
-# The panel writes /etc/wireguard/wg0.conf on first start. wg-quick@wg0 has to
-# be running for the panel to add peers, and enabled so it returns after reboot.
-enable_wireguard_service() {
-    log "Waiting for the panel to create its WireGuard config..."
-    local i
-    for i in $(seq 1 20); do
-        [ -f /etc/wireguard/wg0.conf ] && break
-        sleep 1
-    done
-
-    if [ ! -f /etc/wireguard/wg0.conf ]; then
-        warn "No /etc/wireguard/wg0.conf yet. Open the panel, then run: systemctl enable --now wg-quick@wg0"
-        return
-    fi
-
-    if systemctl enable --now wg-quick@wg0; then
-        log "wg-quick@wg0 is running and enabled at boot"
-    else
-        warn "Could not start wg-quick@wg0. Check: journalctl -u wg-quick@wg0"
-    fi
-}
-
-# Open the ports if ufw is in use (it silently drops them otherwise)
+# Open firewall ports if ufw is active
 open_firewall() {
     if command -v ufw &> /dev/null && ufw status 2>/dev/null | grep -q "Status: active"; then
         log "ufw is active, opening panel and WireGuard ports..."
-        ufw allow 5000/tcp > /dev/null
-        ufw allow 51820/udp > /dev/null
+        ufw allow 5000/tcp > /dev/null || true
+        ufw allow 51820:51830/udp > /dev/null || true
     fi
 }
 
@@ -360,6 +339,7 @@ show_summary() {
     echo -e "  ${YELLOW}Logs:${NC} vwg log"
     echo -e "  ${YELLOW}Restart:${NC} vwg restart"
     echo -e "  ${YELLOW}Update:${NC} vwg update"
+    echo -e "  ${YELLOW}Dependencies:${NC} vwg install-deps"
     echo ""
     echo -e "${GREEN}🎉 Panel is ready!${NC}"
     echo -e "${GREEN}=====================================${NC}"
@@ -376,12 +356,13 @@ Installation Directory: ${INSTALL_DIR}
 Service Name: ${SERVICE_NAME}
 
 Management Commands:
-  vwg status   - Check service status
-  vwg start    - Start service
-  vwg stop     - Stop service
-  vwg restart  - Restart service
-  vwg log      - View logs
-  vwg update   - Update to latest version
+  vwg status       - Check service status
+  vwg start        - Start service
+  vwg stop         - Stop service
+  vwg restart      - Restart service
+  vwg log          - View logs
+  vwg update       - Update to latest version
+  vwg install-deps - Check and install dependencies (WireGuard & AmneziaWG)
 EOF
 }
 
@@ -390,15 +371,13 @@ main() {
     log "Starting vWireguard installation..."
     
     check_prerequisites
-
+    
     install_dependencies
-
+    
+    install_amneziawg
+    
     enable_ip_forwarding
-
-    if [ "$INSTALL_AMNEZIAWG" = "1" ] || [[ " $* " == *" --amneziawg "* ]]; then
-        install_amneziawg
-    fi
-
+    
     local arch=$(detect_arch)
     log "Detected architecture: $arch"
     
@@ -418,9 +397,7 @@ main() {
     create_symlink
     
     start_service
-
-    enable_wireguard_service
-
+    
     open_firewall
     
     # Cleanup

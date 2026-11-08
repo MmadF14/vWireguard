@@ -1404,6 +1404,21 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 		}
 		log.Infof("Updated wireguard server interfaces settings: %v", serverInterface)
 
+		// Synchronize serverInterface changes to the default interface (wg0)
+		if iface, err := db.GetInterface(model.DefaultInterfaceName); err == nil {
+			iface.ListenPort = serverInterface.ListenPort
+			iface.Addresses = serverInterface.Addresses
+			iface.PostUp = serverInterface.PostUp
+			iface.PreDown = serverInterface.PreDown
+			iface.PostDown = serverInterface.PostDown
+			iface.UpdatedAt = time.Now().UTC()
+			if err := db.SaveInterface(iface); err != nil {
+				log.Warnf("Failed to sync server interface to %s: %v", model.DefaultInterfaceName, err)
+			} else {
+				log.Infof("Synced server interface changes to %s", model.DefaultInterfaceName)
+			}
+		}
+
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Updated interface addresses successfully"})
 	}
 }

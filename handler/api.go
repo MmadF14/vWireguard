@@ -123,6 +123,7 @@ type AdminCreateClientRequest struct {
 	Email     string `json:"email"`
 	Token     string `json:"token"`
 	Unlimited bool   `json:"unlimited"`
+	Interface string `json:"interface"`
 }
 
 // AdminCreateClientResponse represents the response for admin create client endpoint
@@ -139,6 +140,7 @@ type AdminUpdateClientRequest struct {
 	Token      string `json:"token"`
 	Enable     *bool  `json:"enable"`
 	Unlimited  *bool  `json:"unlimited"`
+	Interface  string `json:"interface"`
 }
 
 // AdminUpdateClientResponse represents the response for admin update client endpoint
@@ -821,6 +823,26 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		// Determine target interface subnets and name
+		targetInterface := strings.TrimSpace(req.Interface)
+		subnets := server.Interface.Addresses
+		if targetInterface != "" && targetInterface != model.DefaultInterfaceName {
+			iface, ifErr := db.GetInterface(targetInterface)
+			if ifErr != nil {
+				return c.JSON(http.StatusBadRequest, map[string]interface{}{
+					"status":  "error",
+					"message": fmt.Sprintf("Interface %s not found", targetInterface),
+				})
+			}
+			if len(iface.Addresses) == 0 {
+				return c.JSON(http.StatusBadRequest, map[string]interface{}{
+					"status":  "error",
+					"message": fmt.Sprintf("Interface %s has no addresses configured", targetInterface),
+				})
+			}
+			subnets = iface.Addresses
+		}
+
 		// Get available IP
 		allocatedIPs, err := util.GetAllocatedIPs("")
 		if err != nil {
@@ -830,10 +852,10 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
-		// Suggest an IP from the first available subnet
+		// Suggest an IP from the interface subnet
 		var allocatedIP string
-		if len(server.Interface.Addresses) > 0 {
-			ip, err := util.GetAvailableIP(server.Interface.Addresses[0], allocatedIPs, server.Interface.Addresses)
+		if len(subnets) > 0 {
+			ip, err := util.GetAvailableIP(subnets[0], allocatedIPs, subnets)
 			if err != nil {
 				return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 					"status":  "error",
@@ -849,7 +871,7 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 		} else {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"status":  "error",
-				"message": "Server has no interface addresses configured",
+				"message": "Interface has no addresses configured",
 			})
 		}
 
@@ -867,6 +889,7 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 			AllowedIPs:   []string{"0.0.0.0/0"}, // Default: route all traffic
 			UseServerDNS: true,
 			Enabled:      true,
+			Interface:    targetInterface,
 			CreatedBy:    "admin-api",
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -895,12 +918,15 @@ func APIAdminCreateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// Hot Reload: Add peer to interface instantly without restarting service
-		interfaceName := util.ClientInterfaceName(&client, globalSettings)
+		interfaceName := targetInterface
+		if interfaceName == "" {
+			interfaceName = util.ClientInterfaceName(&client, globalSettings)
+		}
 		if err := util.AddPeerToInterface(client, server, globalSettings, interfaceName); err != nil {
 			log.Warnf("Failed to add peer via hot reload for client %s: %v (client saved to DB)", req.Username, err)
 			// Continue - client is saved in DB even if runtime update fails
 		} else {
-			log.Infof("Client %s added to interface via Hot Reload", req.Username)
+			log.Infof("Client %s added to interface %s via Hot Reload", req.Username, interfaceName)
 		}
 
 		// Generate WireGuard config
@@ -1008,6 +1034,29 @@ func APIAdminUpdateClient(db store.IStore) echo.HandlerFunc {
 		} else {
 			client.Enabled = util.IsClientValid(*client)
 		}
+
+		// Update interface if specified
+		newInterface := strings.TrimSpace(req.Interface)
+		if newInterface != "" && newInterface != client.Interface {
+			if newInterface != model.DefaultInterfaceName {
+				if _, ifErr := db.GetInterface(newInterface); ifErr != nil {
+					return c.JSON(http.StatusBadRequest, map[string]interface{}{
+						"status":  "error",
+						"message": fmt.Sprintf("Interface %s not found", newInterface),
+					})
+				}
+			}
+			// Remove from old interface runtime
+			if client.PublicKey != "" {
+				oldIface := client.Interface
+				if oldIface == "" {
+					oldIface = model.DefaultInterfaceName
+				}
+				_ = util.RemovePeerFromInterface(client.PublicKey, oldIface)
+			}
+			client.Interface = newInterface
+		}
+
 		client.UpdatedAt = now
 
 		// Save updated client

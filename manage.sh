@@ -23,7 +23,7 @@ warn() { echo -e "${YELLOW}[$(date '+%H:%M:%S')] ⚠️  $1${NC}"; }
 
 # Check if running as root (for service commands)
 check_root() {
-    if [ "$EUID" -ne 0 ] && [[ "$1" =~ ^(start|stop|restart|update)$ ]]; then
+    if [ "$EUID" -ne 0 ] && [[ "$1" =~ ^(start|stop|restart|update|install-deps)$ ]]; then
         error "This command requires root access. Please run with: sudo vwg $1"
     fi
 }
@@ -90,6 +90,77 @@ cmd_log() {
     fi
 }
 
+# Install or verify required system dependencies (WireGuard & AmneziaWG)
+cmd_install_deps() {
+    check_root "install-deps"
+    log "Checking required system dependencies (WireGuard & AmneziaWG)..."
+    
+    local pkgs_needed=()
+    if ! command -v wg &> /dev/null || ! command -v wg-quick &> /dev/null; then
+        pkgs_needed+=(wireguard wireguard-tools)
+    fi
+    if ! command -v iptables &> /dev/null; then
+        pkgs_needed+=(iptables)
+    fi
+    if ! command -v ip &> /dev/null; then
+        pkgs_needed+=(iproute2)
+    fi
+    if ! command -v sudo &> /dev/null; then
+        pkgs_needed+=(sudo)
+    fi
+
+    if [ ${#pkgs_needed[@]} -gt 0 ]; then
+        log "Installing missing base packages: ${pkgs_needed[*]}..."
+        if [ -f /etc/debian_version ]; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y "${pkgs_needed[@]}" || warn "Failed to install some base packages."
+        elif command -v dnf &> /dev/null || command -v yum &> /dev/null; then
+            local pm=yum
+            command -v dnf &> /dev/null && pm=dnf
+            $pm install -y epel-release 2>/dev/null || true
+            $pm install -y wireguard-tools iptables iproute sudo || warn "Failed to install some base packages."
+        fi
+    fi
+
+    # Check AmneziaWG tools
+    if ! command -v awg &> /dev/null || ! command -v awg-quick &> /dev/null; then
+        log "AmneziaWG tools not found. Installing AmneziaWG..."
+        if grep -qi ubuntu /etc/os-release 2>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y software-properties-common "linux-headers-$(uname -r)" 2>/dev/null || true
+            add-apt-repository -y ppa:amnezia/ppa
+            apt-get update -y
+            apt-get install -y amneziawg amneziawg-tools 2>/dev/null || warn "AmneziaWG package install failed."
+        elif grep -qi debian /etc/os-release 2>/dev/null; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update -y
+            apt-get install -y curl gpg "linux-headers-$(uname -r)" 2>/dev/null || true
+            curl -s --compressed "https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/dists/jammy/Release.gpg" | gpg --dearmor -o /etc/apt/trusted.gpg.d/amnezia.gpg 2>/dev/null || true
+            echo "deb https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu jammy main" > /etc/apt/sources.list.d/amnezia.list
+            apt-get update -y
+            apt-get install -y amneziawg amneziawg-tools 2>/dev/null || warn "AmneziaWG package install failed."
+        fi
+        mkdir -p /etc/amnezia/amneziawg
+        chmod 700 /etc/amnezia/amneziawg
+    else
+        log "AmneziaWG is already installed."
+    fi
+
+    # Ensure IP forwarding is enabled and persistent
+    log "Ensuring IP forwarding is enabled..."
+    cat > /etc/sysctl.d/99-vwireguard.conf <<SYSCTL
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
+SYSCTL
+    sysctl --system > /dev/null 2>&1 || sysctl -w net.ipv4.ip_forward=1 > /dev/null
+    mkdir -p /etc/wireguard
+    chmod 700 /etc/wireguard
+
+    log "Dependencies check completed."
+}
+
 # Update to latest release
 cmd_update() {
     check_root "update"
@@ -100,7 +171,10 @@ cmd_update() {
     
     log "Starting vWireguard update..."
     
-    # Detect architecture
+    # 1. Ensure system dependencies and AmneziaWG are up to date
+    cmd_install_deps
+
+    # 2. Detect architecture
     local arch=$(uname -m)
     case $arch in
         x86_64) arch="amd64" ;;
@@ -108,7 +182,7 @@ cmd_update() {
         *) error "Unsupported architecture: $arch" ;;
     esac
     
-    # Get latest release
+    # 3. Get latest release
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
     local tag=$(curl -sL "$api_url" | grep -oP '"tag_name": "\K[^"]*' | head -n1)
     
@@ -223,7 +297,8 @@ Commands:
   restart        Restart the vWireguard service (requires root)
   status         Show service status
   log [lines]    View service logs (default: 50 lines, use -f for follow)
-  update         Update to the latest release (requires root)
+  update         Update to the latest release and install dependencies (requires root)
+  install-deps   Check and install WireGuard & AmneziaWG dependencies (requires root)
   help           Show this help message
 
 Examples:
@@ -232,6 +307,7 @@ Examples:
   vwg log 100
   vwg log -f      # Follow logs
   sudo vwg update
+  sudo vwg install-deps
 
 For installation:
   bash <(curl -Ls https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/master/install.sh)
@@ -265,6 +341,9 @@ main() {
             ;;
         update|upgrade)
             cmd_update
+            ;;
+        install-deps|setup-deps)
+            cmd_install_deps
             ;;
         help|--help|-h)
             show_help

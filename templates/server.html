@@ -47,6 +47,21 @@
             </div>
 
             <form role="form" id="frm_server_interface" name="frm_server_interface" data-custom-submit="true" class="p-6 space-y-6">
+                <!-- Sync Notice & Interface Link -->
+                <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-2.5">
+                        <i class="fas fa-info-circle text-blue-500 mt-0.5 text-base shrink-0"></i>
+                        <div class="leading-relaxed">
+                            <span class="font-medium">این بخش تنظیمات هسته اینترفیس اصلی (<strong>wg0</strong>) را مدیریت می‌کند.</span>
+                            <br>آدرس‌ها و پورت به‌طور خودکار با بخش Interfaces همگام‌سازی می‌شوند. برای ساخت اینترفیس‌های ضد فیلتر (AmneziaWG) از بخش اینترفیس‌ها استفاده کنید.
+                        </div>
+                    </div>
+                    <a href="{{.basePath}}/interfaces" class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center gap-1.5 transition shadow">
+                        <i class="fas fa-network-wired"></i>
+                        <span>مدیریت اینترفیس‌ها</span>
+                    </a>
+                </div>
+
                 <!-- Server Interface Addresses -->
                 <div class="space-y-2">
                     <label for="addresses" class="block text-sm font-medium text-gray-700 dark:text-gray-300">

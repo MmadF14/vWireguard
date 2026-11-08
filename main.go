@@ -303,6 +303,7 @@ func main() {
 	app.POST(util.BasePath+"/api/interfaces/:name/apply", handler.ApplyInterfaceConfig(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/interfaces/:name/service/:action", handler.InterfaceService(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/interfaces/:name/delete", handler.DeleteInterface(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces/migrate", handler.MigrateClientsInterface(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/amneziawg/params", handler.GenerateAmneziaWGParams(), handler.ValidSession, handler.NeedsAdmin)
 
 	app.GET(util.BasePath+"/wg-server", handler.WireGuardServer(db), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"net/http"
@@ -241,6 +242,27 @@ func SaveInterface(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, err.Error()})
 		}
 
+		// If default interface (wg0) was updated, keep server record in sync
+		if iface.Name == model.DefaultInterfaceName {
+			if s, err := db.GetServer(); err == nil {
+				if s.Interface != nil {
+					s.Interface.ListenPort = iface.ListenPort
+					s.Interface.Addresses = iface.Addresses
+					s.Interface.PostUp = iface.PostUp
+					s.Interface.PreDown = iface.PreDown
+					s.Interface.PostDown = iface.PostDown
+					s.Interface.UpdatedAt = time.Now().UTC()
+					_ = db.SaveServerInterface(*s.Interface)
+				}
+				if s.KeyPair != nil && iface.PrivateKey != "" {
+					s.KeyPair.PrivateKey = iface.PrivateKey
+					s.KeyPair.PublicKey = iface.PublicKey
+					s.KeyPair.UpdatedAt = time.Now().UTC()
+					_ = db.SaveServerKeyPair(*s.KeyPair)
+				}
+			}
+		}
+
 		action := "updated"
 		if isNew {
 			action = "created"
@@ -422,5 +444,187 @@ func DeleteInterface(db store.IStore) echo.HandlerFunc {
 		}
 		log.Infof("Interface %s deleted", name)
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Interface deleted"})
+	}
+}
+
+type migrateClientsRequest struct {
+	FromInterface string   `json:"from_interface"`
+	ToInterface   string   `json:"to_interface"`
+	ClientIDs     []string `json:"client_ids,omitempty"`
+}
+
+// MigrateClientsInterface handles POST /api/interfaces/migrate
+// Moves clients from one interface to another:
+// 1. Removes peers from old interface runtime (RemovePeerFromInterface)
+// 2. Assigns free IP from new interface subnet
+// 3. Updates client JSON in database
+// 4. Hot-reloads peer onto new interface (AmneziaWG/WireGuard)
+// 5. Updates interface configuration files on disk
+func MigrateClientsInterface(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		var req migrateClientsRequest
+		if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request format"})
+		}
+
+		req.FromInterface = strings.TrimSpace(req.FromInterface)
+		req.ToInterface = strings.TrimSpace(req.ToInterface)
+
+		if req.FromInterface == "" || req.ToInterface == "" {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Both from_interface and to_interface are required"})
+		}
+
+		if req.FromInterface == req.ToInterface {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Source and destination interfaces must be different"})
+		}
+
+		// Verify destination interface exists and has configured subnets
+		toIface, err := db.GetInterface(req.ToInterface)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Destination interface %q not found", req.ToInterface)})
+		}
+		if len(toIface.Addresses) == 0 {
+			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, fmt.Sprintf("Destination interface %q has no addresses configured", req.ToInterface)})
+		}
+
+		// Fetch all clients
+		clientsData, err := db.GetClients(false)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot read clients"})
+		}
+
+		server, err := db.GetServer()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot read server config"})
+		}
+
+		settings, err := db.GetGlobalSettings()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot read global settings"})
+		}
+
+		// Find target clients to migrate
+		selectedMap := make(map[string]bool)
+		for _, id := range req.ClientIDs {
+			selectedMap[id] = true
+		}
+
+		var toMigrate []model.Client
+		for _, cd := range clientsData {
+			if cd.Client == nil {
+				continue
+			}
+			if model.InterfaceOf(cd.Client) != req.FromInterface {
+				continue
+			}
+			if len(req.ClientIDs) > 0 && !selectedMap[cd.Client.ID] {
+				continue
+			}
+			toMigrate = append(toMigrate, *cd.Client)
+		}
+
+		if len(toMigrate) == 0 {
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("No clients found on %s to migrate", req.FromInterface)})
+		}
+
+		// Get allocated IPs
+		allocatedIPs, err := util.GetAllocatedIPs("")
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot read allocated IPs"})
+		}
+
+		allocatedMap := make(map[string]bool)
+		for _, ip := range allocatedIPs {
+			allocatedMap[ip] = true
+		}
+
+		migratedCount := 0
+		var failedClients []string
+
+		for _, client := range toMigrate {
+			// 1. Remove from old interface runtime
+			if client.PublicKey != "" {
+				_ = util.RemovePeerFromInterface(client.PublicKey, req.FromInterface)
+			}
+
+			// Free old IP from allocated set
+			for _, oldIP := range client.AllocatedIPs {
+				delete(allocatedMap, oldIP)
+			}
+
+			// Rebuild active allocatedIPs list
+			curAllocated := make([]string, 0, len(allocatedMap))
+			for ip := range allocatedMap {
+				curAllocated = append(curAllocated, ip)
+			}
+
+			// 2. Allocate free IP from new interface subnet
+			newIP, err := util.GetAvailableIP(toIface.Addresses[0], curAllocated, toIface.Addresses)
+			if err != nil {
+				log.Errorf("Failed to allocate IP for client %s on %s: %v", client.Name, req.ToInterface, err)
+				failedClients = append(failedClients, fmt.Sprintf("%s (no IP available)", client.Name))
+				// re-add old IP back
+				for _, oldIP := range client.AllocatedIPs {
+					allocatedMap[oldIP] = true
+				}
+				continue
+			}
+
+			// Format CIDR
+			var formattedIP string
+			if strings.Contains(newIP, ":") {
+				formattedIP = fmt.Sprintf("%s/128", newIP)
+			} else {
+				formattedIP = fmt.Sprintf("%s/32", newIP)
+			}
+
+			allocatedMap[formattedIP] = true
+
+			// 3. Update client model and save
+			client.AllocatedIPs = []string{formattedIP}
+			client.Interface = req.ToInterface
+			client.UpdatedAt = time.Now().UTC()
+
+			if err := db.SaveClient(client); err != nil {
+				log.Errorf("Failed to save migrated client %s: %v", client.Name, err)
+				failedClients = append(failedClients, fmt.Sprintf("%s (db save error)", client.Name))
+				continue
+			}
+
+			// 4. Hot-reload to destination interface
+			if client.Enabled && util.IsClientValid(client) {
+				if err := util.AddPeerToInterface(client, server, settings, req.ToInterface); err != nil {
+					log.Warnf("Failed to hot-reload peer %s to %s: %v", client.Name, req.ToInterface, err)
+				}
+			}
+
+			migratedCount++
+		}
+
+		// 5. Update interface configuration files on disk
+		if updatedClients, err := db.GetClients(false); err == nil {
+			if users, err := db.GetUsers(); err == nil {
+				// Re-render source interface config
+				if fromIface, err := db.GetInterface(req.FromInterface); err == nil {
+					fromPeers := util.ClientsForInterface(updatedClients, fromIface.Name)
+					_ = util.WriteWireGuardInterfaceConfig(tmplDir, fromIface, fromPeers, users, settings)
+				}
+				// Re-render target interface config
+				toPeers := util.ClientsForInterface(updatedClients, toIface.Name)
+				_ = util.WriteWireGuardInterfaceConfig(tmplDir, toIface, toPeers, users, settings)
+			}
+		}
+
+		msg := fmt.Sprintf("Successfully migrated %d client(s) from %s to %s", migratedCount, req.FromInterface, req.ToInterface)
+		if len(failedClients) > 0 {
+			msg += fmt.Sprintf(" (Failed: %s)", strings.Join(failedClients, ", "))
+		}
+		log.Infof(msg)
+
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"success":        len(failedClients) == 0 || migratedCount > 0,
+			"message":        msg,
+			"migrated_count": migratedCount,
+		})
 	}
 }

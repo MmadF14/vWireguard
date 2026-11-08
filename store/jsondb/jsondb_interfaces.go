@@ -49,6 +49,24 @@ func (o *JsonDB) ensureInterfacesMigrated() error {
 
 	records, err := o.conn.ReadAll(interfacesCollection)
 	if err == nil && len(records) > 0 {
+		// Keep default interface (wg0) synchronized with legacy server record (e.g. ListenPort / Addresses)
+		if server, err := o.GetServer(); err == nil && server.Interface != nil && server.Interface.ListenPort > 0 {
+			var wg0 model.WGInterface
+			if err := o.conn.Read(interfacesCollection, model.DefaultInterfaceName, &wg0); err == nil {
+				changed := false
+				if server.Interface.ListenPort > 0 && wg0.ListenPort != server.Interface.ListenPort {
+					wg0.ListenPort = server.Interface.ListenPort
+					changed = true
+				}
+				if len(server.Interface.Addresses) > 0 && (len(wg0.Addresses) == 0 || wg0.Addresses[0] != server.Interface.Addresses[0]) {
+					wg0.Addresses = server.Interface.Addresses
+					changed = true
+				}
+				if changed {
+					_ = o.SaveInterface(wg0)
+				}
+			}
+		}
 		return nil // already migrated
 	}
 
