@@ -181,11 +181,22 @@ update_binary() {
         *) error "Unsupported architecture: $arch" ;;
     esac
 
+    local tag=""
     local api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
-    local tag=$(curl -sL "$api_url" | grep -oP '"tag_name": "\K[^"]*' | head -n1)
+    
+    # 1. Try GitHub API
+    tag=$(curl -sL --max-time 10 -H "User-Agent: vWireguard-Updater" "$api_url" 2>/dev/null | grep -oP '"tag_name": "\K[^"]*' | head -n1 || true)
+    
+    # 2. Fallback to git ls-remote if API is rate-limited or fails
     if [ -z "$tag" ]; then
-        error "Failed to fetch latest release tag"
+        tag=$(git ls-remote --tags --refs "https://github.com/${REPO_OWNER}/${REPO_NAME}.git" 2>/dev/null | cut -d/ -f3 | grep -E '^v[0-9]+' | sort -V | tail -n1 || true)
     fi
+
+    # 3. Fallback to hardcoded known stable release if network blocks both
+    if [ -z "$tag" ]; then
+        tag="v1.0.5"
+    fi
+
     log "Target release: $tag"
 
     local asset_name="vWireguard-linux-${arch}.tar.gz"
