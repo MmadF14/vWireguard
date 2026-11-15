@@ -35,40 +35,67 @@
     </div>
     
         <!-- Search and Filter Row -->
-        <div class="mb-6 grid grid-cols-1 md:grid-cols-8 gap-4 hidden" id="search-form">
-            <div class="md:col-span-5">
-                <div class="relative">
+        <div class="mb-6 bg-white dark:bg-dark-800 rounded-2xl shadow-soft border border-gray-200 dark:border-dark-700 p-4" id="search-form">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+                <!-- Search input -->
+                <div class="sm:col-span-2 lg:col-span-5 relative">
                     <span class="absolute inset-y-0 left-0 rtl:left-auto rtl:right-0 flex items-center pl-3 rtl:pl-0 rtl:pr-3 text-gray-400">
                         <i class="fas fa-search"></i>
                     </span>
-                    <input type="text" id="search-input" class="block w-full pl-10 rtl:pl-3 rtl:pr-10 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" placeholder="Search clients..." data-translate-placeholder="Search clients...">
-    </div>
-</div>
-            <div class="md:col-span-3">
-
-                <select id="status-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-
-                <select id="status-selector" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-
-                    <option value="All" data-translate="All">All</option>
-                    <option value="Enabled" data-translate="Enabled">Enabled</option>
-                    <option value="Disabled" data-translate="Disabled">Disabled</option>
-                    <option value="Connected" data-translate="Connected">Connected</option>
-                    <option value="Disconnected" data-translate="Disconnected">Disconnected</option>
-                </select>
-            </div>
+                    <input type="text" id="search-input" class="block w-full pl-10 rtl:pl-3 rtl:pr-10 pr-9 rtl:pr-3 rtl:pl-9 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition" placeholder="Search by name, email, IP, interface, notes..." data-translate-placeholder="Search clients...">
+                    <button type="button" id="clear-search-btn" class="hidden absolute inset-y-0 right-0 rtl:right-auto rtl:left-0 flex items-center pr-3 rtl:pr-0 rtl:pl-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="fas fa-times-circle"></i>
+                    </button>
                 </div>
+
+                <!-- Status filter -->
+                <div class="sm:col-span-1 lg:col-span-3">
+                    <select id="status-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
+                        <option value="All" data-translate="All Statuses">All Statuses</option>
+                        <option value="Enabled" data-translate="Enabled">Enabled</option>
+                        <option value="Disabled" data-translate="Disabled">Disabled</option>
+                        <option value="Connected" data-translate="Connected">Connected (Online)</option>
+                        <option value="Disconnected" data-translate="Disconnected">Disconnected (Offline)</option>
+                    </select>
+                </div>
+
+                <!-- Interface filter -->
+                <div class="sm:col-span-1 lg:col-span-2">
+                    <select id="interface-filter" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
+                        <option value="All" data-translate="All Interfaces">All Interfaces</option>
+                    </select>
+                </div>
+
+                <!-- Per Page (Limit) selector -->
+                <div class="sm:col-span-2 lg:col-span-2">
+                    <select id="page-size-selector" class="block w-full px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-xl bg-gray-50 dark:bg-dark-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
+                        <option value="20">20 / page</option>
+                        <option value="50">50 / page</option>
+                        <option value="100">100 / page</option>
+                        <option value="all" data-translate="All (No limit)">All (No limit)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
                 
         <div id="loading-state" class="hidden flex flex-col items-center py-10">
             <i class="fas fa-spinner fa-spin text-gray-500 text-xl"></i>
             <span class="mt-2 text-gray-500 dark:text-gray-400" data-translate="Loading...">Loading...</span>
-            </div>
+        </div>
         <div id="empty-state" class="hidden text-center py-10">
             <span class="text-gray-500 dark:text-gray-400" data-translate="No clients found">No clients found</span>
-    </div>
+        </div>
     
         <div id="clients-container" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-    </div>
+        </div>
+
+        <!-- Pagination Row -->
+        <div id="pagination-container" class="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 py-4 border-t border-gray-200 dark:border-dark-700 hidden">
+            <div id="pagination-info" class="text-sm text-gray-600 dark:text-gray-400">
+            </div>
+            <div id="pagination-controls" class="flex items-center space-x-1.5 rtl:space-x-reverse flex-wrap gap-y-1">
+            </div>
+        </div>
         <!-- /.row -->
 </div>
 </section>
@@ -418,6 +445,8 @@
 // Global variables
 let clients = [];
 let filteredClients = [];
+let currentPage = 1;
+let pageSize = 20; // 20, 50, 100, or 'all'
 let autoRefreshInterval = null;
 let isLoading = false;
 
@@ -425,10 +454,9 @@ let isLoading = false;
 const clientsContainer = document.getElementById('clients-container');
 const loadingState = document.getElementById('loading-state');
 const emptyState = document.getElementById('empty-state');
-const searchInput = document.getElementById('search-input');
-const statusFilter = document.getElementById('status-filter');
-const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
-const refreshBtn = document.getElementById('refresh-status-btn');
+const paginationContainer = document.getElementById('pagination-container');
+const paginationInfo = document.getElementById('pagination-info');
+const paginationControls = document.getElementById('pagination-controls');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
@@ -438,18 +466,93 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Bind events
 function bindEvents() {
-    if (searchInput) searchInput.addEventListener('input', debounce(filterClients, 300));
-    if (statusFilter) statusFilter.addEventListener('change', filterClients);
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+    const statusFilter = document.getElementById('status-filter');
+    const interfaceFilter = document.getElementById('interface-filter');
+    const pageSizeSelector = document.getElementById('page-size-selector');
+    const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+    const refreshBtn = document.getElementById('refresh-status-btn');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            if (clearSearchBtn) {
+                clearSearchBtn.classList.toggle('hidden', !this.value);
+            }
+            debounce(function() {
+                currentPage = 1;
+                filterClients();
+            }, 250)();
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                clearSearchBtn.classList.add('hidden');
+                currentPage = 1;
+                filterClients();
+                searchInput.focus();
+            }
+        });
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            currentPage = 1;
+            filterClients();
+        });
+    }
+
+    if (interfaceFilter) {
+        interfaceFilter.addEventListener('change', function() {
+            currentPage = 1;
+            filterClients();
+        });
+    }
+
+    if (pageSizeSelector) {
+        pageSizeSelector.addEventListener('change', function() {
+            const val = this.value;
+            pageSize = val === 'all' ? 'all' : (parseInt(val, 10) || 20);
+            currentPage = 1;
+            renderClients();
+        });
+    }
+
     if (autoRefreshToggle) autoRefreshToggle.addEventListener('change', toggleAutoRefresh);
-    if (refreshBtn) refreshBtn.addEventListener('click', loadClients);
+    if (refreshBtn) refreshBtn.addEventListener('click', () => loadClients(true));
+}
+
+// Populate interface filter dropdown
+function populateInterfaceFilter() {
+    const sel = document.getElementById('interface-filter');
+    if (!sel) return;
+    const currentVal = sel.value || 'All';
+    const ifaces = new Set();
+    clients.forEach(c => {
+        const cd = c.Client || c;
+        if (cd && cd.interface) ifaces.add(cd.interface);
+    });
+    if (ifaces.size === 0) ifaces.add('wg0');
+
+    let html = '<option value="All" data-translate="All Interfaces">All Interfaces</option>';
+    Array.from(ifaces).sort().forEach(iface => {
+        html += `<option value="${iface}">${iface}</option>`;
+    });
+    sel.innerHTML = html;
+    if (Array.from(ifaces).includes(currentVal) || currentVal === 'All') {
+        sel.value = currentVal;
+    }
 }
 
 // Load clients from server
-async function loadClients() {
+async function loadClients(manualRefresh = false) {
     if (isLoading) return;
     
     isLoading = true;
-    showLoading();
+    if (!clients.length) showLoading();
     
     try {
         const response = await fetch(`${basePath}/api/clients`);
@@ -463,8 +566,11 @@ async function loadClients() {
             } else {
                 clients = data || [];
             }
-            filteredClients = [...clients];
-            renderClients();
+            populateInterfaceFilter();
+            filterClients(true); // keep current page on refresh
+            if (manualRefresh) {
+                showSuccess('Client status updated');
+            }
         } else {
             throw new Error('Failed to load clients');
         }
@@ -482,6 +588,7 @@ function showLoading() {
     if (loadingState) loadingState.classList.remove('hidden');
     if (clientsContainer) clientsContainer.classList.add('hidden');
     if (emptyState) emptyState.classList.add('hidden');
+    if (paginationContainer) paginationContainer.classList.add('hidden');
 }
 
 // Hide loading state
@@ -491,46 +598,182 @@ function hideLoading() {
 }
 
 // Filter clients
-function filterClients() {
-    if (!searchInput || !statusFilter) return;
-    
-    const searchTerm = searchInput.value.toLowerCase();
-    const statusFilterValue = statusFilter.value;
-    
+function filterClients(keepPage = false) {
+    const searchInput = document.getElementById('search-input');
+    const statusFilter = document.getElementById('status-filter');
+    const interfaceFilter = document.getElementById('interface-filter');
+
+    const searchTerm = (searchInput ? searchInput.value : '').toLowerCase().trim();
+    const statusVal = statusFilter ? statusFilter.value : 'All';
+    const ifaceVal = interfaceFilter ? interfaceFilter.value : 'All';
+
     filteredClients = clients.filter(client => {
         const clientData = client.Client || client; // Handle both formats
-        const matchesSearch = clientData.name.toLowerCase().includes(searchTerm) ||
-                             (clientData.email && clientData.email.toLowerCase().includes(searchTerm)) ||
-                             (clientData.allocated_ips && clientData.allocated_ips.some(ip => ip.includes(searchTerm)));
-        
-        const matchesStatus = statusFilterValue === 'All' || 
-                             statusFilterValue === 'all' ||
-                             (statusFilterValue === 'Enabled' && clientData.enabled) ||
-                             (statusFilterValue === 'Disabled' && !clientData.enabled) ||
-                             (statusFilterValue === 'Connected' && clientData.status === 'online') ||
-                             (statusFilterValue === 'Disconnected' && clientData.status !== 'online');
-        
-        return matchesSearch && matchesStatus;
+
+        // Search matches Name, Email, Allocated IPs, Interface, Telegram userid, Notes, Endpoint
+        let matchesSearch = true;
+        if (searchTerm) {
+            const nameMatch = (clientData.name || '').toLowerCase().includes(searchTerm);
+            const emailMatch = (clientData.email || '').toLowerCase().includes(searchTerm);
+            const ipMatch = (clientData.allocated_ips || []).some(ip => ip.toLowerCase().includes(searchTerm));
+            const ifaceMatch = (clientData.interface || 'wg0').toLowerCase().includes(searchTerm);
+            const notesMatch = (clientData.additional_notes || '').toLowerCase().includes(searchTerm);
+            const tgMatch = (clientData.telegram_userid || '').toLowerCase().includes(searchTerm);
+            const endpointMatch = (clientData.endpoint || '').toLowerCase().includes(searchTerm);
+            matchesSearch = nameMatch || emailMatch || ipMatch || ifaceMatch || notesMatch || tgMatch || endpointMatch;
+        }
+
+        // Status matching
+        let matchesStatus = true;
+        if (statusVal !== 'All' && statusVal !== 'all') {
+            const isOnline = clientData.status === 'online' || (clientData.last_handshake && (Date.now() - new Date(clientData.last_handshake).getTime()) < 180000);
+            if (statusVal === 'Enabled') matchesStatus = !!clientData.enabled;
+            else if (statusVal === 'Disabled') matchesStatus = !clientData.enabled;
+            else if (statusVal === 'Connected') matchesStatus = isOnline;
+            else if (statusVal === 'Disconnected') matchesStatus = !isOnline;
+        }
+
+        // Interface matching
+        let matchesInterface = true;
+        if (ifaceVal !== 'All' && ifaceVal !== 'all') {
+            const clientIface = clientData.interface || 'wg0';
+            matchesInterface = (clientIface === ifaceVal);
+        }
+
+        return matchesSearch && matchesStatus && matchesInterface;
     });
-    
+
+    if (!keepPage) {
+        currentPage = 1;
+    }
     renderClients();
 }
 
 // Render clients
 function renderClients() {
-    if (!clientsContainer) return;
-    
-    if (filteredClients.length === 0) {
-        clientsContainer.classList.add('hidden');
-        if (emptyState) emptyState.classList.remove('hidden');
-                return;
-            }
+    const container = document.getElementById('clients-container');
+    const empty = document.getElementById('empty-state');
+    const pagContainer = document.getElementById('pagination-container');
+    if (!container) return;
 
-    clientsContainer.classList.remove('hidden');
-    if (emptyState) emptyState.classList.add('hidden');
-    
-    clientsContainer.innerHTML = filteredClients.map(client => createClientCard(client)).join('');
+    if (filteredClients.length === 0) {
+        container.classList.add('hidden');
+        if (empty) empty.classList.remove('hidden');
+        if (pagContainer) pagContainer.classList.add('hidden');
+        return;
+    }
+
+    container.classList.remove('hidden');
+    if (empty) empty.classList.add('hidden');
+
+    const total = filteredClients.length;
+    let paginatedClients = filteredClients;
+    let totalPages = 1;
+    let startIdx = 0;
+    let endIdx = total;
+
+    if (pageSize !== 'all') {
+        const limit = parseInt(pageSize, 10) || 20;
+        totalPages = Math.ceil(total / limit) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+        startIdx = (currentPage - 1) * limit;
+        endIdx = Math.min(startIdx + limit, total);
+        paginatedClients = filteredClients.slice(startIdx, endIdx);
+    } else {
+        currentPage = 1;
+    }
+
+    container.innerHTML = paginatedClients.map(client => createClientCard(client)).join('');
+    renderPagination(total, totalPages, startIdx, endIdx);
 }
+
+// Render pagination
+function renderPagination(total, totalPages, startIdx, endIdx) {
+    const container = document.getElementById('pagination-container');
+    const info = document.getElementById('pagination-info');
+    const controls = document.getElementById('pagination-controls');
+    if (!container || !info || !controls) return;
+
+    container.classList.remove('hidden');
+
+    if (pageSize === 'all' || total <= (parseInt(pageSize, 10) || 20)) {
+        info.innerHTML = `Showing all <span class="font-semibold text-gray-900 dark:text-white">${total}</span> clients`;
+    } else {
+        info.innerHTML = `Showing <span class="font-semibold text-gray-900 dark:text-white">${startIdx + 1}</span> to <span class="font-semibold text-gray-900 dark:text-white">${endIdx}</span> of <span class="font-semibold text-gray-900 dark:text-white">${total}</span> clients`;
+    }
+
+    if (pageSize === 'all' || totalPages <= 1) {
+        controls.innerHTML = '';
+        return;
+    }
+
+    let html = '';
+
+    // Previous Button
+    const prevDisabled = currentPage <= 1;
+    html += `
+        <button type="button" onclick="goToPage(${currentPage - 1})" ${prevDisabled ? 'disabled' : ''}
+                class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-600 disabled:opacity-40 disabled:cursor-not-allowed transition" title="Previous Page">
+            <i class="fas fa-chevron-left rtl:rotate-180"></i>
+        </button>
+    `;
+
+    // Page Buttons
+    const pages = getPaginationPages(currentPage, totalPages);
+    for (const p of pages) {
+        if (p === '...') {
+            html += `<span class="px-2 py-1 text-xs sm:text-sm text-gray-400 select-none">...</span>`;
+        } else {
+            const isActive = p === currentPage;
+            const btnCls = isActive
+                ? 'bg-primary-600 text-white border-primary-600 shadow-sm font-semibold'
+                : 'bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-dark-600 hover:bg-gray-50 dark:hover:bg-dark-600';
+            html += `
+                <button type="button" onclick="goToPage(${p})"
+                        class="min-w-[32px] px-2.5 py-1.5 text-xs sm:text-sm rounded-xl border transition ${btnCls}">
+                    ${p}
+                </button>
+            `;
+        }
+    }
+
+    // Next Button
+    const nextDisabled = currentPage >= totalPages;
+    html += `
+        <button type="button" onclick="goToPage(${currentPage + 1})" ${nextDisabled ? 'disabled' : ''}
+                class="px-3 py-1.5 text-xs sm:text-sm font-medium rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-600 disabled:opacity-40 disabled:cursor-not-allowed transition" title="Next Page">
+            <i class="fas fa-chevron-right rtl:rotate-180"></i>
+        </button>
+    `;
+
+    controls.innerHTML = html;
+}
+
+function getPaginationPages(current, total) {
+    if (total <= 7) {
+        const arr = [];
+        for (let i = 1; i <= total; i++) arr.push(i);
+        return arr;
+    }
+    if (current <= 3) {
+        return [1, 2, 3, 4, '...', total];
+    }
+    if (current >= total - 2) {
+        return [1, '...', total - 3, total - 2, total - 1, total];
+    }
+    return [1, '...', current - 1, current, current + 1, '...', total];
+}
+
+window.goToPage = function(page) {
+    if (page < 1) return;
+    const limit = pageSize === 'all' ? filteredClients.length : (parseInt(pageSize, 10) || 20);
+    const totalPages = Math.ceil(filteredClients.length / limit) || 1;
+    if (page > totalPages) return;
+    currentPage = page;
+    renderClients();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 // Create client card HTML
 function createClientCard(client) {
@@ -707,37 +950,6 @@ function showError(message) {
 
 // Global base path
 const basePath = '{{.basePath}}';
-
-// Apply config function
-window.applyConfig = function() {
-    showConfirmation(
-        'Apply WireGuard Config',
-        'Are you sure you want to apply the WireGuard configuration? This will restart the service.',
-        () => {
-            showInfo('Applying configuration...');
-            fetch(`${basePath}/api/apply`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showSuccess('Configuration applied successfully');
-                        } else {
-                    showError(data.message || 'Failed to apply configuration');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showError('Failed to apply configuration');
-            });
-        },
-        'Apply',
-        'confirm'
-    );
-};
 
 // Fill the interface dropdown from /api/interfaces and preselect `selected`.
 // Falls back to a single wg0 entry if the list cannot be fetched, so editing a

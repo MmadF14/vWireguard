@@ -60,11 +60,20 @@ const translations = {
         
         // Search
         "Search": "Search",
+        "Search clients...": "Search clients...",
         "All": "All",
+        "All Statuses": "All Statuses",
+        "All Interfaces": "All Interfaces",
+        "All (No limit)": "All (No limit)",
         "Enabled": "Enabled",
         "Disabled": "Disabled",
         "Connected": "Connected",
         "Disconnected": "Disconnected",
+        "Migrate Clients": "Migrate Clients",
+        "Migrate Clients to Another Interface": "Migrate Clients to Another Interface",
+        "From Interface": "From Interface",
+        "To Interface": "To Interface",
+        "Start Migration": "Start Migration",
         
         // Utility Page
         "System Utilities": "System Utilities",
@@ -437,11 +446,20 @@ const translations = {
         
         // Search
         "Search": "جستجو",
+        "Search clients...": "جستجوی کلاینت‌ها...",
         "All": "همه",
+        "All Statuses": "همه وضعیت‌ها",
+        "All Interfaces": "همه اینترفیس‌ها",
+        "All (No limit)": "همه (بدون محدودیت)",
         "Enabled": "فعال",
         "Disabled": "غیرفعال",
         "Connected": "متصل",
         "Disconnected": "قطع",
+        "Migrate Clients": "انتقال کاربران",
+        "Migrate Clients to Another Interface": "انتقال کاربران به اینترفیس دیگر",
+        "From Interface": "اینترفیس مبدا",
+        "To Interface": "اینترفیس مقصد",
+        "Start Migration": "شروع انتقال",
         
         // Utility Page
         "System Utilities": "ابزارهای سیستم",

@@ -298,7 +298,7 @@ func main() {
 	app.GET(util.BasePath+"/interfaces", handler.InterfacesPage(), handler.ValidSession, handler.RefreshSession, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/interfaces", handler.GetInterfaces(db), handler.ValidSession, handler.NeedsAdmin)
 	app.GET(util.BasePath+"/api/interfaces/:name", handler.GetInterface(db), handler.ValidSession, handler.NeedsAdmin)
-	app.POST(util.BasePath+"/api/interfaces", handler.SaveInterface(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
+	app.POST(util.BasePath+"/api/interfaces", handler.SaveInterface(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/interfaces/apply-all", handler.ApplyAllInterfaceConfigs(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/interfaces/:name/apply", handler.ApplyInterfaceConfig(db, tmplDir), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)
 	app.POST(util.BasePath+"/api/interfaces/:name/service/:action", handler.InterfaceService(db), handler.ValidSession, handler.ContentTypeJson, handler.NeedsAdmin)

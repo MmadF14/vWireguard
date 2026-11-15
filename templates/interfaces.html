@@ -28,10 +28,7 @@
         </div>
         <div class="flex flex-wrap gap-2">
             <button onclick="openMigrateModal()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition shadow flex items-center">
-                <i class="fas fa-exchange-alt mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Migrate Clients">انتقال کاربران</span>
-            </button>
-            <button onclick="applyAll()" class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-dark-600 transition">
-                <i class="fas fa-bolt mr-2"></i><span data-translate="Apply all">Apply all</span>
+                <i class="fas fa-exchange-alt mr-2 rtl:mr-0 rtl:ml-2"></i><span data-translate="Migrate Clients">Migrate Clients</span>
             </button>
             <button onclick="openInterfaceModal()" class="px-4 py-2 rounded-xl bg-primary-600 text-white hover:bg-primary-700 transition shadow">
                 <i class="fas fa-plus mr-2"></i><span data-translate="New interface">New interface</span>
@@ -274,7 +271,7 @@
         <div class="px-6 py-4 border-b border-gray-200 dark:border-dark-700 flex items-center justify-between">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                 <i class="fas fa-exchange-alt text-amber-500"></i>
-                <span data-translate="Migrate Clients to Another Interface">انتقال کاربران به اینترفیس دیگر</span>
+                <span data-translate="Migrate Clients to Another Interface">Migrate Clients to Another Interface</span>
             </h3>
             <button onclick="closeMigrateModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                 <i class="fas fa-times"></i>
@@ -283,7 +280,7 @@
         <div class="p-6 space-y-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <span data-translate="From Interface">اینترفیس مبدا</span>
+                    <span data-translate="From Interface">From Interface</span>
                 </label>
                 <select id="m-from-iface" onchange="updateMigrateSourceInfo()"
                         class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
@@ -292,7 +289,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <span data-translate="To Interface">اینترفیس مقصد</span>
+                    <span data-translate="To Interface">To Interface</span>
                 </label>
                 <select id="m-to-iface"
                         class="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white">
@@ -301,14 +298,14 @@
             <div class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
                 <i class="fas fa-info-circle text-amber-500 mt-0.5 text-sm"></i>
                 <div class="leading-relaxed">
-                    کاربران از هسته اینترفیس مبدا خارج شده، آی‌پی آزاد در ساب‌نت مقصد دریافت می‌کنند، فایل کلاینت‌ها ذخیره شده و بلافاصله روی اینترفیس مقصد فعال (Hot-Reload) می‌شوند.
+                    Clients will be moved from the source interface, allocated new free IPs in the destination subnet, their configs updated, and immediately hot-reloaded onto the destination interface.
                 </div>
             </div>
         </div>
         <div class="px-6 py-4 bg-gray-50 dark:bg-dark-900/40 border-t border-gray-200 dark:border-dark-700 flex justify-end gap-3">
-            <button onclick="closeMigrateModal()" class="px-4 py-2 text-sm rounded-xl bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300">انصراف</button>
+            <button onclick="closeMigrateModal()" class="px-4 py-2 text-sm rounded-xl bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300" data-translate="Cancel">Cancel</button>
             <button id="btn-do-migrate" onclick="doMigrate()" class="px-4 py-2 text-sm rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-medium flex items-center gap-2 shadow">
-                <i class="fas fa-exchange-alt"></i><span>شروع انتقال</span>
+                <i class="fas fa-exchange-alt"></i><span data-translate="Start Migration">Start Migration</span>
             </button>
         </div>
     </div>
@@ -388,16 +385,13 @@ async function loadInterfaces() {
                 </div>
 
                 <div class="px-5 py-3 bg-gray-50 dark:bg-dark-900/40 flex flex-wrap gap-2">
-                    <button onclick="applyOne('${esc(i.name)}')" class="px-3 py-1.5 text-sm rounded-lg bg-primary-600 text-white hover:bg-primary-700">
-                        <i class="fas fa-bolt mr-1"></i>Apply
-                    </button>
                     <button onclick="svc('${esc(i.name)}','restart')" class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">Restart</button>
                     <button onclick="svc('${esc(i.name)}','${i.running ? 'stop' : 'start'}')" class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">${i.running ? 'Stop' : 'Start'}</button>
                     <button onclick="svc('${esc(i.name)}','${i.enabled_at_boot ? 'disable' : 'enable'}')" class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">
                         ${i.enabled_at_boot ? 'Disable at boot' : 'Enable at boot'}
                     </button>
                     <button onclick='editInterface(${JSON.stringify(i).replace(/'/g, "&#39;")})' class="px-3 py-1.5 text-sm rounded-lg bg-gray-200 dark:bg-dark-700 text-gray-800 dark:text-gray-100">Edit</button>
-                    <button onclick="openMigrateModal('${esc(i.name)}')" class="px-3 py-1.5 text-sm rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 hover:bg-amber-200"><i class="fas fa-exchange-alt mr-1"></i>انتقال</button>
+                    <button onclick="openMigrateModal('${esc(i.name)}')" class="px-3 py-1.5 text-sm rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 hover:bg-amber-200"><i class="fas fa-exchange-alt mr-1"></i>Migrate</button>
                     <button onclick="removeInterface('${esc(i.name)}')" class="px-3 py-1.5 text-sm rounded-lg bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">Delete</button>
                 </div>
             </div>
@@ -579,7 +573,7 @@ function notify(ok, msg) {
 function openMigrateModal(preselectedFrom) {
     const list = window.__currentInterfaces || [];
     if (list.length < 2) {
-        return notify(false, 'برای انتقال حداقل به ۲ اینترفیس نیاز دارید.');
+        return notify(false, 'At least 2 interfaces are required to migrate clients.');
     }
     const fromSel = document.getElementById('m-from-iface');
     const toSel = document.getElementById('m-to-iface');
@@ -589,7 +583,7 @@ function openMigrateModal(preselectedFrom) {
     list.forEach(i => {
         const opt1 = document.createElement('option');
         opt1.value = i.name;
-        opt1.textContent = `${i.name} (${i.client_count || 0} کاربر) - ${i.type || 'wireguard'}`;
+        opt1.textContent = `${i.name} (${i.client_count || 0} clients) - ${i.type || 'wireguard'}`;
         if (preselectedFrom && i.name === preselectedFrom) opt1.selected = true;
         fromSel.appendChild(opt1);
 
@@ -618,7 +612,7 @@ function updateMigrateSourceInfo() {
     const iface = (window.__currentInterfaces || []).find(i => i.name === fromVal);
     const countEl = document.getElementById('m-source-count');
     if (iface) {
-        countEl.textContent = `تعداد کل کاربران روی این اینترفیس: ${iface.client_count || 0} کاربر`;
+        countEl.textContent = `Total clients on this interface: ${iface.client_count || 0} clients`;
     }
 }
 
@@ -627,20 +621,20 @@ async function doMigrate() {
     const toIface = document.getElementById('m-to-iface').value;
 
     if (!fromIface || !toIface) {
-        return notify(false, 'لطفاً هر دو اینترفیس مبدا و مقصد را انتخاب کنید.');
+        return notify(false, 'Please select both source and destination interfaces.');
     }
     if (fromIface === toIface) {
-        return notify(false, 'اینترفیس مبدا و مقصد نمی‌توانند یکسان باشند.');
+        return notify(false, 'Source and destination interfaces must be different.');
     }
 
-    if (!confirm(`آیا مطمئن هستید که می‌خواهید تمام کاربران اینترفیس ${fromIface} را به ${toIface} منتقل کنید؟\nاین عملیات آی‌پی کلاینت‌ها را به‌روز کرده و بلافاصله آن‌ها را روی اینترفیس جدید فعال می‌کند.`)) {
+    if (!confirm(`Are you sure you want to migrate all clients from interface ${fromIface} to ${toIface}?\nThis will update client IPs and activate them immediately on the new interface.`)) {
         return;
     }
 
     const btn = document.getElementById('btn-do-migrate');
     const origText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> در حال انتقال...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Migrating...';
 
     try {
         const res = await fetch(BASE + '/api/interfaces/migrate', {
@@ -650,14 +644,14 @@ async function doMigrate() {
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && data.success !== false) {
-            notify(true, data.message || 'انتقال کاربران با موفقیت انجام شد');
+            notify(true, data.message || 'Clients migrated successfully');
             closeMigrateModal();
             loadInterfaces();
         } else {
-            notify(false, data.message || 'خطا در انتقال کاربران');
+            notify(false, data.message || 'Failed to migrate clients');
         }
     } catch (e) {
-        notify(false, 'خطای ارتباط با سرور: ' + e.message);
+        notify(false, 'Network error: ' + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = origText;

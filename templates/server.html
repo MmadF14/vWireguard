@@ -47,58 +47,6 @@
             </div>
 
             <form role="form" id="frm_server_interface" name="frm_server_interface" data-custom-submit="true" class="p-6 space-y-6">
-                <!-- Sync Notice & Interface Link -->
-                <div class="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs text-blue-800 dark:text-blue-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div class="flex items-start gap-2.5">
-                        <i class="fas fa-info-circle text-blue-500 mt-0.5 text-base shrink-0"></i>
-                        <div class="leading-relaxed">
-                            <span class="font-medium">این بخش تنظیمات هسته اینترفیس اصلی (<strong>wg0</strong>) را مدیریت می‌کند.</span>
-                            <br>آدرس‌ها و پورت به‌طور خودکار با بخش Interfaces همگام‌سازی می‌شوند. برای ساخت اینترفیس‌های ضد فیلتر (AmneziaWG) از بخش اینترفیس‌ها استفاده کنید.
-                        </div>
-                    </div>
-                    <a href="{{.basePath}}/interfaces" class="shrink-0 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center gap-1.5 transition shadow">
-                        <i class="fas fa-network-wired"></i>
-                        <span>مدیریت اینترفیس‌ها</span>
-                    </a>
-                </div>
-
-                <!-- Server Interface Addresses -->
-                <div class="space-y-2">
-                    <label for="addresses" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-map-marker-alt mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Server Interface Addresses">Server Interface Addresses</span>
-                    </label>
-                    <div class="relative">
-                        <input type="text" 
-                               data-role="tagsinput" 
-                               id="addresses" 
-                               value=""
-                               class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
-                    </div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Enter IP addresses for the server interface">Enter IP addresses for the server interface</span>
-                    </p>
-                </div>
-
-                <!-- Listen Port -->
-                <div class="space-y-2">
-                    <label for="listen_port" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <i class="fas fa-door-open mr-2 rtl:mr-0 rtl:ml-2 text-gray-400"></i>
-                        <span data-translate="Listen Port">Listen Port</span>
-                    </label>
-                    <input type="text" 
-                           id="listen_port" 
-                           name="listen_port"
-                           placeholder="51820"
-                           value="{{ .serverInterface.ListenPort }}"
-                           class="w-full px-4 py-3 border border-gray-300 dark:border-dark-600 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-info-circle mr-1 rtl:mr-0 rtl:ml-1"></i>
-                        <span data-translate="Port number for WireGuard to listen on (1-65535)">Port number for WireGuard to listen on (1-65535)</span>
-                    </p>
-                </div>
-
                 <!-- Post Up Script -->
                 <div class="space-y-2">
                     <label for="post_up" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -370,10 +318,6 @@ document.addEventListener('keydown', function(e) {
             });
         }
         
-        const addresses = $("#addresses").val()
-            .split(',')
-            .filter(a => a.trim() !== '');
-        const listen_port = parseInt($("#listen_port").val(), 10);
         const post_up = $("#post_up").val();
         const pre_down = $("#pre_down").val();
         const post_down = $("#post_down").val();
@@ -381,7 +325,7 @@ document.addEventListener('keydown', function(e) {
         const check_interval = parseInt(check_interval_val, 10);
         // Make sure check_interval is valid, default to 1 if not
         const final_check_interval = isNaN(check_interval) ? 1 : check_interval;
-        const data = {"addresses": addresses, "listen_port": listen_port, "post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": final_check_interval};
+        const data = {"post_up": post_up, "pre_down": pre_down, "post_down": post_down, "check_interval": final_check_interval};
 
         if (window.DEBUG) console.log('Submitting server interface data:', data);
         if (window.DEBUG) console.log('Check interval raw value:', check_interval_val);
@@ -463,22 +407,9 @@ document.addEventListener('keydown', function(e) {
     }
 </script>
 <script>
-    // Wireguard Interface Addresses tag input
-    $(document).ready(function() {
-        if (window.DEBUG) console.log('Document ready - initializing tags input');
-        
-        $("#addresses").tagsInput({
-            'width': '100%',
-            // 'height': '75%',
-            'interactive': true,
-            'defaultText': window.langManager.translate('Add More'),
-            'removeWithBackspace': true,
-            'minChars': 0,
-            'minInputWidth': '100%',
-            'placeholderColor': '#666666'
-        });
-        
-        if (window.DEBUG) console.log('Tags input initialized');
+    // Server Interface form submission and validation
+    $(document).ready(function () {
+        if (window.DEBUG) console.log('Setting up form handlers for server interface');
         
         // Add direct click handler for save button
         $('#frm_server_interface button[type="submit"]').on('click', function(e) {
@@ -487,61 +418,13 @@ document.addEventListener('keydown', function(e) {
             submitServerInterfaceSetting();
             return false;
         });
-    });
 
-    // Load server addresses to the form
-    {{range .serverInterface.Addresses}}
-    $("#addresses").removeTag('{{.}}');
-    $("#addresses").addTag('{{.}}');
-    {{end}}
-
-    // Wireguard Interface Addresses form validation
-    $(document).ready(function () {
-        if (window.DEBUG) console.log('Setting up form validation for server interface');
-        
         // Also add a direct submit handler as backup
         $('#frm_server_interface').on('submit', function(e) {
             if (window.DEBUG) console.log('Form submit event triggered');
             e.preventDefault();
-            if ($(this).valid()) {
-                if (window.DEBUG) console.log('Form is valid, calling submitServerInterfaceSetting');
-                submitServerInterfaceSetting();
-            } else {
-                if (window.DEBUG) console.log('Form is not valid');
-            }
+            submitServerInterfaceSetting();
             return false;
-        });
-        
-        $("#frm_server_interface").validate({
-            rules: {
-                listen_port: {
-                    required: true,
-                    digits: true,
-                    range: [1, 65535]
-                }
-            },
-            messages: {
-                listen_port: {
-                    required: window.langManager.translate("Please enter a port"),
-                    digits: window.langManager.translate("Port must be an integer"),
-                    range: window.langManager.translate("Port must be in range 1..65535")
-                }
-            },
-            errorElement: 'span',
-            errorPlacement: function (error, element) {
-                error.addClass('invalid-feedback');
-                element.closest('.form-group').append(error);
-            },
-            highlight: function (element, errorClass, validClass) {
-                $(element).addClass('is-invalid');
-            },
-            unhighlight: function (element, errorClass, validClass) {
-                $(element).removeClass('is-invalid');
-            },
-            submitHandler: function (form) {
-                submitServerInterfaceSetting();
-                return false;
-            }
         });
     });
 

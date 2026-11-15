@@ -1384,13 +1384,24 @@ func WireGuardServerInterfaces(db store.IStore) echo.HandlerFunc {
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Invalid request"})
 		}
 
-		// validate the input addresses
-		if util.ValidateServerAddresses(serverInterface.Addresses) == false {
+		// Keep existing addresses and port if not provided from the form
+		currentServer, err := db.GetServer()
+		if err == nil && currentServer.Interface != nil {
+			if len(serverInterface.Addresses) == 0 {
+				serverInterface.Addresses = currentServer.Interface.Addresses
+			}
+			if serverInterface.ListenPort == 0 {
+				serverInterface.ListenPort = currentServer.Interface.ListenPort
+			}
+		}
+
+		// validate the input addresses if present
+		if len(serverInterface.Addresses) > 0 && util.ValidateServerAddresses(serverInterface.Addresses) == false {
 			log.Warnf("Invalid server interface addresses input from user: %v", serverInterface.Addresses)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Interface IP address must be in CIDR format"})
 		}
 
-		if serverInterface.ListenPort <= 0 || serverInterface.ListenPort > 65535 {
+		if serverInterface.ListenPort > 0 && (serverInterface.ListenPort < 1 || serverInterface.ListenPort > 65535) {
 			log.Warnf("Invalid listen port: %v", serverInterface.ListenPort)
 			return c.JSON(http.StatusBadRequest, jsonHTTPResponse{false, "Port must be in range 1..65535"})
 		}
@@ -1874,13 +1885,46 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get global settings"})
 		}
 
-		// Write config file
+		// Write legacy server config file
 		err = util.WriteWireGuardServerConfig(tmplDir, server, clients, users, settings)
 		if err != nil {
-			log.Error("Cannot apply server config: ", err)
-			return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{
-				false, fmt.Sprintf("Cannot apply server config: %v", err),
-			})
+			log.Warnf("Cannot write legacy server config: %v", err)
+		}
+
+		// Apply all interfaces (multi-interface support)
+		interfaces, err := db.GetInterfaces()
+		if err == nil && len(interfaces) > 0 {
+			written, writeErr := util.WriteAllInterfaceConfigs(tmplDir, interfaces, clients, users, settings)
+
+			var applied, failed []string
+			for _, iface := range interfaces {
+				if !iface.Enabled {
+					continue
+				}
+				if !contains(written, iface.Name) {
+					continue
+				}
+				if _, err := util.SyncOrRestartInterface(iface); err != nil {
+					failed = append(failed, fmt.Sprintf("%s (%v)", iface.Name, err))
+					continue
+				}
+				applied = append(applied, iface.Name)
+			}
+
+			_ = util.UpdateHashes(db)
+
+			if len(failed) > 0 || writeErr != nil {
+				errMsg := fmt.Sprintf("Applied: %s", strings.Join(applied, ", "))
+				if len(failed) > 0 {
+					errMsg += " | Failed: " + strings.Join(failed, "; ")
+				}
+				if writeErr != nil {
+					errMsg += " | Write error: " + writeErr.Error()
+				}
+				return c.JSON(http.StatusOK, jsonHTTPResponse{false, errMsg})
+			}
+
+			return c.JSON(http.StatusOK, jsonHTTPResponse{true, fmt.Sprintf("Applied all interfaces successfully: %s", strings.Join(applied, ", "))})
 		}
 
 		// Get interface name from config file path

@@ -140,7 +140,7 @@ func GetInterface(db store.IStore) echo.HandlerFunc {
 }
 
 // SaveInterface handles POST /api/interfaces (create or update)
-func SaveInterface(db store.IStore) echo.HandlerFunc {
+func SaveInterface(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		var req interfaceRequest
 		if err := c.Bind(&req); err != nil {
@@ -280,6 +280,22 @@ func SaveInterface(db store.IStore) echo.HandlerFunc {
 			}
 			msg += fmt.Sprintf(". %s was stopped; apply the interface to start %s, then re-send client configs",
 				previous.ServiceName(), iface.ServiceName())
+		}
+
+		// Automatically write config and apply the interface so changes take effect immediately
+		if clients, err := db.GetClients(false); err == nil {
+			users, _ := db.GetUsers()
+			settings, _ := db.GetGlobalSettings()
+			peers := util.ClientsForInterface(clients, iface.Name)
+			if err := util.WriteWireGuardInterfaceConfig(tmplDir, iface, peers, users, settings); err != nil {
+				log.Warnf("Cannot write config for interface %s upon save: %v", iface.Name, err)
+			} else if iface.Enabled {
+				if _, err := util.SyncOrRestartInterface(iface); err != nil {
+					log.Warnf("Cannot apply interface %s upon save: %v", iface.Name, err)
+				} else {
+					log.Infof("Interface %s applied automatically upon save", iface.Name)
+				}
+			}
 		}
 
 		log.Infof("Interface %s %s", iface.Name, action)
